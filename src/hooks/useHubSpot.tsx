@@ -19,9 +19,7 @@ export function HubSpotProvider({ children }: { children: ReactNode }) {
   const fetchData = async () => {
     const urlParams = new URLSearchParams(window.location.search);
     // Support multiple parameter names for flexibility
-    // Default portal ID for Quantum (can be overridden via URL)
-    const defaultPortalId = '20682069';
-    const hubspotPortalId = urlParams.get('portalId') || urlParams.get('portal_id') || defaultPortalId;
+    const hubspotPortalId = urlParams.get('portalId') || urlParams.get('portal_id');
     const hubspotUserId = urlParams.get('userId') || urlParams.get('user_id');
     const hubspotDealId = urlParams.get('dealId') || urlParams.get('recordId') || urlParams.get('objectId');
 

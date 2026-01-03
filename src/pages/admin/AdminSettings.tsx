@@ -13,9 +13,8 @@ import { toast } from 'sonner';
 
 export default function AdminSettings() {
   const [searchParams] = useSearchParams();
-  // Support multiple param names and default to Quantum's portal ID
-  const defaultPortalId = '20682069';
-  const portalId = searchParams.get('portalId') || searchParams.get('portal_id') || searchParams.get('recordId') || defaultPortalId;
+  // Support multiple param names
+  const portalId = searchParams.get('portalId') || searchParams.get('portal_id');
   
   const [saving, setSaving] = useState(false);
   const [loading, setLoading] = useState(true);
@@ -47,14 +46,16 @@ export default function AdminSettings() {
       }
 
       try {
-        const { data, error } = await supabase
-          .from('dealer_accounts')
-          .select('*')
-          .eq('hubspot_portal_id', portalId)
-          .maybeSingle();
+        // Use edge function to fetch (bypasses RLS for HubSpot-embedded access)
+        const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
+        const response = await fetch(`${supabaseUrl}/functions/v1/dealer-account-get?portalId=${encodeURIComponent(portalId)}`);
+        const result = await response.json();
 
-        if (error) throw error;
+        if (!response.ok) {
+          throw new Error(result.error || 'Failed to load settings');
+        }
 
+        const data = result.data;
         if (data) {
           setDealerAccountId(data.id);
           setLogoUrl(data.logo_url);
@@ -148,7 +149,6 @@ export default function AdminSettings() {
 
     try {
       const accountData = {
-        hubspot_portal_id: portalId,
         company_name: formData.company_name,
         address_line1: formData.address_line1 || null,
         address_line2: formData.address_line2 || null,
@@ -160,33 +160,30 @@ export default function AdminSettings() {
         email: formData.email || null,
         terms_and_conditions: formData.terms_and_conditions || null,
         logo_url: logoUrl,
-        updated_at: new Date().toISOString(),
       };
 
-      if (dealerAccountId) {
-        // Update existing record
-        const { error } = await supabase
-          .from('dealer_accounts')
-          .update(accountData)
-          .eq('id', dealerAccountId);
+      // Use edge function to save (bypasses RLS for HubSpot-embedded access)
+      const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
+      const response = await fetch(`${supabaseUrl}/functions/v1/dealer-account-save`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ portalId, accountData }),
+      });
 
-        if (error) throw error;
-      } else {
-        // Insert new record
-        const { data, error } = await supabase
-          .from('dealer_accounts')
-          .insert(accountData)
-          .select('id')
-          .single();
+      const result = await response.json();
 
-        if (error) throw error;
-        setDealerAccountId(data.id);
+      if (!response.ok) {
+        throw new Error(result.error || 'Failed to save settings');
+      }
+
+      if (result.id) {
+        setDealerAccountId(result.id);
       }
 
       toast.success('Settings saved successfully');
     } catch (error) {
       console.error('Error saving settings:', error);
-      toast.error('Failed to save settings');
+      toast.error(error instanceof Error ? error.message : 'Failed to save settings');
     } finally {
       setSaving(false);
     }
