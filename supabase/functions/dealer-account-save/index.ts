@@ -15,6 +15,7 @@ Deno.serve(async (req) => {
     const body = await req.json().catch(() => ({} as any));
     const portalId: string | null = body.portalId || body.portal_id || null;
     const accountData = body.accountData;
+    const documentTerms: Record<string, string> | undefined = body.documentTerms;
 
     console.log('Saving dealer account for portal:', portalId);
 
@@ -101,6 +102,30 @@ Deno.serve(async (req) => {
 
       if (error) throw error;
       result = data;
+    }
+
+    // Save document-specific terms if provided
+    if (documentTerms && result?.id) {
+      console.log('Saving document terms for account:', result.id);
+      
+      for (const [docType, terms] of Object.entries(documentTerms)) {
+        if (terms !== undefined) {
+          const { error: upsertError } = await supabase
+            .from('document_terms')
+            .upsert({
+              dealer_account_id: result.id,
+              document_type: docType,
+              terms_and_conditions: terms || null,
+              updated_at: new Date().toISOString(),
+            }, {
+              onConflict: 'dealer_account_id,document_type',
+            });
+
+          if (upsertError) {
+            console.error('Error saving document terms for', docType, ':', upsertError);
+          }
+        }
+      }
     }
 
     console.log('Dealer account saved successfully:', result.id);

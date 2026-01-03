@@ -26,7 +26,6 @@ import {
   Package,
   Loader2,
   Settings,
-  ExternalLink,
   UserCircle,
   Download,
   Eye
@@ -53,6 +52,7 @@ interface DealerInfo {
   phone: string;
   website: string;
   logoUrl?: string;
+  termsAndConditions?: string;
 }
 
 function DocumentHubContent() {
@@ -79,20 +79,22 @@ function DocumentHubContent() {
           return;
         }
 
-        console.log('Dealer info response:', data);
-
         if (data?.dealer) {
           const d = data.dealer;
           const addressParts = [d.address_line1, d.address_line2, `${d.city || ''}, ${d.state || ''} ${d.zip_code || ''}`]
             .filter(Boolean)
             .join(', ');
           
+          // Get quote-specific T&C or fall back to default
+          const quoteTerms = data.documentTerms?.quote || d.terms_and_conditions || '';
+          
           setDealerInfo({
             companyName: d.company_name || '',
             address: addressParts,
             phone: d.phone || '',
             website: d.website || '',
-            logoUrl: d.logo_url || undefined
+            logoUrl: d.logo_url || undefined,
+            termsAndConditions: quoteTerms
           });
         }
       } catch (err) {
@@ -151,10 +153,47 @@ function DocumentHubContent() {
 
       pdf.addImage(imgData, 'PNG', 0, 0, imgWidth, imgHeight);
       
-      const fileName = `Quote_${formData.quoteNumber || 'draft'}_${new Date().toISOString().split('T')[0]}.pdf`;
+      // Generate filename: Quote_Company_Name_Date_Time.pdf
+      const sanitizedCompanyName = (formData.companyName || 'Draft').replace(/[^a-zA-Z0-9\s]/g, '').replace(/\s+/g, '_');
+      const now = new Date();
+      const dateStr = now.toISOString().split('T')[0];
+      const timeStr = now.toTimeString().slice(0, 5).replace(':', '-');
+      const fileName = `Quote_${sanitizedCompanyName}_${dateStr}_${timeStr}.pdf`;
+      
+      // Save locally
       pdf.save(fileName);
 
-      toast.success('Quote PDF downloaded successfully!');
+      // Attach to HubSpot deal
+      const currentPortalId = portalId || localStorage.getItem('hs_portal_id');
+      const dealId = deal?.hsObjectId;
+
+      if (currentPortalId && dealId) {
+        try {
+          // Convert PDF to base64
+          const pdfBase64 = pdf.output('datauristring').split(',')[1];
+          
+          const { error: attachError } = await supabase.functions.invoke('hubspot-attach-file', {
+            body: {
+              portalId: currentPortalId,
+              dealId: dealId,
+              fileName: fileName,
+              fileBase64: pdfBase64
+            }
+          });
+
+          if (attachError) {
+            console.error('Error attaching to HubSpot:', attachError);
+            toast.success('PDF downloaded! (Could not attach to deal)');
+          } else {
+            toast.success('PDF downloaded and attached to deal!');
+          }
+        } catch (attachErr) {
+          console.error('Failed to attach to HubSpot:', attachErr);
+          toast.success('PDF downloaded! (Could not attach to deal)');
+        }
+      } else {
+        toast.success('Quote PDF downloaded successfully!');
+      }
     } catch (err) {
       console.error('PDF generation error:', err);
       toast.error('Failed to generate PDF');

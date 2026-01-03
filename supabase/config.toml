@@ -11,3 +11,6 @@ verify_jwt = false
 
 [functions.dealer-account-save]
 verify_jwt = false
+
+[functions.hubspot-attach-file]
+verify_jwt = false

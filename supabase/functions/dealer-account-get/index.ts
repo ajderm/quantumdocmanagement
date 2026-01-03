@@ -59,9 +59,25 @@ Deno.serve(async (req) => {
       throw error;
     }
 
+    // Fetch document-specific terms if dealer account exists
+    let documentTerms: Record<string, string> = {};
+    if (data?.id) {
+      const { data: termsData, error: termsError } = await supabase
+        .from('document_terms')
+        .select('document_type, terms_and_conditions')
+        .eq('dealer_account_id', data.id);
+
+      if (!termsError && termsData) {
+        documentTerms = termsData.reduce((acc, item) => {
+          acc[item.document_type] = item.terms_and_conditions || '';
+          return acc;
+        }, {} as Record<string, string>);
+      }
+    }
+
     console.log('Dealer account found:', data ? data.id : 'none');
 
-    return new Response(JSON.stringify({ dealer: data }), {
+    return new Response(JSON.stringify({ dealer: data, documentTerms }), {
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
     });
   } catch (error: unknown) {
