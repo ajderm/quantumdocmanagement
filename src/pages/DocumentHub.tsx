@@ -1,11 +1,14 @@
-import { useState } from 'react';
+import { useState, useRef, useCallback } from 'react';
 import { HubSpotProvider, useHubSpot } from '@/hooks/useHubSpot';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { Separator } from '@/components/ui/separator';
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import { ScrollArea } from '@/components/ui/scroll-area';
 import { toast } from 'sonner';
+import html2canvas from 'html2canvas';
+import jsPDF from 'jspdf';
 import { 
   FileText, 
   ClipboardList, 
@@ -23,8 +26,12 @@ import {
   Loader2,
   Settings,
   ExternalLink,
-  UserCircle
+  UserCircle,
+  Download,
+  Eye
 } from 'lucide-react';
+import { QuoteForm, QuoteFormData } from '@/components/quote/QuoteForm';
+import { QuotePreview } from '@/components/quote/QuotePreview';
 
 const documentTypes = [
   { code: 'quote', name: 'Quote', icon: FileText },
@@ -42,6 +49,77 @@ const documentTypes = [
 function DocumentHubContent() {
   const { deal, company, contacts, lineItems, dealOwner, loading, error } = useHubSpot();
   const [generating, setGenerating] = useState(false);
+  const [showPreview, setShowPreview] = useState(false);
+  const [formData, setFormData] = useState<QuoteFormData | null>(null);
+  const previewRef = useRef<HTMLDivElement>(null);
+
+  const handleFormChange = useCallback((data: QuoteFormData) => {
+    setFormData(data);
+  }, []);
+
+  const handleGeneratePDF = async () => {
+    if (!previewRef.current || !formData) {
+      toast.error('Please fill in the quote details first');
+      return;
+    }
+
+    setGenerating(true);
+    try {
+      // Create a temporary container for rendering
+      const tempContainer = document.createElement('div');
+      tempContainer.style.position = 'absolute';
+      tempContainer.style.left = '-9999px';
+      tempContainer.style.top = '0';
+      document.body.appendChild(tempContainer);
+
+      // Clone the preview element
+      const clone = previewRef.current.cloneNode(true) as HTMLElement;
+      tempContainer.appendChild(clone);
+
+      // Wait for rendering
+      await new Promise(resolve => setTimeout(resolve, 100));
+
+      const canvas = await html2canvas(clone, {
+        scale: 2,
+        useCORS: true,
+        logging: false,
+        backgroundColor: '#ffffff',
+      });
+
+      // Clean up
+      document.body.removeChild(tempContainer);
+
+      const imgData = canvas.toDataURL('image/png');
+      const pdf = new jsPDF({
+        orientation: 'portrait',
+        unit: 'in',
+        format: 'letter',
+      });
+
+      const imgWidth = 8.5;
+      const imgHeight = (canvas.height * imgWidth) / canvas.width;
+
+      pdf.addImage(imgData, 'PNG', 0, 0, imgWidth, imgHeight);
+      
+      const fileName = `Quote_${formData.quoteNumber || 'draft'}_${new Date().toISOString().split('T')[0]}.pdf`;
+      pdf.save(fileName);
+
+      toast.success('Quote PDF downloaded successfully!');
+    } catch (err) {
+      console.error('PDF generation error:', err);
+      toast.error('Failed to generate PDF');
+    } finally {
+      setGenerating(false);
+    }
+  };
+
+  const handlePreview = () => {
+    if (!formData) {
+      toast.error('Please fill in the quote details first');
+      return;
+    }
+    setShowPreview(true);
+  };
 
   if (loading) {
     return (
@@ -63,21 +141,6 @@ function DocumentHubContent() {
       </div>
     );
   }
-
-  const totalEquipmentValue = lineItems.reduce((sum, item) => sum + item.price * item.quantity, 0);
-
-  const handleGeneratePDF = async () => {
-    setGenerating(true);
-    try {
-      // TODO: Implement actual PDF generation via edge function
-      await new Promise(resolve => setTimeout(resolve, 1500));
-      toast.success('Quote PDF generated successfully!');
-    } catch (err) {
-      toast.error('Failed to generate PDF');
-    } finally {
-      setGenerating(false);
-    }
-  };
 
   return (
     <div className="min-h-screen bg-background">
@@ -181,88 +244,27 @@ function DocumentHubContent() {
                 </CardDescription>
               </CardHeader>
               <CardContent className="space-y-4">
-                {/* Customer Info Preview */}
-                <div>
-                  <h4 className="text-sm font-medium mb-2">Customer Information</h4>
-                  <div className="bg-muted/50 rounded-lg p-3 text-sm space-y-1">
-                    <p className="font-medium">{company?.name}</p>
-                    <p className="text-muted-foreground">{company?.address}</p>
-                    <p className="text-muted-foreground">
-                      {company?.city}, {company?.state} {company?.zip}
-                    </p>
-                    {contacts[0] && (
-                      <p className="text-muted-foreground mt-2">
-                        Attn: {contacts[0].firstName} {contacts[0].lastName}
-                        {contacts[0].title && `, ${contacts[0].title}`}
-                      </p>
-                    )}
-                  </div>
-                </div>
-
-                <Separator />
-
-                {/* Line Items Preview */}
-                <div>
-                  <h4 className="text-sm font-medium mb-2">Equipment</h4>
-                  <div className="space-y-2">
-                    {lineItems.map((item) => (
-                      <div
-                        key={item.id}
-                        className="flex items-center justify-between bg-muted/50 rounded-lg p-3 text-sm"
-                      >
-                        <div className="flex-1">
-                          <p className="font-medium">{item.name}</p>
-                          {item.description && (
-                            <p className="text-xs text-muted-foreground">{item.description}</p>
-                          )}
-                        </div>
-                        <div className="text-right">
-                          <p className="font-medium">${item.price.toLocaleString()}</p>
-                          <p className="text-xs text-muted-foreground">Qty: {item.quantity}</p>
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                  <div className="flex justify-between mt-3 pt-3 border-t">
-                    <span className="font-medium">Equipment Total</span>
-                    <span className="font-semibold">${totalEquipmentValue.toLocaleString()}</span>
-                  </div>
-                </div>
-
-                <Separator />
-
-                {/* Lease Options Preview */}
-                <div>
-                  <h4 className="text-sm font-medium mb-2">Lease Options</h4>
-                  <div className="grid grid-cols-3 gap-2">
-                    {[36, 48, 60].map((term) => (
-                      <div key={term} className="bg-muted/50 rounded-lg p-3 text-center">
-                        <p className="text-xs text-muted-foreground">{term} months</p>
-                        <p className="font-semibold">
-                          ${Math.round(totalEquipmentValue * (term === 36 ? 0.032 : term === 48 ? 0.026 : 0.022)).toLocaleString()}/mo
-                        </p>
-                      </div>
-                    ))}
-                  </div>
-                  <p className="text-xs text-muted-foreground mt-2">
-                    * Rates shown are estimates. Select a leasing partner for accurate pricing.
-                  </p>
-                </div>
-
-                <Separator />
+                <QuoteForm
+                  deal={deal}
+                  company={company}
+                  contacts={contacts}
+                  lineItems={lineItems}
+                  dealOwner={dealOwner}
+                  onFormChange={handleFormChange}
+                />
 
                 {/* Actions */}
-                <div className="flex gap-2">
+                <div className="flex gap-2 pt-4 border-t">
                   <Button className="flex-1" onClick={handleGeneratePDF} disabled={generating}>
                     {generating ? (
                       <Loader2 className="h-4 w-4 mr-2 animate-spin" />
                     ) : (
-                      <FileText className="h-4 w-4 mr-2" />
+                      <Download className="h-4 w-4 mr-2" />
                     )}
                     {generating ? 'Generating...' : 'Generate PDF'}
                   </Button>
-                  <Button variant="outline">
-                    <ExternalLink className="h-4 w-4 mr-2" />
+                  <Button variant="outline" onClick={handlePreview}>
+                    <Eye className="h-4 w-4 mr-2" />
                     Preview
                   </Button>
                 </div>
@@ -286,6 +288,31 @@ function DocumentHubContent() {
           ))}
         </Tabs>
       </div>
+
+      {/* Hidden preview for PDF generation */}
+      <div className="hidden">
+        {formData && (
+          <QuotePreview ref={previewRef} formData={formData} />
+        )}
+      </div>
+
+      {/* Preview Dialog */}
+      <Dialog open={showPreview} onOpenChange={setShowPreview}>
+        <DialogContent className="max-w-4xl max-h-[90vh] p-0">
+          <DialogHeader className="p-4 pb-0">
+            <DialogTitle>Quote Preview</DialogTitle>
+          </DialogHeader>
+          <ScrollArea className="max-h-[calc(90vh-80px)]">
+            <div className="p-4 flex justify-center">
+              {formData && (
+                <div className="shadow-lg border">
+                  <QuotePreview formData={formData} />
+                </div>
+              )}
+            </div>
+          </ScrollArea>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
