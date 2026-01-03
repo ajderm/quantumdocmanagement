@@ -5,3 +5,9 @@ verify_jwt = false
 
 [functions.hubspot-get-deal]
 verify_jwt = false
+
+[functions.dealer-account-get]
+verify_jwt = false
+
+[functions.dealer-account-save]
+verify_jwt = false

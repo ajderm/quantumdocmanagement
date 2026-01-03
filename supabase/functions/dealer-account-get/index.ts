@@ -13,21 +13,40 @@ Deno.serve(async (req) => {
 
   try {
     const url = new URL(req.url);
-    const portalId = url.searchParams.get('portalId');
+
+    let portalId = url.searchParams.get('portalId');
+    if (!portalId) {
+      const body = await req.json().catch(() => ({} as any));
+      portalId = body.portalId || body.portal_id;
+    }
 
     console.log('Fetching dealer account for portal:', portalId);
 
     if (!portalId) {
-      return new Response(
-        JSON.stringify({ error: 'Portal ID is required' }),
-        { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-      );
+      return new Response(JSON.stringify({ error: 'Portal ID is required' }), {
+        status: 400,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      });
     }
 
     // Use service role to bypass RLS
     const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
     const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
     const supabase = createClient(supabaseUrl, supabaseServiceKey);
+
+    // Basic guard: portal must have completed OAuth (token exists)
+    const { data: token } = await supabase
+      .from('hubspot_tokens')
+      .select('portal_id')
+      .eq('portal_id', portalId)
+      .maybeSingle();
+
+    if (!token) {
+      return new Response(JSON.stringify({ error: 'Portal not connected' }), {
+        status: 403,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      });
+    }
 
     const { data, error } = await supabase
       .from('dealer_accounts')
@@ -42,17 +61,15 @@ Deno.serve(async (req) => {
 
     console.log('Dealer account found:', data ? data.id : 'none');
 
-    return new Response(
-      JSON.stringify({ data }),
-      { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-    );
-
+    return new Response(JSON.stringify({ data }), {
+      headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+    });
   } catch (error: unknown) {
     console.error('Error fetching dealer account:', error);
     const message = error instanceof Error ? error.message : 'Failed to fetch settings';
-    return new Response(
-      JSON.stringify({ error: message }),
-      { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-    );
+    return new Response(JSON.stringify({ error: message }), {
+      status: 500,
+      headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+    });
   }
 });

@@ -12,28 +12,44 @@ Deno.serve(async (req) => {
   }
 
   try {
-    const { portalId, accountData } = await req.json();
+    const body = await req.json().catch(() => ({} as any));
+    const portalId: string | null = body.portalId || body.portal_id || null;
+    const accountData = body.accountData;
 
     console.log('Saving dealer account for portal:', portalId);
 
     if (!portalId) {
-      return new Response(
-        JSON.stringify({ error: 'Portal ID is required' }),
-        { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-      );
+      return new Response(JSON.stringify({ error: 'Portal ID is required' }), {
+        status: 400,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      });
     }
 
     if (!accountData?.company_name?.trim()) {
-      return new Response(
-        JSON.stringify({ error: 'Company name is required' }),
-        { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-      );
+      return new Response(JSON.stringify({ error: 'Company name is required' }), {
+        status: 400,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      });
     }
 
     // Use service role to bypass RLS
     const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
     const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
     const supabase = createClient(supabaseUrl, supabaseServiceKey);
+
+    // Basic guard: portal must have completed OAuth (token exists)
+    const { data: token } = await supabase
+      .from('hubspot_tokens')
+      .select('portal_id')
+      .eq('portal_id', portalId)
+      .maybeSingle();
+
+    if (!token) {
+      return new Response(JSON.stringify({ error: 'Portal not connected' }), {
+        status: 403,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      });
+    }
 
     // Check if account exists
     const { data: existing, error: fetchError } = await supabase
@@ -65,7 +81,6 @@ Deno.serve(async (req) => {
 
     let result;
     if (existing) {
-      // Update existing
       console.log('Updating existing dealer account:', existing.id);
       const { data, error } = await supabase
         .from('dealer_accounts')
@@ -77,7 +92,6 @@ Deno.serve(async (req) => {
       if (error) throw error;
       result = data;
     } else {
-      // Insert new
       console.log('Creating new dealer account for portal:', portalId);
       const { data, error } = await supabase
         .from('dealer_accounts')
@@ -91,17 +105,15 @@ Deno.serve(async (req) => {
 
     console.log('Dealer account saved successfully:', result.id);
 
-    return new Response(
-      JSON.stringify({ success: true, id: result.id }),
-      { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-    );
-
+    return new Response(JSON.stringify({ success: true, id: result.id }), {
+      headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+    });
   } catch (error: unknown) {
     console.error('Error saving dealer account:', error);
     const message = error instanceof Error ? error.message : 'Failed to save settings';
-    return new Response(
-      JSON.stringify({ error: message }),
-      { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-    );
+    return new Response(JSON.stringify({ error: message }), {
+      status: 500,
+      headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+    });
   }
 });
