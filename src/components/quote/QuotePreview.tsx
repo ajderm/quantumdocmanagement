@@ -8,6 +8,7 @@ interface QuotePreviewProps {
     address: string;
     phone: string;
     website: string;
+    logoUrl?: string;
   };
 }
 
@@ -43,6 +44,15 @@ export const QuotePreview = forwardRef<HTMLDivElement, QuotePreviewProps>(
           <div>
             {dealerInfo && (
               <>
+                {dealerInfo.logoUrl && (
+                  <img 
+                    src={dealerInfo.logoUrl} 
+                    alt={dealerInfo.companyName} 
+                    className="h-12 mb-2 object-contain"
+                    crossOrigin="anonymous"
+                  />
+                )}
+                <p className="font-bold text-base">{dealerInfo.companyName}</p>
                 <p className="text-sm">{dealerInfo.address}</p>
                 <p className="text-sm">{dealerInfo.phone}</p>
                 <p className="text-sm">{dealerInfo.website}</p>
