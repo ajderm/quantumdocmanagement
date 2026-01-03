@@ -1,68 +1,136 @@
-import { createContext, useContext, useState, useEffect, ReactNode } from 'react';
+import { createContext, useContext, useEffect, useState, type ReactNode } from "react";
+import { supabase } from "@/integrations/supabase/client";
 
-interface HubSpotContextType { portalId: string | null; userId: string | null; deal: any; company: any; contacts: any[]; lineItems: any[]; dealOwner: any; loading: boolean; isEmbedded: boolean; error: string | null; refetch: () => Promise<void>; }
+type HubSpotContextType = {
+  portalId: string | null;
+  userId: string | null;
+  deal: any;
+  company: any;
+  contacts: any[];
+  lineItems: any[];
+  dealOwner: any;
+  loading: boolean;
+  isEmbedded: boolean;
+  error: string | null;
+  refetch: () => Promise<void>;
+};
+
+const STORAGE_KEYS = {
+  portalId: "hs_portal_id",
+  userId: "hs_user_id",
+};
+
+function readHubSpotParams() {
+  const urlParams = new URLSearchParams(window.location.search);
+  const portalId = urlParams.get("portalId") || urlParams.get("portal_id");
+  const userId = urlParams.get("userId") || urlParams.get("user_id");
+  const dealId = urlParams.get("dealId") || urlParams.get("recordId") || urlParams.get("objectId");
+
+  return { portalId, userId, dealId };
+}
 
 const HubSpotContext = createContext<HubSpotContextType | undefined>(undefined);
 
 export function HubSpotProvider({ children }: { children: ReactNode }) {
-  const [portalId, setPortalId] = useState<string | null>(null);
-  const [userId, setUserId] = useState<string | null>(null);
+  const [portalId, setPortalId] = useState<string | null>(() =>
+    typeof window !== "undefined" ? window.localStorage.getItem(STORAGE_KEYS.portalId) : null
+  );
+  const [userId, setUserId] = useState<string | null>(() =>
+    typeof window !== "undefined" ? window.localStorage.getItem(STORAGE_KEYS.userId) : null
+  );
+
   const [deal, setDeal] = useState<any>(null);
   const [company, setCompany] = useState<any>(null);
   const [contacts, setContacts] = useState<any[]>([]);
   const [lineItems, setLineItems] = useState<any[]>([]);
   const [dealOwner, setDealOwner] = useState<any>(null);
+
   const [loading, setLoading] = useState(true);
   const [isEmbedded, setIsEmbedded] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   const fetchData = async () => {
-    const urlParams = new URLSearchParams(window.location.search);
-    // Support multiple parameter names for flexibility
-    const hubspotPortalId = urlParams.get('portalId') || urlParams.get('portal_id');
-    const hubspotUserId = urlParams.get('userId') || urlParams.get('user_id');
-    const hubspotDealId = urlParams.get('dealId') || urlParams.get('recordId') || urlParams.get('objectId');
+    const { portalId: portalIdFromUrl, userId: userIdFromUrl, dealId } = readHubSpotParams();
 
-    console.log('useHubSpot: URL params - portalId:', hubspotPortalId, 'dealId:', hubspotDealId, 'full search:', window.location.search);
+    // Persist portal/user for later (e.g. settings tab opened without params)
+    if (portalIdFromUrl) window.localStorage.setItem(STORAGE_KEYS.portalId, portalIdFromUrl);
+    if (userIdFromUrl) window.localStorage.setItem(STORAGE_KEYS.userId, userIdFromUrl);
 
-    if (hubspotPortalId && hubspotDealId) {
+    const effectivePortalId = portalIdFromUrl || window.localStorage.getItem(STORAGE_KEYS.portalId);
+    const effectiveUserId = userIdFromUrl || window.localStorage.getItem(STORAGE_KEYS.userId);
+
+    setPortalId(effectivePortalId);
+    setUserId(effectiveUserId);
+
+    console.log(
+      "useHubSpot: URL params - portalId:",
+      portalIdFromUrl,
+      "dealId:",
+      dealId,
+      "full search:",
+      window.location.search
+    );
+
+    // Only fetch deal data when we have a dealId (portalId can come from URL or storage)
+    if (effectivePortalId && dealId) {
       setIsEmbedded(true);
-      setPortalId(hubspotPortalId);
-      setUserId(hubspotUserId);
 
       try {
-        console.log('Fetching HubSpot data for portal:', hubspotPortalId, 'deal:', hubspotDealId);
-        const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
-        const functionUrl = `${supabaseUrl}/functions/v1/hubspot-get-deal?portalId=${encodeURIComponent(hubspotPortalId)}&dealId=${encodeURIComponent(hubspotDealId)}`;
-        const response = await fetch(functionUrl, { method: 'GET', headers: { 'Content-Type': 'application/json' } });
-        if (!response.ok) { 
-          const errorData = await response.json().catch(() => ({})); 
-          console.error('API error response:', errorData);
-          throw new Error(errorData.error || 'Failed to fetch deal data'); 
-        }
-        const dealData = await response.json();
-        console.log('Deal data received:', dealData);
-        if (dealData.deal) setDeal(dealData.deal);
-        if (dealData.company) setCompany(dealData.company);
-        if (dealData.contacts) setContacts(dealData.contacts);
-        if (dealData.lineItems) setLineItems(dealData.lineItems);
-        if (dealData.dealOwner) setDealOwner(dealData.dealOwner);
+        const { data, error: invokeError } = await supabase.functions.invoke("hubspot-get-deal", {
+          body: { portalId: effectivePortalId, dealId },
+        });
+
+        if (invokeError) throw invokeError;
+
+        if (data?.deal) setDeal(data.deal);
+        if (data?.company) setCompany(data.company);
+        if (data?.contacts) setContacts(data.contacts);
+        if (data?.lineItems) setLineItems(data.lineItems);
+        if (data?.dealOwner) setDealOwner(data.dealOwner);
+
         setError(null);
-      } catch (err) { 
-        console.error('Error fetching HubSpot data:', err); 
-        setError(err instanceof Error ? err.message : 'Failed to load deal data'); 
+      } catch (err: unknown) {
+        console.error("Error fetching HubSpot data:", err);
+        setError(err instanceof Error ? err.message : "Failed to load deal data");
       }
     } else {
-      console.log('useHubSpot: Missing portalId or dealId, not fetching data');
-      if (!hubspotPortalId) console.log('Missing portalId - add ?portalId=YOUR_PORTAL_ID to URL');
-      if (!hubspotDealId) console.log('Missing dealId - add &dealId=DEAL_ID or &recordId=DEAL_ID to URL');
+      setIsEmbedded(Boolean(dealId));
+      console.log("useHubSpot: Missing portalId or dealId, not fetching data");
+      if (!effectivePortalId) console.log("Missing portalId - add ?portalId=YOUR_PORTAL_ID to URL");
+      if (!dealId) console.log("Missing dealId - add &dealId=DEAL_ID or &recordId=DEAL_ID to URL");
     }
+
     setLoading(false);
   };
 
-  useEffect(() => { fetchData(); }, []);
+  useEffect(() => {
+    fetchData();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
-  return <HubSpotContext.Provider value={{ portalId, userId, deal, company, contacts, lineItems, dealOwner, loading, isEmbedded, error, refetch: fetchData }}>{children}</HubSpotContext.Provider>;
+  return (
+    <HubSpotContext.Provider
+      value={{
+        portalId,
+        userId,
+        deal,
+        company,
+        contacts,
+        lineItems,
+        dealOwner,
+        loading,
+        isEmbedded,
+        error,
+        refetch: fetchData,
+      }}
+    >
+      {children}
+    </HubSpotContext.Provider>
+  );
 }
 
-export function useHubSpot() { const context = useContext(HubSpotContext); if (context === undefined) throw new Error('useHubSpot must be used within a HubSpotProvider'); return context; }
+export function useHubSpot() {
+  const context = useContext(HubSpotContext);
+  if (context === undefined) throw new Error("useHubSpot must be used within a HubSpotProvider");
+  return context;
+}

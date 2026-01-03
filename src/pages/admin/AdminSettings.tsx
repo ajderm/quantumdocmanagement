@@ -13,8 +13,11 @@ import { toast } from 'sonner';
 
 export default function AdminSettings() {
   const [searchParams] = useSearchParams();
-  // Support multiple param names
-  const portalId = searchParams.get('portalId') || searchParams.get('portal_id');
+  // Support multiple param names + localStorage fallback (new tab may not include URL params)
+  const portalId =
+    searchParams.get('portalId') ||
+    searchParams.get('portal_id') ||
+    (typeof window !== 'undefined' ? window.localStorage.getItem('hs_portal_id') : null);
   
   const [saving, setSaving] = useState(false);
   const [loading, setLoading] = useState(true);
@@ -46,16 +49,13 @@ export default function AdminSettings() {
       }
 
       try {
-        // Use edge function to fetch (bypasses RLS for HubSpot-embedded access)
-        const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
-        const response = await fetch(`${supabaseUrl}/functions/v1/dealer-account-get?portalId=${encodeURIComponent(portalId)}`);
-        const result = await response.json();
+        const { data: result, error: invokeError } = await supabase.functions.invoke('dealer-account-get', {
+          body: { portalId },
+        });
 
-        if (!response.ok) {
-          throw new Error(result.error || 'Failed to load settings');
-        }
+        if (invokeError) throw invokeError;
 
-        const data = result.data;
+        const data = result?.data;
         if (data) {
           setDealerAccountId(data.id);
           setLogoUrl(data.logo_url);
@@ -162,21 +162,13 @@ export default function AdminSettings() {
         logo_url: logoUrl,
       };
 
-      // Use edge function to save (bypasses RLS for HubSpot-embedded access)
-      const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
-      const response = await fetch(`${supabaseUrl}/functions/v1/dealer-account-save`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ portalId, accountData }),
+      const { data: result, error: invokeError } = await supabase.functions.invoke('dealer-account-save', {
+        body: { portalId, accountData },
       });
 
-      const result = await response.json();
+      if (invokeError) throw invokeError;
 
-      if (!response.ok) {
-        throw new Error(result.error || 'Failed to save settings');
-      }
-
-      if (result.id) {
+      if (result?.id) {
         setDealerAccountId(result.id);
       }
 
@@ -187,6 +179,7 @@ export default function AdminSettings() {
     } finally {
       setSaving(false);
     }
+  };
   };
 
   if (loading) {

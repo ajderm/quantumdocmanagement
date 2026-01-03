@@ -132,8 +132,16 @@ Deno.serve(async (req) => {
 
   try {
     const url = new URL(req.url);
-    const portalId = url.searchParams.get('portalId');
-    const dealId = url.searchParams.get('dealId');
+
+    // Accept both GET query params and POST JSON body
+    let portalId = url.searchParams.get('portalId');
+    let dealId = url.searchParams.get('dealId');
+
+    if ((!portalId || !dealId) && req.method !== 'GET') {
+      const body = await req.json().catch(() => ({} as any));
+      portalId = portalId || body.portalId || body.portal_id;
+      dealId = dealId || body.dealId || body.recordId || body.objectId;
+    }
 
     console.log('Request received - portalId:', portalId, 'dealId:', dealId);
 
