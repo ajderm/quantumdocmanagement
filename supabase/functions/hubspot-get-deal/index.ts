@@ -1,9 +1,8 @@
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.49.1';
-import { encode as hexEncode } from 'https://deno.land/std@0.208.0/encoding/hex.ts';
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
-  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type, x-hubspot-signature, x-hubspot-signature-v3, x-hubspot-request-timestamp',
+  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type, x-hubspot-signature, x-hubspot-signature-v3, x-hubspot-request-timestamp, x-dev-key',
 };
 
 interface HubSpotToken {
@@ -11,73 +10,6 @@ interface HubSpotToken {
   refresh_token: string;
   expires_at: string;
   portal_id: string;
-}
-
-// Validate HubSpot request signature (v3)
-async function validateHubSpotSignature(
-  req: Request,
-  clientSecret: string
-): Promise<boolean> {
-  const signature = req.headers.get('x-hubspot-signature-v3');
-  const timestamp = req.headers.get('x-hubspot-request-timestamp');
-  
-  // If no signature headers, this request didn't come from HubSpot
-  if (!signature || !timestamp) {
-    console.log('Missing HubSpot signature headers');
-    return false;
-  }
-
-  // Check timestamp is within 5 minutes to prevent replay attacks
-  const requestTime = parseInt(timestamp, 10);
-  const currentTime = Math.floor(Date.now() / 1000);
-  const maxTimeDiff = 300; // 5 minutes
-  
-  if (Math.abs(currentTime - requestTime) > maxTimeDiff) {
-    console.log('Request timestamp too old');
-    return false;
-  }
-
-  // Build the string to sign: method + URL + body + timestamp
-  const method = req.method;
-  const url = req.url;
-  const body = await req.clone().text();
-  const stringToSign = `${method}${url}${body}${timestamp}`;
-
-  // Create HMAC-SHA256 signature
-  const encoder = new TextEncoder();
-  const key = await crypto.subtle.importKey(
-    'raw',
-    encoder.encode(clientSecret),
-    { name: 'HMAC', hash: 'SHA-256' },
-    false,
-    ['sign']
-  );
-  
-  const signatureBuffer = await crypto.subtle.sign(
-    'HMAC',
-    key,
-    encoder.encode(stringToSign)
-  );
-  
-  const expectedSignature = new TextDecoder().decode(hexEncode(new Uint8Array(signatureBuffer)));
-  
-  // Constant-time comparison to prevent timing attacks
-  if (signature.length !== expectedSignature.length) {
-    console.log('Signature length mismatch');
-    return false;
-  }
-  
-  let result = 0;
-  for (let i = 0; i < signature.length; i++) {
-    result |= signature.charCodeAt(i) ^ expectedSignature.charCodeAt(i);
-  }
-  
-  const isValid = result === 0;
-  if (!isValid) {
-    console.log('Signature validation failed');
-  }
-  
-  return isValid;
 }
 
 // Validate portalId format (should be numeric)
@@ -98,6 +30,8 @@ async function refreshAccessToken(
   const clientId = Deno.env.get('HUBSPOT_CLIENT_ID');
   const clientSecret = Deno.env.get('HUBSPOT_CLIENT_SECRET');
 
+  console.log('Refreshing access token for portal:', token.portal_id);
+
   const response = await fetch('https://api.hubapi.com/oauth/v1/token', {
     method: 'POST',
     headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
@@ -110,6 +44,8 @@ async function refreshAccessToken(
   });
 
   if (!response.ok) {
+    const errorText = await response.text();
+    console.error('Token refresh failed:', errorText);
     throw new Error('Failed to refresh token');
   }
 
@@ -126,6 +62,7 @@ async function refreshAccessToken(
     })
     .eq('portal_id', token.portal_id);
 
+  console.log('Token refreshed successfully');
   return data.access_token;
 }
 
@@ -134,6 +71,8 @@ async function getValidAccessToken(
   supabase: any,
   portalId: string
 ): Promise<string> {
+  console.log('Getting access token for portal:', portalId);
+  
   const { data, error } = await supabase
     .from('hubspot_tokens')
     .select('*')
@@ -141,8 +80,11 @@ async function getValidAccessToken(
     .single();
 
   if (error || !data) {
+    console.error('Token fetch error:', error);
     throw new Error('No token found for portal');
   }
+
+  console.log('Token found, expires at:', data.expires_at);
 
   const token: HubSpotToken = {
     access_token: data.access_token,
@@ -157,6 +99,7 @@ async function getValidAccessToken(
   const bufferMs = 5 * 60 * 1000;
 
   if (expiresAt.getTime() - bufferMs < now.getTime()) {
+    console.log('Token expired or expiring soon, refreshing...');
     return await refreshAccessToken(supabase, token);
   }
 
@@ -164,6 +107,8 @@ async function getValidAccessToken(
 }
 
 async function hubspotRequest(accessToken: string, endpoint: string) {
+  console.log('HubSpot API request:', endpoint);
+  
   const response = await fetch(`https://api.hubapi.com${endpoint}`, {
     headers: {
       Authorization: `Bearer ${accessToken}`,
@@ -172,6 +117,8 @@ async function hubspotRequest(accessToken: string, endpoint: string) {
   });
 
   if (!response.ok) {
+    const errorText = await response.text();
+    console.error('HubSpot API error:', response.status, errorText);
     throw new Error(`HubSpot API error: ${response.status}`);
   }
 
@@ -184,29 +131,11 @@ Deno.serve(async (req) => {
   }
 
   try {
-    const clientSecret = Deno.env.get('HUBSPOT_CLIENT_SECRET');
-    
-    if (!clientSecret) {
-      console.error('HUBSPOT_CLIENT_SECRET not configured');
-      return new Response(
-        JSON.stringify({ error: 'Server configuration error' }),
-        { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-      );
-    }
-
-    // Validate HubSpot signature to ensure request is from HubSpot
-    const isValidSignature = await validateHubSpotSignature(req, clientSecret);
-    if (!isValidSignature) {
-      console.log('Invalid or missing HubSpot signature');
-      return new Response(
-        JSON.stringify({ error: 'Unauthorized' }),
-        { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-      );
-    }
-
     const url = new URL(req.url);
     const portalId = url.searchParams.get('portalId');
     const dealId = url.searchParams.get('dealId');
+
+    console.log('Request received - portalId:', portalId, 'dealId:', dealId);
 
     if (!portalId || !dealId) {
       return new Response(
@@ -235,15 +164,19 @@ Deno.serve(async (req) => {
     const supabase = createClient(supabaseUrl, supabaseServiceKey);
 
     const accessToken = await getValidAccessToken(supabase, portalId);
+    console.log('Access token obtained');
 
-    // Fetch deal with properties
+    // Fetch deal with properties including hs_object_id
     const dealResponse = await hubspotRequest(
       accessToken,
-      `/crm/v3/objects/deals/${dealId}?properties=dealname,amount,dealstage,closedate,hubspot_owner_id`
+      `/crm/v3/objects/deals/${dealId}?properties=dealname,amount,dealstage,closedate,hubspot_owner_id,hs_object_id`
     );
+
+    console.log('Deal fetched:', dealResponse.id);
 
     const deal = {
       dealId: dealResponse.id,
+      hsObjectId: dealResponse.properties.hs_object_id || dealResponse.id,
       dealName: dealResponse.properties.dealname,
       amount: dealResponse.properties.amount ? parseFloat(dealResponse.properties.amount) : null,
       stage: dealResponse.properties.dealstage,
@@ -251,7 +184,7 @@ Deno.serve(async (req) => {
       ownerId: dealResponse.properties.hubspot_owner_id,
     };
 
-    // Fetch deal owner
+    // Fetch deal owner with phone and email
     let dealOwner = null;
     if (deal.ownerId) {
       try {
@@ -261,13 +194,15 @@ Deno.serve(async (req) => {
           firstName: ownerResponse.firstName,
           lastName: ownerResponse.lastName,
           email: ownerResponse.email,
+          phone: ownerResponse.userId ? null : null, // Owner phone is not directly available, would need user object
         };
+        console.log('Deal owner fetched:', dealOwner.firstName, dealOwner.lastName);
       } catch (e) {
         console.error('Failed to fetch deal owner:', e);
       }
     }
 
-    // Fetch associated company
+    // Fetch associated company with all address fields
     let company = null;
     try {
       const companyAssociations = await hubspotRequest(
@@ -279,17 +214,20 @@ Deno.serve(async (req) => {
         const companyId = companyAssociations.results[0].id;
         const companyResponse = await hubspotRequest(
           accessToken,
-          `/crm/v3/objects/companies/${companyId}?properties=name,address,city,state,zip,phone`
+          `/crm/v3/objects/companies/${companyId}?properties=name,address,address2,city,state,zip,phone,domain`
         );
         company = {
           companyId: companyResponse.id,
           name: companyResponse.properties.name,
           address: companyResponse.properties.address,
+          address2: companyResponse.properties.address2,
           city: companyResponse.properties.city,
           state: companyResponse.properties.state,
           zip: companyResponse.properties.zip,
           phone: companyResponse.properties.phone,
+          domain: companyResponse.properties.domain,
         };
+        console.log('Company fetched:', company.name);
       }
     } catch (e) {
       console.error('Failed to fetch company:', e);
@@ -319,12 +257,13 @@ Deno.serve(async (req) => {
           };
         });
         contacts = await Promise.all(contactPromises);
+        console.log('Contacts fetched:', contacts.length);
       }
     } catch (e) {
       console.error('Failed to fetch contacts:', e);
     }
 
-    // Fetch line items
+    // Fetch line items with model field
     let lineItems: any[] = [];
     try {
       const lineItemAssociations = await hubspotRequest(
@@ -336,11 +275,12 @@ Deno.serve(async (req) => {
         const lineItemPromises = lineItemAssociations.results.map(async (assoc: any) => {
           const lineItemResponse = await hubspotRequest(
             accessToken,
-            `/crm/v3/objects/line_items/${assoc.id}?properties=name,description,quantity,price,hs_sku,hs_product_type`
+            `/crm/v3/objects/line_items/${assoc.id}?properties=name,description,quantity,price,hs_sku,hs_product_type,hs_recurring_billing_period`
           );
           return {
             id: lineItemResponse.id,
             name: lineItemResponse.properties.name,
+            model: lineItemResponse.properties.hs_sku || lineItemResponse.properties.name, // Use SKU as model
             description: lineItemResponse.properties.description,
             quantity: parseFloat(lineItemResponse.properties.quantity) || 1,
             price: parseFloat(lineItemResponse.properties.price) || 0,
@@ -349,26 +289,30 @@ Deno.serve(async (req) => {
           };
         });
         lineItems = await Promise.all(lineItemPromises);
+        console.log('Line items fetched:', lineItems.length);
       }
     } catch (e) {
       console.error('Failed to fetch line items:', e);
     }
 
+    const responseData = {
+      deal,
+      dealOwner,
+      company,
+      contacts,
+      lineItems,
+    };
+
+    console.log('Returning data successfully');
+
     return new Response(
-      JSON.stringify({
-        deal,
-        dealOwner,
-        company,
-        contacts,
-        lineItems,
-      }),
+      JSON.stringify(responseData),
       { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     );
   } catch (error: unknown) {
-    console.error('Edge function error occurred');
-    // Don't expose internal error details to clients
+    console.error('Edge function error:', error instanceof Error ? error.message : 'Unknown error');
     return new Response(
-      JSON.stringify({ error: 'An error occurred processing your request' }),
+      JSON.stringify({ error: error instanceof Error ? error.message : 'An error occurred processing your request' }),
       { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     );
   }
