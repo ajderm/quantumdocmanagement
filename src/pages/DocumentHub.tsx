@@ -1,4 +1,5 @@
 import { useState, useRef, useCallback } from 'react';
+import { useSearchParams } from 'react-router-dom';
 import { HubSpotProvider, useHubSpot } from '@/hooks/useHubSpot';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -47,7 +48,8 @@ const documentTypes = [
 ];
 
 function DocumentHubContent() {
-  const { deal, company, contacts, lineItems, dealOwner, loading, error } = useHubSpot();
+  const [searchParams] = useSearchParams();
+  const { deal, company, contacts, lineItems, dealOwner, loading, error, portalId } = useHubSpot();
   const [generating, setGenerating] = useState(false);
   const [showPreview, setShowPreview] = useState(false);
   const [formData, setFormData] = useState<QuoteFormData | null>(null);
@@ -156,7 +158,7 @@ function DocumentHubContent() {
             </div>
           </div>
           <Button variant="ghost" size="sm" asChild>
-            <a href="/admin" target="_blank">
+            <a href={`/admin?portalId=${portalId || ''}`} target="_blank">
               <Settings className="h-4 w-4 mr-1" />
               Settings
             </a>

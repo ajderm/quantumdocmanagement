@@ -13,7 +13,9 @@ import { toast } from 'sonner';
 
 export default function AdminSettings() {
   const [searchParams] = useSearchParams();
-  const portalId = searchParams.get('portalId');
+  // Support multiple param names and default to Quantum's portal ID
+  const defaultPortalId = '20682069';
+  const portalId = searchParams.get('portalId') || searchParams.get('portal_id') || searchParams.get('recordId') || defaultPortalId;
   
   const [saving, setSaving] = useState(false);
   const [loading, setLoading] = useState(true);
