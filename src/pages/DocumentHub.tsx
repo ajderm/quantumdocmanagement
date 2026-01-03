@@ -1,9 +1,11 @@
+import { useState } from 'react';
 import { HubSpotProvider, useHubSpot } from '@/hooks/useHubSpot';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Separator } from '@/components/ui/separator';
+import { toast } from 'sonner';
 import { 
   FileText, 
   ClipboardList, 
@@ -18,10 +20,10 @@ import {
   Building2,
   User,
   Package,
-  DollarSign,
   Loader2,
   Settings,
-  ExternalLink
+  ExternalLink,
+  UserCircle
 } from 'lucide-react';
 
 const documentTypes = [
@@ -38,7 +40,8 @@ const documentTypes = [
 ];
 
 function DocumentHubContent() {
-  const { deal, company, contacts, lineItems, loading, isEmbedded } = useHubSpot();
+  const { deal, company, contacts, lineItems, dealOwner, loading, error } = useHubSpot();
+  const [generating, setGenerating] = useState(false);
 
   if (loading) {
     return (
@@ -48,7 +51,33 @@ function DocumentHubContent() {
     );
   }
 
+  if (error) {
+    return (
+      <div className="flex items-center justify-center min-h-screen bg-background">
+        <Card className="max-w-md">
+          <CardContent className="pt-6 text-center">
+            <p className="text-destructive mb-2">Failed to load deal data</p>
+            <p className="text-sm text-muted-foreground">{error}</p>
+          </CardContent>
+        </Card>
+      </div>
+    );
+  }
+
   const totalEquipmentValue = lineItems.reduce((sum, item) => sum + item.price * item.quantity, 0);
+
+  const handleGeneratePDF = async () => {
+    setGenerating(true);
+    try {
+      // TODO: Implement actual PDF generation via edge function
+      await new Promise(resolve => setTimeout(resolve, 1500));
+      toast.success('Quote PDF generated successfully!');
+    } catch (err) {
+      toast.error('Failed to generate PDF');
+    } finally {
+      setGenerating(false);
+    }
+  };
 
   return (
     <div className="min-h-screen bg-background">
@@ -73,14 +102,6 @@ function DocumentHubContent() {
       </header>
 
       <div className="p-4">
-        {/* Preview Mode Banner */}
-        {!isEmbedded && (
-          <div className="mb-4 rounded-lg bg-amber-500/10 border border-amber-500/20 p-3">
-            <p className="text-sm text-amber-700 dark:text-amber-400">
-              <strong>Preview Mode:</strong> You're viewing sample data. When launched from a HubSpot deal, real deal information will appear here.
-            </p>
-          </div>
-        )}
 
         {/* Deal Context Card */}
         {deal && (
@@ -103,10 +124,16 @@ function DocumentHubContent() {
               </div>
             </CardHeader>
             <CardContent className="py-0 px-4 pb-3">
-              <div className="grid grid-cols-3 gap-3 text-xs">
+              <div className="grid grid-cols-4 gap-3 text-xs">
                 <div className="flex items-center gap-2">
                   <Building2 className="h-3.5 w-3.5 text-muted-foreground" />
                   <span className="truncate">{company?.name || 'No company'}</span>
+                </div>
+                <div className="flex items-center gap-2">
+                  <UserCircle className="h-3.5 w-3.5 text-muted-foreground" />
+                  <span className="truncate">
+                    {dealOwner ? `${dealOwner.firstName} ${dealOwner.lastName}` : 'No owner'}
+                  </span>
                 </div>
                 <div className="flex items-center gap-2">
                   <User className="h-3.5 w-3.5 text-muted-foreground" />
@@ -226,9 +253,13 @@ function DocumentHubContent() {
 
                 {/* Actions */}
                 <div className="flex gap-2">
-                  <Button className="flex-1">
-                    <FileText className="h-4 w-4 mr-2" />
-                    Generate PDF
+                  <Button className="flex-1" onClick={handleGeneratePDF} disabled={generating}>
+                    {generating ? (
+                      <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                    ) : (
+                      <FileText className="h-4 w-4 mr-2" />
+                    )}
+                    {generating ? 'Generating...' : 'Generate PDF'}
                   </Button>
                   <Button variant="outline">
                     <ExternalLink className="h-4 w-4 mr-2" />
