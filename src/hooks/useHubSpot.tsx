@@ -18,11 +18,12 @@ export function HubSpotProvider({ children }: { children: ReactNode }) {
 
   const fetchData = async () => {
     const urlParams = new URLSearchParams(window.location.search);
-    const hubspotPortalId = urlParams.get('portalId');
-    const hubspotUserId = urlParams.get('userId');
-    const hubspotDealId = urlParams.get('dealId');
+    // Support multiple parameter names for flexibility
+    const hubspotPortalId = urlParams.get('portalId') || urlParams.get('portal_id');
+    const hubspotUserId = urlParams.get('userId') || urlParams.get('user_id');
+    const hubspotDealId = urlParams.get('dealId') || urlParams.get('recordId') || urlParams.get('objectId');
 
-    console.log('useHubSpot: URL params - portalId:', hubspotPortalId, 'dealId:', hubspotDealId);
+    console.log('useHubSpot: URL params - portalId:', hubspotPortalId, 'dealId:', hubspotDealId, 'full search:', window.location.search);
 
     if (hubspotPortalId && hubspotDealId) {
       setIsEmbedded(true);
@@ -32,9 +33,7 @@ export function HubSpotProvider({ children }: { children: ReactNode }) {
       try {
         console.log('Fetching HubSpot data for portal:', hubspotPortalId, 'deal:', hubspotDealId);
         const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
-        console.log('Supabase URL:', supabaseUrl);
         const functionUrl = `${supabaseUrl}/functions/v1/hubspot-get-deal?portalId=${encodeURIComponent(hubspotPortalId)}&dealId=${encodeURIComponent(hubspotDealId)}`;
-        console.log('Function URL:', functionUrl);
         const response = await fetch(functionUrl, { method: 'GET', headers: { 'Content-Type': 'application/json' } });
         if (!response.ok) { 
           const errorData = await response.json().catch(() => ({})); 
@@ -54,7 +53,9 @@ export function HubSpotProvider({ children }: { children: ReactNode }) {
         setError(err instanceof Error ? err.message : 'Failed to load deal data'); 
       }
     } else {
-      console.log('useHubSpot: No portalId or dealId in URL, not fetching data');
+      console.log('useHubSpot: Missing portalId or dealId, not fetching data');
+      if (!hubspotPortalId) console.log('Missing portalId - add ?portalId=YOUR_PORTAL_ID to URL');
+      if (!hubspotDealId) console.log('Missing dealId - add &dealId=DEAL_ID or &recordId=DEAL_ID to URL');
     }
     setLoading(false);
   };
