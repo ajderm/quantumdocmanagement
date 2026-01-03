@@ -3,36 +3,31 @@ import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route } from "react-router-dom";
-import { AuthProvider } from "@/hooks/useAuth";
-import Auth from "./pages/Auth";
-import Dashboard from "./pages/Dashboard";
-import AccountSettings from "./pages/settings/AccountSettings";
-import LeasingPartners from "./pages/settings/LeasingPartners";
-import Settings from "./pages/settings/Settings";
+import DocumentHub from "./pages/DocumentHub";
+import AdminSettings from "./pages/admin/AdminSettings";
+import LeasingPartners from "./pages/admin/LeasingPartners";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
 
 const App = () => (
   <QueryClientProvider client={queryClient}>
-    <AuthProvider>
-      <TooltipProvider>
-        <Toaster />
-        <Sonner />
-        <BrowserRouter>
-          <Routes>
-            <Route path="/" element={<Auth />} />
-            <Route path="/auth" element={<Auth />} />
-            <Route path="/dashboard" element={<Dashboard />} />
-            <Route path="/settings" element={<Settings />} />
-            <Route path="/settings/account" element={<AccountSettings />} />
-            <Route path="/settings/leasing" element={<LeasingPartners />} />
-            {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
-            <Route path="*" element={<NotFound />} />
-          </Routes>
-        </BrowserRouter>
-      </TooltipProvider>
-    </AuthProvider>
+    <TooltipProvider>
+      <Toaster />
+      <Sonner />
+      <BrowserRouter>
+        <Routes>
+          {/* Main app - embedded in HubSpot Deal CRM card */}
+          <Route path="/" element={<DocumentHub />} />
+          
+          {/* Admin settings - accessed via HubSpot Connected Apps */}
+          <Route path="/admin" element={<AdminSettings />} />
+          <Route path="/admin/leasing" element={<LeasingPartners />} />
+          
+          <Route path="*" element={<NotFound />} />
+        </Routes>
+      </BrowserRouter>
+    </TooltipProvider>
   </QueryClientProvider>
 );
 
