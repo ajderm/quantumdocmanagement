@@ -1,5 +1,6 @@
-import { useState, useRef, useCallback } from 'react';
+import { useState, useRef, useCallback, useEffect } from 'react';
 import { HubSpotProvider, useHubSpot } from '@/hooks/useHubSpot';
+import { supabase } from '@/integrations/supabase/client';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -46,12 +47,59 @@ const documentTypes = [
   { code: 'equipment_removal', name: 'Removal', icon: Trash2 },
 ];
 
+interface DealerInfo {
+  companyName: string;
+  address: string;
+  phone: string;
+  website: string;
+  logoUrl?: string;
+}
+
 function DocumentHubContent() {
   const { deal, company, contacts, lineItems, dealOwner, loading, error, portalId } = useHubSpot();
   const [generating, setGenerating] = useState(false);
   const [showPreview, setShowPreview] = useState(false);
   const [formData, setFormData] = useState<QuoteFormData | null>(null);
+  const [dealerInfo, setDealerInfo] = useState<DealerInfo | null>(null);
   const previewRef = useRef<HTMLDivElement>(null);
+
+  // Fetch dealer info when portalId is available
+  useEffect(() => {
+    const fetchDealerInfo = async () => {
+      const currentPortalId = portalId || localStorage.getItem('hs_portal_id');
+      if (!currentPortalId) return;
+
+      try {
+        const { data, error } = await supabase.functions.invoke('dealer-account-get', {
+          body: { portalId: currentPortalId }
+        });
+
+        if (error) {
+          console.error('Error fetching dealer info:', error);
+          return;
+        }
+
+        if (data?.dealer) {
+          const d = data.dealer;
+          const addressParts = [d.address_line1, d.address_line2, `${d.city || ''}, ${d.state || ''} ${d.zip_code || ''}`]
+            .filter(Boolean)
+            .join(', ');
+          
+          setDealerInfo({
+            companyName: d.company_name || '',
+            address: addressParts,
+            phone: d.phone || '',
+            website: d.website || '',
+            logoUrl: d.logo_url || undefined
+          });
+        }
+      } catch (err) {
+        console.error('Failed to fetch dealer info:', err);
+      }
+    };
+
+    fetchDealerInfo();
+  }, [portalId]);
 
   const handleFormChange = useCallback((data: QuoteFormData) => {
     setFormData(data);
@@ -298,7 +346,7 @@ function DocumentHubContent() {
       {/* Hidden preview for PDF generation */}
       <div className="hidden">
         {formData && (
-          <QuotePreview ref={previewRef} formData={formData} />
+          <QuotePreview ref={previewRef} formData={formData} dealerInfo={dealerInfo || undefined} />
         )}
       </div>
 
@@ -312,7 +360,7 @@ function DocumentHubContent() {
             <div className="p-4 flex justify-center">
               {formData && (
                 <div className="shadow-lg border">
-                  <QuotePreview formData={formData} />
+                  <QuotePreview formData={formData} dealerInfo={dealerInfo || undefined} />
                 </div>
               )}
             </div>
