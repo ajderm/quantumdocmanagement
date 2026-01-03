@@ -115,15 +115,17 @@ serve(async (req) => {
 
     console.log('Tokens stored successfully for portal:', portalId);
 
-    // Redirect to the app's admin settings page with success message
-    const appUrl = Deno.env.get('APP_URL') || 'https://lovable.dev';
-    const successUrl = `${appUrl}/admin?oauth=success&portal=${portalId}`;
+    // Redirect back to HubSpot's Connected Apps page after successful install
+    // This is the proper flow for HubSpot marketplace apps
+    const hubspotRedirectUrl = `https://app.hubspot.com/settings/${portalId}/integrations/connected-apps`;
+
+    console.log('Redirecting to HubSpot Connected Apps:', hubspotRedirectUrl);
 
     return new Response(null, {
       status: 302,
       headers: {
         ...corsHeaders,
-        'Location': successUrl,
+        'Location': hubspotRedirectUrl,
       },
     });
 
