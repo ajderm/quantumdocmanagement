@@ -180,7 +180,6 @@ export default function AdminSettings() {
       setSaving(false);
     }
   };
-  };
 
   if (loading) {
     return (
