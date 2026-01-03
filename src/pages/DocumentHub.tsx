@@ -60,10 +60,7 @@ function DocumentHubContent() {
               <FileText className="h-4 w-4 text-primary-foreground" />
             </div>
             <div>
-              <h1 className="text-sm font-semibold">DocGen</h1>
-              {!isEmbedded && (
-                <span className="text-xs text-muted-foreground">Preview Mode</span>
-              )}
+              <h1 className="text-sm font-semibold">Quantum Document Management</h1>
             </div>
           </div>
           <Button variant="ghost" size="sm" asChild>
@@ -76,6 +73,15 @@ function DocumentHubContent() {
       </header>
 
       <div className="p-4">
+        {/* Preview Mode Banner */}
+        {!isEmbedded && (
+          <div className="mb-4 rounded-lg bg-amber-500/10 border border-amber-500/20 p-3">
+            <p className="text-sm text-amber-700 dark:text-amber-400">
+              <strong>Preview Mode:</strong> You're viewing sample data. When launched from a HubSpot deal, real deal information will appear here.
+            </p>
+          </div>
+        )}
+
         {/* Deal Context Card */}
         {deal && (
           <Card className="mb-4">
