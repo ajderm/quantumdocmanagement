@@ -2,3 +2,6 @@ project_id = "kafsqolkxnrsjddjkhyc"
 
 [functions.hubspot-oauth-callback]
 verify_jwt = false
+
+[functions.hubspot-get-deal]
+verify_jwt = false
