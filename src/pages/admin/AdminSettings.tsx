@@ -6,11 +6,21 @@ import { Textarea } from '@/components/ui/textarea';
 import { Separator } from '@/components/ui/separator';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Building2, Upload, Save, Loader2, CreditCard, FileText, ArrowLeft } from 'lucide-react';
-import { useState } from 'react';
-import { Link } from 'react-router-dom';
+import { useState, useEffect, useRef } from 'react';
+import { Link, useSearchParams } from 'react-router-dom';
+import { supabase } from '@/integrations/supabase/client';
+import { toast } from 'sonner';
 
 export default function AdminSettings() {
+  const [searchParams] = useSearchParams();
+  const portalId = searchParams.get('portalId');
+  
   const [saving, setSaving] = useState(false);
+  const [loading, setLoading] = useState(true);
+  const [dealerAccountId, setDealerAccountId] = useState<string | null>(null);
+  const [logoUrl, setLogoUrl] = useState<string | null>(null);
+  const [uploadingLogo, setUploadingLogo] = useState(false);
+  const fileInputRef = useRef<HTMLInputElement>(null);
   
   // Form state
   const [formData, setFormData] = useState({
@@ -26,19 +36,179 @@ export default function AdminSettings() {
     terms_and_conditions: '',
   });
 
+  // Load existing dealer account data
+  useEffect(() => {
+    const loadDealerAccount = async () => {
+      if (!portalId) {
+        setLoading(false);
+        return;
+      }
+
+      try {
+        const { data, error } = await supabase
+          .from('dealer_accounts')
+          .select('*')
+          .eq('hubspot_portal_id', portalId)
+          .maybeSingle();
+
+        if (error) throw error;
+
+        if (data) {
+          setDealerAccountId(data.id);
+          setLogoUrl(data.logo_url);
+          setFormData({
+            company_name: data.company_name || '',
+            address_line1: data.address_line1 || '',
+            address_line2: data.address_line2 || '',
+            city: data.city || '',
+            state: data.state || '',
+            zip_code: data.zip_code || '',
+            phone: data.phone || '',
+            website: data.website || '',
+            email: data.email || '',
+            terms_and_conditions: data.terms_and_conditions || '',
+          });
+        }
+      } catch (error) {
+        console.error('Error loading dealer account:', error);
+        toast.error('Failed to load settings');
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    loadDealerAccount();
+  }, [portalId]);
+
   const handleInputChange = (field: string, value: string) => {
     setFormData(prev => ({ ...prev, [field]: value }));
   };
 
-  const handleSave = async () => {
-    setSaving(true);
-    // Simulate save
-    await new Promise(resolve => setTimeout(resolve, 1000));
-    setSaving(false);
+  const handleLogoClick = () => {
+    fileInputRef.current?.click();
   };
+
+  const handleLogoUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (!file) return;
+
+    // Validate file type
+    if (!file.type.startsWith('image/')) {
+      toast.error('Please select an image file');
+      return;
+    }
+
+    // Validate file size (2MB max)
+    if (file.size > 2 * 1024 * 1024) {
+      toast.error('File size must be less than 2MB');
+      return;
+    }
+
+    setUploadingLogo(true);
+
+    try {
+      const fileExt = file.name.split('.').pop();
+      const fileName = `${portalId || 'default'}-logo-${Date.now()}.${fileExt}`;
+      const filePath = `logos/${fileName}`;
+
+      const { error: uploadError } = await supabase.storage
+        .from('company-assets')
+        .upload(filePath, file, { upsert: true });
+
+      if (uploadError) throw uploadError;
+
+      const { data: urlData } = supabase.storage
+        .from('company-assets')
+        .getPublicUrl(filePath);
+
+      setLogoUrl(urlData.publicUrl);
+      toast.success('Logo uploaded successfully');
+    } catch (error) {
+      console.error('Error uploading logo:', error);
+      toast.error('Failed to upload logo');
+    } finally {
+      setUploadingLogo(false);
+    }
+  };
+
+  const handleSave = async () => {
+    if (!portalId) {
+      toast.error('Missing portal ID - please access this page from HubSpot');
+      return;
+    }
+
+    if (!formData.company_name.trim()) {
+      toast.error('Company name is required');
+      return;
+    }
+
+    setSaving(true);
+
+    try {
+      const accountData = {
+        hubspot_portal_id: portalId,
+        company_name: formData.company_name,
+        address_line1: formData.address_line1 || null,
+        address_line2: formData.address_line2 || null,
+        city: formData.city || null,
+        state: formData.state || null,
+        zip_code: formData.zip_code || null,
+        phone: formData.phone || null,
+        website: formData.website || null,
+        email: formData.email || null,
+        terms_and_conditions: formData.terms_and_conditions || null,
+        logo_url: logoUrl,
+        updated_at: new Date().toISOString(),
+      };
+
+      if (dealerAccountId) {
+        // Update existing record
+        const { error } = await supabase
+          .from('dealer_accounts')
+          .update(accountData)
+          .eq('id', dealerAccountId);
+
+        if (error) throw error;
+      } else {
+        // Insert new record
+        const { data, error } = await supabase
+          .from('dealer_accounts')
+          .insert(accountData)
+          .select('id')
+          .single();
+
+        if (error) throw error;
+        setDealerAccountId(data.id);
+      }
+
+      toast.success('Settings saved successfully');
+    } catch (error) {
+      console.error('Error saving settings:', error);
+      toast.error('Failed to save settings');
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-background flex items-center justify-center">
+        <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-background">
+      {/* Hidden file input for logo upload */}
+      <input
+        type="file"
+        ref={fileInputRef}
+        onChange={handleLogoUpload}
+        accept="image/*"
+        className="hidden"
+      />
+
       {/* Header */}
       <header className="sticky top-0 z-50 border-b bg-card">
         <div className="flex items-center h-14 px-6">
@@ -57,7 +227,7 @@ export default function AdminSettings() {
       <div className="max-w-4xl mx-auto p-6">
         {/* Back link for when accessed standalone */}
         <Button variant="ghost" size="sm" className="mb-4" asChild>
-          <Link to="/">
+          <Link to={`/?portalId=${portalId || ''}`}>
             <ArrowLeft className="h-4 w-4 mr-2" />
             Back to Documents
           </Link>
@@ -77,7 +247,7 @@ export default function AdminSettings() {
               Company
             </TabsTrigger>
             <TabsTrigger value="leasing" asChild>
-              <Link to="/admin/leasing">
+              <Link to={`/admin/leasing?portalId=${portalId || ''}`}>
                 <CreditCard className="h-4 w-4 mr-2" />
                 Leasing Partners
               </Link>
@@ -102,13 +272,31 @@ export default function AdminSettings() {
                   <div className="space-y-2">
                     <Label>Company Logo</Label>
                     <div className="flex items-center gap-4">
-                      <div className="h-20 w-20 rounded-lg border-2 border-dashed border-border flex items-center justify-center bg-muted/50">
-                        <Upload className="h-6 w-6 text-muted-foreground" />
+                      <div className="h-20 w-20 rounded-lg border-2 border-dashed border-border flex items-center justify-center bg-muted/50 overflow-hidden">
+                        {logoUrl ? (
+                          <img src={logoUrl} alt="Company logo" className="h-full w-full object-contain" />
+                        ) : (
+                          <Upload className="h-6 w-6 text-muted-foreground" />
+                        )}
                       </div>
                       <div>
-                        <Button variant="outline" size="sm">
-                          <Upload className="h-4 w-4 mr-2" />
-                          Upload Logo
+                        <Button 
+                          variant="outline" 
+                          size="sm" 
+                          onClick={handleLogoClick}
+                          disabled={uploadingLogo}
+                        >
+                          {uploadingLogo ? (
+                            <>
+                              <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                              Uploading...
+                            </>
+                          ) : (
+                            <>
+                              <Upload className="h-4 w-4 mr-2" />
+                              Upload Logo
+                            </>
+                          )}
                         </Button>
                         <p className="text-xs text-muted-foreground mt-1">
                           PNG, JPG up to 2MB. Recommended: 200x200px
