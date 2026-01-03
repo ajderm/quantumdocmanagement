@@ -79,6 +79,8 @@ function DocumentHubContent() {
           return;
         }
 
+        console.log('Dealer info response:', data);
+
         if (data?.dealer) {
           const d = data.dealer;
           const addressParts = [d.address_line1, d.address_line2, `${d.city || ''}, ${d.state || ''} ${d.zip_code || ''}`]

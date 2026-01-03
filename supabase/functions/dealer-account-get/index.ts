@@ -61,7 +61,7 @@ Deno.serve(async (req) => {
 
     console.log('Dealer account found:', data ? data.id : 'none');
 
-    return new Response(JSON.stringify({ data }), {
+    return new Response(JSON.stringify({ dealer: data }), {
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
     });
   } catch (error: unknown) {
