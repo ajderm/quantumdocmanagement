@@ -11,6 +11,13 @@ import { Link, useSearchParams } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 
+const DOCUMENT_TYPES = [
+  { code: 'quote', name: 'Quote' },
+  { code: 'service_agreement', name: 'Service Agreement' },
+  { code: 'fmv_lease', name: 'FMV Lease' },
+  { code: 'installation', name: 'Installation' },
+];
+
 export default function AdminSettings() {
   const [searchParams] = useSearchParams();
   // Support multiple param names + localStorage fallback (new tab may not include URL params)
@@ -24,6 +31,7 @@ export default function AdminSettings() {
   const [dealerAccountId, setDealerAccountId] = useState<string | null>(null);
   const [logoUrl, setLogoUrl] = useState<string | null>(null);
   const [uploadingLogo, setUploadingLogo] = useState(false);
+  const [activeTermsTab, setActiveTermsTab] = useState('quote');
   const fileInputRef = useRef<HTMLInputElement>(null);
   
   // Form state
@@ -38,6 +46,14 @@ export default function AdminSettings() {
     website: '',
     email: '',
     terms_and_conditions: '',
+  });
+
+  // Document-specific terms
+  const [documentTerms, setDocumentTerms] = useState<Record<string, string>>({
+    quote: '',
+    service_agreement: '',
+    fmv_lease: '',
+    installation: '',
   });
 
   // Load existing dealer account data
@@ -55,7 +71,7 @@ export default function AdminSettings() {
 
         if (invokeError) throw invokeError;
 
-        const data = result?.data;
+        const data = result?.dealer;
         if (data) {
           setDealerAccountId(data.id);
           setLogoUrl(data.logo_url);
@@ -72,6 +88,14 @@ export default function AdminSettings() {
             terms_and_conditions: data.terms_and_conditions || '',
           });
         }
+
+        // Load document-specific terms
+        if (result?.documentTerms) {
+          setDocumentTerms(prev => ({
+            ...prev,
+            ...result.documentTerms
+          }));
+        }
       } catch (error) {
         console.error('Error loading dealer account:', error);
         toast.error('Failed to load settings');
@@ -85,6 +109,10 @@ export default function AdminSettings() {
 
   const handleInputChange = (field: string, value: string) => {
     setFormData(prev => ({ ...prev, [field]: value }));
+  };
+
+  const handleDocumentTermsChange = (docType: string, value: string) => {
+    setDocumentTerms(prev => ({ ...prev, [docType]: value }));
   };
 
   const handleLogoClick = () => {
@@ -163,7 +191,7 @@ export default function AdminSettings() {
       };
 
       const { data: result, error: invokeError } = await supabase.functions.invoke('dealer-account-save', {
-        body: { portalId, accountData },
+        body: { portalId, accountData, documentTerms },
       });
 
       if (invokeError) throw invokeError;
@@ -394,21 +422,37 @@ export default function AdminSettings() {
                 </CardContent>
               </Card>
 
-              {/* Terms & Conditions Card */}
+              {/* Document-Specific Terms & Conditions Card */}
               <Card>
                 <CardHeader>
-                  <CardTitle>Default Terms & Conditions</CardTitle>
+                  <CardTitle>Terms & Conditions by Document Type</CardTitle>
                   <CardDescription>
-                    Standard terms that appear on quotes and agreements
+                    Set different terms for each document type. These will appear at the bottom of each document.
                   </CardDescription>
                 </CardHeader>
                 <CardContent>
-                  <Textarea
-                    value={formData.terms_and_conditions}
-                    onChange={(e) => handleInputChange('terms_and_conditions', e.target.value)}
-                    placeholder="Enter your standard terms and conditions..."
-                    className="min-h-[200px]"
-                  />
+                  <Tabs value={activeTermsTab} onValueChange={setActiveTermsTab}>
+                    <TabsList className="mb-4">
+                      {DOCUMENT_TYPES.map((doc) => (
+                        <TabsTrigger key={doc.code} value={doc.code} className="text-xs">
+                          {doc.name}
+                        </TabsTrigger>
+                      ))}
+                    </TabsList>
+                    {DOCUMENT_TYPES.map((doc) => (
+                      <TabsContent key={doc.code} value={doc.code}>
+                        <div className="space-y-2">
+                          <Label>{doc.name} Terms & Conditions</Label>
+                          <Textarea
+                            value={documentTerms[doc.code] || ''}
+                            onChange={(e) => handleDocumentTermsChange(doc.code, e.target.value)}
+                            placeholder={`Enter terms and conditions for ${doc.name} documents...`}
+                            className="min-h-[200px]"
+                          />
+                        </div>
+                      </TabsContent>
+                    ))}
+                  </Tabs>
                 </CardContent>
               </Card>
 

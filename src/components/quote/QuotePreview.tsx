@@ -9,6 +9,7 @@ interface QuotePreviewProps {
     phone: string;
     website: string;
     logoUrl?: string;
+    termsAndConditions?: string;
   };
 }
 
@@ -34,12 +35,19 @@ export const QuotePreview = forwardRef<HTMLDivElement, QuotePreviewProps>(
       return date.toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' });
     };
 
+    const formatCurrency = (value: number) => {
+      return value.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+    };
+
+    const hasServiceAgreement = formData.serviceBaseRate > 0 || formData.includedBWCopies > 0 || formData.includedColorCopies > 0;
+
     return (
       <div 
         ref={ref}
         className="bg-white text-black p-8 min-h-[11in] w-[8.5in] text-[11px] leading-tight"
         style={{ fontFamily: 'Arial, sans-serif' }}
       >
+        {/* Header */}
         <div className="flex justify-between items-start mb-6">
           <div>
             {dealerInfo && (
@@ -80,6 +88,7 @@ export const QuotePreview = forwardRef<HTMLDivElement, QuotePreviewProps>(
           </div>
         </div>
 
+        {/* Prepared For */}
         <div className="mb-6">
           <p className="font-bold mb-1">Prepared For:</p>
           <p className="font-semibold">{formData.companyName}</p>
@@ -89,6 +98,7 @@ export const QuotePreview = forwardRef<HTMLDivElement, QuotePreviewProps>(
           {formData.phone && <p>{formData.phone}</p>}
         </div>
 
+        {/* Equipment Table */}
         <div className="mb-6">
           <p className="font-bold mb-2">EQUIPMENT</p>
           <table className="w-full border-collapse">
@@ -116,100 +126,130 @@ export const QuotePreview = forwardRef<HTMLDivElement, QuotePreviewProps>(
           </table>
         </div>
 
-        <div className="flex gap-8 mb-6">
-          <div className="flex-1">
-            <p className="font-bold mb-2">Purchase</p>
-            <table className="w-full">
-              <tbody>
-                <tr>
-                  <td className="py-1">Retail</td>
-                  <td className="text-right font-semibold">${formData.retailPrice.toLocaleString('en-US', { minimumFractionDigits: 2 })}</td>
+        {/* Combined Pricing Table - Purchase | Lease | Service Agreement */}
+        <div className="mb-6">
+          <table className="w-full border-collapse text-[10px]">
+            <thead>
+              <tr>
+                <th 
+                  colSpan={2} 
+                  className="text-white text-center py-2 px-2 font-bold"
+                  style={{ backgroundColor: '#1e3a5f' }}
+                >
+                  PURCHASE
+                </th>
+                <th 
+                  className="text-white text-center py-2 px-1 font-bold border-l border-white/30"
+                  style={{ backgroundColor: '#1e3a5f', width: '20px' }}
+                >
+                </th>
+                <th 
+                  colSpan={2} 
+                  className="text-white text-center py-2 px-2 font-bold border-l border-white/30"
+                  style={{ backgroundColor: '#1e3a5f' }}
+                >
+                  LEASE
+                </th>
+                {hasServiceAgreement && (
+                  <th 
+                    colSpan={2} 
+                    className="text-white text-center py-2 px-2 font-bold border-l border-white/30"
+                    style={{ backgroundColor: '#1e3a5f' }}
+                  >
+                    SERVICE AGREEMENT
+                  </th>
+                )}
+              </tr>
+              <tr className="bg-gray-100">
+                <th className="text-left py-1 px-2 font-semibold border border-gray-300">RETAIL</th>
+                <th className="text-left py-1 px-2 font-semibold border border-gray-300">CASH DISCOUNT</th>
+                <th className="text-center py-1 px-1 font-semibold border border-gray-300" style={{ width: '20px' }}></th>
+                <th className="text-left py-1 px-2 font-semibold border border-gray-300">TERM</th>
+                <th className="text-right py-1 px-2 font-semibold border border-gray-300">PAYMENT</th>
+                {hasServiceAgreement && (
+                  <>
+                    <th className="text-left py-1 px-2 font-semibold border border-gray-300">BASE RATE</th>
+                    <th className="text-right py-1 px-2 font-semibold border border-gray-300">PER MONTH</th>
+                  </>
+                )}
+              </tr>
+            </thead>
+            <tbody>
+              {/* First row - main values */}
+              <tr>
+                <td className="py-2 px-2 border border-gray-300 align-top" rowSpan={Math.max(formData.selectedTerms.length, 1)}>
+                  <span className="font-bold text-lg">${formatCurrency(formData.retailPrice)}</span>
+                </td>
+                <td className="py-2 px-2 border border-gray-300 align-top" rowSpan={Math.max(formData.selectedTerms.length, 1)}>
+                  <span className="font-bold text-lg">${formatCurrency(formData.cashDiscount)}</span>
+                </td>
+                <td className="text-center py-2 px-1 border border-gray-300 align-middle font-bold text-gray-500" rowSpan={Math.max(formData.selectedTerms.length, 1)}>
+                  -OR-
+                </td>
+                <td className="py-1 px-2 border border-gray-300">{formData.selectedTerms[0]} months</td>
+                <td className="py-1 px-2 border border-gray-300 text-right font-semibold">
+                  ${calculateLeasePayment(formData.selectedTerms[0]).toLocaleString()}/mo
+                </td>
+                {hasServiceAgreement && (
+                  <>
+                    <td className="py-2 px-2 border border-gray-300 align-top" rowSpan={Math.max(formData.selectedTerms.length, 1)}>
+                      <span className="font-bold">${formatCurrency(formData.serviceBaseRate)}</span>
+                    </td>
+                    <td className="py-1 px-2 border border-gray-300 align-top" rowSpan={Math.max(formData.selectedTerms.length, 1)}>
+                      <div className="space-y-1">
+                        <p className="font-semibold">INCLUDES:</p>
+                        {formData.includedBWCopies > 0 && (
+                          <p>B/W: {formData.includedBWCopies.toLocaleString()}</p>
+                        )}
+                        {formData.includedColorCopies > 0 && (
+                          <p>Color: {formData.includedColorCopies.toLocaleString()}</p>
+                        )}
+                        {(formData.overageBWRate > 0 || formData.overageColorRate > 0) && (
+                          <>
+                            <p className="font-semibold mt-2">OVERAGES:</p>
+                            {formData.overageBWRate > 0 && (
+                              <p>B/W @ ${formData.overageBWRate.toFixed(4)}</p>
+                            )}
+                            {formData.overageColorRate > 0 && (
+                              <p>Color @ ${formData.overageColorRate.toFixed(4)}</p>
+                            )}
+                          </>
+                        )}
+                      </div>
+                    </td>
+                  </>
+                )}
+              </tr>
+              {/* Additional lease term rows */}
+              {formData.selectedTerms.slice(1).map((term) => (
+                <tr key={term}>
+                  <td className="py-1 px-2 border border-gray-300">{term} months</td>
+                  <td className="py-1 px-2 border border-gray-300 text-right font-semibold">
+                    ${calculateLeasePayment(term).toLocaleString()}/mo
+                  </td>
                 </tr>
-                <tr>
-                  <td className="py-1">Cash Discount</td>
-                  <td className="text-right font-semibold">${formData.cashDiscount.toLocaleString('en-US', { minimumFractionDigits: 2 })}</td>
-                </tr>
-              </tbody>
-            </table>
-          </div>
-
-          <div className="flex-1">
-            <p className="font-bold mb-2">FMV Lease</p>
-            <table className="w-full">
-              <thead>
-                <tr className="border-b border-gray-300">
-                  <th className="text-left py-1">Term</th>
-                  <th className="text-right py-1">Payment</th>
-                </tr>
-              </thead>
-              <tbody>
-                {formData.selectedTerms.map((term) => (
-                  <tr key={term}>
-                    <td className="py-1">{term} months</td>
-                    <td className="text-right font-semibold">${calculateLeasePayment(term).toLocaleString()}/mo</td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
+              ))}
+            </tbody>
+          </table>
         </div>
 
-        {(formData.serviceBaseRate > 0 || formData.includedBWCopies || formData.includedColorCopies) && (
-          <div className="mb-6">
-            <p className="font-bold mb-2">SERVICE AGREEMENT</p>
-            <table className="w-full max-w-md">
-              <tbody>
-                {formData.serviceBaseRate > 0 && (
-                  <tr>
-                    <td className="py-1">Base Rate</td>
-                    <td className="text-right">${formData.serviceBaseRate.toFixed(2)} Per Month</td>
-                  </tr>
-                )}
-                {(formData.includedBWCopies || formData.includedColorCopies) && (
-                  <tr>
-                    <td className="py-1">Includes</td>
-                    <td className="text-right">
-                      {formData.includedBWCopies && `B/W: ${formData.includedBWCopies}`}
-                      {formData.includedBWCopies && formData.includedColorCopies && ', '}
-                      {formData.includedColorCopies && `Color: ${formData.includedColorCopies}`}
-                    </td>
-                  </tr>
-                )}
-                {(formData.overageBWRate || formData.overageColorRate) && (
-                  <tr>
-                    <td className="py-1">Overages</td>
-                    <td className="text-right">
-                      {formData.overageBWRate && `B/W @ ${formData.overageBWRate}`}
-                      {formData.overageBWRate && formData.overageColorRate && ', '}
-                      {formData.overageColorRate && `Color @ ${formData.overageColorRate}`}
-                    </td>
-                  </tr>
-                )}
-              </tbody>
-            </table>
+        {/* Terms & Conditions */}
+        {dealerInfo?.termsAndConditions && (
+          <div className="mb-6 text-[10px]">
+            <p className="font-bold mb-1">Terms & Conditions:</p>
+            <p className="whitespace-pre-wrap">{dealerInfo.termsAndConditions}</p>
           </div>
         )}
 
-        <div className="mb-6 text-[10px] text-gray-600">
-          <p>
-            Pricing includes your new equipment delivery, installation, training and one (1) hour of network connectivity 
-            (setting up print/scan) support assisting your network administrator. If applicable, additional time will be 
-            billed at $140.00 per hour. Quotation does not include tax. Service/Maintenance agreement includes all toner 
-            parts, & labor. Excludes paper, staples, and networking.
-          </p>
-        </div>
-
+        {/* Signature */}
         <div className="mb-6">
-          <p className="mb-4">
-            Thank you for this opportunity! If you have any questions, please feel free to contact me. 
-            To order your new equipment please email signed quote back to me indicating either "Cash Price" or desired lease payment option.
-          </p>
           <p className="mb-1">Sincerely,</p>
           <p className="font-semibold">{formData.preparedBy}</p>
           {formData.preparedByPhone && <p>{formData.preparedByPhone}</p>}
           {formData.preparedByEmail && <p>{formData.preparedByEmail}</p>}
         </div>
 
+        {/* Acceptance Section */}
         <div className="mt-8 pt-4 border-t border-gray-300">
           <p className="font-bold mb-4">Accepted By:</p>
           <div className="grid grid-cols-2 gap-8">
@@ -232,6 +272,7 @@ export const QuotePreview = forwardRef<HTMLDivElement, QuotePreviewProps>(
           </div>
         </div>
 
+        {/* Confidentiality Notice */}
         <div className="mt-6 text-[9px] text-gray-500 italic">
           <p>
             Information in this proposal is confidential and intended solely for use in the procurement process 

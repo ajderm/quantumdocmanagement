@@ -116,6 +116,41 @@ export type Database = {
           },
         ]
       }
+      document_terms: {
+        Row: {
+          created_at: string
+          dealer_account_id: string
+          document_type: string
+          id: string
+          terms_and_conditions: string | null
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          dealer_account_id: string
+          document_type: string
+          id?: string
+          terms_and_conditions?: string | null
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          dealer_account_id?: string
+          document_type?: string
+          id?: string
+          terms_and_conditions?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "document_terms_dealer_account_id_fkey"
+            columns: ["dealer_account_id"]
+            isOneToOne: false
+            referencedRelation: "dealer_accounts"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       document_types: {
         Row: {
           code: string
