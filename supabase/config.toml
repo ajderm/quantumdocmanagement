@@ -1,1 +1,4 @@
 project_id = "kafsqolkxnrsjddjkhyc"
+
+[functions.hubspot-oauth-callback]
+verify_jwt = false

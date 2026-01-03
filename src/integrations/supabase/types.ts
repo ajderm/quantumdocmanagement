@@ -209,6 +209,36 @@ export type Database = {
           },
         ]
       }
+      hubspot_tokens: {
+        Row: {
+          access_token: string
+          created_at: string
+          expires_at: string
+          id: string
+          portal_id: string
+          refresh_token: string
+          updated_at: string
+        }
+        Insert: {
+          access_token: string
+          created_at?: string
+          expires_at: string
+          id?: string
+          portal_id: string
+          refresh_token: string
+          updated_at?: string
+        }
+        Update: {
+          access_token?: string
+          created_at?: string
+          expires_at?: string
+          id?: string
+          portal_id?: string
+          refresh_token?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       lease_rate_sheets: {
         Row: {
           created_at: string
