@@ -193,10 +193,10 @@ Deno.serve(async (req) => {
           id: ownerResponse.id,
           firstName: ownerResponse.firstName,
           lastName: ownerResponse.lastName,
-          email: ownerResponse.email,
-          phone: ownerResponse.userId ? null : null, // Owner phone is not directly available, would need user object
+          email: ownerResponse.email || null,
+          phone: ownerResponse.phone || null,
         };
-        console.log('Deal owner fetched:', dealOwner.firstName, dealOwner.lastName);
+        console.log('Deal owner fetched:', dealOwner.firstName, dealOwner.lastName, 'email:', dealOwner.email);
       } catch (e) {
         console.error('Failed to fetch deal owner:', e);
       }
