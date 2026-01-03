@@ -167,12 +167,16 @@ function DocumentHubContent() {
       const currentPortalId = portalId || localStorage.getItem('hs_portal_id');
       const dealId = deal?.hsObjectId;
 
+      console.log('Preparing to attach to HubSpot:', { currentPortalId, dealId, fileName });
+
       if (currentPortalId && dealId) {
         try {
           // Convert PDF to base64
           const pdfBase64 = pdf.output('datauristring').split(',')[1];
+          console.log('PDF base64 length:', pdfBase64?.length);
           
-          const { error: attachError } = await supabase.functions.invoke('hubspot-attach-file', {
+          console.log('Invoking hubspot-attach-file function...');
+          const { data, error: attachError } = await supabase.functions.invoke('hubspot-attach-file', {
             body: {
               portalId: currentPortalId,
               dealId: dealId,
@@ -181,8 +185,13 @@ function DocumentHubContent() {
             }
           });
 
+          console.log('HubSpot attach response:', { data, error: attachError });
+
           if (attachError) {
             console.error('Error attaching to HubSpot:', attachError);
+            toast.success('PDF downloaded! (Could not attach to deal)');
+          } else if (data?.error) {
+            console.error('HubSpot API error:', data.error);
             toast.success('PDF downloaded! (Could not attach to deal)');
           } else {
             toast.success('PDF downloaded and attached to deal!');
@@ -192,6 +201,7 @@ function DocumentHubContent() {
           toast.success('PDF downloaded! (Could not attach to deal)');
         }
       } else {
+        console.log('Missing portalId or dealId, skipping attachment');
         toast.success('Quote PDF downloaded successfully!');
       }
     } catch (err) {

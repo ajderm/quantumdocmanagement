@@ -63,17 +63,27 @@ async function getValidAccessToken(supabase: any, portalId: string): Promise<str
 }
 
 Deno.serve(async (req) => {
+  console.log('hubspot-attach-file: Received request', req.method);
+  
   if (req.method === 'OPTIONS') {
+    console.log('hubspot-attach-file: Handling OPTIONS preflight');
     return new Response(null, { headers: corsHeaders });
   }
 
   try {
+    console.log('hubspot-attach-file: Parsing request body...');
     const body = await req.json();
     const { portalId, dealId, fileName, fileBase64 } = body;
 
-    console.log('Attaching file to HubSpot deal:', { portalId, dealId, fileName });
+    console.log('hubspot-attach-file: Request data:', { 
+      portalId, 
+      dealId, 
+      fileName, 
+      fileBase64Length: fileBase64?.length || 0 
+    });
 
     if (!portalId || !dealId || !fileName || !fileBase64) {
+      console.error('hubspot-attach-file: Missing required fields');
       return new Response(JSON.stringify({ error: 'Missing required fields' }), {
         status: 400,
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
