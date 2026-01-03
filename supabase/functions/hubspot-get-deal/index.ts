@@ -1,8 +1,9 @@
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.49.1';
+import { encode as hexEncode } from 'https://deno.land/std@0.208.0/encoding/hex.ts';
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
-  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
+  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type, x-hubspot-signature, x-hubspot-signature-v3, x-hubspot-request-timestamp',
 };
 
 interface HubSpotToken {
@@ -10,6 +11,83 @@ interface HubSpotToken {
   refresh_token: string;
   expires_at: string;
   portal_id: string;
+}
+
+// Validate HubSpot request signature (v3)
+async function validateHubSpotSignature(
+  req: Request,
+  clientSecret: string
+): Promise<boolean> {
+  const signature = req.headers.get('x-hubspot-signature-v3');
+  const timestamp = req.headers.get('x-hubspot-request-timestamp');
+  
+  // If no signature headers, this request didn't come from HubSpot
+  if (!signature || !timestamp) {
+    console.log('Missing HubSpot signature headers');
+    return false;
+  }
+
+  // Check timestamp is within 5 minutes to prevent replay attacks
+  const requestTime = parseInt(timestamp, 10);
+  const currentTime = Math.floor(Date.now() / 1000);
+  const maxTimeDiff = 300; // 5 minutes
+  
+  if (Math.abs(currentTime - requestTime) > maxTimeDiff) {
+    console.log('Request timestamp too old');
+    return false;
+  }
+
+  // Build the string to sign: method + URL + body + timestamp
+  const method = req.method;
+  const url = req.url;
+  const body = await req.clone().text();
+  const stringToSign = `${method}${url}${body}${timestamp}`;
+
+  // Create HMAC-SHA256 signature
+  const encoder = new TextEncoder();
+  const key = await crypto.subtle.importKey(
+    'raw',
+    encoder.encode(clientSecret),
+    { name: 'HMAC', hash: 'SHA-256' },
+    false,
+    ['sign']
+  );
+  
+  const signatureBuffer = await crypto.subtle.sign(
+    'HMAC',
+    key,
+    encoder.encode(stringToSign)
+  );
+  
+  const expectedSignature = new TextDecoder().decode(hexEncode(new Uint8Array(signatureBuffer)));
+  
+  // Constant-time comparison to prevent timing attacks
+  if (signature.length !== expectedSignature.length) {
+    console.log('Signature length mismatch');
+    return false;
+  }
+  
+  let result = 0;
+  for (let i = 0; i < signature.length; i++) {
+    result |= signature.charCodeAt(i) ^ expectedSignature.charCodeAt(i);
+  }
+  
+  const isValid = result === 0;
+  if (!isValid) {
+    console.log('Signature validation failed');
+  }
+  
+  return isValid;
+}
+
+// Validate portalId format (should be numeric)
+function validatePortalId(portalId: string): boolean {
+  return /^\d{1,20}$/.test(portalId);
+}
+
+// Validate dealId format (should be numeric)
+function validateDealId(dealId: string): boolean {
+  return /^\d{1,20}$/.test(dealId);
 }
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -94,8 +172,6 @@ async function hubspotRequest(accessToken: string, endpoint: string) {
   });
 
   if (!response.ok) {
-    const errorText = await response.text();
-    console.error(`HubSpot API error for ${endpoint}:`, errorText);
     throw new Error(`HubSpot API error: ${response.status}`);
   }
 
@@ -108,13 +184,48 @@ Deno.serve(async (req) => {
   }
 
   try {
+    const clientSecret = Deno.env.get('HUBSPOT_CLIENT_SECRET');
+    
+    if (!clientSecret) {
+      console.error('HUBSPOT_CLIENT_SECRET not configured');
+      return new Response(
+        JSON.stringify({ error: 'Server configuration error' }),
+        { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+
+    // Validate HubSpot signature to ensure request is from HubSpot
+    const isValidSignature = await validateHubSpotSignature(req, clientSecret);
+    if (!isValidSignature) {
+      console.log('Invalid or missing HubSpot signature');
+      return new Response(
+        JSON.stringify({ error: 'Unauthorized' }),
+        { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+
     const url = new URL(req.url);
     const portalId = url.searchParams.get('portalId');
     const dealId = url.searchParams.get('dealId');
 
     if (!portalId || !dealId) {
       return new Response(
-        JSON.stringify({ error: 'Missing portalId or dealId' }),
+        JSON.stringify({ error: 'Missing required parameters' }),
+        { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+
+    // Validate input formats
+    if (!validatePortalId(portalId)) {
+      return new Response(
+        JSON.stringify({ error: 'Invalid portal ID format' }),
+        { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+
+    if (!validateDealId(dealId)) {
+      return new Response(
+        JSON.stringify({ error: 'Invalid deal ID format' }),
         { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     }
@@ -254,10 +365,10 @@ Deno.serve(async (req) => {
       { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     );
   } catch (error: unknown) {
-    console.error('Error fetching HubSpot deal:', error);
-    const message = error instanceof Error ? error.message : 'Unknown error';
+    console.error('Edge function error occurred');
+    // Don't expose internal error details to clients
     return new Response(
-      JSON.stringify({ error: message }),
+      JSON.stringify({ error: 'An error occurred processing your request' }),
       { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     );
   }

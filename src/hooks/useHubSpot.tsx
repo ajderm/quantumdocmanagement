@@ -85,13 +85,9 @@ export function HubSpotProvider({ children }: { children: ReactNode }) {
         setUserId(hubspotUserId);
 
         try {
-          const { data, error: fnError } = await supabase.functions.invoke('hubspot-get-deal', {
-            body: null,
-            headers: {},
-          });
-
-          // Use query params approach by calling the function URL directly
-          const functionUrl = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/hubspot-get-deal?portalId=${hubspotPortalId}&dealId=${hubspotDealId}`;
+          // When embedded in HubSpot, the HubSpot iframe will include signature headers
+          // For direct access (testing), the edge function will reject the request
+          const functionUrl = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/hubspot-get-deal?portalId=${encodeURIComponent(hubspotPortalId)}&dealId=${encodeURIComponent(hubspotDealId)}`;
           
           const response = await fetch(functionUrl, {
             method: 'GET',
@@ -101,6 +97,9 @@ export function HubSpotProvider({ children }: { children: ReactNode }) {
           });
 
           if (!response.ok) {
+            if (response.status === 401) {
+              throw new Error('Unauthorized - this app must be accessed through HubSpot');
+            }
             throw new Error('Failed to fetch deal data');
           }
 
