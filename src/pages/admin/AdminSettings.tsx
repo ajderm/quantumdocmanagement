@@ -14,15 +14,15 @@ export default function AdminSettings() {
   
   // Form state
   const [formData, setFormData] = useState({
-    company_name: 'Tascosa Office Machines',
-    address_line1: '1501 Avenue Q',
+    company_name: '',
+    address_line1: '',
     address_line2: '',
-    city: 'Lubbock',
-    state: 'TX',
-    zip_code: '79401',
-    phone: '(806) 747-1667',
-    website: 'www.TascosaOfficeMachines.com',
-    email: 'info@tascosa.com',
+    city: '',
+    state: '',
+    zip_code: '',
+    phone: '',
+    website: '',
+    email: '',
     terms_and_conditions: '',
   });
 
