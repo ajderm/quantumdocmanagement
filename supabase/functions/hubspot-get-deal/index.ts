@@ -334,6 +334,10 @@ Deno.serve(async (req) => {
           accessToken,
           `/crm/v3/objects/companies/${companyId}?properties=${companyProperties}`
         );
+        
+        // Debug: Log raw company properties to identify correct AP address field names
+        console.log('Raw company properties:', JSON.stringify(companyResponse.properties));
+        
         company = {
           companyId: companyResponse.id,
           name: companyResponse.properties.name,
