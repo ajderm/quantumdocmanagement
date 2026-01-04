@@ -1,74 +1,51 @@
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
 import { Badge } from '@/components/ui/badge';
 import { Separator } from '@/components/ui/separator';
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogHeader,
-  DialogTitle,
-  DialogTrigger,
-  DialogFooter,
-} from '@/components/ui/dialog';
 import { 
-  CreditCard, 
-  Plus, 
-  Upload, 
-  MoreVertical, 
-  Pencil, 
-  Trash2, 
   FileSpreadsheet,
   Loader2,
   ArrowLeft,
-  FileText
+  FileText,
+  Upload,
+  CheckCircle2,
+  AlertCircle,
+  Clock,
+  Building2
 } from 'lucide-react';
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { Link, useSearchParams } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuTrigger,
-} from '@/components/ui/dropdown-menu';
 
-interface LeasingPartner {
+interface RateSheet {
   id: string;
-  name: string;
-  contact_name: string | null;
-  contact_email: string | null;
-  contact_phone: string | null;
-  is_active: boolean;
-  dealer_account_id: string;
+  fileName: string;
+  uploadedAt: string;
+  rowCount: number;
+}
+
+interface RateFactorData {
+  rateSheet: RateSheet | null;
+  leasingCompanies: string[];
+  availableTerms: number[];
 }
 
 export default function LeasingPartners() {
   const [searchParams] = useSearchParams();
   const portalId = searchParams.get('portalId') || localStorage.getItem('hs_portal_id');
   
-  const [partners, setPartners] = useState<LeasingPartner[]>([]);
   const [loading, setLoading] = useState(true);
-  const [dealerAccountId, setDealerAccountId] = useState<string | null>(null);
-  
-  // Dialog states
-  const [addPartnerOpen, setAddPartnerOpen] = useState(false);
-  const [addingPartner, setAddingPartner] = useState(false);
-  const [selectedPartner, setSelectedPartner] = useState<LeasingPartner | null>(null);
-  const [uploadRatesOpen, setUploadRatesOpen] = useState(false);
-
-  // Form state
-  const [partnerForm, setPartnerForm] = useState({
-    name: '',
-    contact_name: '',
-    contact_email: '',
-    contact_phone: '',
+  const [uploading, setUploading] = useState(false);
+  const [rateData, setRateData] = useState<RateFactorData>({
+    rateSheet: null,
+    leasingCompanies: [],
+    availableTerms: []
   });
+  
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
-  // Fetch dealer account and partners on mount
+  // Fetch rate sheet data on mount
   useEffect(() => {
     const fetchData = async () => {
       if (!portalId) {
@@ -77,32 +54,18 @@ export default function LeasingPartners() {
       }
 
       try {
-        // Get dealer account
-        const { data: dealerData, error: dealerError } = await supabase.functions.invoke('dealer-account-get', {
+        const { data, error } = await supabase.functions.invoke('get-rate-factors', {
           body: { portalId }
         });
 
-        if (dealerError || !dealerData?.dealer?.id) {
-          console.error('Failed to get dealer account:', dealerError);
-          setLoading(false);
-          return;
-        }
-
-        const accountId = dealerData.dealer.id;
-        setDealerAccountId(accountId);
-
-        // Fetch partners
-        const { data: partnersData, error: partnersError } = await supabase
-          .from('leasing_partners')
-          .select('*')
-          .eq('dealer_account_id', accountId)
-          .eq('is_active', true)
-          .order('name');
-
-        if (partnersError) {
-          console.error('Failed to fetch partners:', partnersError);
-        } else {
-          setPartners(partnersData || []);
+        if (error) {
+          console.error('Failed to fetch rate data:', error);
+        } else if (data) {
+          setRateData({
+            rateSheet: data.rateSheet,
+            leasingCompanies: data.leasingCompanies || [],
+            availableTerms: data.availableTerms || []
+          });
         }
       } catch (err) {
         console.error('Error fetching data:', err);
@@ -114,62 +77,77 @@ export default function LeasingPartners() {
     fetchData();
   }, [portalId]);
 
-  const handleAddPartner = async () => {
-    if (!partnerForm.name.trim() || !dealerAccountId) return;
+  const handleFileUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (!file || !portalId) return;
 
-    setAddingPartner(true);
+    // Validate file type
+    if (!file.name.endsWith('.csv')) {
+      toast.error('Please upload a CSV file');
+      return;
+    }
+
+    setUploading(true);
     try {
-      const { data, error } = await supabase
-        .from('leasing_partners')
-        .insert({
-          name: partnerForm.name.trim(),
-          contact_name: partnerForm.contact_name.trim() || null,
-          contact_email: partnerForm.contact_email.trim() || null,
-          contact_phone: partnerForm.contact_phone.trim() || null,
-          dealer_account_id: dealerAccountId,
-          is_active: true,
-        })
-        .select()
-        .single();
+      const formData = new FormData();
+      formData.append('file', file);
+      formData.append('portalId', portalId);
+
+      const { data, error } = await supabase.functions.invoke('upload-rate-sheet', {
+        body: formData
+      });
 
       if (error) {
-        console.error('Failed to add partner:', error);
-        toast.error('Failed to add partner');
+        console.error('Upload failed:', error);
+        toast.error('Failed to upload rate sheet');
         return;
       }
 
-      setPartners(prev => [...prev, data].sort((a, b) => a.name.localeCompare(b.name)));
-      setAddPartnerOpen(false);
-      setPartnerForm({ name: '', contact_name: '', contact_email: '', contact_phone: '' });
-      toast.success('Partner added successfully');
+      if (data?.error) {
+        toast.error(data.error);
+        if (data.details) {
+          console.error('Upload details:', data.details);
+        }
+        return;
+      }
+
+      // Update state with new data
+      setRateData({
+        rateSheet: {
+          id: data.rateSheetId,
+          fileName: data.fileName,
+          uploadedAt: new Date().toISOString(),
+          rowCount: data.rowCount
+        },
+        leasingCompanies: data.leasingCompanies || [],
+        availableTerms: data.availableTerms || []
+      });
+
+      toast.success(`Successfully imported ${data.rowCount} rates from ${data.leasingCompanies?.length || 0} companies`);
+      
+      if (data.warnings?.length > 0) {
+        toast.warning(`${data.warnings.length} rows had warnings`);
+      }
     } catch (err) {
-      console.error('Error adding partner:', err);
-      toast.error('Failed to add partner');
+      console.error('Error uploading:', err);
+      toast.error('Failed to upload rate sheet');
     } finally {
-      setAddingPartner(false);
+      setUploading(false);
+      // Reset file input
+      if (fileInputRef.current) {
+        fileInputRef.current.value = '';
+      }
     }
   };
 
-  const handleDeletePartner = async (partner: LeasingPartner) => {
-    try {
-      // Soft delete by setting is_active to false
-      const { error } = await supabase
-        .from('leasing_partners')
-        .update({ is_active: false })
-        .eq('id', partner.id);
-
-      if (error) {
-        console.error('Failed to delete partner:', error);
-        toast.error('Failed to delete partner');
-        return;
-      }
-
-      setPartners(prev => prev.filter(p => p.id !== partner.id));
-      toast.success('Partner deleted');
-    } catch (err) {
-      console.error('Error deleting partner:', err);
-      toast.error('Failed to delete partner');
-    }
+  const formatDate = (dateString: string) => {
+    return new Date(dateString).toLocaleDateString('en-US', {
+      month: 'short',
+      day: 'numeric',
+      year: 'numeric',
+      hour: '2-digit',
+      minute: '2-digit'
+    });
   };
 
   if (loading) {
@@ -191,7 +169,7 @@ export default function LeasingPartners() {
             </div>
             <div>
               <h1 className="text-sm font-semibold">DocGen Admin</h1>
-              <span className="text-xs text-muted-foreground">Leasing Partners</span>
+              <span className="text-xs text-muted-foreground">Leasing Rate Sheet</span>
             </div>
           </div>
         </div>
@@ -207,213 +185,160 @@ export default function LeasingPartners() {
         </Button>
 
         {/* Header */}
-        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-8">
-          <div>
-            <h1 className="text-2xl font-bold text-foreground">Leasing Partners</h1>
-            <p className="text-muted-foreground mt-1">
-              Manage financing partners and their rate sheets
-            </p>
-          </div>
-          <Dialog open={addPartnerOpen} onOpenChange={setAddPartnerOpen}>
-            <DialogTrigger asChild>
-              <Button disabled={!dealerAccountId}>
-                <Plus className="h-4 w-4 mr-2" />
-                Add Partner
-              </Button>
-            </DialogTrigger>
-            <DialogContent>
-              <DialogHeader>
-                <DialogTitle>Add Leasing Partner</DialogTitle>
-                <DialogDescription>
-                  Add a new financing company to use in your quotes
-                </DialogDescription>
-              </DialogHeader>
-              <div className="space-y-4 py-4">
-                <div className="space-y-2">
-                  <Label htmlFor="partner-name">Company Name *</Label>
-                  <Input
-                    id="partner-name"
-                    value={partnerForm.name}
-                    onChange={(e) => setPartnerForm(prev => ({ ...prev, name: e.target.value }))}
-                    placeholder="e.g., Wells Fargo Equipment Finance"
-                  />
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="contact-name">Contact Name</Label>
-                  <Input
-                    id="contact-name"
-                    value={partnerForm.contact_name}
-                    onChange={(e) => setPartnerForm(prev => ({ ...prev, contact_name: e.target.value }))}
-                    placeholder="John Smith"
-                  />
-                </div>
-                <div className="grid grid-cols-2 gap-4">
-                  <div className="space-y-2">
-                    <Label htmlFor="contact-email">Email</Label>
-                    <Input
-                      id="contact-email"
-                      type="email"
-                      value={partnerForm.contact_email}
-                      onChange={(e) => setPartnerForm(prev => ({ ...prev, contact_email: e.target.value }))}
-                      placeholder="john@company.com"
-                    />
+        <div className="mb-8">
+          <h1 className="text-2xl font-bold text-foreground">Leasing Rate Sheet</h1>
+          <p className="text-muted-foreground mt-1">
+            Upload your rate sheet to configure leasing companies and rate factors
+          </p>
+        </div>
+
+        {/* Upload Section */}
+        <Card className="mb-6">
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <FileSpreadsheet className="h-5 w-5" />
+              Rate Sheet Upload
+            </CardTitle>
+            <CardDescription>
+              Upload a CSV file with your leasing companies and rate factors
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <div 
+              className="border-2 border-dashed border-border rounded-lg p-8 text-center hover:border-primary/50 transition-colors cursor-pointer"
+              onClick={() => fileInputRef.current?.click()}
+            >
+              {uploading ? (
+                <>
+                  <Loader2 className="h-10 w-10 mx-auto text-primary mb-4 animate-spin" />
+                  <p className="text-sm text-muted-foreground">
+                    Processing your rate sheet...
+                  </p>
+                </>
+              ) : (
+                <>
+                  <Upload className="h-10 w-10 mx-auto text-muted-foreground mb-4" />
+                  <p className="text-sm text-muted-foreground mb-2">
+                    Click to upload or drag and drop your CSV file
+                  </p>
+                  <Button variant="outline" disabled={uploading}>
+                    Choose File
+                  </Button>
+                </>
+              )}
+              <input
+                ref={fileInputRef}
+                type="file"
+                accept=".csv"
+                onChange={handleFileUpload}
+                className="hidden"
+              />
+            </div>
+            
+            {/* Expected format */}
+            <div className="mt-4 p-4 bg-muted/50 rounded-lg">
+              <h4 className="font-medium text-sm mb-2">Expected CSV columns:</h4>
+              <code className="text-xs text-muted-foreground block">
+                leasing_company, lease_program, min_amount, max_amount, term_months, rate_factor
+              </code>
+              <p className="text-xs text-muted-foreground mt-2">
+                Example: Canon Financial Services, FMV, 0, 24999, 36, 0.03391
+              </p>
+            </div>
+          </CardContent>
+        </Card>
+
+        {/* Current Rate Sheet Status */}
+        {rateData.rateSheet ? (
+          <Card className="mb-6">
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <CheckCircle2 className="h-5 w-5 text-green-500" />
+                Active Rate Sheet
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="grid grid-cols-3 gap-4">
+                <div className="flex items-center gap-2">
+                  <FileSpreadsheet className="h-4 w-4 text-muted-foreground" />
+                  <div>
+                    <p className="text-sm font-medium">{rateData.rateSheet.fileName}</p>
+                    <p className="text-xs text-muted-foreground">File name</p>
                   </div>
-                  <div className="space-y-2">
-                    <Label htmlFor="contact-phone">Phone</Label>
-                    <Input
-                      id="contact-phone"
-                      value={partnerForm.contact_phone}
-                      onChange={(e) => setPartnerForm(prev => ({ ...prev, contact_phone: e.target.value }))}
-                      placeholder="(555) 555-5555"
-                    />
+                </div>
+                <div className="flex items-center gap-2">
+                  <Clock className="h-4 w-4 text-muted-foreground" />
+                  <div>
+                    <p className="text-sm font-medium">{formatDate(rateData.rateSheet.uploadedAt)}</p>
+                    <p className="text-xs text-muted-foreground">Uploaded</p>
+                  </div>
+                </div>
+                <div className="flex items-center gap-2">
+                  <FileText className="h-4 w-4 text-muted-foreground" />
+                  <div>
+                    <p className="text-sm font-medium">{rateData.rateSheet.rowCount.toLocaleString()} rates</p>
+                    <p className="text-xs text-muted-foreground">Imported</p>
                   </div>
                 </div>
               </div>
-              <DialogFooter>
-                <Button variant="outline" onClick={() => setAddPartnerOpen(false)}>
-                  Cancel
-                </Button>
-                <Button onClick={handleAddPartner} disabled={!partnerForm.name.trim() || addingPartner}>
-                  {addingPartner ? (
-                    <>
-                      <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                      Adding...
-                    </>
-                  ) : (
-                    'Add Partner'
-                  )}
-                </Button>
-              </DialogFooter>
-            </DialogContent>
-          </Dialog>
-        </div>
-
-        {/* Partners list */}
-        {partners.length === 0 ? (
-          <Card>
-            <CardContent className="py-12 text-center">
-              <CreditCard className="h-12 w-12 mx-auto text-muted-foreground mb-4" />
-              <h3 className="text-lg font-medium mb-2">No Leasing Partners</h3>
-              <p className="text-muted-foreground mb-4">
-                Add your first leasing partner to get started
-              </p>
-              <Button onClick={() => setAddPartnerOpen(true)} disabled={!dealerAccountId}>
-                <Plus className="h-4 w-4 mr-2" />
-                Add Partner
-              </Button>
             </CardContent>
           </Card>
         ) : (
-          <div className="space-y-4">
-            {partners.map((partner) => (
-              <Card key={partner.id}>
-                <CardHeader className="pb-3">
-                  <div className="flex items-start justify-between">
-                    <div className="flex items-center gap-3">
-                      <div className="h-10 w-10 rounded-lg bg-primary/10 flex items-center justify-center">
-                        <CreditCard className="h-5 w-5 text-primary" />
-                      </div>
-                      <div>
-                        <CardTitle className="text-lg">{partner.name}</CardTitle>
-                        {partner.contact_name && (
-                          <CardDescription>
-                            {partner.contact_name}
-                            {partner.contact_email && ` • ${partner.contact_email}`}
-                          </CardDescription>
-                        )}
-                      </div>
-                    </div>
-                    <div className="flex items-center gap-2">
-                      <Badge variant={partner.is_active ? 'default' : 'secondary'}>
-                        {partner.is_active ? 'Active' : 'Inactive'}
-                      </Badge>
-                      <DropdownMenu>
-                        <DropdownMenuTrigger asChild>
-                          <Button variant="ghost" size="icon">
-                            <MoreVertical className="h-4 w-4" />
-                          </Button>
-                        </DropdownMenuTrigger>
-                        <DropdownMenuContent align="end">
-                          <DropdownMenuItem>
-                            <Pencil className="h-4 w-4 mr-2" />
-                            Edit Partner
-                          </DropdownMenuItem>
-                          <DropdownMenuItem 
-                            className="text-destructive"
-                            onClick={() => handleDeletePartner(partner)}
-                          >
-                            <Trash2 className="h-4 w-4 mr-2" />
-                            Delete Partner
-                          </DropdownMenuItem>
-                        </DropdownMenuContent>
-                      </DropdownMenu>
-                    </div>
-                  </div>
-                </CardHeader>
-                <CardContent>
-                  <Separator className="mb-4" />
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                      <FileSpreadsheet className="h-4 w-4" />
-                      <span>No rate sheets uploaded</span>
-                    </div>
-                    <Button 
-                      variant="outline" 
-                      size="sm"
-                      onClick={() => {
-                        setSelectedPartner(partner);
-                        setUploadRatesOpen(true);
-                      }}
-                    >
-                      <Upload className="h-4 w-4 mr-2" />
-                      Upload Rate Sheet
-                    </Button>
-                  </div>
-                </CardContent>
-              </Card>
-            ))}
-          </div>
+          <Card className="mb-6">
+            <CardContent className="py-8 text-center">
+              <AlertCircle className="h-10 w-10 mx-auto text-muted-foreground mb-4" />
+              <p className="text-muted-foreground">
+                No rate sheet uploaded yet. Upload a CSV file to get started.
+              </p>
+            </CardContent>
+          </Card>
         )}
 
-        {/* Upload Rate Sheet Dialog */}
-        <Dialog open={uploadRatesOpen} onOpenChange={setUploadRatesOpen}>
-          <DialogContent className="max-w-2xl">
-            <DialogHeader>
-              <DialogTitle>Upload Rate Sheet</DialogTitle>
-              <DialogDescription>
-                Upload a CSV or Excel file with lease rates for {selectedPartner?.name}
-              </DialogDescription>
-            </DialogHeader>
-            <div className="py-4">
-              <div className="border-2 border-dashed border-border rounded-lg p-8 text-center">
-                <Upload className="h-10 w-10 mx-auto text-muted-foreground mb-4" />
-                <p className="text-sm text-muted-foreground mb-2">
-                  Drag and drop your rate sheet here, or click to browse
-                </p>
-                <Button variant="outline">
-                  Choose File
-                </Button>
+        {/* Detected Leasing Companies */}
+        {rateData.leasingCompanies.length > 0 && (
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <Building2 className="h-5 w-5" />
+                Detected Leasing Companies
+              </CardTitle>
+              <CardDescription>
+                These companies were found in your rate sheet and are now available for quotes
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              <div className="space-y-3">
+                {rateData.leasingCompanies.map((company) => (
+                  <div key={company} className="flex items-center justify-between p-3 bg-muted/50 rounded-lg">
+                    <div className="flex items-center gap-3">
+                      <div className="h-8 w-8 rounded-lg bg-primary/10 flex items-center justify-center">
+                        <Building2 className="h-4 w-4 text-primary" />
+                      </div>
+                      <span className="font-medium">{company}</span>
+                    </div>
+                    <Badge variant="default">Active</Badge>
+                  </div>
+                ))}
               </div>
-              <div className="mt-4 p-4 bg-muted/50 rounded-lg">
-                <h4 className="font-medium text-sm mb-2">Expected columns:</h4>
-                <code className="text-xs text-muted-foreground">
-                  term_months, min_amount, max_amount, rate_factor, lease_type
-                </code>
-                <p className="text-xs text-muted-foreground mt-2">
-                  Example: 36, 0, 25000, 0.0325, FMV
-                </p>
-              </div>
-            </div>
-            <DialogFooter>
-              <Button variant="outline" onClick={() => setUploadRatesOpen(false)}>
-                Cancel
-              </Button>
-              <Button disabled>
-                Upload & Parse
-              </Button>
-            </DialogFooter>
-          </DialogContent>
-        </Dialog>
+              
+              {rateData.availableTerms.length > 0 && (
+                <>
+                  <Separator className="my-4" />
+                  <div>
+                    <p className="text-sm font-medium mb-2">Available Terms</p>
+                    <div className="flex flex-wrap gap-2">
+                      {rateData.availableTerms.map((term) => (
+                        <Badge key={term} variant="outline">
+                          {term} months
+                        </Badge>
+                      ))}
+                    </div>
+                  </div>
+                </>
+              )}
+            </CardContent>
+          </Card>
+        )}
       </div>
     </div>
   );

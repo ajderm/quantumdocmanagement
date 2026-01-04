@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Separator } from '@/components/ui/separator';
@@ -6,9 +6,6 @@ import { Button } from '@/components/ui/button';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Plus, Trash2 } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
-
-const AVAILABLE_TERMS = [12, 24, 36, 48, 60, 72];
-const RATE_FACTORS: Record<number, number> = { 12: 0.088, 24: 0.046, 36: 0.032, 48: 0.026, 60: 0.022, 72: 0.019 };
 
 export interface QuoteLineItem { id: string; quantity: number; model: string; description: string; price: number; }
 export interface QuoteFormData { 
@@ -45,13 +42,20 @@ export interface QuoteFormData {
   paymentsRemaining: number;
   paymentAmount: number;
   buyoutFinancingAmount: number;
+  // Calculated payments (from dynamic rates)
+  calculatedPayments: Record<number, number>;
 }
 
 interface QuoteFormProps { deal: any; company: any; contacts: any[]; lineItems: any[]; dealOwner: any; onFormChange: (data: QuoteFormData) => void; portalId?: string; savedConfig?: QuoteFormData; }
 
-interface LeasingPartner {
+interface RateFactor {
   id: string;
-  name: string;
+  leasing_company: string;
+  lease_program: string;
+  min_amount: number | null;
+  max_amount: number | null;
+  term_months: number;
+  rate_factor: number;
 }
 
 // Currency input formatter
@@ -62,6 +66,9 @@ const formatCurrency = (value: number): string => {
 const parseCurrency = (value: string): number => {
   return parseFloat(value.replace(/[^0-9.-]/g, '')) || 0;
 };
+
+// Default fallback rate factors if no rate sheet uploaded
+const DEFAULT_RATE_FACTORS: Record<number, number> = { 12: 0.088, 24: 0.046, 36: 0.032, 48: 0.026, 60: 0.022, 72: 0.019 };
 
 export function QuoteForm({ deal, company, lineItems, dealOwner, onFormChange, portalId, savedConfig }: QuoteFormProps) {
   const [formData, setFormData] = useState<QuoteFormData>({ 
@@ -80,7 +87,7 @@ export function QuoteForm({ deal, company, lineItems, dealOwner, onFormChange, p
     lineItems: [], 
     retailPrice: 0, 
     cashDiscount: 0, 
-    selectedTerms: [36, 48, 60], 
+    selectedTerms: [], 
     serviceBaseRate: 0, 
     includedBWCopies: 0, 
     includedColorCopies: 0, 
@@ -98,6 +105,7 @@ export function QuoteForm({ deal, company, lineItems, dealOwner, onFormChange, p
     paymentsRemaining: 0,
     paymentAmount: 0,
     buyoutFinancingAmount: 0,
+    calculatedPayments: {},
   });
 
   // Local string state for overage inputs to allow typing "0.0123" naturally
@@ -109,39 +117,129 @@ export function QuoteForm({ deal, company, lineItems, dealOwner, onFormChange, p
   const [returnShippingText, setReturnShippingText] = useState('');
   const [paymentAmountText, setPaymentAmountText] = useState('');
   
-  // Leasing partners for dropdown
-  const [leasingPartners, setLeasingPartners] = useState<LeasingPartner[]>([]);
+  // Rate sheet data
+  const [rateFactors, setRateFactors] = useState<RateFactor[]>([]);
+  const [leasingCompanies, setLeasingCompanies] = useState<string[]>([]);
+  const [hasRateSheet, setHasRateSheet] = useState(false);
 
-  // Fetch leasing partners
+  // Fetch rate factors from database
   useEffect(() => {
-    const fetchLeasingPartners = async () => {
+    const fetchRateFactors = async () => {
       const currentPortalId = portalId || localStorage.getItem('hs_portal_id');
       if (!currentPortalId) return;
 
       try {
-        const { data, error } = await supabase.functions.invoke('dealer-account-get', {
+        const { data, error } = await supabase.functions.invoke('get-rate-factors', {
           body: { portalId: currentPortalId }
         });
 
-        if (error || !data?.dealer?.id) return;
+        if (error) {
+          console.error('Failed to fetch rate factors:', error);
+          return;
+        }
 
-        const { data: partners } = await supabase
-          .from('leasing_partners')
-          .select('id, name')
-          .eq('dealer_account_id', data.dealer.id)
-          .eq('is_active', true)
-          .order('name');
-
-        if (partners) {
-          setLeasingPartners(partners);
+        if (data?.rateFactors?.length > 0) {
+          setRateFactors(data.rateFactors);
+          setLeasingCompanies(data.leasingCompanies || []);
+          setHasRateSheet(true);
+          
+          // Auto-select first company if none selected
+          if (!formData.leasingCompanyId && data.leasingCompanies?.length > 0) {
+            setFormData(prev => ({ ...prev, leasingCompanyId: data.leasingCompanies[0] }));
+          }
         }
       } catch (err) {
-        console.error('Failed to fetch leasing partners:', err);
+        console.error('Failed to fetch rate factors:', err);
       }
     };
 
-    fetchLeasingPartners();
+    fetchRateFactors();
   }, [portalId]);
+
+  // Get available terms for selected company and program
+  const availableTerms = useMemo(() => {
+    if (!hasRateSheet || !formData.leasingCompanyId) {
+      return [12, 24, 36, 48, 60, 72]; // Default terms
+    }
+
+    const programKey = formData.leaseProgram === 'fmv' ? 'FMV' : '$1';
+    const terms = rateFactors
+      .filter(r => r.leasing_company === formData.leasingCompanyId && r.lease_program === programKey)
+      .map(r => r.term_months);
+    
+    return [...new Set(terms)].sort((a, b) => a - b);
+  }, [rateFactors, formData.leasingCompanyId, formData.leaseProgram, hasRateSheet]);
+
+  // Calculate lease payment using database rates
+  const calculateLeasePayment = (term: number): number => {
+    // Get financing amount (use buyoutFinancingAmount as override if > 0)
+    const amount = formData.buyoutFinancingAmount > 0 ? formData.buyoutFinancingAmount : formData.retailPrice;
+    
+    if (!hasRateSheet || !formData.leasingCompanyId) {
+      // Fall back to default rates
+      const rateFactor = DEFAULT_RATE_FACTORS[term] || 0.025;
+      return Math.round(amount * rateFactor);
+    }
+
+    const programKey = formData.leaseProgram === 'fmv' ? 'FMV' : '$1';
+    
+    // Find matching rate factor
+    const matchingRate = rateFactors.find(r => 
+      r.leasing_company === formData.leasingCompanyId &&
+      r.lease_program === programKey &&
+      r.term_months === term &&
+      (r.min_amount === null || amount >= r.min_amount) &&
+      (r.max_amount === null || amount <= r.max_amount)
+    );
+
+    if (matchingRate) {
+      return Math.round(amount * matchingRate.rate_factor);
+    }
+
+    // If no amount tier match, try without amount constraints
+    const fallbackRate = rateFactors.find(r =>
+      r.leasing_company === formData.leasingCompanyId &&
+      r.lease_program === programKey &&
+      r.term_months === term
+    );
+
+    if (fallbackRate) {
+      return Math.round(amount * fallbackRate.rate_factor);
+    }
+
+    // Final fallback to default
+    return Math.round(amount * (DEFAULT_RATE_FACTORS[term] || 0.025));
+  };
+
+  // Update calculated payments when relevant values change
+  useEffect(() => {
+    const payments: Record<number, number> = {};
+    formData.selectedTerms.forEach(term => {
+      payments[term] = calculateLeasePayment(term);
+    });
+    
+    // Only update if different to avoid infinite loop
+    const currentPayments = JSON.stringify(formData.calculatedPayments);
+    const newPayments = JSON.stringify(payments);
+    if (currentPayments !== newPayments) {
+      setFormData(prev => ({ ...prev, calculatedPayments: payments }));
+    }
+  }, [formData.selectedTerms, formData.retailPrice, formData.buyoutFinancingAmount, formData.leasingCompanyId, formData.leaseProgram, rateFactors]);
+
+  // Reset selected terms when company or program changes
+  useEffect(() => {
+    if (availableTerms.length > 0 && formData.selectedTerms.length === 0) {
+      // Auto-select up to 3 terms from available
+      const defaultTerms = availableTerms.slice(0, 3);
+      setFormData(prev => ({ ...prev, selectedTerms: defaultTerms }));
+    } else if (availableTerms.length > 0) {
+      // Filter out any selected terms that are no longer available
+      const validTerms = formData.selectedTerms.filter(t => availableTerms.includes(t));
+      if (validTerms.length !== formData.selectedTerms.length) {
+        setFormData(prev => ({ ...prev, selectedTerms: validTerms.length > 0 ? validTerms : availableTerms.slice(0, 3) }));
+      }
+    }
+  }, [availableTerms]);
 
   // Calculate total buyout
   const totalBuyout = (formData.paymentAmount * formData.paymentsRemaining) + formData.earlyTerminationFee + formData.returnShipping;
@@ -174,7 +272,6 @@ export function QuoteForm({ deal, company, lineItems, dealOwner, onFormChange, p
     };
 
     // If we have saved config, merge it with HubSpot data
-    // HubSpot data takes precedence for contact/company info
     if (savedConfig) {
       setFormData(prev => ({ 
         ...prev, 
@@ -191,10 +288,10 @@ export function QuoteForm({ deal, company, lineItems, dealOwner, onFormChange, p
         state: hubspotData.state || savedConfig.state,
         zip: hubspotData.zip || savedConfig.zip,
         phone: hubspotData.phone || savedConfig.phone,
-        // Use saved lineItems if they exist, otherwise HubSpot's
         lineItems: savedConfig.lineItems?.length > 0 ? savedConfig.lineItems : hubspotData.lineItems,
         retailPrice: savedConfig.retailPrice || hubspotData.retailPrice,
-        cashDiscount: savedConfig.cashDiscount || hubspotData.cashDiscount
+        cashDiscount: savedConfig.cashDiscount || hubspotData.cashDiscount,
+        calculatedPayments: savedConfig.calculatedPayments || {},
       }));
       
       // Also restore text states for inputs
@@ -225,8 +322,16 @@ export function QuoteForm({ deal, company, lineItems, dealOwner, onFormChange, p
   const updateLineItem = (index: number, field: keyof QuoteLineItem, value: string | number) => { setFormData(prev => { const newItems = [...prev.lineItems]; newItems[index] = { ...newItems[index], [field]: value }; const totalPrice = newItems.reduce((sum, item) => sum + (item.price * item.quantity), 0); return { ...prev, lineItems: newItems, retailPrice: totalPrice, cashDiscount: totalPrice * 0.95 }; }); };
   const addLineItem = () => { setFormData(prev => ({ ...prev, lineItems: [...prev.lineItems, { id: `new-${Date.now()}`, quantity: 1, model: '', description: '', price: 0 }] })); };
   const removeLineItem = (index: number) => { setFormData(prev => { const newItems = prev.lineItems.filter((_, i) => i !== index); const totalPrice = newItems.reduce((sum, item) => sum + (item.price * item.quantity), 0); return { ...prev, lineItems: newItems, retailPrice: totalPrice, cashDiscount: totalPrice * 0.95 }; }); };
-  const toggleTerm = (term: number) => { setFormData(prev => { const t = prev.selectedTerms; if (t.includes(term)) { return t.length > 1 ? { ...prev, selectedTerms: t.filter(x => x !== term) } : prev; } return t.length < 3 ? { ...prev, selectedTerms: [...t, term].sort((a, b) => a - b) } : prev; }); };
-  const calcLease = (term: number) => Math.round(formData.retailPrice * (RATE_FACTORS[term] || 0.025));
+  
+  const toggleTerm = (term: number) => { 
+    setFormData(prev => { 
+      const t = prev.selectedTerms; 
+      if (t.includes(term)) { 
+        return t.length > 1 ? { ...prev, selectedTerms: t.filter(x => x !== term) } : prev; 
+      } 
+      return t.length < 3 ? { ...prev, selectedTerms: [...t, term].sort((a, b) => a - b) } : prev; 
+    }); 
+  };
 
   const handleBaseRateChange = (value: number) => {
     setFormData(prev => ({ ...prev, serviceBaseRate: value, baseRateManuallySet: true }));
@@ -273,7 +378,7 @@ export function QuoteForm({ deal, company, lineItems, dealOwner, onFormChange, p
       </div>
       <Separator />
       
-      {/* Configuration Section - moved between Equipment and Pricing */}
+      {/* Configuration Section */}
       <div>
         <h4 className="text-sm font-medium mb-3">Configuration</h4>
         <div className="grid grid-cols-4 gap-4">
@@ -284,11 +389,12 @@ export function QuoteForm({ deal, company, lineItems, dealOwner, onFormChange, p
                 <SelectValue placeholder="Select leasing company" />
               </SelectTrigger>
               <SelectContent>
-                {leasingPartners.map((partner) => (
-                  <SelectItem key={partner.id} value={partner.id}>{partner.name}</SelectItem>
-                ))}
-                {leasingPartners.length === 0 && (
-                  <SelectItem value="none" disabled>No leasing partners configured</SelectItem>
+                {leasingCompanies.length > 0 ? (
+                  leasingCompanies.map((company) => (
+                    <SelectItem key={company} value={company}>{company}</SelectItem>
+                  ))
+                ) : (
+                  <SelectItem value="none" disabled>No rate sheet uploaded</SelectItem>
                 )}
               </SelectContent>
             </Select>
@@ -363,7 +469,34 @@ export function QuoteForm({ deal, company, lineItems, dealOwner, onFormChange, p
               </div>
             </div>
           </div>
-          <div><Label className="text-xs mb-2 block">FMV Lease Terms (up to 3)</Label><div className="flex flex-wrap gap-2">{AVAILABLE_TERMS.map(t => <Button key={t} type="button" variant={formData.selectedTerms.includes(t) ? "default" : "outline"} size="sm" onClick={() => toggleTerm(t)} disabled={!formData.selectedTerms.includes(t) && formData.selectedTerms.length >= 3} className="h-7 text-xs">{t} mo</Button>)}</div><div className="mt-3 space-y-1">{formData.selectedTerms.map(t => <div key={t} className="flex justify-between text-sm bg-muted/50 rounded px-3 py-1.5"><span>{t} months</span><span className="font-medium">${calcLease(t).toLocaleString()}/mo</span></div>)}</div></div>
+          <div>
+            <Label className="text-xs mb-2 block">
+              {formData.leaseProgram === 'fmv' ? 'FMV' : '$1 Buyout'} Lease Terms (up to 3)
+            </Label>
+            <div className="flex flex-wrap gap-2">
+              {availableTerms.map(t => (
+                <Button 
+                  key={t} 
+                  type="button" 
+                  variant={formData.selectedTerms.includes(t) ? "default" : "outline"} 
+                  size="sm" 
+                  onClick={() => toggleTerm(t)} 
+                  disabled={!formData.selectedTerms.includes(t) && formData.selectedTerms.length >= 3} 
+                  className="h-7 text-xs"
+                >
+                  {t} mo
+                </Button>
+              ))}
+            </div>
+            <div className="mt-3 space-y-1">
+              {formData.selectedTerms.map(t => (
+                <div key={t} className="flex justify-between text-sm bg-muted/50 rounded px-3 py-1.5">
+                  <span>{t} months</span>
+                  <span className="font-medium">${calculateLeasePayment(t).toLocaleString()}/mo</span>
+                </div>
+              ))}
+            </div>
+          </div>
         </div>
       </div>
       <Separator />
@@ -467,7 +600,7 @@ export function QuoteForm({ deal, company, lineItems, dealOwner, onFormChange, p
             </div>
           </div>
         </div>
-        {/* Base Rate Display - styled like Total Buyout */}
+        {/* Base Rate Display */}
         <div className="mt-4 p-3 bg-muted/50 rounded-lg">
           <div className="flex justify-between items-center">
             <div className="flex items-center gap-2">
@@ -620,7 +753,7 @@ export function QuoteForm({ deal, company, lineItems, dealOwner, onFormChange, p
             </div>
           </div>
           <div>
-            <Label className="text-xs">Buyout Financing Amount</Label>
+            <Label className="text-xs">Financing Amount Override</Label>
             <div className="relative">
               <span className="absolute left-2 top-1/2 -translate-y-1/2 text-muted-foreground text-sm">$</span>
               <Input 
@@ -650,9 +783,12 @@ export function QuoteForm({ deal, company, lineItems, dealOwner, onFormChange, p
                   }
                 }}
                 className="h-8 text-sm pl-5"
-                placeholder="5000"
+                placeholder="Use retail price"
               />
             </div>
+            <p className="text-xs text-muted-foreground mt-1">
+              If set, this amount will be used for lease calculations instead of retail price
+            </p>
           </div>
         </div>
         {/* Total Buyout Display */}

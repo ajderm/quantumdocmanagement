@@ -17,3 +17,9 @@ verify_jwt = false
 
 [functions.hubspot-update-deal]
 verify_jwt = false
+
+[functions.upload-rate-sheet]
+verify_jwt = false
+
+[functions.get-rate-factors]
+verify_jwt = false
