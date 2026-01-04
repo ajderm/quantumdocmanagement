@@ -71,6 +71,10 @@ export function QuoteForm({ deal, company, lineItems, dealOwner, onFormChange }:
     baseRateManuallySet: false,
   });
 
+  // Local string state for overage inputs to allow typing "0.0123" naturally
+  const [overageBWText, setOverageBWText] = useState('');
+  const [overageColorText, setOverageColorText] = useState('');
+
   useEffect(() => {
     const totalPrice = lineItems.reduce((sum: number, item: any) => sum + (item.price * item.quantity), 0);
     setFormData(prev => ({ 
@@ -253,16 +257,30 @@ export function QuoteForm({ deal, company, lineItems, dealOwner, onFormChange }:
               <span className="absolute left-2 top-1/2 -translate-y-1/2 text-muted-foreground text-sm">$</span>
               <Input 
                 type="text"
-                value={formData.overageBWRate === 0 ? '' : String(formData.overageBWRate)} 
+                value={overageBWText} 
                 onChange={e => {
                   const val = e.target.value;
-                  // Allow empty, digits, decimals - including starting with "."
-                  if (val === '' || /^[0-9]*\.?[0-9]*$/.test(val)) {
-                    // Don't convert incomplete values like "." to 0, keep as string representation
-                    if (val === '' || val === '.') {
+                  // Allow empty, digits, decimals - including "0.0123", ".0123", "0.", etc.
+                  if (val === '' || /^\d*\.?\d*$/.test(val)) {
+                    setOverageBWText(val);
+                    // Only update numeric state when we have a valid parseable number
+                    const num = parseFloat(val);
+                    if (!isNaN(num)) {
+                      updateField('overageBWRate', num);
+                    } else if (val === '') {
                       updateField('overageBWRate', 0);
-                    } else {
-                      updateField('overageBWRate', parseFloat(val) || 0);
+                    }
+                  }
+                }}
+                onBlur={() => {
+                  // Normalize on blur
+                  if (overageBWText === '' || overageBWText === '.') {
+                    setOverageBWText('');
+                    updateField('overageBWRate', 0);
+                  } else {
+                    const num = parseFloat(overageBWText);
+                    if (!isNaN(num)) {
+                      setOverageBWText(num === 0 ? '' : String(num));
                     }
                   }
                 }}
@@ -277,16 +295,30 @@ export function QuoteForm({ deal, company, lineItems, dealOwner, onFormChange }:
               <span className="absolute left-2 top-1/2 -translate-y-1/2 text-muted-foreground text-sm">$</span>
               <Input 
                 type="text"
-                value={formData.overageColorRate === 0 ? '' : String(formData.overageColorRate)} 
+                value={overageColorText} 
                 onChange={e => {
                   const val = e.target.value;
-                  // Allow empty, digits, decimals - including starting with "."
-                  if (val === '' || /^[0-9]*\.?[0-9]*$/.test(val)) {
-                    // Don't convert incomplete values like "." to 0, keep as string representation
-                    if (val === '' || val === '.') {
+                  // Allow empty, digits, decimals - including "0.0123", ".0123", "0.", etc.
+                  if (val === '' || /^\d*\.?\d*$/.test(val)) {
+                    setOverageColorText(val);
+                    // Only update numeric state when we have a valid parseable number
+                    const num = parseFloat(val);
+                    if (!isNaN(num)) {
+                      updateField('overageColorRate', num);
+                    } else if (val === '') {
                       updateField('overageColorRate', 0);
-                    } else {
-                      updateField('overageColorRate', parseFloat(val) || 0);
+                    }
+                  }
+                }}
+                onBlur={() => {
+                  // Normalize on blur
+                  if (overageColorText === '' || overageColorText === '.') {
+                    setOverageColorText('');
+                    updateField('overageColorRate', 0);
+                  } else {
+                    const num = parseFloat(overageColorText);
+                    if (!isNaN(num)) {
+                      setOverageColorText(num === 0 ? '' : String(num));
                     }
                   }
                 }}

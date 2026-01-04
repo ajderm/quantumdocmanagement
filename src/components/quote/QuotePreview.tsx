@@ -133,11 +133,9 @@ export const QuotePreview = forwardRef<HTMLDivElement, QuotePreviewProps>(
               <col style={{ width: '14%' }} />
               <col style={{ width: '14%' }} />
               <col style={{ width: '16px' }} />
-              <col style={{ width: '11%' }} />
-              <col style={{ width: '13%' }} />
-              {hasServiceAgreement && <col style={{ width: '8px' }} />}
-              {hasServiceAgreement && <col style={{ width: '12%' }} />}
-              {hasServiceAgreement && <col style={{ width: 'auto' }} />}
+              <col style={{ width: '10%' }} />
+              <col style={{ width: '12%' }} />
+              {hasServiceAgreement && <col style={{ width: '28%' }} />}
             </colgroup>
             <thead>
               <tr className="border-b-2 border-black">
@@ -145,10 +143,7 @@ export const QuotePreview = forwardRef<HTMLDivElement, QuotePreviewProps>(
                 <th className="py-1 font-bold"></th>
                 <th colSpan={2} className="text-left py-1 font-bold">LEASE</th>
                 {hasServiceAgreement && (
-                  <>
-                    <th className="py-1"></th>
-                    <th colSpan={2} className="text-left py-1 font-bold">SERVICE AGREEMENT</th>
-                  </>
+                  <th className="text-left py-1 font-bold pl-4 border-l-2 border-black">SERVICE AGREEMENT</th>
                 )}
               </tr>
               <tr className="border-b border-gray-300">
@@ -156,13 +151,9 @@ export const QuotePreview = forwardRef<HTMLDivElement, QuotePreviewProps>(
                 <th className="text-left py-1 font-semibold text-[9px]">CASH DISCOUNT</th>
                 <th className="text-center py-1 font-semibold text-[9px]"></th>
                 <th className="text-left py-1 font-semibold text-[9px]">TERM</th>
-                <th className="text-right py-1 font-semibold text-[9px]">PAYMENT</th>
+                <th className="text-right py-1 font-semibold text-[9px] pr-3">PAYMENT</th>
                 {hasServiceAgreement && (
-                  <>
-                    <th className="py-1"></th>
-                    <th className="text-left py-1 font-semibold text-[9px]">BASE RATE</th>
-                    <th className="text-right py-1 font-semibold text-[9px]">PER MONTH</th>
-                  </>
+                  <th className="py-1 pl-4 border-l-2 border-black"></th>
                 )}
               </tr>
             </thead>
@@ -179,45 +170,55 @@ export const QuotePreview = forwardRef<HTMLDivElement, QuotePreviewProps>(
                   OR
                 </td>
                 <td className="py-1">{formData.selectedTerms[0]} months</td>
-                <td className="py-1 text-right font-semibold">
+                <td className="py-1 text-right font-semibold pr-3">
                   ${calculateLeasePayment(formData.selectedTerms[0]).toLocaleString()}/mo
                 </td>
                 {hasServiceAgreement && (
-                  <>
-                    <td className="py-1" rowSpan={Math.max(formData.selectedTerms.length, 1)}></td>
-                    <td className="py-1 align-top" rowSpan={Math.max(formData.selectedTerms.length, 1)}>
-                      <span className="font-bold">${formatCurrency(formData.serviceBaseRate)}</span>
-                    </td>
-                    <td className="py-1 align-top text-[9px]" rowSpan={Math.max(formData.selectedTerms.length, 1)}>
-                      <div className="leading-tight">
-                        <p className="font-semibold">INCLUDES:</p>
-                        {formData.includedBWCopies > 0 && (
-                          <p>B/W: {formData.includedBWCopies.toLocaleString()}</p>
-                        )}
-                        {formData.includedColorCopies > 0 && (
-                          <p>Color: {formData.includedColorCopies.toLocaleString()}</p>
+                  <td className="py-1 pl-4 align-top border-l-2 border-black" rowSpan={Math.max(formData.selectedTerms.length, 1)}>
+                    {/* Service Agreement mini-table matching blue reference layout */}
+                    <table className="w-full text-[9px]">
+                      <tbody>
+                        <tr>
+                          <td className="font-bold pr-2 py-[1px]">BASE RATE</td>
+                          <td className="py-[1px]">${formatCurrency(formData.serviceBaseRate)}</td>
+                          <td className="text-right py-[1px]">PER MONTH</td>
+                        </tr>
+                        {(formData.includedBWCopies > 0 || formData.includedColorCopies > 0) && (
+                          <>
+                            <tr>
+                              <td className="font-bold pr-2 py-[1px] pt-1" rowSpan={2}>INCLUDES</td>
+                              <td className="py-[1px] pt-1">B/W COPIES</td>
+                              <td className="text-right py-[1px] pt-1">{formData.includedBWCopies.toLocaleString()}</td>
+                            </tr>
+                            <tr>
+                              <td className="py-[1px]">COLOR COPIES</td>
+                              <td className="text-right py-[1px]">{formData.includedColorCopies.toLocaleString()}</td>
+                            </tr>
+                          </>
                         )}
                         {(formData.overageBWRate > 0 || formData.overageColorRate > 0) && (
                           <>
-                            <p className="font-semibold mt-1">OVERAGES:</p>
-                            {formData.overageBWRate > 0 && (
-                              <p>B/W @ ${formData.overageBWRate.toFixed(4)}</p>
-                            )}
-                            {formData.overageColorRate > 0 && (
-                              <p>Color @ ${formData.overageColorRate.toFixed(4)}</p>
-                            )}
+                            <tr>
+                              <td className="font-bold pr-2 py-[1px] pt-1" rowSpan={2}>OVERAGES</td>
+                              <td className="py-[1px] pt-1">B/W @</td>
+                              <td className="text-right py-[1px] pt-1">${formData.overageBWRate.toFixed(4)}</td>
+                            </tr>
+                            <tr>
+                              <td className="py-[1px]">COLOR @</td>
+                              <td className="text-right py-[1px]">${formData.overageColorRate.toFixed(4)}</td>
+                            </tr>
                           </>
                         )}
-                      </div>
-                    </td>
-                  </>
+                      </tbody>
+                    </table>
+                  </td>
                 )}
               </tr>
               {/* Additional lease term rows */}
               {formData.selectedTerms.slice(1).map((term, idx) => (
                 <tr key={term} className={idx === formData.selectedTerms.length - 2 ? '' : 'border-b border-gray-300'}>
                   <td className="py-1">{term} months</td>
-                  <td className="py-1 text-right font-semibold">
+                  <td className="py-1 text-right font-semibold pr-3">
                     ${calculateLeasePayment(term).toLocaleString()}/mo
                   </td>
                 </tr>
