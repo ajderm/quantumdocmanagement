@@ -293,11 +293,17 @@ export function ServiceAgreementForm({
 
     const patch: Partial<ServiceAgreementFormData> = {};
 
+    // Company name
+    if (!formData.shipToCompany?.trim() && company.name) patch.shipToCompany = company.name;
+    if (!formData.billToCompany?.trim() && company.name) patch.billToCompany = company.name;
+
+    // Ship To address
     if (!formData.shipToAddress?.trim() && shipToAddress) patch.shipToAddress = shipToAddress;
     if (!formData.shipToCity?.trim() && shipToCity) patch.shipToCity = shipToCity;
     if (!formData.shipToState?.trim() && shipToState) patch.shipToState = shipToState;
     if (!formData.shipToZip?.trim() && shipToZip) patch.shipToZip = shipToZip;
 
+    // Bill To address
     if (!formData.billToAddress?.trim() && billToAddress) patch.billToAddress = billToAddress;
     if (!formData.billToCity?.trim() && billToCity) patch.billToCity = billToCity;
     if (!formData.billToState?.trim() && billToState) patch.billToState = billToState;
@@ -309,6 +315,8 @@ export function ServiceAgreementForm({
   }, [
     company,
     formData,
+    formData.shipToCompany,
+    formData.billToCompany,
     formData.shipToAddress,
     formData.shipToCity,
     formData.shipToState,
@@ -317,6 +325,49 @@ export function ServiceAgreementForm({
     formData.billToCity,
     formData.billToState,
     formData.billToZip,
+    onChange,
+  ]);
+
+  // Backfill contact fields from labeledContacts when empty
+  useEffect(() => {
+    if (!labeledContacts) return;
+
+    const patch: Partial<ServiceAgreementFormData> = {};
+
+    // Ship To contact (shipping_contacts)
+    const shipToContact = labeledContacts.shippingContact;
+    if (shipToContact) {
+      if (!formData.shipToAttn?.trim()) {
+        const name = `${shipToContact.firstName || ''} ${shipToContact.lastName || ''}`.trim();
+        if (name) patch.shipToAttn = name;
+      }
+      if (!formData.shipToPhone?.trim() && shipToContact.phone) patch.shipToPhone = shipToContact.phone;
+      if (!formData.shipToEmail?.trim() && shipToContact.email) patch.shipToEmail = shipToContact.email;
+    }
+
+    // Bill To contact (ap_contact)
+    const billToContact = labeledContacts.apContact;
+    if (billToContact) {
+      if (!formData.billToAttn?.trim()) {
+        const name = `${billToContact.firstName || ''} ${billToContact.lastName || ''}`.trim();
+        if (name) patch.billToAttn = name;
+      }
+      if (!formData.billToPhone?.trim() && billToContact.phone) patch.billToPhone = billToContact.phone;
+      if (!formData.billToEmail?.trim() && billToContact.email) patch.billToEmail = billToContact.email;
+    }
+
+    if (Object.keys(patch).length > 0) {
+      onChange({ ...formData, ...patch });
+    }
+  }, [
+    labeledContacts,
+    formData,
+    formData.shipToAttn,
+    formData.shipToPhone,
+    formData.shipToEmail,
+    formData.billToAttn,
+    formData.billToPhone,
+    formData.billToEmail,
     onChange,
   ]);
 
