@@ -35,6 +35,8 @@ import { QuoteForm, QuoteFormData } from '@/components/quote/QuoteForm';
 import { QuotePreview } from '@/components/quote/QuotePreview';
 import { InstallationForm, InstallationFormData } from '@/components/installation/InstallationForm';
 import { InstallationPreview } from '@/components/installation/InstallationPreview';
+import { ServiceAgreementForm, ServiceAgreementFormData } from '@/components/service-agreement/ServiceAgreementForm';
+import { ServiceAgreementPreview } from '@/components/service-agreement/ServiceAgreementPreview';
 
 const documentTypes = [
   { code: 'quote', name: 'Quote', icon: FileText },
@@ -97,6 +99,18 @@ function DocumentHubContent() {
   const installationAutoSaveTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   const installationFormDataRef = useRef<InstallationFormData | null>(null);
 
+  // Service Agreement state
+  const [serviceAgreementFormData, setServiceAgreementFormData] = useState<ServiceAgreementFormData | null>(null);
+  const [serviceAgreementSavedConfig, setServiceAgreementSavedConfig] = useState<ServiceAgreementFormData | null>(null);
+  const [serviceAgreementGenerating, setServiceAgreementGenerating] = useState(false);
+  const [serviceAgreementSaving, setServiceAgreementSaving] = useState(false);
+  const [showServiceAgreementPreview, setShowServiceAgreementPreview] = useState(false);
+  const [serviceAgreementHasUnsavedChanges, setServiceAgreementHasUnsavedChanges] = useState(false);
+  const [serviceAgreementLastSavedData, setServiceAgreementLastSavedData] = useState<string | null>(null);
+  const serviceAgreementPreviewRef = useRef<HTMLDivElement>(null);
+  const serviceAgreementAutoSaveTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const serviceAgreementFormDataRef = useRef<ServiceAgreementFormData | null>(null);
+
   // Dealer info and settings
   const [dealerInfo, setDealerInfo] = useState<DealerInfo | null>(null);
   const [dealerSettings, setDealerSettings] = useState<DealerSettings>({});
@@ -111,6 +125,11 @@ function DocumentHubContent() {
   useEffect(() => {
     installationFormDataRef.current = installationFormData;
   }, [installationFormData]);
+
+  // Keep serviceAgreementFormDataRef in sync
+  useEffect(() => {
+    serviceAgreementFormDataRef.current = serviceAgreementFormData;
+  }, [serviceAgreementFormData]);
 
   // Fetch dealer info when portalId is available
   useEffect(() => {
@@ -238,6 +257,43 @@ function DocumentHubContent() {
     }
   }, [portalId, deal?.hsObjectId]);
 
+  // Load saved service agreement configuration
+  useEffect(() => {
+    const loadServiceAgreementConfig = async () => {
+      const currentPortalId = portalId || localStorage.getItem('hs_portal_id');
+      const dealId = deal?.hsObjectId;
+      
+      if (!currentPortalId || !dealId) return;
+
+      try {
+        const { data, error } = await supabase
+          .from('service_agreement_configurations')
+          .select('configuration')
+          .eq('portal_id', currentPortalId)
+          .eq('deal_id', dealId)
+          .single();
+
+        if (error) {
+          if (error.code !== 'PGRST116') {
+            console.error('Error loading service agreement config:', error);
+          }
+          return;
+        }
+
+        if (data?.configuration) {
+          console.log('Loaded saved service agreement configuration');
+          setServiceAgreementSavedConfig(data.configuration as unknown as ServiceAgreementFormData);
+        }
+      } catch (err) {
+        console.error('Failed to load service agreement config:', err);
+      }
+    };
+
+    if (deal?.hsObjectId) {
+      loadServiceAgreementConfig();
+    }
+  }, [portalId, deal?.hsObjectId]);
+
   // Silent auto-save function for Quote
   const performAutoSave = useCallback(async (dataToSave: QuoteFormData) => {
     const currentPortalId = portalId || localStorage.getItem('hs_portal_id');
@@ -334,10 +390,56 @@ function DocumentHubContent() {
     }
   }, [performInstallationAutoSave]);
 
+  // Auto-save for service agreement
+  const performServiceAgreementAutoSave = useCallback(async (dataToSave: ServiceAgreementFormData) => {
+    const currentPortalId = portalId || localStorage.getItem('hs_portal_id');
+    const dealId = deal?.hsObjectId;
+
+    if (!currentPortalId || !dealId || !dataToSave) return;
+
+    const dataString = JSON.stringify(dataToSave);
+    if (dataString === serviceAgreementLastSavedData) return;
+
+    try {
+      const { error: saveError } = await supabase
+        .from('service_agreement_configurations')
+        .upsert({
+          portal_id: currentPortalId,
+          deal_id: dealId,
+          configuration: dataToSave as any,
+          updated_at: new Date().toISOString()
+        }, {
+          onConflict: 'portal_id,deal_id'
+        });
+
+      if (!saveError) {
+        setServiceAgreementLastSavedData(dataString);
+        setServiceAgreementHasUnsavedChanges(false);
+        console.log('Auto-saved service agreement configuration');
+      }
+    } catch (err) {
+      console.error('Service agreement auto-save error:', err);
+    }
+  }, [portalId, deal?.hsObjectId, serviceAgreementLastSavedData]);
+
+  // Handle service agreement form change
+  const handleServiceAgreementFormChange = useCallback((data: ServiceAgreementFormData) => {
+    setServiceAgreementFormData(data);
+    setServiceAgreementHasUnsavedChanges(true);
+    
+    if (serviceAgreementAutoSaveTimeoutRef.current) {
+      clearTimeout(serviceAgreementAutoSaveTimeoutRef.current);
+    }
+
+    serviceAgreementAutoSaveTimeoutRef.current = setTimeout(() => {
+      performServiceAgreementAutoSave(data);
+    }, AUTO_SAVE_DELAY);
+  }, [performServiceAgreementAutoSave]);
+
   // Auto-save on tab/window close
   useEffect(() => {
     const handleBeforeUnload = (e: BeforeUnloadEvent) => {
-      if ((hasUnsavedChanges && formDataRef.current) || (installationHasUnsavedChanges && installationFormDataRef.current)) {
+      if ((hasUnsavedChanges && formDataRef.current) || (installationHasUnsavedChanges && installationFormDataRef.current) || (serviceAgreementHasUnsavedChanges && serviceAgreementFormDataRef.current)) {
         e.preventDefault();
         e.returnValue = '';
       }
@@ -350,6 +452,9 @@ function DocumentHubContent() {
         }
         if (installationHasUnsavedChanges && installationFormDataRef.current) {
           performInstallationAutoSave(installationFormDataRef.current);
+        }
+        if (serviceAgreementHasUnsavedChanges && serviceAgreementFormDataRef.current) {
+          performServiceAgreementAutoSave(serviceAgreementFormDataRef.current);
         }
       }
     };
@@ -367,8 +472,11 @@ function DocumentHubContent() {
       if (installationAutoSaveTimeoutRef.current) {
         clearTimeout(installationAutoSaveTimeoutRef.current);
       }
+      if (serviceAgreementAutoSaveTimeoutRef.current) {
+        clearTimeout(serviceAgreementAutoSaveTimeoutRef.current);
+      }
     };
-  }, [hasUnsavedChanges, installationHasUnsavedChanges, performAutoSave, performInstallationAutoSave]);
+  }, [hasUnsavedChanges, installationHasUnsavedChanges, serviceAgreementHasUnsavedChanges, performAutoSave, performInstallationAutoSave, performServiceAgreementAutoSave]);
 
   // Recover from localStorage backup if exists
   useEffect(() => {
@@ -719,6 +827,143 @@ function DocumentHubContent() {
     setShowInstallationPreview(true);
   };
 
+  // Service Agreement handlers
+  const handleServiceAgreementSave = async () => {
+    if (!serviceAgreementFormData) {
+      toast.error('No data to save');
+      return;
+    }
+
+    const currentPortalId = portalId || localStorage.getItem('hs_portal_id');
+    const dealId = deal?.hsObjectId;
+
+    if (!currentPortalId || !dealId) {
+      toast.error('Missing portal or deal information');
+      return;
+    }
+
+    setServiceAgreementSaving(true);
+    try {
+      const { error: saveError } = await supabase
+        .from('service_agreement_configurations')
+        .upsert({
+          portal_id: currentPortalId,
+          deal_id: dealId,
+          configuration: serviceAgreementFormData as any,
+          updated_at: new Date().toISOString()
+        }, {
+          onConflict: 'portal_id,deal_id'
+        });
+
+      if (saveError) {
+        console.error('Save error:', saveError);
+        toast.error('Failed to save service agreement configuration');
+        return;
+      }
+
+      setServiceAgreementLastSavedData(JSON.stringify(serviceAgreementFormData));
+      setServiceAgreementHasUnsavedChanges(false);
+      toast.success('Service agreement configuration saved');
+    } catch (err) {
+      console.error('Save error:', err);
+      toast.error('Failed to save service agreement configuration');
+    } finally {
+      setServiceAgreementSaving(false);
+    }
+  };
+
+  const handleServiceAgreementGeneratePDF = async () => {
+    if (!serviceAgreementPreviewRef.current || !serviceAgreementFormData) {
+      toast.error('Please fill in the service agreement details first');
+      return;
+    }
+
+    setServiceAgreementGenerating(true);
+    try {
+      const tempContainer = document.createElement('div');
+      tempContainer.style.position = 'absolute';
+      tempContainer.style.left = '-9999px';
+      tempContainer.style.top = '0';
+      document.body.appendChild(tempContainer);
+
+      const clone = serviceAgreementPreviewRef.current.cloneNode(true) as HTMLElement;
+      tempContainer.appendChild(clone);
+
+      await new Promise(resolve => setTimeout(resolve, 100));
+
+      const canvas = await html2canvas(clone, {
+        scale: 2,
+        useCORS: true,
+        logging: false,
+        backgroundColor: '#ffffff',
+      });
+
+      document.body.removeChild(tempContainer);
+
+      const imgData = canvas.toDataURL('image/png');
+      const pdf = new jsPDF({
+        orientation: 'portrait',
+        unit: 'in',
+        format: 'letter',
+      });
+
+      const imgWidth = 8.5;
+      const imgHeight = (canvas.height * imgWidth) / canvas.width;
+
+      pdf.addImage(imgData, 'PNG', 0, 0, imgWidth, imgHeight);
+      
+      const sanitizedCompanyName = (serviceAgreementFormData.shipToCompany || 'Draft').replace(/[^a-zA-Z0-9\s]/g, '').replace(/\s+/g, '_');
+      const now = new Date();
+      const dateStr = now.toISOString().split('T')[0];
+      const timeStr = now.toTimeString().slice(0, 5).replace(':', '-');
+      const fileName = `Service_Agreement_${sanitizedCompanyName}_${dateStr}_${timeStr}.pdf`;
+      
+      pdf.save(fileName);
+
+      const currentPortalId = portalId || localStorage.getItem('hs_portal_id');
+      const currentDealId = deal?.hsObjectId;
+
+      if (currentPortalId && currentDealId) {
+        try {
+          const pdfBase64 = pdf.output('datauristring').split(',')[1];
+          
+          const { data, error: attachError } = await supabase.functions.invoke('hubspot-attach-file', {
+            body: {
+              portalId: currentPortalId,
+              dealId: currentDealId,
+              fileName: fileName,
+              fileBase64: pdfBase64
+            }
+          });
+
+          if (attachError || data?.error) {
+            toast.success('PDF downloaded! (Could not attach to deal)');
+          } else {
+            toast.success('PDF downloaded and attached to deal!');
+          }
+        } catch (attachErr) {
+          console.error('Failed to attach to HubSpot:', attachErr);
+          toast.success('PDF downloaded! (Could not attach to deal)');
+        }
+      } else {
+        toast.success('Service Agreement PDF downloaded successfully!');
+      }
+    } catch (err) {
+      console.error('PDF generation error:', err);
+      toast.error('Failed to generate PDF');
+    } finally {
+      setServiceAgreementGenerating(false);
+    }
+  };
+
+  const handleServiceAgreementPreview = () => {
+    if (!serviceAgreementFormData) {
+      toast.error('Please fill in the service agreement details first');
+      return;
+    }
+    setShowServiceAgreementPreview(true);
+  };
+
   // Get the saved config for the currently selected line item
   const getCurrentInstallationSavedConfig = () => {
     if (!installationFormData?.selectedLineItemId) return undefined;
@@ -963,8 +1208,91 @@ function DocumentHubContent() {
             </Card>
           </TabsContent>
 
+          {/* Service Agreement Tab Content */}
+          <TabsContent value="service_agreement" className="mt-0">
+            <Card>
+              <CardHeader className="pb-3">
+                <CardTitle className="text-lg flex items-center gap-2">
+                  <FileCheck className="h-5 w-5" />
+                  Generate Service Agreement
+                </CardTitle>
+                <CardDescription>
+                  Create a service agreement with maintenance terms and rates
+                </CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <ServiceAgreementForm
+                  formData={serviceAgreementFormData || {
+                    customerNumber: '',
+                    customerNumberOverride: '',
+                    meterMethod: '',
+                    shipToCompany: '',
+                    shipToAddress: '',
+                    shipToCity: '',
+                    shipToState: '',
+                    shipToZip: '',
+                    shipToAttn: '',
+                    shipToPhone: '',
+                    shipToEmail: '',
+                    billToCompany: '',
+                    billToAddress: '',
+                    billToCity: '',
+                    billToState: '',
+                    billToZip: '',
+                    billToAttn: '',
+                    billToPhone: '',
+                    billToEmail: '',
+                    maintenanceType: '',
+                    paperStaples: '',
+                    drumToner: '',
+                    effectiveDate: null,
+                    contractLengthMonths: '',
+                    rates: {},
+                  }}
+                  onChange={handleServiceAgreementFormChange}
+                  company={company ? { name: company.name, customerNumber: company.customerNumber } : null}
+                  lineItems={lineItems}
+                  dealerSettings={dealerSettings}
+                  savedConfig={serviceAgreementSavedConfig}
+                  labeledContacts={labeledContacts || { shippingContact: null, apContact: null, itContact: null }}
+                  quoteFormData={formData ? {
+                    includedBWCopies: String(formData.includedBWCopies),
+                    includedColorCopies: String(formData.includedColorCopies),
+                    overageBWRate: String(formData.overageBWRate),
+                    overageColorRate: String(formData.overageColorRate),
+                    serviceBaseRate: String(formData.serviceBaseRate),
+                  } : null}
+                />
+
+                {/* Actions */}
+                <div className="flex gap-2 pt-4 border-t">
+                  <Button variant="outline" onClick={handleServiceAgreementSave} disabled={serviceAgreementSaving}>
+                    {serviceAgreementSaving ? (
+                      <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                    ) : (
+                      <Save className="h-4 w-4 mr-2" />
+                    )}
+                    {serviceAgreementSaving ? 'Saving...' : 'Save'}
+                  </Button>
+                  <Button className="flex-1" onClick={handleServiceAgreementGeneratePDF} disabled={serviceAgreementGenerating}>
+                    {serviceAgreementGenerating ? (
+                      <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                    ) : (
+                      <Download className="h-4 w-4 mr-2" />
+                    )}
+                    {serviceAgreementGenerating ? 'Generating...' : 'Generate PDF'}
+                  </Button>
+                  <Button variant="outline" onClick={handleServiceAgreementPreview}>
+                    <Eye className="h-4 w-4 mr-2" />
+                    Preview
+                  </Button>
+                </div>
+              </CardContent>
+            </Card>
+          </TabsContent>
+
           {/* Placeholder for other tabs */}
-          {documentTypes.slice(2).map((doc) => (
+          {documentTypes.slice(3).map((doc) => (
             <TabsContent key={doc.code} value={doc.code} className="mt-0">
               <Card>
                 <CardContent className="py-12 text-center">
@@ -1045,6 +1373,54 @@ function DocumentHubContent() {
                     } : undefined}
                     removalReceiptTerms={documentTerms.installation_removal_receipt}
                     deliveryAcceptanceTerms={documentTerms.installation_delivery_acceptance}
+                  />
+                </div>
+              )}
+            </div>
+          </ScrollArea>
+        </DialogContent>
+      </Dialog>
+
+      {/* Hidden preview for Service Agreement PDF generation */}
+      <div className="hidden">
+        {serviceAgreementFormData && (
+          <ServiceAgreementPreview
+            ref={serviceAgreementPreviewRef}
+            formData={serviceAgreementFormData}
+            dealerInfo={dealerInfo ? {
+              company_name: dealerInfo.companyName,
+              address_line1: dealerInfo.address,
+              phone: dealerInfo.phone,
+              website: dealerInfo.website,
+              logo_url: dealerInfo.logoUrl,
+            } : undefined}
+            lineItems={lineItems}
+            termsAndConditions={documentTerms.service_agreement}
+          />
+        )}
+      </div>
+
+      {/* Service Agreement Preview Dialog */}
+      <Dialog open={showServiceAgreementPreview} onOpenChange={setShowServiceAgreementPreview}>
+        <DialogContent className="max-w-4xl max-h-[90vh] p-0">
+          <DialogHeader className="p-4 pb-0">
+            <DialogTitle>Service Agreement Preview</DialogTitle>
+          </DialogHeader>
+          <ScrollArea className="max-h-[calc(90vh-80px)]">
+            <div className="p-4 flex justify-center">
+              {serviceAgreementFormData && (
+                <div className="shadow-lg border">
+                  <ServiceAgreementPreview
+                    formData={serviceAgreementFormData}
+                    dealerInfo={dealerInfo ? {
+                      company_name: dealerInfo.companyName,
+                      address_line1: dealerInfo.address,
+                      phone: dealerInfo.phone,
+                      website: dealerInfo.website,
+                      logo_url: dealerInfo.logoUrl,
+                    } : undefined}
+                    lineItems={lineItems}
+                    termsAndConditions={documentTerms.service_agreement}
                   />
                 </div>
               )}
