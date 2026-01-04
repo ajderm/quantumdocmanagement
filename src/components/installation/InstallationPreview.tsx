@@ -49,49 +49,33 @@ export const InstallationPreview = forwardRef<HTMLDivElement, InstallationPrevie
           </div>
 
           {/* Right - Installation Report */}
-          <div className="border border-black p-2 w-48">
+          <div className="border border-black p-2 w-56">
             <p className="font-bold text-center mb-1 border-b border-black pb-1">INSTALLATION REPORT</p>
-            <table className="w-full text-[8px]">
-              <tbody>
-                <tr>
-                  <td className="font-bold pr-1">METER COUNTS</td>
-                  <td></td>
-                </tr>
-                <tr>
-                  <td className="pl-2">Black:</td>
-                  <td>{formData.meterBlack || '_____'}</td>
-                </tr>
-                <tr>
-                  <td className="pl-2">Color:</td>
-                  <td>{formData.meterColor || '_____'}</td>
-                </tr>
-                <tr>
-                  <td className="pl-2">Total:</td>
-                  <td>{formData.meterTotal || '_____'}</td>
-                </tr>
-                <tr><td colSpan={2} className="h-1"></td></tr>
-                <tr>
-                  <td className="font-bold">ID NUMBER</td>
-                  <td>{formData.idNumber || '_____'}</td>
-                </tr>
-                <tr>
-                  <td className="font-bold">CUSTOMER #</td>
-                  <td>{getEffectiveCustomerNumber() || '_____'}</td>
-                </tr>
-                <tr>
-                  <td className="font-bold">SALES REP</td>
-                  <td>{formData.salesRep || '_____'}</td>
-                </tr>
-                <tr>
-                  <td className="font-bold">METER METHOD</td>
-                  <td>{formData.meterMethod || '_____'}</td>
-                </tr>
-                <tr>
-                  <td className="font-bold">CCA</td>
-                  <td>{formData.cca || '_____'}</td>
-                </tr>
-              </tbody>
-            </table>
+            <div className="grid grid-cols-2 gap-2 text-[8px]">
+              {/* Left Column - Meter Counts */}
+              <div>
+                <p className="font-bold mb-0.5">METER COUNTS</p>
+                <table className="w-full">
+                  <tbody>
+                    <tr><td className="pl-1">Black:</td><td>{formData.meterBlack || '_____'}</td></tr>
+                    <tr><td className="pl-1">Color:</td><td>{formData.meterColor || '_____'}</td></tr>
+                    <tr><td className="pl-1">Total:</td><td>{formData.meterTotal || '_____'}</td></tr>
+                  </tbody>
+                </table>
+              </div>
+              {/* Right Column - IDs and Info */}
+              <div>
+                <table className="w-full">
+                  <tbody>
+                    <tr><td className="font-bold">ID #:</td><td>{formData.idNumber || '_____'}</td></tr>
+                    <tr><td className="font-bold">Cust #:</td><td>{getEffectiveCustomerNumber() || '_____'}</td></tr>
+                    <tr><td className="font-bold">Rep:</td><td>{formData.salesRep || '_____'}</td></tr>
+                    <tr><td className="font-bold">Method:</td><td>{formData.meterMethod || '_____'}</td></tr>
+                    <tr><td className="font-bold">CCA:</td><td>{formData.cca || '_____'}</td></tr>
+                  </tbody>
+                </table>
+              </div>
+            </div>
           </div>
         </div>
 
@@ -188,18 +172,30 @@ export const InstallationPreview = forwardRef<HTMLDivElement, InstallationPrevie
           </div>
           <div className="border border-black p-2">
             <p className="font-bold text-[9px] mb-1 border-b border-black pb-1">ADDITIONAL CONTACTS</p>
-            <table className="w-full text-[8px]">
-              <tbody>
-                <tr><td colSpan={2} className="font-bold pt-1">IT Contact:</td></tr>
-                <tr><td className="pl-2 w-16">Name:</td><td>{formData.itContactName}</td></tr>
-                <tr><td className="pl-2">Phone:</td><td>{formData.itContactPhone}</td></tr>
-                <tr><td className="pl-2">Email:</td><td>{formData.itContactEmail}</td></tr>
-                <tr><td colSpan={2} className="font-bold pt-2">Meter Contact:</td></tr>
-                <tr><td className="pl-2">Name:</td><td>{formData.meterContactName}</td></tr>
-                <tr><td className="pl-2">Phone:</td><td>{formData.meterContactPhone}</td></tr>
-                <tr><td className="pl-2">Email:</td><td>{formData.meterContactEmail}</td></tr>
-              </tbody>
-            </table>
+            <div className="grid grid-cols-2 gap-2">
+              {/* IT Contact Column */}
+              <div>
+                <p className="font-bold text-[8px] mb-1 text-center border-b border-gray-300 pb-0.5">IT CONTACT</p>
+                <table className="w-full text-[7px]">
+                  <tbody>
+                    <tr><td>Name:</td><td className="text-right">{formData.itContactName || '____'}</td></tr>
+                    <tr><td>Phone:</td><td className="text-right">{formData.itContactPhone || '____'}</td></tr>
+                    <tr><td>Email:</td><td className="text-right truncate max-w-[60px]">{formData.itContactEmail || '____'}</td></tr>
+                  </tbody>
+                </table>
+              </div>
+              {/* Meter Contact Column */}
+              <div>
+                <p className="font-bold text-[8px] mb-1 text-center border-b border-gray-300 pb-0.5">METER CONTACT</p>
+                <table className="w-full text-[7px]">
+                  <tbody>
+                    <tr><td>Name:</td><td className="text-right">{formData.meterContactName || '____'}</td></tr>
+                    <tr><td>Phone:</td><td className="text-right">{formData.meterContactPhone || '____'}</td></tr>
+                    <tr><td>Email:</td><td className="text-right truncate max-w-[60px]">{formData.meterContactEmail || '____'}</td></tr>
+                  </tbody>
+                </table>
+              </div>
+            </div>
           </div>
         </div>
 
@@ -244,73 +240,69 @@ export const InstallationPreview = forwardRef<HTMLDivElement, InstallationPrevie
 
         {/* Removal Receipt T&C */}
         {removalReceiptTerms && (
-          <div className="mb-4">
+          <div className="mb-3">
             <p className="font-bold text-[9px] mb-1">REMOVAL RECEIPT</p>
-            <p className="text-[7px] whitespace-pre-wrap mb-2">{removalReceiptTerms}</p>
-            <div className="flex gap-8">
-              <div className="flex-1">
-                <div className="border-b border-black h-4 mb-1"></div>
-                <p className="text-[7px]">Customer Initial</p>
-              </div>
-              <div className="flex-1">
-                <div className="border-b border-black h-4 mb-1"></div>
-                <p className="text-[7px]">Date</p>
-              </div>
+            <p className="text-[7px] whitespace-pre-wrap mb-1">{removalReceiptTerms}</p>
+            <div className="w-32">
+              <div className="border-b border-black h-4 mb-0.5"></div>
+              <p className="text-[7px]">Customer Initials</p>
             </div>
           </div>
         )}
 
         {/* Delivery and Acceptance T&C */}
         {deliveryAcceptanceTerms && (
-          <div className="mb-4">
+          <div className="mb-3">
             <p className="font-bold text-[9px] mb-1">DELIVERY AND ACCEPTANCE</p>
-            <p className="text-[7px] whitespace-pre-wrap mb-2">{deliveryAcceptanceTerms}</p>
-            <div className="flex gap-8">
-              <div className="flex-1">
-                <div className="border-b border-black h-4 mb-1"></div>
-                <p className="text-[7px]">Customer Initial</p>
-              </div>
-              <div className="flex-1">
-                <div className="border-b border-black h-4 mb-1"></div>
-                <p className="text-[7px]">Date</p>
-              </div>
+            <p className="text-[7px] whitespace-pre-wrap mb-1">{deliveryAcceptanceTerms}</p>
+            <div className="w-32">
+              <div className="border-b border-black h-4 mb-0.5"></div>
+              <p className="text-[7px]">Customer Initials</p>
             </div>
           </div>
         )}
 
-        {/* Signature Section */}
-        <div className="mt-6 pt-4 border-t border-black">
-          <div className="grid grid-cols-2 gap-8">
-            <div>
-              <div className="border-b border-black h-6 mb-1"></div>
-              <p className="text-[8px]">Customer Signature</p>
+        {/* Combined Signature Section */}
+        <div className="mt-4 pt-3 border-t border-black">
+          <p className="font-bold text-[9px] mb-2">SIGNATURES</p>
+          <div className="grid grid-cols-2 gap-4">
+            {/* Technician Side */}
+            <div className="border-r border-gray-300 pr-4">
+              <p className="font-bold text-[8px] mb-2">{dealerInfo?.companyName || 'TECHNICIAN'}</p>
+              <div className="grid grid-cols-2 gap-2">
+                <div>
+                  <div className="border-b border-black h-5 mb-0.5"></div>
+                  <p className="text-[7px]">Signature</p>
+                </div>
+                <div>
+                  <div className="border-b border-black h-5 mb-0.5"></div>
+                  <p className="text-[7px]">Printed Name</p>
+                </div>
+              </div>
             </div>
+            {/* Customer Side */}
             <div>
-              <div className="border-b border-black h-6 mb-1"></div>
-              <p className="text-[8px]">Date</p>
-            </div>
-            <div>
-              <div className="border-b border-black h-6 mb-1"></div>
-              <p className="text-[8px]">Printed Name</p>
-            </div>
-            <div>
-              <div className="border-b border-black h-6 mb-1"></div>
-              <p className="text-[8px]">Title</p>
-            </div>
-          </div>
-        </div>
-
-        {/* Technician Section */}
-        <div className="mt-4 pt-4 border-t border-black">
-          <p className="font-bold text-[9px] mb-2">TECHNICIAN</p>
-          <div className="grid grid-cols-2 gap-8">
-            <div>
-              <div className="border-b border-black h-6 mb-1"></div>
-              <p className="text-[8px]">Technician Signature</p>
-            </div>
-            <div>
-              <div className="border-b border-black h-6 mb-1"></div>
-              <p className="text-[8px]">Date</p>
+              <p className="font-bold text-[8px] mb-2">CUSTOMER</p>
+              <div className="grid grid-cols-2 gap-2 mb-2">
+                <div>
+                  <div className="border-b border-black h-5 mb-0.5"></div>
+                  <p className="text-[7px]">Signature</p>
+                </div>
+                <div>
+                  <div className="border-b border-black h-5 mb-0.5"></div>
+                  <p className="text-[7px]">Printed Name</p>
+                </div>
+              </div>
+              <div className="grid grid-cols-2 gap-2">
+                <div>
+                  <div className="border-b border-black h-5 mb-0.5"></div>
+                  <p className="text-[7px]">Date</p>
+                </div>
+                <div>
+                  <div className="border-b border-black h-5 mb-0.5"></div>
+                  <p className="text-[7px]">Title</p>
+                </div>
+              </div>
             </div>
           </div>
         </div>
