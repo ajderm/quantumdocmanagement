@@ -51,66 +51,47 @@ export const ServiceAgreementPreview = forwardRef<HTMLDivElement, ServiceAgreeme
     return (
       <div
         ref={ref}
-        style={{
-          width: '8.5in',
-          minHeight: '11in',
-          padding: '0.5in',
-          backgroundColor: 'white',
-          fontFamily: 'Arial, sans-serif',
-          fontSize: '10pt',
-          color: '#000',
-          lineHeight: '1.3',
-        }}
+        className="bg-white text-black p-8 min-h-[11in] w-[8.5in] text-[11px] leading-tight"
+        style={{ fontFamily: 'Arial, sans-serif' }}
       >
         {/* Header */}
-        <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '20px' }}>
+        <div className="flex justify-between items-start mb-6">
           {/* Left: Dealer Info */}
-          <div style={{ display: 'flex', alignItems: 'flex-start', gap: '15px' }}>
+          <div className="flex items-start gap-4">
             {dealerInfo?.logo_url && (
               <img
                 src={dealerInfo.logo_url}
                 alt="Company Logo"
-                style={{ height: '60px', objectFit: 'contain' }}
+                className="h-12 object-contain"
+                crossOrigin="anonymous"
               />
             )}
             <div>
-              <div style={{ fontWeight: 'bold', fontSize: '14pt' }}>
-                {dealerInfo?.company_name || 'Company Name'}
-              </div>
-              <div style={{ fontSize: '9pt', color: '#333' }}>
+              <p className="font-bold text-[10px]">{dealerInfo?.company_name || 'Company Name'}</p>
+              <p className="text-[9px]">
                 {dealerInfo?.address_line1}
                 {dealerInfo?.address_line2 && <>, {dealerInfo.address_line2}</>}
-              </div>
-              <div style={{ fontSize: '9pt', color: '#333' }}>
+              </p>
+              <p className="text-[9px]">
                 {[dealerInfo?.city, dealerInfo?.state, dealerInfo?.zip_code].filter(Boolean).join(', ')}
-              </div>
-              {dealerInfo?.phone && (
-                <div style={{ fontSize: '9pt', color: '#333' }}>Phone: {dealerInfo.phone}</div>
-              )}
-              {dealerInfo?.website && (
-                <div style={{ fontSize: '9pt', color: '#333' }}>{dealerInfo.website}</div>
-              )}
+              </p>
+              {dealerInfo?.phone && <p className="text-[9px]">Phone: {dealerInfo.phone}</p>}
+              {dealerInfo?.website && <p className="text-[9px]">{dealerInfo.website}</p>}
             </div>
           </div>
 
           {/* Right: Customer Number & Meter Method */}
-          <div style={{ textAlign: 'right' }}>
-            <div style={{ fontWeight: 'bold', fontSize: '16pt', marginBottom: '10px' }}>
-              SERVICE AGREEMENT
-            </div>
-            <table style={{ marginLeft: 'auto', borderCollapse: 'collapse', fontSize: '9pt' }}>
+          <div className="text-right">
+            <h1 className="text-2xl font-bold mb-2">Service Agreement</h1>
+            <table className="text-right ml-auto text-[9px]">
               <tbody>
                 <tr>
-                  <td style={{ padding: '2px 10px', textAlign: 'right', fontWeight: 'bold' }}>Customer #:</td>
-                  <td style={{ padding: '2px 10px', textAlign: 'left' }}>
-                    {formData.customerNumberOverride || formData.customerNumber || '-'}
-                  </td>
+                  <td className="pr-4 font-bold">Customer #:</td>
+                  <td>{formData.customerNumberOverride || formData.customerNumber || '-'}</td>
                 </tr>
                 <tr>
-                  <td style={{ padding: '2px 10px', textAlign: 'right', fontWeight: 'bold' }}>Meter Method:</td>
-                  <td style={{ padding: '2px 10px', textAlign: 'left' }}>
-                    {formData.meterMethod || '-'}
-                  </td>
+                  <td className="pr-4 font-bold">Meter Method:</td>
+                  <td>{formData.meterMethod || '-'}</td>
                 </tr>
               </tbody>
             </table>
@@ -118,102 +99,76 @@ export const ServiceAgreementPreview = forwardRef<HTMLDivElement, ServiceAgreeme
         </div>
 
         {/* Ship To / Bill To */}
-        <div style={{ display: 'flex', gap: '20px', marginBottom: '20px' }}>
+        <div className="flex gap-5 mb-4">
           {/* Ship To */}
-          <div style={{ flex: 1 }}>
-            <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '9pt' }}>
+          <div className="flex-1">
+            <table className="w-full border-collapse text-[9px]">
               <thead>
-                <tr>
-                  <th
-                    colSpan={2}
-                    style={{
-                      backgroundColor: '#1a365d',
-                      color: 'white',
-                      padding: '6px',
-                      textAlign: 'center',
-                      fontWeight: 'bold',
-                    }}
-                  >
-                    CUSTOMER SHIP TO
-                  </th>
+                <tr className="border-b-2 border-black">
+                  <th colSpan={2} className="text-left py-1 font-bold">CUSTOMER SHIP TO</th>
                 </tr>
               </thead>
               <tbody>
-                <tr>
-                  <td style={{ border: '1px solid #ccc', padding: '4px', width: '80px', fontWeight: 'bold' }}>Company</td>
-                  <td style={{ border: '1px solid #ccc', padding: '4px' }}>{formData.shipToCompany}</td>
+                <tr className="border-b border-gray-300">
+                  <td className="py-1 w-20 font-semibold">Company</td>
+                  <td className="py-1">{formData.shipToCompany}</td>
                 </tr>
-                <tr>
-                  <td style={{ border: '1px solid #ccc', padding: '4px', fontWeight: 'bold' }}>Address</td>
-                  <td style={{ border: '1px solid #ccc', padding: '4px' }}>{formData.shipToAddress}</td>
+                <tr className="border-b border-gray-300">
+                  <td className="py-1 font-semibold">Address</td>
+                  <td className="py-1">{formData.shipToAddress}</td>
                 </tr>
-                <tr>
-                  <td style={{ border: '1px solid #ccc', padding: '4px', fontWeight: 'bold' }}>City/State/Zip</td>
-                  <td style={{ border: '1px solid #ccc', padding: '4px' }}>
-                    {[formData.shipToCity, formData.shipToState, formData.shipToZip].filter(Boolean).join(', ')}
-                  </td>
+                <tr className="border-b border-gray-300">
+                  <td className="py-1 font-semibold">City/State/Zip</td>
+                  <td className="py-1">{[formData.shipToCity, formData.shipToState, formData.shipToZip].filter(Boolean).join(', ')}</td>
                 </tr>
-                <tr>
-                  <td style={{ border: '1px solid #ccc', padding: '4px', fontWeight: 'bold' }}>Attn</td>
-                  <td style={{ border: '1px solid #ccc', padding: '4px' }}>{formData.shipToAttn}</td>
+                <tr className="border-b border-gray-300">
+                  <td className="py-1 font-semibold">Attn</td>
+                  <td className="py-1">{formData.shipToAttn}</td>
                 </tr>
-                <tr>
-                  <td style={{ border: '1px solid #ccc', padding: '4px', fontWeight: 'bold' }}>Phone</td>
-                  <td style={{ border: '1px solid #ccc', padding: '4px' }}>{formData.shipToPhone}</td>
+                <tr className="border-b border-gray-300">
+                  <td className="py-1 font-semibold">Phone</td>
+                  <td className="py-1">{formData.shipToPhone}</td>
                 </tr>
-                <tr>
-                  <td style={{ border: '1px solid #ccc', padding: '4px', fontWeight: 'bold' }}>Email</td>
-                  <td style={{ border: '1px solid #ccc', padding: '4px' }}>{formData.shipToEmail}</td>
+                <tr className="border-b border-gray-300">
+                  <td className="py-1 font-semibold">Email</td>
+                  <td className="py-1">{formData.shipToEmail}</td>
                 </tr>
               </tbody>
             </table>
           </div>
 
           {/* Bill To */}
-          <div style={{ flex: 1 }}>
-            <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '9pt' }}>
+          <div className="flex-1">
+            <table className="w-full border-collapse text-[9px]">
               <thead>
-                <tr>
-                  <th
-                    colSpan={2}
-                    style={{
-                      backgroundColor: '#1a365d',
-                      color: 'white',
-                      padding: '6px',
-                      textAlign: 'center',
-                      fontWeight: 'bold',
-                    }}
-                  >
-                    CUSTOMER BILL TO
-                  </th>
+                <tr className="border-b-2 border-black">
+                  <th colSpan={2} className="text-left py-1 font-bold">CUSTOMER BILL TO</th>
                 </tr>
               </thead>
               <tbody>
-                <tr>
-                  <td style={{ border: '1px solid #ccc', padding: '4px', width: '80px', fontWeight: 'bold' }}>Company</td>
-                  <td style={{ border: '1px solid #ccc', padding: '4px' }}>{formData.billToCompany}</td>
+                <tr className="border-b border-gray-300">
+                  <td className="py-1 w-20 font-semibold">Company</td>
+                  <td className="py-1">{formData.billToCompany}</td>
                 </tr>
-                <tr>
-                  <td style={{ border: '1px solid #ccc', padding: '4px', fontWeight: 'bold' }}>Address</td>
-                  <td style={{ border: '1px solid #ccc', padding: '4px' }}>{formData.billToAddress}</td>
+                <tr className="border-b border-gray-300">
+                  <td className="py-1 font-semibold">Address</td>
+                  <td className="py-1">{formData.billToAddress}</td>
                 </tr>
-                <tr>
-                  <td style={{ border: '1px solid #ccc', padding: '4px', fontWeight: 'bold' }}>City/State/Zip</td>
-                  <td style={{ border: '1px solid #ccc', padding: '4px' }}>
-                    {[formData.billToCity, formData.billToState, formData.billToZip].filter(Boolean).join(', ')}
-                  </td>
+                <tr className="border-b border-gray-300">
+                  <td className="py-1 font-semibold">City/State/Zip</td>
+                  <td className="py-1">{[formData.billToCity, formData.billToState, formData.billToZip].filter(Boolean).join(', ')}</td>
                 </tr>
-                <tr>
-                  <td style={{ border: '1px solid #ccc', padding: '4px', fontWeight: 'bold' }}>Attn</td>
-                  <td style={{ border: '1px solid #ccc', padding: '4px' }}>{formData.billToAttn}</td>
+                <tr className="border-b border-gray-300">
+                  <td className="py-1 font-semibold">Attn</td>
+                  <td className="py-1">{formData.billToAttn}</td>
                 </tr>
-                <tr>
-                  <td style={{ border: '1px solid #ccc', padding: '4px', fontWeight: 'bold' }}>Phone</td>
-                  <td style={{ border: '1px solid #ccc', padding: '4px' }}>{formData.billToPhone}</td>
+                <tr className="border-b border-gray-300">
+                  <td className="py-1 font-semibold">Phone</td>
+                  <td className="py-1">{formData.billToPhone}</td>
                 </tr>
-                <tr>
-                  <td style={{ border: '1px solid #ccc', padding: '4px', fontWeight: 'bold' }}>Email</td>
-                  <td style={{ border: '1px solid #ccc', padding: '4px' }}>{formData.billToEmail}</td>
+                <tr className="border-b border-gray-300">
+                  <td className="py-1 font-semibold">Email</td>
+                  <td className="py-1">{formData.billToEmail}</td>
                 </tr>
               </tbody>
             </table>
@@ -221,110 +176,58 @@ export const ServiceAgreementPreview = forwardRef<HTMLDivElement, ServiceAgreeme
         </div>
 
         {/* Terms Table */}
-        <div style={{ marginBottom: '20px' }}>
-          <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '9pt' }}>
+        <div className="mb-4">
+          <table className="w-full border-collapse text-[9px]">
             <thead>
-              <tr>
-                <th
-                  colSpan={5}
-                  style={{
-                    backgroundColor: '#1a365d',
-                    color: 'white',
-                    padding: '6px',
-                    textAlign: 'center',
-                    fontWeight: 'bold',
-                  }}
-                >
-                  TERMS
-                </th>
+              <tr className="border-b-2 border-black">
+                <th colSpan={5} className="text-left py-1 font-bold">TERMS</th>
               </tr>
-              <tr style={{ backgroundColor: '#e2e8f0' }}>
-                <th style={{ border: '1px solid #ccc', padding: '6px', textAlign: 'center', fontWeight: 'bold' }}>
-                  Maintenance Type
-                </th>
-                <th style={{ border: '1px solid #ccc', padding: '6px', textAlign: 'center', fontWeight: 'bold' }}>
-                  Paper & Staples
-                </th>
-                <th style={{ border: '1px solid #ccc', padding: '6px', textAlign: 'center', fontWeight: 'bold' }}>
-                  Drum & Toner
-                </th>
-                <th style={{ border: '1px solid #ccc', padding: '6px', textAlign: 'center', fontWeight: 'bold' }}>
-                  Effective Date
-                </th>
-                <th style={{ border: '1px solid #ccc', padding: '6px', textAlign: 'center', fontWeight: 'bold' }}>
-                  Contract Length
-                </th>
+              <tr className="border-b border-gray-300">
+                <th className="py-1 text-center font-semibold"><span className="underline">Maintenance Type</span></th>
+                <th className="py-1 text-center font-semibold"><span className="underline">Paper & Staples</span></th>
+                <th className="py-1 text-center font-semibold"><span className="underline">Drum & Toner</span></th>
+                <th className="py-1 text-center font-semibold"><span className="underline">Effective Date</span></th>
+                <th className="py-1 text-center font-semibold"><span className="underline">Contract Length</span></th>
               </tr>
             </thead>
             <tbody>
-              <tr>
-                <td style={{ border: '1px solid #ccc', padding: '6px', textAlign: 'center' }}>
-                  {formData.maintenanceType || '-'}
-                </td>
-                <td style={{ border: '1px solid #ccc', padding: '6px', textAlign: 'center' }}>
-                  {formData.paperStaples || '-'}
-                </td>
-                <td style={{ border: '1px solid #ccc', padding: '6px', textAlign: 'center' }}>
-                  {formData.drumToner || '-'}
-                </td>
-                <td style={{ border: '1px solid #ccc', padding: '6px', textAlign: 'center' }}>
-                  {formData.effectiveDate ? format(formData.effectiveDate, 'MM/dd/yyyy') : '-'}
-                </td>
-                <td style={{ border: '1px solid #ccc', padding: '6px', textAlign: 'center' }}>
-                  {formData.contractLengthMonths ? `${formData.contractLengthMonths} Months` : '-'}
-                </td>
+              <tr className="border-b border-gray-300">
+                <td className="py-1 text-center">{formData.maintenanceType || '-'}</td>
+                <td className="py-1 text-center">{formData.paperStaples || '-'}</td>
+                <td className="py-1 text-center">{formData.drumToner || '-'}</td>
+                <td className="py-1 text-center">{formData.effectiveDate ? format(formData.effectiveDate, 'MM/dd/yyyy') : '-'}</td>
+                <td className="py-1 text-center">{formData.contractLengthMonths ? `${formData.contractLengthMonths} Months` : '-'}</td>
               </tr>
             </tbody>
           </table>
         </div>
 
         {/* Equipment Table */}
-        <div style={{ marginBottom: '20px' }}>
-          <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '9pt' }}>
+        <div className="mb-4">
+          <table className="w-full border-collapse text-[9px]">
             <thead>
-              <tr>
-                <th
-                  colSpan={4}
-                  style={{
-                    backgroundColor: '#1a365d',
-                    color: 'white',
-                    padding: '6px',
-                    textAlign: 'center',
-                    fontWeight: 'bold',
-                  }}
-                >
-                  EQUIPMENT
-                </th>
+              <tr className="border-b-2 border-black">
+                <th colSpan={4} className="text-left py-1 font-bold">EQUIPMENT</th>
               </tr>
-              <tr style={{ backgroundColor: '#e2e8f0' }}>
-                <th style={{ border: '1px solid #ccc', padding: '6px', textAlign: 'center', fontWeight: 'bold', width: '60px' }}>
-                  Qty
-                </th>
-                <th style={{ border: '1px solid #ccc', padding: '6px', textAlign: 'left', fontWeight: 'bold' }}>
-                  Model
-                </th>
-                <th style={{ border: '1px solid #ccc', padding: '6px', textAlign: 'left', fontWeight: 'bold' }}>
-                  Description
-                </th>
-                <th style={{ border: '1px solid #ccc', padding: '6px', textAlign: 'left', fontWeight: 'bold', width: '120px' }}>
-                  Serial
-                </th>
+              <tr className="border-b border-gray-300">
+                <th className="py-1 text-left w-8"><span className="underline">Qty</span></th>
+                <th className="py-1 text-left w-28"><span className="underline">Model</span></th>
+                <th className="py-1 text-left"><span className="underline">Description</span></th>
+                <th className="py-1 text-left w-24"><span className="underline">Serial</span></th>
               </tr>
             </thead>
             <tbody>
               {lineItems.length === 0 ? (
                 <tr>
-                  <td colSpan={4} style={{ border: '1px solid #ccc', padding: '10px', textAlign: 'center', color: '#666' }}>
-                    No equipment items
-                  </td>
+                  <td colSpan={4} className="py-2 text-center text-gray-400">No equipment items</td>
                 </tr>
               ) : (
-                lineItems.map((item, index) => (
-                  <tr key={item.id} style={{ backgroundColor: index % 2 === 0 ? '#fff' : '#f7fafc' }}>
-                    <td style={{ border: '1px solid #ccc', padding: '6px', textAlign: 'center' }}>{item.quantity}</td>
-                    <td style={{ border: '1px solid #ccc', padding: '6px' }}>{item.name}</td>
-                    <td style={{ border: '1px solid #ccc', padding: '6px' }}>{item.description || '-'}</td>
-                    <td style={{ border: '1px solid #ccc', padding: '6px' }}>{item.serial || '-'}</td>
+                lineItems.map((item) => (
+                  <tr key={item.id} className="border-b border-gray-300">
+                    <td className="py-1">{item.quantity}</td>
+                    <td className="py-1">{item.name}</td>
+                    <td className="py-1">{item.description || '-'}</td>
+                    <td className="py-1">{item.serial || '-'}</td>
                   </tr>
                 ))
               )}
@@ -333,72 +236,37 @@ export const ServiceAgreementPreview = forwardRef<HTMLDivElement, ServiceAgreeme
         </div>
 
         {/* Rates Table (Hardware Only) */}
-        <div style={{ marginBottom: '20px' }}>
-          <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '9pt' }}>
+        <div className="mb-4">
+          <table className="w-full border-collapse text-[9px]">
             <thead>
-              <tr>
-                <th
-                  colSpan={6}
-                  style={{
-                    backgroundColor: '#1a365d',
-                    color: 'white',
-                    padding: '6px',
-                    textAlign: 'center',
-                    fontWeight: 'bold',
-                  }}
-                >
-                  RATES
-                </th>
+              <tr className="border-b-2 border-black">
+                <th colSpan={6} className="text-left py-1 font-bold">RATES</th>
               </tr>
-              <tr style={{ backgroundColor: '#e2e8f0' }}>
-                <th style={{ border: '1px solid #ccc', padding: '6px', textAlign: 'left', fontWeight: 'bold' }}>
-                  Model
-                </th>
-                <th style={{ border: '1px solid #ccc', padding: '6px', textAlign: 'center', fontWeight: 'bold' }}>
-                  Includes (B/W)
-                </th>
-                <th style={{ border: '1px solid #ccc', padding: '6px', textAlign: 'center', fontWeight: 'bold' }}>
-                  Includes (Color)
-                </th>
-                <th style={{ border: '1px solid #ccc', padding: '6px', textAlign: 'center', fontWeight: 'bold' }}>
-                  Overages (B/W)
-                </th>
-                <th style={{ border: '1px solid #ccc', padding: '6px', textAlign: 'center', fontWeight: 'bold' }}>
-                  Overages (Color)
-                </th>
-                <th style={{ border: '1px solid #ccc', padding: '6px', textAlign: 'center', fontWeight: 'bold' }}>
-                  Base Rate
-                </th>
+              <tr className="border-b border-gray-300">
+                <th className="py-1 text-left"><span className="underline">Model</span></th>
+                <th className="py-1 text-center"><span className="underline">Includes (B/W)</span></th>
+                <th className="py-1 text-center"><span className="underline">Includes (Color)</span></th>
+                <th className="py-1 text-center"><span className="underline">Overages (B/W)</span></th>
+                <th className="py-1 text-center"><span className="underline">Overages (Color)</span></th>
+                <th className="py-1 text-center"><span className="underline">Base Rate</span></th>
               </tr>
             </thead>
             <tbody>
               {hardwareLineItems.length === 0 ? (
                 <tr>
-                  <td colSpan={6} style={{ border: '1px solid #ccc', padding: '10px', textAlign: 'center', color: '#666' }}>
-                    No hardware items
-                  </td>
+                  <td colSpan={6} className="py-2 text-center text-gray-400">No hardware items</td>
                 </tr>
               ) : (
-                hardwareLineItems.map((item, index) => {
+                hardwareLineItems.map((item) => {
                   const rates = formData.rates[item.id] || { includesBW: '', includesColor: '', overagesBW: '', overagesColor: '', baseRate: '' };
                   return (
-                    <tr key={item.id} style={{ backgroundColor: index % 2 === 0 ? '#fff' : '#f7fafc' }}>
-                      <td style={{ border: '1px solid #ccc', padding: '6px' }}>{item.name}</td>
-                      <td style={{ border: '1px solid #ccc', padding: '6px', textAlign: 'center' }}>
-                        {rates.includesBW || '-'}
-                      </td>
-                      <td style={{ border: '1px solid #ccc', padding: '6px', textAlign: 'center' }}>
-                        {rates.includesColor || '-'}
-                      </td>
-                      <td style={{ border: '1px solid #ccc', padding: '6px', textAlign: 'center' }}>
-                        {rates.overagesBW ? formatCurrency(rates.overagesBW) : '-'}
-                      </td>
-                      <td style={{ border: '1px solid #ccc', padding: '6px', textAlign: 'center' }}>
-                        {rates.overagesColor ? formatCurrency(rates.overagesColor) : '-'}
-                      </td>
-                      <td style={{ border: '1px solid #ccc', padding: '6px', textAlign: 'center' }}>
-                        {rates.baseRate ? formatCurrency(rates.baseRate) : '-'}
-                      </td>
+                    <tr key={item.id} className="border-b border-gray-300">
+                      <td className="py-1">{item.name}</td>
+                      <td className="py-1 text-center">{rates.includesBW || '-'}</td>
+                      <td className="py-1 text-center">{rates.includesColor || '-'}</td>
+                      <td className="py-1 text-center">{rates.overagesBW ? formatCurrency(rates.overagesBW) : '-'}</td>
+                      <td className="py-1 text-center">{rates.overagesColor ? formatCurrency(rates.overagesColor) : '-'}</td>
+                      <td className="py-1 text-center">{rates.baseRate ? formatCurrency(rates.baseRate) : '-'}</td>
                     </tr>
                   );
                 })
@@ -409,84 +277,61 @@ export const ServiceAgreementPreview = forwardRef<HTMLDivElement, ServiceAgreeme
 
         {/* Terms and Conditions */}
         {termsAndConditions && (
-          <div style={{ marginBottom: '20px' }}>
-            <div
-              style={{
-                backgroundColor: '#1a365d',
-                color: 'white',
-                padding: '6px',
-                textAlign: 'center',
-                fontWeight: 'bold',
-                fontSize: '9pt',
-              }}
-            >
-              TERMS AND CONDITIONS
-            </div>
-            <div
-              style={{
-                border: '1px solid #ccc',
-                padding: '10px',
-                fontSize: '8pt',
-                whiteSpace: 'pre-wrap',
-                maxHeight: '200px',
-                overflow: 'hidden',
-              }}
-            >
-              {termsAndConditions}
-            </div>
+          <div className="mb-4">
+            <p className="font-bold mb-1 text-[10px]">Terms & Conditions:</p>
+            <p className="text-[8px] whitespace-pre-wrap">{termsAndConditions}</p>
           </div>
         )}
 
-        {/* Signatures */}
-        <div style={{ marginTop: '30px' }}>
-          <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '9pt' }}>
-            <thead>
-              <tr>
-                <th
-                  colSpan={2}
-                  style={{
-                    backgroundColor: '#1a365d',
-                    color: 'white',
-                    padding: '6px',
-                    textAlign: 'center',
-                    fontWeight: 'bold',
-                  }}
-                >
-                  SIGNATURES
-                </th>
-              </tr>
-            </thead>
-            <tbody>
-              <tr>
-                <td style={{ width: '50%', padding: '15px', verticalAlign: 'top' }}>
-                  <div style={{ marginBottom: '30px' }}>
-                    <div style={{ fontWeight: 'bold', marginBottom: '5px' }}>DEALER</div>
-                    <div style={{ borderBottom: '1px solid #000', height: '30px', marginBottom: '5px' }}></div>
-                    <div style={{ fontSize: '8pt', color: '#666' }}>Authorized Signature</div>
-                  </div>
-                  <div>
-                    <div style={{ borderBottom: '1px solid #000', height: '20px', marginBottom: '5px' }}></div>
-                    <div style={{ fontSize: '8pt', color: '#666' }}>Date</div>
-                  </div>
-                </td>
-                <td style={{ width: '50%', padding: '15px', verticalAlign: 'top', borderLeft: '1px solid #ccc' }}>
-                  <div style={{ marginBottom: '30px' }}>
-                    <div style={{ fontWeight: 'bold', marginBottom: '5px' }}>CUSTOMER</div>
-                    <div style={{ borderBottom: '1px solid #000', height: '30px', marginBottom: '5px' }}></div>
-                    <div style={{ fontSize: '8pt', color: '#666' }}>Authorized Signature</div>
-                  </div>
-                  <div style={{ marginBottom: '15px' }}>
-                    <div style={{ borderBottom: '1px solid #000', height: '20px', marginBottom: '5px' }}></div>
-                    <div style={{ fontSize: '8pt', color: '#666' }}>Print Name & Title</div>
-                  </div>
-                  <div>
-                    <div style={{ borderBottom: '1px solid #000', height: '20px', marginBottom: '5px' }}></div>
-                    <div style={{ fontSize: '8pt', color: '#666' }}>Date</div>
-                  </div>
-                </td>
-              </tr>
-            </tbody>
-          </table>
+        {/* Signatures - matching Quote/Installation style */}
+        <div className="mt-6 pt-2 border-t border-gray-300">
+          <div className="grid grid-cols-2 gap-8">
+            {/* Left: Dealer */}
+            <div>
+              <p className="font-bold mb-2 text-[10px]">{dealerInfo?.company_name || 'Dealer'}</p>
+              <div className="space-y-3">
+                <div>
+                  <div className="border-b border-black h-5"></div>
+                  <p className="text-[9px]">Signature</p>
+                </div>
+                <div>
+                  <div className="border-b border-black h-5"></div>
+                  <p className="text-[9px]">Printed Name</p>
+                </div>
+                <div>
+                  <div className="border-b border-black h-5"></div>
+                  <p className="text-[9px]">Title</p>
+                </div>
+                <div>
+                  <div className="border-b border-black h-5"></div>
+                  <p className="text-[9px]">Date</p>
+                </div>
+              </div>
+            </div>
+
+            {/* Right: Customer */}
+            <div>
+              <p className="font-bold mb-2 text-[10px]">{formData.billToCompany || 'Customer'}</p>
+              <div className="space-y-3">
+                <div>
+                  <div className="border-b border-black h-5"></div>
+                  <p className="text-[9px]">Signature</p>
+                </div>
+                <div>
+                  <div className="border-b border-black h-5"></div>
+                  <p className="text-[9px]">Printed Name</p>
+                </div>
+                <div>
+                  <div className="border-b border-black h-5"></div>
+                  <p className="text-[9px]">Title</p>
+                </div>
+                <div>
+                  <div className="border-b border-black h-5"></div>
+                  <p className="text-[9px]">Date</p>
+                </div>
+              </div>
+            </div>
+          </div>
         </div>
       </div>
     );

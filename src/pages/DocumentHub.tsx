@@ -663,7 +663,7 @@ function DocumentHubContent() {
       await new Promise(resolve => setTimeout(resolve, 100));
 
       const canvas = await html2canvas(clone, {
-        scale: 2,
+        scale: 1,
         useCORS: true,
         logging: false,
         backgroundColor: '#ffffff',
@@ -671,7 +671,7 @@ function DocumentHubContent() {
 
       document.body.removeChild(tempContainer);
 
-      const imgData = canvas.toDataURL('image/png');
+      const imgData = canvas.toDataURL('image/jpeg', 0.75);
       const pdf = new jsPDF({
         orientation: 'portrait',
         unit: 'in',
@@ -681,7 +681,7 @@ function DocumentHubContent() {
       const imgWidth = 8.5;
       const imgHeight = (canvas.height * imgWidth) / canvas.width;
 
-      pdf.addImage(imgData, 'PNG', 0, 0, imgWidth, imgHeight);
+      pdf.addImage(imgData, 'JPEG', 0, 0, imgWidth, imgHeight);
       
       const sanitizedCompanyName = (formData.companyName || 'Draft').replace(/[^a-zA-Z0-9\s]/g, '').replace(/\s+/g, '_');
       const now = new Date();
@@ -747,7 +747,7 @@ function DocumentHubContent() {
       await new Promise(resolve => setTimeout(resolve, 100));
 
       const canvas = await html2canvas(clone, {
-        scale: 2,
+        scale: 1,
         useCORS: true,
         logging: false,
         backgroundColor: '#ffffff',
@@ -755,7 +755,7 @@ function DocumentHubContent() {
 
       document.body.removeChild(tempContainer);
 
-      const imgData = canvas.toDataURL('image/png');
+      const imgData = canvas.toDataURL('image/jpeg', 0.75);
       const pdf = new jsPDF({
         orientation: 'portrait',
         unit: 'in',
@@ -765,7 +765,7 @@ function DocumentHubContent() {
       const imgWidth = 8.5;
       const imgHeight = (canvas.height * imgWidth) / canvas.width;
 
-      pdf.addImage(imgData, 'PNG', 0, 0, imgWidth, imgHeight);
+      pdf.addImage(imgData, 'JPEG', 0, 0, imgWidth, imgHeight);
       
       const sanitizedCompanyName = (installationFormData.shipToCompany || 'Draft').replace(/[^a-zA-Z0-9\s]/g, '').replace(/\s+/g, '_');
       const now = new Date();
@@ -892,7 +892,7 @@ function DocumentHubContent() {
       await new Promise(resolve => setTimeout(resolve, 100));
 
       const canvas = await html2canvas(clone, {
-        scale: 2,
+        scale: 1,
         useCORS: true,
         logging: false,
         backgroundColor: '#ffffff',
@@ -900,7 +900,7 @@ function DocumentHubContent() {
 
       document.body.removeChild(tempContainer);
 
-      const imgData = canvas.toDataURL('image/png');
+      const imgData = canvas.toDataURL('image/jpeg', 0.75);
       const pdf = new jsPDF({
         orientation: 'portrait',
         unit: 'in',
@@ -910,7 +910,7 @@ function DocumentHubContent() {
       const imgWidth = 8.5;
       const imgHeight = (canvas.height * imgWidth) / canvas.width;
 
-      pdf.addImage(imgData, 'PNG', 0, 0, imgWidth, imgHeight);
+      pdf.addImage(imgData, 'JPEG', 0, 0, imgWidth, imgHeight);
       
       const sanitizedCompanyName = (serviceAgreementFormData.shipToCompany || 'Draft').replace(/[^a-zA-Z0-9\s]/g, '').replace(/\s+/g, '_');
       const now = new Date();
