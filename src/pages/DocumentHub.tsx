@@ -356,6 +356,7 @@ function DocumentHubContent() {
                   lineItems={lineItems}
                   dealOwner={dealOwner}
                   onFormChange={handleFormChange}
+                  portalId={portalId || localStorage.getItem('hs_portal_id') || undefined}
                 />
 
                 {/* Actions */}

@@ -3,7 +3,9 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Separator } from '@/components/ui/separator';
 import { Button } from '@/components/ui/button';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Plus, Trash2 } from 'lucide-react';
+import { supabase } from '@/integrations/supabase/client';
 
 const AVAILABLE_TERMS = [12, 24, 36, 48, 60, 72];
 const RATE_FACTORS: Record<number, number> = { 12: 0.088, 24: 0.046, 36: 0.032, 48: 0.026, 60: 0.022, 72: 0.019 };
@@ -32,9 +34,23 @@ export interface QuoteFormData {
   overageBWRate: number; 
   overageColorRate: number;
   baseRateManuallySet: boolean;
+  // Configuration fields
+  leasingCompanyId: string;
+  priceDisplay: 'both' | 'purchase_only' | 'lease_only';
+  leasingPriceType: 'without_buyout' | 'with_buyout';
+  // Buyout fields
+  earlyTerminationFee: number;
+  returnShipping: number;
+  paymentsRemaining: number;
+  paymentAmount: number;
 }
 
-interface QuoteFormProps { deal: any; company: any; contacts: any[]; lineItems: any[]; dealOwner: any; onFormChange: (data: QuoteFormData) => void; }
+interface QuoteFormProps { deal: any; company: any; contacts: any[]; lineItems: any[]; dealOwner: any; onFormChange: (data: QuoteFormData) => void; portalId?: string; }
+
+interface LeasingPartner {
+  id: string;
+  name: string;
+}
 
 // Currency input formatter
 const formatCurrency = (value: number): string => {
@@ -45,7 +61,7 @@ const parseCurrency = (value: string): number => {
   return parseFloat(value.replace(/[^0-9.-]/g, '')) || 0;
 };
 
-export function QuoteForm({ deal, company, lineItems, dealOwner, onFormChange }: QuoteFormProps) {
+export function QuoteForm({ deal, company, lineItems, dealOwner, onFormChange, portalId }: QuoteFormProps) {
   const [formData, setFormData] = useState<QuoteFormData>({ 
     quoteNumber: '', 
     quoteDate: new Date().toISOString().split('T')[0], 
@@ -69,11 +85,57 @@ export function QuoteForm({ deal, company, lineItems, dealOwner, onFormChange }:
     overageBWRate: 0, 
     overageColorRate: 0,
     baseRateManuallySet: false,
+    // Configuration defaults
+    leasingCompanyId: '',
+    priceDisplay: 'both',
+    leasingPriceType: 'without_buyout',
+    // Buyout defaults
+    earlyTerminationFee: 0,
+    returnShipping: 0,
+    paymentsRemaining: 0,
+    paymentAmount: 0,
   });
 
   // Local string state for overage inputs to allow typing "0.0123" naturally
   const [overageBWText, setOverageBWText] = useState('');
   const [overageColorText, setOverageColorText] = useState('');
+  
+  // Leasing partners for dropdown
+  const [leasingPartners, setLeasingPartners] = useState<LeasingPartner[]>([]);
+
+  // Fetch leasing partners
+  useEffect(() => {
+    const fetchLeasingPartners = async () => {
+      const currentPortalId = portalId || localStorage.getItem('hs_portal_id');
+      if (!currentPortalId) return;
+
+      try {
+        const { data, error } = await supabase.functions.invoke('dealer-account-get', {
+          body: { portalId: currentPortalId }
+        });
+
+        if (error || !data?.dealer?.id) return;
+
+        const { data: partners } = await supabase
+          .from('leasing_partners')
+          .select('id, name')
+          .eq('dealer_account_id', data.dealer.id)
+          .eq('is_active', true)
+          .order('name');
+
+        if (partners) {
+          setLeasingPartners(partners);
+        }
+      } catch (err) {
+        console.error('Failed to fetch leasing partners:', err);
+      }
+    };
+
+    fetchLeasingPartners();
+  }, [portalId]);
+
+  // Calculate total buyout
+  const totalBuyout = (formData.paymentAmount * formData.paymentsRemaining) + formData.earlyTerminationFee + formData.returnShipping;
 
   useEffect(() => {
     const totalPrice = lineItems.reduce((sum: number, item: any) => sum + (item.price * item.quantity), 0);
@@ -132,6 +194,55 @@ export function QuoteForm({ deal, company, lineItems, dealOwner, onFormChange }:
 
   return (
     <div className="space-y-6">
+      {/* Configuration Section */}
+      <div>
+        <h4 className="text-sm font-medium mb-3">Configuration</h4>
+        <div className="grid grid-cols-3 gap-4">
+          <div>
+            <Label className="text-xs">Leasing Company</Label>
+            <Select value={formData.leasingCompanyId} onValueChange={(v) => updateField('leasingCompanyId', v)}>
+              <SelectTrigger className="h-8 text-sm">
+                <SelectValue placeholder="Select leasing company" />
+              </SelectTrigger>
+              <SelectContent>
+                {leasingPartners.map((partner) => (
+                  <SelectItem key={partner.id} value={partner.id}>{partner.name}</SelectItem>
+                ))}
+                {leasingPartners.length === 0 && (
+                  <SelectItem value="none" disabled>No leasing partners configured</SelectItem>
+                )}
+              </SelectContent>
+            </Select>
+          </div>
+          <div>
+            <Label className="text-xs">Price Display</Label>
+            <Select value={formData.priceDisplay} onValueChange={(v) => updateField('priceDisplay', v as 'both' | 'purchase_only' | 'lease_only')}>
+              <SelectTrigger className="h-8 text-sm">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="both">Show Purchase and Lease Price</SelectItem>
+                <SelectItem value="purchase_only">Show Purchase Price Only</SelectItem>
+                <SelectItem value="lease_only">Show Lease Price Only</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+          <div>
+            <Label className="text-xs">Leasing Price</Label>
+            <Select value={formData.leasingPriceType} onValueChange={(v) => updateField('leasingPriceType', v as 'without_buyout' | 'with_buyout')}>
+              <SelectTrigger className="h-8 text-sm">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="without_buyout">Lease Price Without Buyout</SelectItem>
+                <SelectItem value="with_buyout">Lease Price With Buyout</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+        </div>
+      </div>
+      <Separator />
+
       <div className="grid grid-cols-2 gap-4">
         <div className="space-y-3">
           <div><Label className="text-xs">Quote Number</Label><Input value={formData.quoteNumber} onChange={e => updateField('quoteNumber', e.target.value)} className="h-8 text-sm" /></div>
@@ -327,6 +438,74 @@ export function QuoteForm({ deal, company, lineItems, dealOwner, onFormChange }:
               />
             </div>
           </div>
+        </div>
+      </div>
+
+      {/* Buyout Section */}
+      <Separator />
+      <div>
+        <h4 className="text-sm font-medium mb-3">Buyout Information</h4>
+        <div className="grid grid-cols-2 gap-4">
+          <div>
+            <Label className="text-xs">Early Termination Fee</Label>
+            <div className="relative">
+              <span className="absolute left-2 top-1/2 -translate-y-1/2 text-muted-foreground text-sm">$</span>
+              <Input 
+                type="text" 
+                value={formData.earlyTerminationFee === 0 ? '' : formatCurrency(formData.earlyTerminationFee)} 
+                onChange={e => updateField('earlyTerminationFee', parseCurrency(e.target.value))} 
+                className="h-8 text-sm pl-5"
+                placeholder="0.00"
+              />
+            </div>
+          </div>
+          <div>
+            <Label className="text-xs">Return Shipping</Label>
+            <div className="relative">
+              <span className="absolute left-2 top-1/2 -translate-y-1/2 text-muted-foreground text-sm">$</span>
+              <Input 
+                type="text" 
+                value={formData.returnShipping === 0 ? '' : formatCurrency(formData.returnShipping)} 
+                onChange={e => updateField('returnShipping', parseCurrency(e.target.value))} 
+                className="h-8 text-sm pl-5"
+                placeholder="0.00"
+              />
+            </div>
+          </div>
+          <div>
+            <Label className="text-xs">Payments Remaining</Label>
+            <Input 
+              type="number" 
+              min="0"
+              value={formData.paymentsRemaining || ''} 
+              onChange={e => updateField('paymentsRemaining', parseInt(e.target.value) || 0)} 
+              className="h-8 text-sm"
+              placeholder="0"
+            />
+          </div>
+          <div>
+            <Label className="text-xs">Payment Amount</Label>
+            <div className="relative">
+              <span className="absolute left-2 top-1/2 -translate-y-1/2 text-muted-foreground text-sm">$</span>
+              <Input 
+                type="text" 
+                value={formData.paymentAmount === 0 ? '' : formatCurrency(formData.paymentAmount)} 
+                onChange={e => updateField('paymentAmount', parseCurrency(e.target.value))} 
+                className="h-8 text-sm pl-5"
+                placeholder="0.00"
+              />
+            </div>
+          </div>
+        </div>
+        {/* Total Buyout Display */}
+        <div className="mt-4 p-3 bg-muted/50 rounded-lg">
+          <div className="flex justify-between items-center">
+            <span className="text-sm font-medium">Total Buyout</span>
+            <span className="text-lg font-bold">${formatCurrency(totalBuyout)}</span>
+          </div>
+          <p className="text-xs text-muted-foreground mt-1">
+            (Payment Amount × Payments Remaining) + Early Termination Fee + Return Shipping
+          </p>
         </div>
       </div>
     </div>
