@@ -60,10 +60,10 @@ export const QuotePreview = forwardRef<HTMLDivElement, QuotePreviewProps>(
                     crossOrigin="anonymous"
                   />
                 )}
-                <p className="font-bold text-sm">{dealerInfo.companyName}</p>
-                <p className="text-sm">{dealerInfo.address}</p>
-                <p className="text-sm">{dealerInfo.phone}</p>
-                <p className="text-sm">{dealerInfo.website}</p>
+                <p className="font-bold text-[10px]">{dealerInfo.companyName}</p>
+                <p className="text-[9px]">{dealerInfo.address}</p>
+                <p className="text-[9px]">{dealerInfo.phone}</p>
+                <p className="text-[9px]">{dealerInfo.website}</p>
               </>
             )}
           </div>
@@ -129,13 +129,26 @@ export const QuotePreview = forwardRef<HTMLDivElement, QuotePreviewProps>(
         {/* Combined Pricing Table - Purchase | Lease | Service Agreement */}
         <div className="mb-4">
           <table className="w-full border-collapse text-[10px]">
+            <colgroup>
+              <col style={{ width: '14%' }} />
+              <col style={{ width: '14%' }} />
+              <col style={{ width: '16px' }} />
+              <col style={{ width: '11%' }} />
+              <col style={{ width: '13%' }} />
+              {hasServiceAgreement && <col style={{ width: '8px' }} />}
+              {hasServiceAgreement && <col style={{ width: '12%' }} />}
+              {hasServiceAgreement && <col style={{ width: 'auto' }} />}
+            </colgroup>
             <thead>
               <tr className="border-b-2 border-black">
                 <th colSpan={2} className="text-left py-1 font-bold">PURCHASE</th>
-                <th className="py-1 font-bold" style={{ width: '24px' }}></th>
+                <th className="py-1 font-bold"></th>
                 <th colSpan={2} className="text-left py-1 font-bold">LEASE</th>
                 {hasServiceAgreement && (
-                  <th colSpan={2} className="text-left py-1 font-bold">SERVICE AGREEMENT</th>
+                  <>
+                    <th className="py-1"></th>
+                    <th colSpan={2} className="text-left py-1 font-bold">SERVICE AGREEMENT</th>
+                  </>
                 )}
               </tr>
               <tr className="border-b border-gray-300">
@@ -146,6 +159,7 @@ export const QuotePreview = forwardRef<HTMLDivElement, QuotePreviewProps>(
                 <th className="text-right py-1 font-semibold text-[9px]">PAYMENT</th>
                 {hasServiceAgreement && (
                   <>
+                    <th className="py-1"></th>
                     <th className="text-left py-1 font-semibold text-[9px]">BASE RATE</th>
                     <th className="text-right py-1 font-semibold text-[9px]">PER MONTH</th>
                   </>
@@ -170,6 +184,7 @@ export const QuotePreview = forwardRef<HTMLDivElement, QuotePreviewProps>(
                 </td>
                 {hasServiceAgreement && (
                   <>
+                    <td className="py-1" rowSpan={Math.max(formData.selectedTerms.length, 1)}></td>
                     <td className="py-1 align-top" rowSpan={Math.max(formData.selectedTerms.length, 1)}>
                       <span className="font-bold">${formatCurrency(formData.serviceBaseRate)}</span>
                     </td>
