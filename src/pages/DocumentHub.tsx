@@ -191,7 +191,7 @@ function DocumentHubContent() {
               portalId: currentPortalId,
               dealId: dealId,
               properties: {
-                buyout_financing_amount: formData.buyoutFinancingAmount.toString()
+                financing_amount: formData.buyoutFinancingAmount.toString()
               }
             }
           });
