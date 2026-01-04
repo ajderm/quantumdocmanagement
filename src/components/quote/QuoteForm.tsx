@@ -190,8 +190,7 @@ export function QuoteForm({ deal, company, lineItems, dealOwner, onFormChange, p
 
   // Calculate lease payment using database rates
   const calculateLeasePayment = (term: number): number => {
-    // Get base financing amount (use buyoutFinancingAmount as override if > 0)
-    let baseAmount = formData.buyoutFinancingAmount > 0 ? formData.buyoutFinancingAmount : formData.retailPrice;
+    let baseAmount = formData.retailPrice;
     
     // If "with buyout" is selected, add total buyout to the base amount
     if (formData.leasingPriceType === 'with_buyout') {
@@ -762,9 +761,6 @@ export function QuoteForm({ deal, company, lineItems, dealOwner, onFormChange, p
               />
             </div>
           </div>
-          <p className="text-xs text-muted-foreground mt-1">
-            (B/W Copies × B/W Rate) + (Color Copies × Color Rate)
-          </p>
         </div>
       </div>
 
@@ -923,9 +919,6 @@ export function QuoteForm({ deal, company, lineItems, dealOwner, onFormChange, p
                 placeholder="Use retail price"
               />
             </div>
-            <p className="text-xs text-muted-foreground mt-1">
-              If set, this amount will be used for lease calculations instead of retail price
-            </p>
           </div>
         </div>
         {/* Total Buyout Display */}
@@ -934,9 +927,6 @@ export function QuoteForm({ deal, company, lineItems, dealOwner, onFormChange, p
             <span className="text-sm font-medium">Total Buyout</span>
             <span className="text-lg font-bold">${formatCurrency(totalBuyout)}</span>
           </div>
-          <p className="text-xs text-muted-foreground mt-1">
-            (Payment Amount × Payments Remaining) + Early Termination Fee + Return Shipping
-          </p>
         </div>
       </div>
     </div>
