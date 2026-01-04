@@ -56,6 +56,9 @@ interface DealerInfo {
   termsAndConditions?: string;
 }
 
+// Auto-save debounce delay in milliseconds
+const AUTO_SAVE_DELAY = 3000;
+
 function DocumentHubContent() {
   const { deal, company, contacts, lineItems, dealOwner, loading, error, portalId } = useHubSpot();
   const [generating, setGenerating] = useState(false);
@@ -64,7 +67,16 @@ function DocumentHubContent() {
   const [formData, setFormData] = useState<QuoteFormData | null>(null);
   const [dealerInfo, setDealerInfo] = useState<DealerInfo | null>(null);
   const [savedConfig, setSavedConfig] = useState<QuoteFormData | null>(null);
+  const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false);
+  const [lastSavedData, setLastSavedData] = useState<string | null>(null);
   const previewRef = useRef<HTMLDivElement>(null);
+  const autoSaveTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const formDataRef = useRef<QuoteFormData | null>(null);
+
+  // Keep formDataRef in sync with formData
+  useEffect(() => {
+    formDataRef.current = formData;
+  }, [formData]);
 
   // Fetch dealer info when portalId is available
   useEffect(() => {
@@ -145,9 +157,121 @@ function DocumentHubContent() {
     }
   }, [portalId, deal?.hsObjectId]);
 
+  // Silent auto-save function (doesn't show toasts or sync to HubSpot)
+  const performAutoSave = useCallback(async (dataToSave: QuoteFormData) => {
+    const currentPortalId = portalId || localStorage.getItem('hs_portal_id');
+    const dealId = deal?.hsObjectId;
+
+    if (!currentPortalId || !dealId || !dataToSave) return;
+
+    // Check if data has actually changed
+    const dataString = JSON.stringify(dataToSave);
+    if (dataString === lastSavedData) return;
+
+    try {
+      const { error: saveError } = await supabase
+        .from('quote_configurations')
+        .upsert({
+          portal_id: currentPortalId,
+          deal_id: dealId,
+          configuration: dataToSave as any,
+          updated_at: new Date().toISOString()
+        }, {
+          onConflict: 'deal_id,portal_id'
+        });
+
+      if (!saveError) {
+        setLastSavedData(dataString);
+        setHasUnsavedChanges(false);
+        console.log('Auto-saved configuration');
+      }
+    } catch (err) {
+      console.error('Auto-save error:', err);
+    }
+  }, [portalId, deal?.hsObjectId, lastSavedData]);
+
+  // Handle form change with auto-save debounce
   const handleFormChange = useCallback((data: QuoteFormData) => {
     setFormData(data);
-  }, []);
+    setHasUnsavedChanges(true);
+    
+    // Clear existing timeout
+    if (autoSaveTimeoutRef.current) {
+      clearTimeout(autoSaveTimeoutRef.current);
+    }
+
+    // Set new debounced auto-save
+    autoSaveTimeoutRef.current = setTimeout(() => {
+      performAutoSave(data);
+    }, AUTO_SAVE_DELAY);
+  }, [performAutoSave]);
+
+  // Auto-save on tab/window close or visibility change
+  useEffect(() => {
+    const handleBeforeUnload = (e: BeforeUnloadEvent) => {
+      if (hasUnsavedChanges && formDataRef.current) {
+        // Perform synchronous save attempt
+        const currentPortalId = portalId || localStorage.getItem('hs_portal_id');
+        const dealId = deal?.hsObjectId;
+        
+        if (currentPortalId && dealId) {
+          // Use sendBeacon for reliable save on page unload
+          const payload = JSON.stringify({
+            portal_id: currentPortalId,
+            deal_id: dealId,
+            configuration: formDataRef.current,
+            updated_at: new Date().toISOString()
+          });
+          
+          // Store in localStorage as backup
+          localStorage.setItem(`quote_backup_${dealId}`, payload);
+        }
+        
+        // Show browser's native "unsaved changes" dialog
+        e.preventDefault();
+        e.returnValue = '';
+      }
+    };
+
+    const handleVisibilityChange = () => {
+      if (document.visibilityState === 'hidden' && hasUnsavedChanges && formDataRef.current) {
+        performAutoSave(formDataRef.current);
+      }
+    };
+
+    window.addEventListener('beforeunload', handleBeforeUnload);
+    document.addEventListener('visibilitychange', handleVisibilityChange);
+
+    return () => {
+      window.removeEventListener('beforeunload', handleBeforeUnload);
+      document.removeEventListener('visibilitychange', handleVisibilityChange);
+      
+      // Clear timeout on unmount
+      if (autoSaveTimeoutRef.current) {
+        clearTimeout(autoSaveTimeoutRef.current);
+      }
+    };
+  }, [hasUnsavedChanges, portalId, deal?.hsObjectId, performAutoSave]);
+
+  // Recover from localStorage backup if exists
+  useEffect(() => {
+    const dealId = deal?.hsObjectId;
+    if (!dealId) return;
+
+    const backup = localStorage.getItem(`quote_backup_${dealId}`);
+    if (backup && !savedConfig) {
+      try {
+        const parsed = JSON.parse(backup);
+        if (parsed.configuration) {
+          console.log('Recovered backup configuration');
+          setSavedConfig(parsed.configuration as QuoteFormData);
+          localStorage.removeItem(`quote_backup_${dealId}`);
+        }
+      } catch {
+        localStorage.removeItem(`quote_backup_${dealId}`);
+      }
+    }
+  }, [deal?.hsObjectId, savedConfig]);
 
   const handleSave = async () => {
     if (!formData) {
@@ -182,6 +306,13 @@ function DocumentHubContent() {
         toast.error('Failed to save configuration');
         return;
       }
+
+      // Update last saved data to prevent unnecessary auto-saves
+      setLastSavedData(JSON.stringify(formData));
+      setHasUnsavedChanges(false);
+
+      // Clear any localStorage backup
+      localStorage.removeItem(`quote_backup_${dealId}`);
 
       // If buyoutFinancingAmount is set, update HubSpot deal
       if (formData.buyoutFinancingAmount > 0) {
