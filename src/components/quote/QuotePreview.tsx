@@ -249,11 +249,9 @@ export const QuotePreview = forwardRef<HTMLDivElement, QuotePreviewProps>(
                 )}
               </tr>
               {/* Additional lease term rows - only show if lease is visible */}
+              {/* Note: Purchase and OR cells have rowSpan, so no empty cells needed */}
               {showLease && formData.selectedTerms.slice(1).map((term, idx) => (
                 <tr key={term} className={idx === formData.selectedTerms.length - 2 ? '' : 'border-b border-gray-300'}>
-                  {showPurchase && <td></td>}
-                  {showPurchase && <td></td>}
-                  {showPurchase && <td></td>}
                   <td className="py-1">{term} months</td>
                   <td className="py-1 text-right font-semibold pr-3">
                     ${calculateLeasePayment(term).toLocaleString()}/mo
