@@ -134,9 +134,25 @@ export function InstallationForm({
   labeledContacts,
 }: InstallationFormProps) {
   // Filter line items to show only hardware (hs_product_type = "Hardware")
-  const hardwareLineItems = lineItems.filter(
+  const baseHardwareLineItems = lineItems.filter(
     (item) => item.category?.toLowerCase() === 'hardware'
   );
+
+  // Expand hardware line items by quantity - each unit gets its own installation doc
+  // E.g., "Canon Printer qty:2" becomes "Canon Printer (1 of 2)" and "Canon Printer (2 of 2)"
+  const hardwareLineItems = baseHardwareLineItems.flatMap((item) => {
+    const qty = item.quantity || 1;
+    if (qty <= 1) {
+      return [{ ...item, instanceIndex: 1, totalInstances: 1 }];
+    }
+    return Array.from({ length: qty }, (_, i) => ({
+      ...item,
+      id: `${item.id}_${i + 1}`, // Create unique ID for each instance
+      instanceIndex: i + 1,
+      totalInstances: qty,
+      quantity: 1, // Each instance represents 1 unit
+    }));
+  });
 
   const [formData, setFormData] = useState<InstallationFormData>({
     selectedLineItemId: '',
@@ -390,7 +406,9 @@ export function InstallationForm({
             <SelectContent>
               {hardwareLineItems.map((item) => (
                 <SelectItem key={item.id} value={item.id}>
-                  {item.quantity}x {item.model || item.sku || item.name} - {item.description || item.name}
+                  {item.model || item.sku || item.name}
+                  {item.totalInstances > 1 ? ` (${item.instanceIndex} of ${item.totalInstances})` : ''}
+                  {' - '}{item.description || item.name}
                 </SelectItem>
               ))}
               {hardwareLineItems.length === 0 && (
