@@ -331,7 +331,8 @@ export function QuoteForm({ deal, company, lineItems, dealOwner, onFormChange, p
     // If we have saved config, merge it with HubSpot data
     if (savedConfig) {
       const discountPercent = savedConfig.cashDiscountPercent ?? 5;
-      const retailPriceToUse = savedConfig.retailPrice || hubspotData.retailPrice;
+      // Always use fresh HubSpot deal amount for retail price
+      const retailPriceToUse = hubspotData.retailPrice;
       setFormData(prev => ({ 
         ...prev, 
         ...savedConfig,
@@ -348,6 +349,7 @@ export function QuoteForm({ deal, company, lineItems, dealOwner, onFormChange, p
         zip: hubspotData.zip || savedConfig.zip,
         phone: hubspotData.phone || savedConfig.phone,
         lineItems: savedConfig.lineItems?.length > 0 ? savedConfig.lineItems : hubspotData.lineItems,
+        // Always use fresh HubSpot deal amount
         retailPrice: retailPriceToUse,
         cashDiscountPercent: discountPercent,
         cashDiscount: retailPriceToUse * (1 - discountPercent / 100),
