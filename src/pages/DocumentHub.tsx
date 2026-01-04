@@ -460,6 +460,36 @@ function DocumentHubContent() {
     }
   };
 
+  const handleInstallationLineItemSwitch = async (newLineItemId: string, currentFormData: InstallationFormData) => {
+    // Save the current line item's data before switching
+    const currentPortalId = portalId || localStorage.getItem('hs_portal_id');
+    const dealId = deal?.hsObjectId;
+
+    if (currentPortalId && dealId && currentFormData.selectedLineItemId) {
+      try {
+        await supabase
+          .from('installation_configurations')
+          .upsert({
+            portal_id: currentPortalId,
+            deal_id: dealId,
+            line_item_id: currentFormData.selectedLineItemId,
+            configuration: currentFormData as any,
+            updated_at: new Date().toISOString()
+          }, {
+            onConflict: 'portal_id,deal_id,line_item_id'
+          });
+        
+        // Update saved config cache
+        setInstallationSavedConfig(prev => ({
+          ...prev,
+          [currentFormData.selectedLineItemId]: currentFormData
+        }));
+      } catch (err) {
+        console.error('Auto-save on switch error:', err);
+      }
+    }
+  };
+
   const handleInstallationSave = async () => {
     if (!installationFormData || !installationFormData.selectedLineItemId) {
       toast.error('Please select a hardware item first');
@@ -630,11 +660,10 @@ function DocumentHubContent() {
       pdf.addImage(imgData, 'PNG', 0, 0, imgWidth, imgHeight);
       
       const sanitizedCompanyName = (installationFormData.shipToCompany || 'Draft').replace(/[^a-zA-Z0-9\s]/g, '').replace(/\s+/g, '_');
-      const sanitizedModel = (installationFormData.installedModel || 'Equipment').replace(/[^a-zA-Z0-9\s]/g, '').replace(/\s+/g, '_');
       const now = new Date();
       const dateStr = now.toISOString().split('T')[0];
       const timeStr = now.toTimeString().slice(0, 5).replace(':', '-');
-      const fileName = `Installation_${sanitizedCompanyName}_${sanitizedModel}_${dateStr}_${timeStr}.pdf`;
+      const fileName = `Installation_Report_${sanitizedCompanyName}_Hardware_${dateStr}_${timeStr}.pdf`;
       
       pdf.save(fileName);
 
@@ -900,6 +929,7 @@ function DocumentHubContent() {
                   meterMethods={dealerSettings.meter_methods || []}
                   ccaValue={dealerSettings.cca_value || ''}
                   onFormChange={handleInstallationFormChange}
+                  onLineItemSwitch={handleInstallationLineItemSwitch}
                   savedConfig={getCurrentInstallationSavedConfig()}
                 />
 

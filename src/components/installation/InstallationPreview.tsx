@@ -160,16 +160,18 @@ export const InstallationPreview = forwardRef<HTMLDivElement, InstallationPrevie
             <p className="font-bold text-[9px] mb-1 border-b border-black pb-1">NETWORKING</p>
             <table className="w-full text-[8px]">
               <tbody>
-                <tr><td className="font-bold w-28">Dealer Setup Print:</td><td>{formData.dealerSetupPrint || '____'}</td></tr>
-                <tr><td className="font-bold">Dealer Setup Scan:</td><td>{formData.dealerSetupScan || '____'}</td></tr>
-                <tr><td className="font-bold">Windows Computers:</td><td>{formData.windowsComputers || '____'}</td></tr>
-                <tr><td className="font-bold">Mac Computers:</td><td>{formData.macComputers || '____'}</td></tr>
-                <tr><td className="font-bold">USB Print:</td><td>{formData.usbPrint || '____'}</td></tr>
-                <tr><td className="font-bold">Mobile Print:</td><td>{formData.mobilePrint || '____'}</td></tr>
-                <tr><td className="font-bold">Email Assigned:</td><td>{formData.emailAssigned || '____'}</td></tr>
-                <tr><td className="font-bold">Password:</td><td>{formData.emailPassword || '____'}</td></tr>
-                <tr><td className="font-bold">Network Time IN:</td><td>{formData.networkTimeIn || '____'}</td></tr>
-                <tr><td className="font-bold">Network Time OUT:</td><td>{formData.networkTimeOut || '____'}</td></tr>
+                <tr><td colSpan={2} className="font-bold pt-1 pb-0.5">DEALER SETUP - PRINT</td></tr>
+                <tr><td className="pl-2 w-32">Dealer Setup Print:</td><td>{formData.dealerSetupPrint || '____'}</td></tr>
+                <tr><td className="pl-2">Windows Computers:</td><td>{formData.printWindowsComputers || '____'}</td></tr>
+                <tr><td className="pl-2">Mac Computers:</td><td>{formData.printMacComputers || '____'}</td></tr>
+                <tr><td className="pl-2">Allow Print From USB:</td><td>{formData.allowPrintFromUSB || '____'}</td></tr>
+                <tr><td className="pl-2">Allow Mobile Print:</td><td>{formData.allowMobilePrint || '____'}</td></tr>
+                <tr><td colSpan={2} className="font-bold pt-2 pb-0.5">DEALER SETUP - SCAN</td></tr>
+                <tr><td className="pl-2">Dealer Setup Scan:</td><td>{formData.dealerSetupScan || '____'}</td></tr>
+                <tr><td className="pl-2">Windows Computers:</td><td>{formData.scanWindowsComputers || '____'}</td></tr>
+                <tr><td className="pl-2">Mac Computers:</td><td>{formData.scanMacComputers || '____'}</td></tr>
+                <tr><td className="pl-2">Email Assigned:</td><td>{formData.emailAssigned || '____'}</td></tr>
+                <tr><td className="pl-2">Password:</td><td>{formData.emailPassword || '____'}</td></tr>
               </tbody>
             </table>
           </div>
