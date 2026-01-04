@@ -39,6 +39,8 @@ import { ServiceAgreementForm, ServiceAgreementFormData } from '@/components/ser
 import { ServiceAgreementPreview } from '@/components/service-agreement/ServiceAgreementPreview';
 import { FMVLeaseForm, FMVLeaseFormData } from '@/components/fmv-lease/FMVLeaseForm';
 import { FMVLeasePreview } from '@/components/fmv-lease/FMVLeasePreview';
+import { LeaseFundingForm, LeaseFundingFormData } from '@/components/lease-funding/LeaseFundingForm';
+import { LeaseFundingPreview } from '@/components/lease-funding/LeaseFundingPreview';
 
 const documentTypes = [
   { code: 'quote', name: 'Quote', icon: FileText },
@@ -125,6 +127,18 @@ function DocumentHubContent() {
   const fmvLeaseAutoSaveTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   const fmvLeaseFormDataRef = useRef<FMVLeaseFormData | null>(null);
 
+  // Lease Funding state (per-line-item like Installation)
+  const [leaseFundingFormData, setLeaseFundingFormData] = useState<LeaseFundingFormData | null>(null);
+  const [leaseFundingSavedConfig, setLeaseFundingSavedConfig] = useState<Record<string, LeaseFundingFormData>>({});
+  const [leaseFundingGenerating, setLeaseFundingGenerating] = useState(false);
+  const [leaseFundingSaving, setLeaseFundingSaving] = useState(false);
+  const [showLeaseFundingPreview, setShowLeaseFundingPreview] = useState(false);
+  const [leaseFundingHasUnsavedChanges, setLeaseFundingHasUnsavedChanges] = useState(false);
+  const [leaseFundingLastSavedData, setLeaseFundingLastSavedData] = useState<string | null>(null);
+  const leaseFundingPreviewRef = useRef<HTMLDivElement>(null);
+  const leaseFundingAutoSaveTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const leaseFundingFormDataRef = useRef<LeaseFundingFormData | null>(null);
+
   // Dealer info and settings
   const [dealerInfo, setDealerInfo] = useState<DealerInfo | null>(null);
   const [dealerSettings, setDealerSettings] = useState<DealerSettings>({});
@@ -149,6 +163,11 @@ function DocumentHubContent() {
   useEffect(() => {
     fmvLeaseFormDataRef.current = fmvLeaseFormData;
   }, [fmvLeaseFormData]);
+
+  // Keep leaseFundingFormDataRef in sync
+  useEffect(() => {
+    leaseFundingFormDataRef.current = leaseFundingFormData;
+  }, [leaseFundingFormData]);
 
   // Fetch dealer info when portalId is available
   useEffect(() => {
@@ -350,6 +369,43 @@ function DocumentHubContent() {
     }
   }, [portalId, deal?.hsObjectId]);
 
+  // Load saved lease funding configurations (per-line-item like Installation)
+  useEffect(() => {
+    const loadLeaseFundingConfigs = async () => {
+      const currentPortalId = portalId || localStorage.getItem('hs_portal_id');
+      const dealId = deal?.hsObjectId;
+      
+      if (!currentPortalId || !dealId) return;
+
+      try {
+        const { data, error } = await supabase
+          .from('lease_funding_configurations')
+          .select('line_item_id, configuration')
+          .eq('portal_id', currentPortalId)
+          .eq('deal_id', dealId);
+
+        if (error) {
+          console.error('Error loading lease funding configs:', error);
+          return;
+        }
+
+        if (data) {
+          const configs: Record<string, LeaseFundingFormData> = {};
+          data.forEach(row => {
+            configs[row.line_item_id] = row.configuration as unknown as LeaseFundingFormData;
+          });
+          setLeaseFundingSavedConfig(configs);
+        }
+      } catch (err) {
+        console.error('Failed to load lease funding configs:', err);
+      }
+    };
+
+    if (deal?.hsObjectId) {
+      loadLeaseFundingConfigs();
+    }
+  }, [portalId, deal?.hsObjectId]);
+
   // Silent auto-save function for Quote
   const performAutoSave = useCallback(async (dataToSave: QuoteFormData) => {
     const currentPortalId = portalId || localStorage.getItem('hs_portal_id');
@@ -538,10 +594,60 @@ function DocumentHubContent() {
     }, AUTO_SAVE_DELAY);
   }, [performFMVLeaseAutoSave]);
 
+  // Auto-save for Lease Funding (per-line-item like Installation)
+  const performLeaseFundingAutoSave = useCallback(async (dataToSave: LeaseFundingFormData) => {
+    const currentPortalId = portalId || localStorage.getItem('hs_portal_id');
+    const dealId = deal?.hsObjectId;
+    const lineItemId = dataToSave.selectedLineItemId;
+
+    if (!currentPortalId || !dealId || !lineItemId || !dataToSave) return;
+
+    const dataString = JSON.stringify(dataToSave);
+    if (dataString === leaseFundingLastSavedData) return;
+
+    try {
+      const { error: saveError } = await supabase
+        .from('lease_funding_configurations')
+        .upsert({
+          portal_id: currentPortalId,
+          deal_id: dealId,
+          line_item_id: lineItemId,
+          configuration: dataToSave as any,
+          updated_at: new Date().toISOString()
+        }, {
+          onConflict: 'portal_id,deal_id,line_item_id'
+        });
+
+      if (!saveError) {
+        setLeaseFundingLastSavedData(dataString);
+        setLeaseFundingHasUnsavedChanges(false);
+        console.log('Auto-saved lease funding configuration');
+      }
+    } catch (err) {
+      console.error('Lease funding auto-save error:', err);
+    }
+  }, [portalId, deal?.hsObjectId, leaseFundingLastSavedData]);
+
+  // Handle lease funding form change
+  const handleLeaseFundingFormChange = useCallback((data: LeaseFundingFormData) => {
+    setLeaseFundingFormData(data);
+    setLeaseFundingHasUnsavedChanges(true);
+    
+    if (leaseFundingAutoSaveTimeoutRef.current) {
+      clearTimeout(leaseFundingAutoSaveTimeoutRef.current);
+    }
+
+    if (data.selectedLineItemId) {
+      leaseFundingAutoSaveTimeoutRef.current = setTimeout(() => {
+        performLeaseFundingAutoSave(data);
+      }, AUTO_SAVE_DELAY);
+    }
+  }, [performLeaseFundingAutoSave]);
+
   // Auto-save on tab/window close
   useEffect(() => {
     const handleBeforeUnload = (e: BeforeUnloadEvent) => {
-      if ((hasUnsavedChanges && formDataRef.current) || (installationHasUnsavedChanges && installationFormDataRef.current) || (serviceAgreementHasUnsavedChanges && serviceAgreementFormDataRef.current) || (fmvLeaseHasUnsavedChanges && fmvLeaseFormDataRef.current)) {
+      if ((hasUnsavedChanges && formDataRef.current) || (installationHasUnsavedChanges && installationFormDataRef.current) || (serviceAgreementHasUnsavedChanges && serviceAgreementFormDataRef.current) || (fmvLeaseHasUnsavedChanges && fmvLeaseFormDataRef.current) || (leaseFundingHasUnsavedChanges && leaseFundingFormDataRef.current)) {
         e.preventDefault();
         e.returnValue = '';
       }
@@ -560,6 +666,9 @@ function DocumentHubContent() {
         }
         if (fmvLeaseHasUnsavedChanges && fmvLeaseFormDataRef.current) {
           performFMVLeaseAutoSave(fmvLeaseFormDataRef.current);
+        }
+        if (leaseFundingHasUnsavedChanges && leaseFundingFormDataRef.current) {
+          performLeaseFundingAutoSave(leaseFundingFormDataRef.current);
         }
       }
     };
@@ -583,8 +692,11 @@ function DocumentHubContent() {
       if (fmvLeaseAutoSaveTimeoutRef.current) {
         clearTimeout(fmvLeaseAutoSaveTimeoutRef.current);
       }
+      if (leaseFundingAutoSaveTimeoutRef.current) {
+        clearTimeout(leaseFundingAutoSaveTimeoutRef.current);
+      }
     };
-  }, [hasUnsavedChanges, installationHasUnsavedChanges, serviceAgreementHasUnsavedChanges, fmvLeaseHasUnsavedChanges, performAutoSave, performInstallationAutoSave, performServiceAgreementAutoSave, performFMVLeaseAutoSave]);
+  }, [hasUnsavedChanges, installationHasUnsavedChanges, serviceAgreementHasUnsavedChanges, fmvLeaseHasUnsavedChanges, leaseFundingHasUnsavedChanges, performAutoSave, performInstallationAutoSave, performServiceAgreementAutoSave, performFMVLeaseAutoSave, performLeaseFundingAutoSave]);
 
   // Recover from localStorage backup if exists
   useEffect(() => {
@@ -1171,10 +1283,158 @@ function DocumentHubContent() {
     setShowFMVLeasePreview(true);
   };
 
+  // Lease Funding handlers
+  const handleLeaseFundingLineItemSwitch = async (newLineItemId: string, currentFormData: LeaseFundingFormData) => {
+    const currentPortalId = portalId || localStorage.getItem('hs_portal_id');
+    const dealId = deal?.hsObjectId;
+
+    if (currentPortalId && dealId && currentFormData.selectedLineItemId) {
+      try {
+        await supabase
+          .from('lease_funding_configurations')
+          .upsert({
+            portal_id: currentPortalId,
+            deal_id: dealId,
+            line_item_id: currentFormData.selectedLineItemId,
+            configuration: currentFormData as any,
+            updated_at: new Date().toISOString()
+          }, {
+            onConflict: 'portal_id,deal_id,line_item_id'
+          });
+        
+        // Update saved config cache
+        setLeaseFundingSavedConfig(prev => ({
+          ...prev,
+          [currentFormData.selectedLineItemId]: currentFormData
+        }));
+      } catch (err) {
+        console.error('Auto-save on switch error:', err);
+      }
+    }
+  };
+
+  const handleLeaseFundingSave = async () => {
+    if (!leaseFundingFormData || !leaseFundingFormData.selectedLineItemId) {
+      toast.error('Please select a hardware item first');
+      return;
+    }
+
+    const currentPortalId = portalId || localStorage.getItem('hs_portal_id');
+    const dealId = deal?.hsObjectId;
+
+    if (!currentPortalId || !dealId) {
+      toast.error('Missing portal or deal information');
+      return;
+    }
+
+    setLeaseFundingSaving(true);
+    try {
+      const { error: saveError } = await supabase
+        .from('lease_funding_configurations')
+        .upsert({
+          portal_id: currentPortalId,
+          deal_id: dealId,
+          line_item_id: leaseFundingFormData.selectedLineItemId,
+          configuration: leaseFundingFormData as any,
+          updated_at: new Date().toISOString()
+        }, {
+          onConflict: 'portal_id,deal_id,line_item_id'
+        });
+
+      if (saveError) {
+        console.error('Save error:', saveError);
+        toast.error('Failed to save lease funding configuration');
+        return;
+      }
+
+      // Update saved config cache
+      setLeaseFundingSavedConfig(prev => ({
+        ...prev,
+        [leaseFundingFormData.selectedLineItemId]: leaseFundingFormData
+      }));
+      setLeaseFundingLastSavedData(JSON.stringify(leaseFundingFormData));
+      setLeaseFundingHasUnsavedChanges(false);
+      toast.success('Lease funding configuration saved');
+    } catch (err) {
+      console.error('Save error:', err);
+      toast.error('Failed to save lease funding configuration');
+    } finally {
+      setLeaseFundingSaving(false);
+    }
+  };
+
+  const handleLeaseFundingGeneratePDF = async () => {
+    if (!leaseFundingPreviewRef.current || !leaseFundingFormData || !leaseFundingFormData.selectedLineItemId) {
+      toast.error('Please select a hardware item and fill in the details first');
+      return;
+    }
+
+    setLeaseFundingGenerating(true);
+    try {
+      const pdf = await generateMultiPagePDF(leaseFundingPreviewRef.current);
+      
+      const sanitizedCompanyName = (leaseFundingFormData.customerName || 'Draft').replace(/[^a-zA-Z0-9\s]/g, '').replace(/\s+/g, '_');
+      const now = new Date();
+      const dateStr = now.toISOString().split('T')[0];
+      const timeStr = now.toTimeString().slice(0, 5).replace(':', '-');
+      const fileName = `Lease_Funding_${sanitizedCompanyName}_${dateStr}_${timeStr}.pdf`;
+      
+      pdf.save(fileName);
+
+      const currentPortalId = portalId || localStorage.getItem('hs_portal_id');
+      const currentDealId = deal?.hsObjectId;
+
+      if (currentPortalId && currentDealId) {
+        try {
+          const pdfBase64 = pdf.output('datauristring').split(',')[1];
+          
+          const { data, error: attachError } = await supabase.functions.invoke('hubspot-attach-file', {
+            body: {
+              portalId: currentPortalId,
+              dealId: currentDealId,
+              fileName: fileName,
+              fileBase64: pdfBase64
+            }
+          });
+
+          if (attachError || data?.error) {
+            toast.success('PDF downloaded! (Could not attach to deal)');
+          } else {
+            toast.success('PDF downloaded and attached to deal!');
+          }
+        } catch (attachErr) {
+          console.error('Failed to attach to HubSpot:', attachErr);
+          toast.success('PDF downloaded! (Could not attach to deal)');
+        }
+      } else {
+        toast.success('Lease Funding PDF downloaded successfully!');
+      }
+    } catch (err) {
+      console.error('PDF generation error:', err);
+      toast.error('Failed to generate PDF');
+    } finally {
+      setLeaseFundingGenerating(false);
+    }
+  };
+
+  const handleLeaseFundingPreview = () => {
+    if (!leaseFundingFormData || !leaseFundingFormData.selectedLineItemId) {
+      toast.error('Please select a hardware item first');
+      return;
+    }
+    setShowLeaseFundingPreview(true);
+  };
+
   // Get the saved config for the currently selected line item
   const getCurrentInstallationSavedConfig = () => {
     if (!installationFormData?.selectedLineItemId) return undefined;
     return installationSavedConfig[installationFormData.selectedLineItemId];
+  };
+
+  // Get the saved config for the currently selected lease funding line item
+  const getCurrentLeaseFundingSavedConfig = () => {
+    if (!leaseFundingFormData?.selectedLineItemId) return undefined;
+    return leaseFundingSavedConfig[leaseFundingFormData.selectedLineItemId];
   };
 
   if (loading) {
@@ -1608,8 +1868,85 @@ function DocumentHubContent() {
             </Card>
           </TabsContent>
 
+          {/* Lease Funding Tab Content */}
+          <TabsContent value="lease_funding" className="mt-0">
+            <Card>
+              <CardHeader className="pb-3">
+                <CardTitle className="text-lg flex items-center gap-2">
+                  <Receipt className="h-5 w-5" />
+                  Generate Lease Funding Document
+                  {hardwareLineItems.length > 0 && (
+                    <Badge variant="secondary" className="ml-2">
+                      {hardwareLineItems.length} hardware item{hardwareLineItems.length !== 1 ? 's' : ''}
+                    </Badge>
+                  )}
+                </CardTitle>
+                <CardDescription>
+                  Create a lease funding document for each hardware item
+                </CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <LeaseFundingForm
+                  deal={deal}
+                  company={company ? {
+                    name: company.name,
+                    deliveryAddress: company.deliveryAddress,
+                    deliveryAddress2: company.deliveryAddress2,
+                    deliveryCity: company.deliveryCity,
+                    deliveryState: company.deliveryState,
+                    deliveryZip: company.deliveryZip,
+                    address: company.address,
+                    address2: company.address2,
+                    city: company.city,
+                    state: company.state,
+                    zip: company.zip,
+                  } : null}
+                  lineItems={lineItems}
+                  dealOwner={dealOwner}
+                  fmvLeaseFormData={fmvLeaseFormData ? {
+                    companyLegalName: fmvLeaseFormData.companyLegalName,
+                    equipmentAddress: fmvLeaseFormData.equipmentAddress,
+                    equipmentCity: fmvLeaseFormData.equipmentCity,
+                    equipmentState: fmvLeaseFormData.equipmentState,
+                    equipmentZip: fmvLeaseFormData.equipmentZip,
+                    termInMonths: fmvLeaseFormData.termInMonths,
+                    paymentAmount: fmvLeaseFormData.paymentAmount,
+                  } : null}
+                  portalId={portalId || localStorage.getItem('hs_portal_id') || undefined}
+                  onFormChange={handleLeaseFundingFormChange}
+                  onLineItemSwitch={handleLeaseFundingLineItemSwitch}
+                  savedConfig={getCurrentLeaseFundingSavedConfig()}
+                />
+
+                {/* Actions */}
+                <div className="flex gap-2 pt-4 border-t">
+                  <Button variant="outline" onClick={handleLeaseFundingSave} disabled={leaseFundingSaving}>
+                    {leaseFundingSaving ? (
+                      <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                    ) : (
+                      <Save className="h-4 w-4 mr-2" />
+                    )}
+                    {leaseFundingSaving ? 'Saving...' : 'Save'}
+                  </Button>
+                  <Button className="flex-1" onClick={handleLeaseFundingGeneratePDF} disabled={leaseFundingGenerating}>
+                    {leaseFundingGenerating ? (
+                      <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                    ) : (
+                      <Download className="h-4 w-4 mr-2" />
+                    )}
+                    {leaseFundingGenerating ? 'Generating...' : 'Generate PDF'}
+                  </Button>
+                  <Button variant="outline" onClick={handleLeaseFundingPreview}>
+                    <Eye className="h-4 w-4 mr-2" />
+                    Preview
+                  </Button>
+                </div>
+              </CardContent>
+            </Card>
+          </TabsContent>
+
           {/* Placeholder for other tabs */}
-          {documentTypes.slice(4).map((doc) => (
+          {documentTypes.slice(5).map((doc) => (
             <TabsContent key={doc.code} value={doc.code} className="mt-0">
               <Card>
                 <CardContent className="py-12 text-center">
@@ -1784,6 +2121,50 @@ function DocumentHubContent() {
                       logo_url: dealerInfo.logoUrl,
                     } : undefined}
                     termsAndConditions={documentTerms.fmv_lease}
+                  />
+                </div>
+              )}
+            </div>
+          </ScrollArea>
+        </DialogContent>
+      </Dialog>
+
+      {/* Hidden preview for Lease Funding PDF generation */}
+      <div className="hidden">
+        {leaseFundingFormData && (
+          <LeaseFundingPreview
+            ref={leaseFundingPreviewRef}
+            formData={leaseFundingFormData}
+            dealerInfo={dealerInfo ? {
+              company_name: dealerInfo.companyName,
+              address_line1: dealerInfo.address,
+              phone: dealerInfo.phone,
+              website: dealerInfo.website,
+              logo_url: dealerInfo.logoUrl,
+            } : undefined}
+          />
+        )}
+      </div>
+
+      {/* Lease Funding Preview Dialog */}
+      <Dialog open={showLeaseFundingPreview} onOpenChange={setShowLeaseFundingPreview}>
+        <DialogContent className="max-w-4xl max-h-[90vh] p-0">
+          <DialogHeader className="p-4 pb-0">
+            <DialogTitle>Lease Funding Document Preview</DialogTitle>
+          </DialogHeader>
+          <ScrollArea className="max-h-[calc(90vh-80px)]">
+            <div className="p-4 flex justify-center">
+              {leaseFundingFormData && (
+                <div className="shadow-lg border">
+                  <LeaseFundingPreview
+                    formData={leaseFundingFormData}
+                    dealerInfo={dealerInfo ? {
+                      company_name: dealerInfo.companyName,
+                      address_line1: dealerInfo.address,
+                      phone: dealerInfo.phone,
+                      website: dealerInfo.website,
+                      logo_url: dealerInfo.logoUrl,
+                    } : undefined}
                   />
                 </div>
               )}

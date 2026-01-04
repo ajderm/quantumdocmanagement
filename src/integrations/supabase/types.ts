@@ -366,6 +366,36 @@ export type Database = {
         }
         Relationships: []
       }
+      lease_funding_configurations: {
+        Row: {
+          configuration: Json
+          created_at: string
+          deal_id: string
+          id: string
+          line_item_id: string
+          portal_id: string
+          updated_at: string
+        }
+        Insert: {
+          configuration?: Json
+          created_at?: string
+          deal_id: string
+          id?: string
+          line_item_id: string
+          portal_id: string
+          updated_at?: string
+        }
+        Update: {
+          configuration?: Json
+          created_at?: string
+          deal_id?: string
+          id?: string
+          line_item_id?: string
+          portal_id?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       lease_rate_factors: {
         Row: {
           created_at: string
