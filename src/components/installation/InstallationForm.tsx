@@ -313,7 +313,8 @@ export function InstallationForm({
   // Update form when line item is selected
   useEffect(() => {
     if (formData.selectedLineItemId) {
-      const selectedItem = lineItems.find(item => item.id === formData.selectedLineItemId);
+      // Use hardwareLineItems to find expanded items (e.g., id_1, id_2 for qty > 1)
+      const selectedItem = hardwareLineItems.find(item => item.id === formData.selectedLineItemId);
       if (selectedItem) {
         setFormData(prev => ({
           ...prev,
@@ -530,17 +531,17 @@ export function InstallationForm({
               <CardTitle className="text-sm">Equipment (Installed)</CardTitle>
             </CardHeader>
             <CardContent className="space-y-4">
-              <div className="grid grid-cols-3 gap-3">
-                <div>
+              <div className="grid grid-cols-12 gap-3">
+                <div className="col-span-1">
                   <Label className="text-xs">Qty</Label>
                   <Input
                     type="number"
                     value={formData.installedQty}
                     onChange={(e) => updateField('installedQty', parseInt(e.target.value) || 1)}
-                    className="h-8 text-sm"
+                    className="h-8 text-sm text-center"
                   />
                 </div>
-                <div className="col-span-2">
+                <div className="col-span-3">
                   <Label className="text-xs">Model</Label>
                   <Input
                     value={formData.installedModel}
@@ -548,14 +549,14 @@ export function InstallationForm({
                     className="h-8 text-sm"
                   />
                 </div>
-              </div>
-              <div>
-                <Label className="text-xs">Description</Label>
-                <Input
-                  value={formData.installedDescription}
-                  onChange={(e) => updateField('installedDescription', e.target.value)}
-                  className="h-8 text-sm"
-                />
+                <div className="col-span-8">
+                  <Label className="text-xs">Description</Label>
+                  <Input
+                    value={formData.installedDescription}
+                    onChange={(e) => updateField('installedDescription', e.target.value)}
+                    className="h-8 text-sm"
+                  />
+                </div>
               </div>
               <div className="grid grid-cols-3 gap-3">
                 <div>
