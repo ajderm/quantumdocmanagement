@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo } from 'react';
+import { useState, useEffect, useMemo, useRef } from 'react';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Separator } from '@/components/ui/separator';
@@ -75,6 +75,7 @@ const parseCurrency = (value: string): number => {
 const DEFAULT_RATE_FACTORS: Record<number, number> = { 12: 0.088, 24: 0.046, 36: 0.032, 48: 0.026, 60: 0.022, 72: 0.019 };
 
 export function QuoteForm({ deal, company, lineItems, dealOwner, onFormChange, portalId, savedConfig }: QuoteFormProps) {
+  const hasInitializedRef = useRef(false);
   const [formData, setFormData] = useState<QuoteFormData>({ 
     quoteNumber: '', 
     quoteDate: new Date().toISOString().split('T')[0], 
@@ -152,8 +153,8 @@ export function QuoteForm({ deal, company, lineItems, dealOwner, onFormChange, p
           setLeasingCompanies(data.leasingCompanies || []);
           setHasRateSheet(true);
           
-          // Auto-select first company if none selected
-          if (!formData.leasingCompanyId && data.leasingCompanies?.length > 0) {
+          // Auto-select first company if none selected (but not if we have saved config)
+          if (!formData.leasingCompanyId && !savedConfig?.leasingCompanyId && data.leasingCompanies?.length > 0) {
             setFormData(prev => ({ ...prev, leasingCompanyId: data.leasingCompanies[0] }));
           }
         }
@@ -283,8 +284,13 @@ export function QuoteForm({ deal, company, lineItems, dealOwner, onFormChange, p
     }
   }, [formData.selectedTerms, formData.retailPrice, formData.buyoutFinancingAmount, formData.leasingCompanyId, formData.leaseProgram, formData.leasingPriceType, formData.paymentAmount, formData.paymentsRemaining, formData.earlyTerminationFee, formData.returnShipping, rateFactors]);
 
-  // Reset selected terms when company or program changes
+  // Reset selected terms when company or program changes (but not during initial load if we have saved terms)
   useEffect(() => {
+    // Skip if we have saved config with terms and haven't initialized yet
+    if (savedConfig?.selectedTerms?.length > 0 && !hasInitializedRef.current) {
+      return;
+    }
+    
     if (availableTerms.length > 0 && formData.selectedTerms.length === 0) {
       // Auto-select up to 3 terms from available
       const defaultTerms = availableTerms.slice(0, 3);
@@ -296,7 +302,7 @@ export function QuoteForm({ deal, company, lineItems, dealOwner, onFormChange, p
         setFormData(prev => ({ ...prev, selectedTerms: validTerms.length > 0 ? validTerms : availableTerms.slice(0, 3) }));
       }
     }
-  }, [availableTerms]);
+  }, [availableTerms, savedConfig]);
 
   // Calculate total buyout (for display)
   const totalBuyout = totalBuyoutForCalc;
@@ -364,6 +370,9 @@ export function QuoteForm({ deal, company, lineItems, dealOwner, onFormChange, p
       if (savedConfig.earlyTerminationFee > 0) setEarlyTerminationFeeText(String(savedConfig.earlyTerminationFee));
       if (savedConfig.returnShipping > 0) setReturnShippingText(String(savedConfig.returnShipping));
       if (savedConfig.paymentAmount > 0) setPaymentAmountText(String(savedConfig.paymentAmount));
+      
+      // Mark as initialized after loading saved config
+      hasInitializedRef.current = true;
     } else {
       const discountPercent = 5;
       setFormData(prev => ({ 
