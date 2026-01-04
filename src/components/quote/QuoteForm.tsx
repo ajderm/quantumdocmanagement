@@ -38,6 +38,7 @@ export interface QuoteFormData {
   leasingCompanyId: string;
   priceDisplay: 'both' | 'purchase_only' | 'lease_only';
   leasingPriceType: 'without_buyout' | 'with_buyout';
+  leaseProgram: 'fmv' | 'dollar_buyout';
   // Buyout fields
   earlyTerminationFee: number;
   returnShipping: number;
@@ -90,6 +91,7 @@ export function QuoteForm({ deal, company, lineItems, dealOwner, onFormChange, p
     leasingCompanyId: '',
     priceDisplay: 'both',
     leasingPriceType: 'without_buyout',
+    leaseProgram: 'fmv',
     // Buyout defaults
     earlyTerminationFee: 0,
     returnShipping: 0,
@@ -101,8 +103,11 @@ export function QuoteForm({ deal, company, lineItems, dealOwner, onFormChange, p
   // Local string state for overage inputs to allow typing "0.0123" naturally
   const [overageBWText, setOverageBWText] = useState('');
   const [overageColorText, setOverageColorText] = useState('');
-  // Local string state for buyout financing amount to allow natural number entry
+  // Local string state for buyout fields to allow natural number entry
   const [buyoutFinancingText, setBuyoutFinancingText] = useState('');
+  const [earlyTerminationFeeText, setEarlyTerminationFeeText] = useState('');
+  const [returnShippingText, setReturnShippingText] = useState('');
+  const [paymentAmountText, setPaymentAmountText] = useState('');
   
   // Leasing partners for dropdown
   const [leasingPartners, setLeasingPartners] = useState<LeasingPartner[]>([]);
@@ -196,6 +201,9 @@ export function QuoteForm({ deal, company, lineItems, dealOwner, onFormChange, p
       if (savedConfig.overageBWRate > 0) setOverageBWText(String(savedConfig.overageBWRate));
       if (savedConfig.overageColorRate > 0) setOverageColorText(String(savedConfig.overageColorRate));
       if (savedConfig.buyoutFinancingAmount > 0) setBuyoutFinancingText(String(savedConfig.buyoutFinancingAmount));
+      if (savedConfig.earlyTerminationFee > 0) setEarlyTerminationFeeText(String(savedConfig.earlyTerminationFee));
+      if (savedConfig.returnShipping > 0) setReturnShippingText(String(savedConfig.returnShipping));
+      if (savedConfig.paymentAmount > 0) setPaymentAmountText(String(savedConfig.paymentAmount));
     } else {
       setFormData(prev => ({ ...prev, ...hubspotData }));
     }
@@ -268,7 +276,7 @@ export function QuoteForm({ deal, company, lineItems, dealOwner, onFormChange, p
       {/* Configuration Section - moved between Equipment and Pricing */}
       <div>
         <h4 className="text-sm font-medium mb-3">Configuration</h4>
-        <div className="grid grid-cols-3 gap-4">
+        <div className="grid grid-cols-4 gap-4">
           <div>
             <Label className="text-xs">Leasing Company</Label>
             <Select value={formData.leasingCompanyId} onValueChange={(v) => updateField('leasingCompanyId', v)}>
@@ -307,6 +315,18 @@ export function QuoteForm({ deal, company, lineItems, dealOwner, onFormChange, p
               <SelectContent>
                 <SelectItem value="without_buyout">Lease Price Without Buyout</SelectItem>
                 <SelectItem value="with_buyout">Lease Price With Buyout</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+          <div>
+            <Label className="text-xs">Lease Program</Label>
+            <Select value={formData.leaseProgram} onValueChange={(v) => updateField('leaseProgram', v as 'fmv' | 'dollar_buyout')}>
+              <SelectTrigger className="h-8 text-sm">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="fmv">FMV (Fair Market Value)</SelectItem>
+                <SelectItem value="dollar_buyout">$1 Buyout</SelectItem>
               </SelectContent>
             </Select>
           </div>
@@ -489,10 +509,32 @@ export function QuoteForm({ deal, company, lineItems, dealOwner, onFormChange, p
               <span className="absolute left-2 top-1/2 -translate-y-1/2 text-muted-foreground text-sm">$</span>
               <Input 
                 type="text" 
-                value={formData.earlyTerminationFee === 0 ? '' : formatCurrency(formData.earlyTerminationFee)} 
-                onChange={e => updateField('earlyTerminationFee', parseCurrency(e.target.value))} 
+                value={earlyTerminationFeeText} 
+                onChange={e => {
+                  const val = e.target.value;
+                  if (val === '' || /^\d*\.?\d*$/.test(val)) {
+                    setEarlyTerminationFeeText(val);
+                    const num = parseFloat(val);
+                    if (!isNaN(num)) {
+                      updateField('earlyTerminationFee', num);
+                    } else if (val === '') {
+                      updateField('earlyTerminationFee', 0);
+                    }
+                  }
+                }}
+                onBlur={() => {
+                  if (earlyTerminationFeeText === '' || earlyTerminationFeeText === '.') {
+                    setEarlyTerminationFeeText('');
+                    updateField('earlyTerminationFee', 0);
+                  } else {
+                    const num = parseFloat(earlyTerminationFeeText);
+                    if (!isNaN(num)) {
+                      setEarlyTerminationFeeText(num === 0 ? '' : String(num));
+                    }
+                  }
+                }}
                 className="h-8 text-sm pl-5"
-                placeholder="0.00"
+                placeholder="500"
               />
             </div>
           </div>
@@ -502,10 +544,32 @@ export function QuoteForm({ deal, company, lineItems, dealOwner, onFormChange, p
               <span className="absolute left-2 top-1/2 -translate-y-1/2 text-muted-foreground text-sm">$</span>
               <Input 
                 type="text" 
-                value={formData.returnShipping === 0 ? '' : formatCurrency(formData.returnShipping)} 
-                onChange={e => updateField('returnShipping', parseCurrency(e.target.value))} 
+                value={returnShippingText} 
+                onChange={e => {
+                  const val = e.target.value;
+                  if (val === '' || /^\d*\.?\d*$/.test(val)) {
+                    setReturnShippingText(val);
+                    const num = parseFloat(val);
+                    if (!isNaN(num)) {
+                      updateField('returnShipping', num);
+                    } else if (val === '') {
+                      updateField('returnShipping', 0);
+                    }
+                  }
+                }}
+                onBlur={() => {
+                  if (returnShippingText === '' || returnShippingText === '.') {
+                    setReturnShippingText('');
+                    updateField('returnShipping', 0);
+                  } else {
+                    const num = parseFloat(returnShippingText);
+                    if (!isNaN(num)) {
+                      setReturnShippingText(num === 0 ? '' : String(num));
+                    }
+                  }
+                }}
                 className="h-8 text-sm pl-5"
-                placeholder="0.00"
+                placeholder="200"
               />
             </div>
           </div>
@@ -526,10 +590,32 @@ export function QuoteForm({ deal, company, lineItems, dealOwner, onFormChange, p
               <span className="absolute left-2 top-1/2 -translate-y-1/2 text-muted-foreground text-sm">$</span>
               <Input 
                 type="text" 
-                value={formData.paymentAmount === 0 ? '' : formatCurrency(formData.paymentAmount)} 
-                onChange={e => updateField('paymentAmount', parseCurrency(e.target.value))} 
+                value={paymentAmountText} 
+                onChange={e => {
+                  const val = e.target.value;
+                  if (val === '' || /^\d*\.?\d*$/.test(val)) {
+                    setPaymentAmountText(val);
+                    const num = parseFloat(val);
+                    if (!isNaN(num)) {
+                      updateField('paymentAmount', num);
+                    } else if (val === '') {
+                      updateField('paymentAmount', 0);
+                    }
+                  }
+                }}
+                onBlur={() => {
+                  if (paymentAmountText === '' || paymentAmountText === '.') {
+                    setPaymentAmountText('');
+                    updateField('paymentAmount', 0);
+                  } else {
+                    const num = parseFloat(paymentAmountText);
+                    if (!isNaN(num)) {
+                      setPaymentAmountText(num === 0 ? '' : String(num));
+                    }
+                  }
+                }}
                 className="h-8 text-sm pl-5"
-                placeholder="0.00"
+                placeholder="1500"
               />
             </div>
           </div>
