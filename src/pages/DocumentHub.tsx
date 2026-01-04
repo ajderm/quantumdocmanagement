@@ -41,6 +41,8 @@ import { FMVLeaseForm, FMVLeaseFormData } from '@/components/fmv-lease/FMVLeaseF
 import { FMVLeasePreview } from '@/components/fmv-lease/FMVLeasePreview';
 import { LeaseFundingForm, LeaseFundingFormData } from '@/components/lease-funding/LeaseFundingForm';
 import { LeaseFundingPreview } from '@/components/lease-funding/LeaseFundingPreview';
+import { LeaseReturnForm, LeaseReturnFormData } from '@/components/lease-return/LeaseReturnForm';
+import { LeaseReturnPreview } from '@/components/lease-return/LeaseReturnPreview';
 
 const documentTypes = [
   { code: 'quote', name: 'Quote', icon: FileText },
@@ -139,6 +141,18 @@ function DocumentHubContent() {
   const leaseFundingAutoSaveTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   const leaseFundingFormDataRef = useRef<LeaseFundingFormData | null>(null);
 
+  // Lease Return state
+  const [leaseReturnFormData, setLeaseReturnFormData] = useState<LeaseReturnFormData | null>(null);
+  const [leaseReturnSavedConfig, setLeaseReturnSavedConfig] = useState<LeaseReturnFormData | null>(null);
+  const [leaseReturnGenerating, setLeaseReturnGenerating] = useState(false);
+  const [leaseReturnSaving, setLeaseReturnSaving] = useState(false);
+  const [showLeaseReturnPreview, setShowLeaseReturnPreview] = useState(false);
+  const [leaseReturnHasUnsavedChanges, setLeaseReturnHasUnsavedChanges] = useState(false);
+  const [leaseReturnLastSavedData, setLeaseReturnLastSavedData] = useState<string | null>(null);
+  const leaseReturnPreviewRef = useRef<HTMLDivElement>(null);
+  const leaseReturnAutoSaveTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const leaseReturnFormDataRef = useRef<LeaseReturnFormData | null>(null);
+
   // Dealer info and settings
   const [dealerInfo, setDealerInfo] = useState<DealerInfo | null>(null);
   const [dealerSettings, setDealerSettings] = useState<DealerSettings>({});
@@ -168,6 +182,11 @@ function DocumentHubContent() {
   useEffect(() => {
     leaseFundingFormDataRef.current = leaseFundingFormData;
   }, [leaseFundingFormData]);
+
+  // Keep leaseReturnFormDataRef in sync
+  useEffect(() => {
+    leaseReturnFormDataRef.current = leaseReturnFormData;
+  }, [leaseReturnFormData]);
 
   // Fetch dealer info when portalId is available
   useEffect(() => {
@@ -403,6 +422,43 @@ function DocumentHubContent() {
 
     if (deal?.hsObjectId) {
       loadLeaseFundingConfigs();
+    }
+  }, [portalId, deal?.hsObjectId]);
+
+  // Load saved lease return configuration
+  useEffect(() => {
+    const loadLeaseReturnConfig = async () => {
+      const currentPortalId = portalId || localStorage.getItem('hs_portal_id');
+      const dealId = deal?.hsObjectId;
+      
+      if (!currentPortalId || !dealId) return;
+
+      try {
+        const { data, error } = await supabase
+          .from('lease_return_configurations')
+          .select('configuration')
+          .eq('portal_id', currentPortalId)
+          .eq('deal_id', dealId)
+          .single();
+
+        if (error) {
+          if (error.code !== 'PGRST116') {
+            console.error('Error loading lease return config:', error);
+          }
+          return;
+        }
+
+        if (data?.configuration) {
+          console.log('Loaded saved lease return configuration');
+          setLeaseReturnSavedConfig(data.configuration as unknown as LeaseReturnFormData);
+        }
+      } catch (err) {
+        console.error('Failed to load lease return config:', err);
+      }
+    };
+
+    if (deal?.hsObjectId) {
+      loadLeaseReturnConfig();
     }
   }, [portalId, deal?.hsObjectId]);
 
@@ -644,10 +700,56 @@ function DocumentHubContent() {
     }
   }, [performLeaseFundingAutoSave]);
 
+  // Auto-save for Lease Return
+  const performLeaseReturnAutoSave = useCallback(async (dataToSave: LeaseReturnFormData) => {
+    const currentPortalId = portalId || localStorage.getItem('hs_portal_id');
+    const dealId = deal?.hsObjectId;
+
+    if (!currentPortalId || !dealId || !dataToSave) return;
+
+    const dataString = JSON.stringify(dataToSave);
+    if (dataString === leaseReturnLastSavedData) return;
+
+    try {
+      const { error: saveError } = await supabase
+        .from('lease_return_configurations')
+        .upsert({
+          portal_id: currentPortalId,
+          deal_id: dealId,
+          configuration: dataToSave as any,
+          updated_at: new Date().toISOString()
+        }, {
+          onConflict: 'portal_id,deal_id'
+        });
+
+      if (!saveError) {
+        setLeaseReturnLastSavedData(dataString);
+        setLeaseReturnHasUnsavedChanges(false);
+        console.log('Auto-saved lease return configuration');
+      }
+    } catch (err) {
+      console.error('Lease return auto-save error:', err);
+    }
+  }, [portalId, deal?.hsObjectId, leaseReturnLastSavedData]);
+
+  // Handle lease return form change
+  const handleLeaseReturnFormChange = useCallback((data: LeaseReturnFormData) => {
+    setLeaseReturnFormData(data);
+    setLeaseReturnHasUnsavedChanges(true);
+    
+    if (leaseReturnAutoSaveTimeoutRef.current) {
+      clearTimeout(leaseReturnAutoSaveTimeoutRef.current);
+    }
+
+    leaseReturnAutoSaveTimeoutRef.current = setTimeout(() => {
+      performLeaseReturnAutoSave(data);
+    }, AUTO_SAVE_DELAY);
+  }, [performLeaseReturnAutoSave]);
+
   // Auto-save on tab/window close
   useEffect(() => {
     const handleBeforeUnload = (e: BeforeUnloadEvent) => {
-      if ((hasUnsavedChanges && formDataRef.current) || (installationHasUnsavedChanges && installationFormDataRef.current) || (serviceAgreementHasUnsavedChanges && serviceAgreementFormDataRef.current) || (fmvLeaseHasUnsavedChanges && fmvLeaseFormDataRef.current) || (leaseFundingHasUnsavedChanges && leaseFundingFormDataRef.current)) {
+      if ((hasUnsavedChanges && formDataRef.current) || (installationHasUnsavedChanges && installationFormDataRef.current) || (serviceAgreementHasUnsavedChanges && serviceAgreementFormDataRef.current) || (fmvLeaseHasUnsavedChanges && fmvLeaseFormDataRef.current) || (leaseFundingHasUnsavedChanges && leaseFundingFormDataRef.current) || (leaseReturnHasUnsavedChanges && leaseReturnFormDataRef.current)) {
         e.preventDefault();
         e.returnValue = '';
       }
@@ -669,6 +771,9 @@ function DocumentHubContent() {
         }
         if (leaseFundingHasUnsavedChanges && leaseFundingFormDataRef.current) {
           performLeaseFundingAutoSave(leaseFundingFormDataRef.current);
+        }
+        if (leaseReturnHasUnsavedChanges && leaseReturnFormDataRef.current) {
+          performLeaseReturnAutoSave(leaseReturnFormDataRef.current);
         }
       }
     };
@@ -695,8 +800,11 @@ function DocumentHubContent() {
       if (leaseFundingAutoSaveTimeoutRef.current) {
         clearTimeout(leaseFundingAutoSaveTimeoutRef.current);
       }
+      if (leaseReturnAutoSaveTimeoutRef.current) {
+        clearTimeout(leaseReturnAutoSaveTimeoutRef.current);
+      }
     };
-  }, [hasUnsavedChanges, installationHasUnsavedChanges, serviceAgreementHasUnsavedChanges, fmvLeaseHasUnsavedChanges, leaseFundingHasUnsavedChanges, performAutoSave, performInstallationAutoSave, performServiceAgreementAutoSave, performFMVLeaseAutoSave, performLeaseFundingAutoSave]);
+  }, [hasUnsavedChanges, installationHasUnsavedChanges, serviceAgreementHasUnsavedChanges, fmvLeaseHasUnsavedChanges, leaseFundingHasUnsavedChanges, leaseReturnHasUnsavedChanges, performAutoSave, performInstallationAutoSave, performServiceAgreementAutoSave, performFMVLeaseAutoSave, performLeaseFundingAutoSave, performLeaseReturnAutoSave]);
 
   // Recover from localStorage backup if exists
   useEffect(() => {
@@ -1425,6 +1533,114 @@ function DocumentHubContent() {
     setShowLeaseFundingPreview(true);
   };
 
+  // Lease Return handlers
+  const handleLeaseReturnSave = async () => {
+    if (!leaseReturnFormData) {
+      toast.error('No data to save');
+      return;
+    }
+
+    const currentPortalId = portalId || localStorage.getItem('hs_portal_id');
+    const dealId = deal?.hsObjectId;
+
+    if (!currentPortalId || !dealId) {
+      toast.error('Missing portal or deal information');
+      return;
+    }
+
+    setLeaseReturnSaving(true);
+    try {
+      const { error: saveError } = await supabase
+        .from('lease_return_configurations')
+        .upsert({
+          portal_id: currentPortalId,
+          deal_id: dealId,
+          configuration: leaseReturnFormData as any,
+          updated_at: new Date().toISOString()
+        }, {
+          onConflict: 'portal_id,deal_id'
+        });
+
+      if (saveError) {
+        console.error('Save error:', saveError);
+        toast.error('Failed to save lease return configuration');
+        return;
+      }
+
+      setLeaseReturnSavedConfig(leaseReturnFormData);
+      setLeaseReturnLastSavedData(JSON.stringify(leaseReturnFormData));
+      setLeaseReturnHasUnsavedChanges(false);
+      toast.success('Lease return configuration saved');
+    } catch (err) {
+      console.error('Save error:', err);
+      toast.error('Failed to save lease return configuration');
+    } finally {
+      setLeaseReturnSaving(false);
+    }
+  };
+
+  const handleLeaseReturnGeneratePDF = async () => {
+    if (!leaseReturnPreviewRef.current || !leaseReturnFormData) {
+      toast.error('Please fill in the lease return details first');
+      return;
+    }
+
+    setLeaseReturnGenerating(true);
+    try {
+      const pdf = await generateMultiPagePDF(leaseReturnPreviewRef.current);
+      
+      const sanitizedCompanyName = (leaseReturnFormData.customerName || 'Draft').replace(/[^a-zA-Z0-9\s]/g, '').replace(/\s+/g, '_');
+      const now = new Date();
+      const dateStr = now.toISOString().split('T')[0];
+      const timeStr = now.toTimeString().slice(0, 5).replace(':', '-');
+      const fileName = `Lease_Return_${sanitizedCompanyName}_${dateStr}_${timeStr}.pdf`;
+      
+      pdf.save(fileName);
+
+      const currentPortalId = portalId || localStorage.getItem('hs_portal_id');
+      const currentDealId = deal?.hsObjectId;
+
+      if (currentPortalId && currentDealId) {
+        try {
+          const pdfBase64 = pdf.output('datauristring').split(',')[1];
+          
+          const { data, error: attachError } = await supabase.functions.invoke('hubspot-attach-file', {
+            body: {
+              portalId: currentPortalId,
+              dealId: currentDealId,
+              fileName: fileName,
+              fileBase64: pdfBase64
+            }
+          });
+
+          if (attachError || data?.error) {
+            toast.success('PDF downloaded! (Could not attach to deal)');
+          } else {
+            toast.success('PDF downloaded and attached to deal!');
+          }
+        } catch (attachErr) {
+          console.error('Failed to attach to HubSpot:', attachErr);
+          toast.success('PDF downloaded! (Could not attach to deal)');
+        }
+      } else {
+        toast.success('Lease Return PDF downloaded successfully!');
+      }
+    } catch (err) {
+      console.error('PDF generation error:', err);
+      toast.error('Failed to generate PDF');
+    } finally {
+      setLeaseReturnGenerating(false);
+    }
+  };
+
+  const handleLeaseReturnPreview = () => {
+    if (!leaseReturnFormData) {
+      toast.error('Please fill in the lease return details first');
+      return;
+    }
+    setShowLeaseReturnPreview(true);
+  };
+
   // Get the saved config for the currently selected line item
   const getCurrentInstallationSavedConfig = () => {
     if (!installationFormData?.selectedLineItemId) return undefined;
@@ -1945,8 +2161,66 @@ function DocumentHubContent() {
             </Card>
           </TabsContent>
 
+          {/* Lease Return Tab Content */}
+          <TabsContent value="lease_return" className="mt-0">
+            <Card>
+              <CardHeader className="pb-3">
+                <CardTitle className="text-lg flex items-center gap-2">
+                  <MailOpen className="h-5 w-5" />
+                  Generate Lease Return Letter
+                </CardTitle>
+                <CardDescription>
+                  Create a lease return letter for equipment being returned to the leasing company
+                </CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <LeaseReturnForm
+                  deal={deal}
+                  company={company}
+                  dealOwner={dealOwner}
+                  quoteFormData={formData ? {
+                    paymentAmount: formData.paymentAmount,
+                    paymentsRemaining: formData.paymentsRemaining,
+                    earlyTerminationFee: formData.earlyTerminationFee,
+                    returnShipping: formData.returnShipping,
+                  } : null}
+                  fmvLeaseFormData={fmvLeaseFormData ? {
+                    companyLegalName: fmvLeaseFormData.companyLegalName,
+                  } : null}
+                  portalId={portalId || localStorage.getItem('hs_portal_id') || undefined}
+                  onFormChange={handleLeaseReturnFormChange}
+                  savedConfig={leaseReturnSavedConfig}
+                />
+
+                {/* Actions */}
+                <div className="flex gap-2 pt-4 border-t">
+                  <Button variant="outline" onClick={handleLeaseReturnSave} disabled={leaseReturnSaving}>
+                    {leaseReturnSaving ? (
+                      <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                    ) : (
+                      <Save className="h-4 w-4 mr-2" />
+                    )}
+                    {leaseReturnSaving ? 'Saving...' : 'Save'}
+                  </Button>
+                  <Button className="flex-1" onClick={handleLeaseReturnGeneratePDF} disabled={leaseReturnGenerating}>
+                    {leaseReturnGenerating ? (
+                      <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                    ) : (
+                      <Download className="h-4 w-4 mr-2" />
+                    )}
+                    {leaseReturnGenerating ? 'Generating...' : 'Generate PDF'}
+                  </Button>
+                  <Button variant="outline" onClick={handleLeaseReturnPreview}>
+                    <Eye className="h-4 w-4 mr-2" />
+                    Preview
+                  </Button>
+                </div>
+              </CardContent>
+            </Card>
+          </TabsContent>
+
           {/* Placeholder for other tabs */}
-          {documentTypes.slice(5).map((doc) => (
+          {documentTypes.slice(6).map((doc) => (
             <TabsContent key={doc.code} value={doc.code} className="mt-0">
               <Card>
                 <CardContent className="py-12 text-center">
@@ -2158,6 +2432,49 @@ function DocumentHubContent() {
                 <div className="shadow-lg border">
                   <LeaseFundingPreview
                     formData={leaseFundingFormData}
+                    dealerInfo={dealerInfo ? {
+                      company_name: dealerInfo.companyName,
+                      address_line1: dealerInfo.address,
+                      phone: dealerInfo.phone,
+                      website: dealerInfo.website,
+                      logo_url: dealerInfo.logoUrl,
+                    } : undefined}
+                  />
+                </div>
+              )}
+            </div>
+          </ScrollArea>
+        </DialogContent>
+      </Dialog>
+      {/* Hidden preview for Lease Return PDF generation */}
+      <div className="hidden">
+        {leaseReturnFormData && (
+          <LeaseReturnPreview
+            ref={leaseReturnPreviewRef}
+            formData={leaseReturnFormData}
+            dealerInfo={dealerInfo ? {
+              company_name: dealerInfo.companyName,
+              address_line1: dealerInfo.address,
+              phone: dealerInfo.phone,
+              website: dealerInfo.website,
+              logo_url: dealerInfo.logoUrl,
+            } : undefined}
+          />
+        )}
+      </div>
+
+      {/* Lease Return Preview Dialog */}
+      <Dialog open={showLeaseReturnPreview} onOpenChange={setShowLeaseReturnPreview}>
+        <DialogContent className="max-w-4xl max-h-[90vh] p-0">
+          <DialogHeader className="p-4 pb-0">
+            <DialogTitle>Lease Return Letter Preview</DialogTitle>
+          </DialogHeader>
+          <ScrollArea className="max-h-[calc(90vh-80px)]">
+            <div className="p-4 flex justify-center">
+              {leaseReturnFormData && (
+                <div className="shadow-lg border">
+                  <LeaseReturnPreview
+                    formData={leaseReturnFormData}
                     dealerInfo={dealerInfo ? {
                       company_name: dealerInfo.companyName,
                       address_line1: dealerInfo.address,
