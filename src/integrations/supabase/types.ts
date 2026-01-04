@@ -68,6 +68,41 @@ export type Database = {
         }
         Relationships: []
       }
+      dealer_settings: {
+        Row: {
+          created_at: string
+          dealer_account_id: string
+          id: string
+          setting_key: string
+          setting_value: Json
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          dealer_account_id: string
+          id?: string
+          setting_key: string
+          setting_value?: Json
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          dealer_account_id?: string
+          id?: string
+          setting_key?: string
+          setting_value?: Json
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "dealer_settings_dealer_account_id_fkey"
+            columns: ["dealer_account_id"]
+            isOneToOne: false
+            referencedRelation: "dealer_accounts"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       document_templates: {
         Row: {
           created_at: string
@@ -270,6 +305,36 @@ export type Database = {
           id?: string
           portal_id?: string
           refresh_token?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      installation_configurations: {
+        Row: {
+          configuration: Json
+          created_at: string
+          deal_id: string
+          id: string
+          line_item_id: string
+          portal_id: string
+          updated_at: string
+        }
+        Insert: {
+          configuration?: Json
+          created_at?: string
+          deal_id: string
+          id?: string
+          line_item_id: string
+          portal_id: string
+          updated_at?: string
+        }
+        Update: {
+          configuration?: Json
+          created_at?: string
+          deal_id?: string
+          id?: string
+          line_item_id?: string
+          portal_id?: string
           updated_at?: string
         }
         Relationships: []

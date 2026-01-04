@@ -210,7 +210,7 @@ Deno.serve(async (req) => {
       }
     }
 
-    // Fetch associated company with all address fields
+    // Fetch associated company with all address fields including customer_number
     let company = null;
     try {
       const companyAssociations = await hubspotRequest(
@@ -222,7 +222,7 @@ Deno.serve(async (req) => {
         const companyId = companyAssociations.results[0].id;
         const companyResponse = await hubspotRequest(
           accessToken,
-          `/crm/v3/objects/companies/${companyId}?properties=name,address,address2,city,state,zip,phone,domain`
+          `/crm/v3/objects/companies/${companyId}?properties=name,address,address2,city,state,zip,phone,domain,customer_number`
         );
         company = {
           companyId: companyResponse.id,
@@ -234,8 +234,9 @@ Deno.serve(async (req) => {
           zip: companyResponse.properties.zip,
           phone: companyResponse.properties.phone,
           domain: companyResponse.properties.domain,
+          customerNumber: companyResponse.properties.customer_number || '',
         };
-        console.log('Company fetched:', company.name);
+        console.log('Company fetched:', company.name, 'customerNumber:', company.customerNumber);
       }
     } catch (e) {
       console.error('Failed to fetch company:', e);

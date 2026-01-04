@@ -1,0 +1,691 @@
+import { useState, useEffect } from 'react';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { Separator } from '@/components/ui/separator';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Textarea } from '@/components/ui/textarea';
+import { Button } from '@/components/ui/button';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Badge } from '@/components/ui/badge';
+import { Plus, Trash2, Package } from 'lucide-react';
+
+export interface RemovedEquipmentItem {
+  id: string;
+  qty: number;
+  itemNumber: string;
+  makeModelDescription: string;
+  serial: string;
+  meterBW: string;
+  meterColor: string;
+}
+
+export interface InstallationFormData {
+  // Selected line item
+  selectedLineItemId: string;
+  
+  // Installation Report fields
+  meterBlack: string;
+  meterColor: string;
+  meterTotal: string;
+  idNumber: string;
+  customerNumber: string;
+  customerNumberOverride: string;
+  salesRep: string;
+  meterMethod: string;
+  cca: string;
+  
+  // Customer Ship To
+  shipToCompany: string;
+  shipToDept: string;
+  shipToAddress: string;
+  shipToCity: string;
+  shipToState: string;
+  shipToZip: string;
+  shipToAttn: string;
+  shipToPhone: string;
+  shipToEmail: string;
+  
+  // Customer Bill To
+  billToCompany: string;
+  billToDept: string;
+  billToAddress: string;
+  billToCity: string;
+  billToState: string;
+  billToZip: string;
+  billToAttn: string;
+  billToPhone: string;
+  billToEmail: string;
+  
+  // Equipment Installed (auto-populated from selected line item)
+  installedQty: number;
+  installedModel: string;
+  installedDescription: string;
+  installedSerial: string;
+  installedMacAddress: string;
+  installedIpAddress: string;
+  
+  // Networking
+  dealerSetupPrint: string;
+  dealerSetupScan: string;
+  windowsComputers: string;
+  macComputers: string;
+  usbPrint: string;
+  mobilePrint: string;
+  emailAssigned: string;
+  emailPassword: string;
+  networkTimeIn: string;
+  networkTimeOut: string;
+  
+  // Additional Contacts
+  itContactName: string;
+  itContactPhone: string;
+  itContactEmail: string;
+  meterContactName: string;
+  meterContactPhone: string;
+  meterContactEmail: string;
+  
+  // Equipment Removed
+  removedEquipment: RemovedEquipmentItem[];
+  
+  // Removal Instructions
+  removalInstructions: string;
+}
+
+interface InstallationFormProps {
+  deal: any;
+  company: any;
+  contacts: any[];
+  lineItems: any[];
+  dealOwner: any;
+  meterMethods: string[];
+  ccaValue: string;
+  onFormChange: (data: InstallationFormData) => void;
+  savedConfig?: InstallationFormData;
+}
+
+export function InstallationForm({
+  deal,
+  company,
+  contacts,
+  lineItems,
+  dealOwner,
+  meterMethods,
+  ccaValue,
+  onFormChange,
+  savedConfig,
+}: InstallationFormProps) {
+  // Filter line items to show only hardware
+  const hardwareLineItems = lineItems.filter(
+    (item) => item.category?.toLowerCase() === 'hardware' || !item.category
+  );
+
+  const [formData, setFormData] = useState<InstallationFormData>({
+    selectedLineItemId: '',
+    meterBlack: '',
+    meterColor: '',
+    meterTotal: '',
+    idNumber: '',
+    customerNumber: company?.customerNumber || '',
+    customerNumberOverride: '',
+    salesRep: dealOwner ? `${dealOwner.firstName || ''} ${dealOwner.lastName || ''}`.trim() : '',
+    meterMethod: '',
+    cca: ccaValue || '',
+    shipToCompany: company?.name || '',
+    shipToDept: '',
+    shipToAddress: company?.address || '',
+    shipToCity: company?.city || '',
+    shipToState: company?.state || '',
+    shipToZip: company?.zip || '',
+    shipToAttn: contacts[0] ? `${contacts[0].firstName || ''} ${contacts[0].lastName || ''}`.trim() : '',
+    shipToPhone: contacts[0]?.phone || company?.phone || '',
+    shipToEmail: contacts[0]?.email || '',
+    billToCompany: company?.name || '',
+    billToDept: '',
+    billToAddress: company?.address || '',
+    billToCity: company?.city || '',
+    billToState: company?.state || '',
+    billToZip: company?.zip || '',
+    billToAttn: '',
+    billToPhone: '',
+    billToEmail: '',
+    installedQty: 1,
+    installedModel: '',
+    installedDescription: '',
+    installedSerial: '',
+    installedMacAddress: '',
+    installedIpAddress: '',
+    dealerSetupPrint: '',
+    dealerSetupScan: '',
+    windowsComputers: '',
+    macComputers: '',
+    usbPrint: '',
+    mobilePrint: '',
+    emailAssigned: '',
+    emailPassword: '',
+    networkTimeIn: '',
+    networkTimeOut: '',
+    itContactName: '',
+    itContactPhone: '',
+    itContactEmail: '',
+    meterContactName: '',
+    meterContactPhone: '',
+    meterContactEmail: '',
+    removedEquipment: [],
+    removalInstructions: '',
+  });
+
+  // Load saved config
+  useEffect(() => {
+    if (savedConfig) {
+      setFormData(prev => ({
+        ...prev,
+        ...savedConfig,
+        // Keep fresh HubSpot data for certain fields if not overridden
+        salesRep: savedConfig.salesRep || (dealOwner ? `${dealOwner.firstName || ''} ${dealOwner.lastName || ''}`.trim() : ''),
+        cca: savedConfig.cca || ccaValue || '',
+      }));
+    }
+  }, [savedConfig, dealOwner, ccaValue]);
+
+  // Update form when line item is selected
+  useEffect(() => {
+    if (formData.selectedLineItemId) {
+      const selectedItem = lineItems.find(item => item.id === formData.selectedLineItemId);
+      if (selectedItem) {
+        setFormData(prev => ({
+          ...prev,
+          installedQty: selectedItem.quantity || 1,
+          installedModel: selectedItem.model || selectedItem.sku || '',
+          installedDescription: selectedItem.description || selectedItem.name || '',
+        }));
+      }
+    }
+  }, [formData.selectedLineItemId, lineItems]);
+
+  // Notify parent of changes
+  useEffect(() => {
+    onFormChange(formData);
+  }, [formData, onFormChange]);
+
+  const updateField = <K extends keyof InstallationFormData>(field: K, value: InstallationFormData[K]) => {
+    setFormData(prev => ({ ...prev, [field]: value }));
+  };
+
+  const addRemovedEquipment = () => {
+    setFormData(prev => ({
+      ...prev,
+      removedEquipment: [
+        ...prev.removedEquipment,
+        {
+          id: `removed-${Date.now()}`,
+          qty: 1,
+          itemNumber: '',
+          makeModelDescription: '',
+          serial: '',
+          meterBW: '',
+          meterColor: '',
+        },
+      ],
+    }));
+  };
+
+  const updateRemovedEquipment = (index: number, field: keyof RemovedEquipmentItem, value: string | number) => {
+    setFormData(prev => {
+      const newItems = [...prev.removedEquipment];
+      newItems[index] = { ...newItems[index], [field]: value };
+      return { ...prev, removedEquipment: newItems };
+    });
+  };
+
+  const removeRemovedEquipment = (index: number) => {
+    setFormData(prev => ({
+      ...prev,
+      removedEquipment: prev.removedEquipment.filter((_, i) => i !== index),
+    }));
+  };
+
+  const getEffectiveCustomerNumber = () => {
+    return formData.customerNumberOverride || formData.customerNumber || '';
+  };
+
+  return (
+    <div className="space-y-6">
+      {/* Hardware Item Selector */}
+      <Card className="border-primary/20">
+        <CardHeader className="py-3">
+          <CardTitle className="text-sm flex items-center gap-2">
+            <Package className="h-4 w-4" />
+            Select Hardware Item
+            <Badge variant="secondary" className="ml-auto">
+              {hardwareLineItems.length} hardware item{hardwareLineItems.length !== 1 ? 's' : ''}
+            </Badge>
+          </CardTitle>
+        </CardHeader>
+        <CardContent className="py-3">
+          <Select
+            value={formData.selectedLineItemId}
+            onValueChange={(value) => updateField('selectedLineItemId', value)}
+          >
+            <SelectTrigger>
+              <SelectValue placeholder="Select a hardware item to create installation doc..." />
+            </SelectTrigger>
+            <SelectContent>
+              {hardwareLineItems.map((item) => (
+                <SelectItem key={item.id} value={item.id}>
+                  {item.quantity}x {item.model || item.sku || item.name} - {item.description || item.name}
+                </SelectItem>
+              ))}
+              {hardwareLineItems.length === 0 && (
+                <SelectItem value="none" disabled>
+                  No hardware items found
+                </SelectItem>
+              )}
+            </SelectContent>
+          </Select>
+        </CardContent>
+      </Card>
+
+      {formData.selectedLineItemId && (
+        <>
+          {/* Installation Report Section */}
+          <div className="grid grid-cols-2 gap-6">
+            <div className="space-y-4">
+              <h3 className="font-semibold text-sm">Installation Report</h3>
+              <div className="grid grid-cols-3 gap-3">
+                <div>
+                  <Label className="text-xs">Meter (Black)</Label>
+                  <Input
+                    value={formData.meterBlack}
+                    onChange={(e) => updateField('meterBlack', e.target.value)}
+                    className="h-8 text-sm"
+                    placeholder="0"
+                  />
+                </div>
+                <div>
+                  <Label className="text-xs">Meter (Color)</Label>
+                  <Input
+                    value={formData.meterColor}
+                    onChange={(e) => updateField('meterColor', e.target.value)}
+                    className="h-8 text-sm"
+                    placeholder="0"
+                  />
+                </div>
+                <div>
+                  <Label className="text-xs">Meter (Total)</Label>
+                  <Input
+                    value={formData.meterTotal}
+                    onChange={(e) => updateField('meterTotal', e.target.value)}
+                    className="h-8 text-sm"
+                    placeholder="0"
+                  />
+                </div>
+              </div>
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <Label className="text-xs">ID Number</Label>
+                  <Input
+                    value={formData.idNumber}
+                    onChange={(e) => updateField('idNumber', e.target.value)}
+                    className="h-8 text-sm"
+                  />
+                </div>
+                <div>
+                  <Label className="text-xs">Customer Number</Label>
+                  <Input
+                    value={getEffectiveCustomerNumber() || ''}
+                    onChange={(e) => updateField('customerNumberOverride', e.target.value)}
+                    className="h-8 text-sm"
+                    placeholder={formData.customerNumber || 'From HubSpot'}
+                  />
+                </div>
+              </div>
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <Label className="text-xs">Sales Rep</Label>
+                  <Input
+                    value={formData.salesRep}
+                    onChange={(e) => updateField('salesRep', e.target.value)}
+                    className="h-8 text-sm"
+                  />
+                </div>
+                <div>
+                  <Label className="text-xs">Meter Method</Label>
+                  <Select
+                    value={formData.meterMethod}
+                    onValueChange={(value) => updateField('meterMethod', value)}
+                  >
+                    <SelectTrigger className="h-8 text-sm">
+                      <SelectValue placeholder="Select..." />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {meterMethods.map((method) => (
+                        <SelectItem key={method} value={method}>
+                          {method}
+                        </SelectItem>
+                      ))
+                      }
+                      {meterMethods.length === 0 && (
+                        <SelectItem value="none" disabled>
+                          Configure in Settings
+                        </SelectItem>
+                      )}
+                    </SelectContent>
+                  </Select>
+                </div>
+              </div>
+              <div>
+                <Label className="text-xs">CCA</Label>
+                <Input
+                  value={formData.cca}
+                  onChange={(e) => updateField('cca', e.target.value)}
+                  className="h-8 text-sm"
+                />
+              </div>
+            </div>
+
+            {/* Equipment Installed */}
+            <div className="space-y-4">
+              <h3 className="font-semibold text-sm">Equipment (Installed)</h3>
+              <div className="grid grid-cols-3 gap-3">
+                <div>
+                  <Label className="text-xs">Qty</Label>
+                  <Input
+                    type="number"
+                    value={formData.installedQty}
+                    onChange={(e) => updateField('installedQty', parseInt(e.target.value) || 1)}
+                    className="h-8 text-sm"
+                  />
+                </div>
+                <div className="col-span-2">
+                  <Label className="text-xs">Model</Label>
+                  <Input
+                    value={formData.installedModel}
+                    onChange={(e) => updateField('installedModel', e.target.value)}
+                    className="h-8 text-sm"
+                  />
+                </div>
+              </div>
+              <div>
+                <Label className="text-xs">Description</Label>
+                <Input
+                  value={formData.installedDescription}
+                  onChange={(e) => updateField('installedDescription', e.target.value)}
+                  className="h-8 text-sm"
+                />
+              </div>
+              <div className="grid grid-cols-3 gap-3">
+                <div>
+                  <Label className="text-xs">Serial #</Label>
+                  <Input
+                    value={formData.installedSerial}
+                    onChange={(e) => updateField('installedSerial', e.target.value)}
+                    className="h-8 text-sm"
+                  />
+                </div>
+                <div>
+                  <Label className="text-xs">MAC Address</Label>
+                  <Input
+                    value={formData.installedMacAddress}
+                    onChange={(e) => updateField('installedMacAddress', e.target.value)}
+                    className="h-8 text-sm"
+                  />
+                </div>
+                <div>
+                  <Label className="text-xs">IP Address</Label>
+                  <Input
+                    value={formData.installedIpAddress}
+                    onChange={(e) => updateField('installedIpAddress', e.target.value)}
+                    className="h-8 text-sm"
+                  />
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <Separator />
+
+          {/* Customer Ship To / Bill To */}
+          <div className="grid grid-cols-2 gap-6">
+            <div className="space-y-3">
+              <h3 className="font-semibold text-sm">Customer Ship To</h3>
+              <div>
+                <Label className="text-xs">Company</Label>
+                <Input value={formData.shipToCompany} onChange={(e) => updateField('shipToCompany', e.target.value)} className="h-8 text-sm" />
+              </div>
+              <div>
+                <Label className="text-xs">Dept</Label>
+                <Input value={formData.shipToDept} onChange={(e) => updateField('shipToDept', e.target.value)} className="h-8 text-sm" />
+              </div>
+              <div>
+                <Label className="text-xs">Address</Label>
+                <Input value={formData.shipToAddress} onChange={(e) => updateField('shipToAddress', e.target.value)} className="h-8 text-sm" />
+              </div>
+              <div className="grid grid-cols-3 gap-2">
+                <Input value={formData.shipToCity} onChange={(e) => updateField('shipToCity', e.target.value)} className="h-8 text-sm" placeholder="City" />
+                <Input value={formData.shipToState} onChange={(e) => updateField('shipToState', e.target.value)} className="h-8 text-sm" placeholder="State" />
+                <Input value={formData.shipToZip} onChange={(e) => updateField('shipToZip', e.target.value)} className="h-8 text-sm" placeholder="ZIP" />
+              </div>
+              <div className="grid grid-cols-2 gap-2">
+                <div>
+                  <Label className="text-xs">ATTN</Label>
+                  <Input value={formData.shipToAttn} onChange={(e) => updateField('shipToAttn', e.target.value)} className="h-8 text-sm" />
+                </div>
+                <div>
+                  <Label className="text-xs">Phone</Label>
+                  <Input value={formData.shipToPhone} onChange={(e) => updateField('shipToPhone', e.target.value)} className="h-8 text-sm" />
+                </div>
+              </div>
+              <div>
+                <Label className="text-xs">Email</Label>
+                <Input value={formData.shipToEmail} onChange={(e) => updateField('shipToEmail', e.target.value)} className="h-8 text-sm" />
+              </div>
+            </div>
+
+            <div className="space-y-3">
+              <h3 className="font-semibold text-sm">Customer Bill To</h3>
+              <div>
+                <Label className="text-xs">Company</Label>
+                <Input value={formData.billToCompany} onChange={(e) => updateField('billToCompany', e.target.value)} className="h-8 text-sm" />
+              </div>
+              <div>
+                <Label className="text-xs">Dept</Label>
+                <Input value={formData.billToDept} onChange={(e) => updateField('billToDept', e.target.value)} className="h-8 text-sm" />
+              </div>
+              <div>
+                <Label className="text-xs">Address</Label>
+                <Input value={formData.billToAddress} onChange={(e) => updateField('billToAddress', e.target.value)} className="h-8 text-sm" />
+              </div>
+              <div className="grid grid-cols-3 gap-2">
+                <Input value={formData.billToCity} onChange={(e) => updateField('billToCity', e.target.value)} className="h-8 text-sm" placeholder="City" />
+                <Input value={formData.billToState} onChange={(e) => updateField('billToState', e.target.value)} className="h-8 text-sm" placeholder="State" />
+                <Input value={formData.billToZip} onChange={(e) => updateField('billToZip', e.target.value)} className="h-8 text-sm" placeholder="ZIP" />
+              </div>
+              <div className="grid grid-cols-2 gap-2">
+                <div>
+                  <Label className="text-xs">ATTN</Label>
+                  <Input value={formData.billToAttn} onChange={(e) => updateField('billToAttn', e.target.value)} className="h-8 text-sm" />
+                </div>
+                <div>
+                  <Label className="text-xs">Phone</Label>
+                  <Input value={formData.billToPhone} onChange={(e) => updateField('billToPhone', e.target.value)} className="h-8 text-sm" />
+                </div>
+              </div>
+              <div>
+                <Label className="text-xs">Email</Label>
+                <Input value={formData.billToEmail} onChange={(e) => updateField('billToEmail', e.target.value)} className="h-8 text-sm" />
+              </div>
+            </div>
+          </div>
+
+          <Separator />
+
+          {/* Networking & Contacts */}
+          <div className="grid grid-cols-2 gap-6">
+            <div className="space-y-3">
+              <h3 className="font-semibold text-sm">Networking</h3>
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <Label className="text-xs">Dealer Setup Print</Label>
+                  <Select value={formData.dealerSetupPrint} onValueChange={(v) => updateField('dealerSetupPrint', v)}>
+                    <SelectTrigger className="h-8 text-sm"><SelectValue placeholder="Select..." /></SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="yes">Yes</SelectItem>
+                      <SelectItem value="no">No</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div>
+                  <Label className="text-xs">Dealer Setup Scan</Label>
+                  <Select value={formData.dealerSetupScan} onValueChange={(v) => updateField('dealerSetupScan', v)}>
+                    <SelectTrigger className="h-8 text-sm"><SelectValue placeholder="Select..." /></SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="yes">Yes</SelectItem>
+                      <SelectItem value="no">No</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+              </div>
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <Label className="text-xs">Windows Computers</Label>
+                  <Input value={formData.windowsComputers} onChange={(e) => updateField('windowsComputers', e.target.value)} className="h-8 text-sm" placeholder="0" />
+                </div>
+                <div>
+                  <Label className="text-xs">Mac Computers</Label>
+                  <Input value={formData.macComputers} onChange={(e) => updateField('macComputers', e.target.value)} className="h-8 text-sm" placeholder="0" />
+                </div>
+              </div>
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <Label className="text-xs">USB Print</Label>
+                  <Select value={formData.usbPrint} onValueChange={(v) => updateField('usbPrint', v)}>
+                    <SelectTrigger className="h-8 text-sm"><SelectValue placeholder="Select..." /></SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="yes">Yes</SelectItem>
+                      <SelectItem value="no">No</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div>
+                  <Label className="text-xs">Mobile Print</Label>
+                  <Select value={formData.mobilePrint} onValueChange={(v) => updateField('mobilePrint', v)}>
+                    <SelectTrigger className="h-8 text-sm"><SelectValue placeholder="Select..." /></SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="yes">Yes</SelectItem>
+                      <SelectItem value="no">No</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+              </div>
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <Label className="text-xs">Email Assigned</Label>
+                  <Input value={formData.emailAssigned} onChange={(e) => updateField('emailAssigned', e.target.value)} className="h-8 text-sm" />
+                </div>
+                <div>
+                  <Label className="text-xs">Password</Label>
+                  <Input value={formData.emailPassword} onChange={(e) => updateField('emailPassword', e.target.value)} className="h-8 text-sm" />
+                </div>
+              </div>
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <Label className="text-xs">Network Time IN</Label>
+                  <Input type="time" value={formData.networkTimeIn} onChange={(e) => updateField('networkTimeIn', e.target.value)} className="h-8 text-sm" />
+                </div>
+                <div>
+                  <Label className="text-xs">Network Time OUT</Label>
+                  <Input type="time" value={formData.networkTimeOut} onChange={(e) => updateField('networkTimeOut', e.target.value)} className="h-8 text-sm" />
+                </div>
+              </div>
+            </div>
+
+            <div className="space-y-3">
+              <h3 className="font-semibold text-sm">Additional Contacts</h3>
+              <div className="space-y-2">
+                <Label className="text-xs font-medium">IT Contact</Label>
+                <Input value={formData.itContactName} onChange={(e) => updateField('itContactName', e.target.value)} className="h-8 text-sm" placeholder="Name" />
+                <div className="grid grid-cols-2 gap-2">
+                  <Input value={formData.itContactPhone} onChange={(e) => updateField('itContactPhone', e.target.value)} className="h-8 text-sm" placeholder="Phone" />
+                  <Input value={formData.itContactEmail} onChange={(e) => updateField('itContactEmail', e.target.value)} className="h-8 text-sm" placeholder="Email" />
+                </div>
+              </div>
+              <div className="space-y-2">
+                <Label className="text-xs font-medium">Meter Contact</Label>
+                <Input value={formData.meterContactName} onChange={(e) => updateField('meterContactName', e.target.value)} className="h-8 text-sm" placeholder="Name" />
+                <div className="grid grid-cols-2 gap-2">
+                  <Input value={formData.meterContactPhone} onChange={(e) => updateField('meterContactPhone', e.target.value)} className="h-8 text-sm" placeholder="Phone" />
+                  <Input value={formData.meterContactEmail} onChange={(e) => updateField('meterContactEmail', e.target.value)} className="h-8 text-sm" placeholder="Email" />
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <Separator />
+
+          {/* Equipment Removed */}
+          <div className="space-y-3">
+            <div className="flex items-center justify-between">
+              <h3 className="font-semibold text-sm">Equipment (Removed)</h3>
+              <Button type="button" variant="outline" size="sm" onClick={addRemovedEquipment}>
+                <Plus className="h-4 w-4 mr-1" />
+                Add
+              </Button>
+            </div>
+            {formData.removedEquipment.length === 0 ? (
+              <p className="text-xs text-muted-foreground italic">No removed equipment</p>
+            ) : (
+              <div className="space-y-2">
+                {formData.removedEquipment.map((item, index) => (
+                  <div key={item.id} className="grid grid-cols-7 gap-2 items-end">
+                    <div>
+                      <Label className="text-xs">Qty</Label>
+                      <Input type="number" value={item.qty} onChange={(e) => updateRemovedEquipment(index, 'qty', parseInt(e.target.value) || 1)} className="h-8 text-sm" />
+                    </div>
+                    <div>
+                      <Label className="text-xs">Item #</Label>
+                      <Input value={item.itemNumber} onChange={(e) => updateRemovedEquipment(index, 'itemNumber', e.target.value)} className="h-8 text-sm" />
+                    </div>
+                    <div className="col-span-2">
+                      <Label className="text-xs">Make/Model/Description</Label>
+                      <Input value={item.makeModelDescription} onChange={(e) => updateRemovedEquipment(index, 'makeModelDescription', e.target.value)} className="h-8 text-sm" />
+                    </div>
+                    <div>
+                      <Label className="text-xs">Serial</Label>
+                      <Input value={item.serial} onChange={(e) => updateRemovedEquipment(index, 'serial', e.target.value)} className="h-8 text-sm" />
+                    </div>
+                    <div>
+                      <Label className="text-xs">Meter (BW)</Label>
+                      <Input value={item.meterBW} onChange={(e) => updateRemovedEquipment(index, 'meterBW', e.target.value)} className="h-8 text-sm" />
+                    </div>
+                    <div className="flex gap-1">
+                      <div className="flex-1">
+                        <Label className="text-xs">Meter (COL)</Label>
+                        <Input value={item.meterColor} onChange={(e) => updateRemovedEquipment(index, 'meterColor', e.target.value)} className="h-8 text-sm" />
+                      </div>
+                      <Button type="button" variant="ghost" size="icon" className="h-8 w-8 mt-5 text-destructive" onClick={() => removeRemovedEquipment(index)}>
+                        <Trash2 className="h-4 w-4" />
+                      </Button>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+
+          <Separator />
+
+          {/* Removal Instructions */}
+          <div className="space-y-2">
+            <Label className="text-sm font-semibold">Removal Instructions</Label>
+            <Textarea
+              value={formData.removalInstructions}
+              onChange={(e) => updateField('removalInstructions', e.target.value)}
+              placeholder="Enter removal instructions..."
+              className="min-h-[80px]"
+            />
+          </div>
+        </>
+      )}
+    </div>
+  );
+}

@@ -5,17 +5,19 @@ import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Separator } from '@/components/ui/separator';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Building2, Upload, Save, Loader2, CreditCard, FileText, ArrowLeft } from 'lucide-react';
+import { Building2, Upload, Save, Loader2, CreditCard, FileText, ArrowLeft, Plus, X, Settings2 } from 'lucide-react';
 import { useState, useEffect, useRef } from 'react';
 import { Link, useSearchParams } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
+import { Badge } from '@/components/ui/badge';
 
 const DOCUMENT_TYPES = [
   { code: 'quote', name: 'Quote' },
   { code: 'service_agreement', name: 'Service Agreement' },
   { code: 'fmv_lease', name: 'FMV Lease' },
-  { code: 'installation', name: 'Installation' },
+  { code: 'installation_removal_receipt', name: 'Installation: Removal Receipt' },
+  { code: 'installation_delivery_acceptance', name: 'Installation: Delivery & Acceptance' },
 ];
 
 export default function AdminSettings() {
@@ -33,6 +35,11 @@ export default function AdminSettings() {
   const [uploadingLogo, setUploadingLogo] = useState(false);
   const [activeTermsTab, setActiveTermsTab] = useState('quote');
   const fileInputRef = useRef<HTMLInputElement>(null);
+  
+  // Installation settings
+  const [meterMethods, setMeterMethods] = useState<string[]>([]);
+  const [newMeterMethod, setNewMeterMethod] = useState('');
+  const [ccaValue, setCcaValue] = useState('');
   
   // Form state
   const [formData, setFormData] = useState({
@@ -53,7 +60,8 @@ export default function AdminSettings() {
     quote: '',
     service_agreement: '',
     fmv_lease: '',
-    installation: '',
+    installation_removal_receipt: '',
+    installation_delivery_acceptance: '',
   });
 
   // Load existing dealer account data
@@ -95,6 +103,17 @@ export default function AdminSettings() {
             ...prev,
             ...result.documentTerms
           }));
+        }
+
+        // Load dealer settings (meter methods, CCA value)
+        if (result?.dealerSettings) {
+          const settings = result.dealerSettings;
+          if (settings.meter_methods) {
+            setMeterMethods(settings.meter_methods);
+          }
+          if (settings.cca_value) {
+            setCcaValue(settings.cca_value);
+          }
         }
       } catch (error) {
         console.error('Error loading dealer account:', error);
@@ -162,6 +181,17 @@ export default function AdminSettings() {
     }
   };
 
+  const handleAddMeterMethod = () => {
+    if (newMeterMethod.trim() && !meterMethods.includes(newMeterMethod.trim())) {
+      setMeterMethods(prev => [...prev, newMeterMethod.trim()]);
+      setNewMeterMethod('');
+    }
+  };
+
+  const handleRemoveMeterMethod = (method: string) => {
+    setMeterMethods(prev => prev.filter(m => m !== method));
+  };
+
   const handleSave = async () => {
     if (!portalId) {
       toast.error('Missing portal ID - please access this page from HubSpot');
@@ -190,8 +220,13 @@ export default function AdminSettings() {
         logo_url: logoUrl,
       };
 
+      const dealerSettings = {
+        meter_methods: meterMethods,
+        cca_value: ccaValue,
+      };
+
       const { data: result, error: invokeError } = await supabase.functions.invoke('dealer-account-save', {
-        body: { portalId, accountData, documentTerms },
+        body: { portalId, accountData, documentTerms, dealerSettings },
       });
 
       if (invokeError) throw invokeError;
@@ -422,6 +457,80 @@ export default function AdminSettings() {
                 </CardContent>
               </Card>
 
+              {/* Installation Settings Card */}
+              <Card>
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2">
+                    <Settings2 className="h-5 w-5" />
+                    Installation Settings
+                  </CardTitle>
+                  <CardDescription>
+                    Configure dropdown options and values for installation documents
+                  </CardDescription>
+                </CardHeader>
+                <CardContent className="space-y-6">
+                  {/* Meter Methods */}
+                  <div className="space-y-3">
+                    <Label>Meter Methods</Label>
+                    <p className="text-xs text-muted-foreground">
+                      Add the meter method options that will appear in the Installation document dropdown
+                    </p>
+                    <div className="flex flex-wrap gap-2 mb-2">
+                      {meterMethods.map((method) => (
+                        <Badge key={method} variant="secondary" className="flex items-center gap-1 px-2 py-1">
+                          {method}
+                          <button
+                            type="button"
+                            onClick={() => handleRemoveMeterMethod(method)}
+                            className="ml-1 hover:text-destructive"
+                          >
+                            <X className="h-3 w-3" />
+                          </button>
+                        </Badge>
+                      ))}
+                      {meterMethods.length === 0 && (
+                        <span className="text-xs text-muted-foreground italic">No meter methods configured</span>
+                      )}
+                    </div>
+                    <div className="flex gap-2">
+                      <Input
+                        value={newMeterMethod}
+                        onChange={(e) => setNewMeterMethod(e.target.value)}
+                        placeholder="e.g., Network, USB, Email"
+                        className="flex-1"
+                        onKeyDown={(e) => {
+                          if (e.key === 'Enter') {
+                            e.preventDefault();
+                            handleAddMeterMethod();
+                          }
+                        }}
+                      />
+                      <Button type="button" variant="outline" size="sm" onClick={handleAddMeterMethod}>
+                        <Plus className="h-4 w-4 mr-1" />
+                        Add
+                      </Button>
+                    </div>
+                  </div>
+
+                  <Separator />
+
+                  {/* CCA Value */}
+                  <div className="space-y-2">
+                    <Label htmlFor="cca_value">CCA Value</Label>
+                    <p className="text-xs text-muted-foreground">
+                      The CCA identifier that appears on installation documents
+                    </p>
+                    <Input
+                      id="cca_value"
+                      value={ccaValue}
+                      onChange={(e) => setCcaValue(e.target.value)}
+                      placeholder="Enter CCA value"
+                      className="max-w-xs"
+                    />
+                  </div>
+                </CardContent>
+              </Card>
+
               {/* Document-Specific Terms & Conditions Card */}
               <Card>
                 <CardHeader>
@@ -432,7 +541,7 @@ export default function AdminSettings() {
                 </CardHeader>
                 <CardContent>
                   <Tabs value={activeTermsTab} onValueChange={setActiveTermsTab}>
-                    <TabsList className="mb-4">
+                    <TabsList className="mb-4 flex-wrap h-auto">
                       {DOCUMENT_TYPES.map((doc) => (
                         <TabsTrigger key={doc.code} value={doc.code} className="text-xs">
                           {doc.name}
