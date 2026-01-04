@@ -643,6 +643,81 @@ function DocumentHubContent() {
     }
   };
 
+  // Helper function for multi-page PDF generation
+  const generateMultiPagePDF = async (element: HTMLElement): Promise<jsPDF> => {
+    const tempContainer = document.createElement('div');
+    tempContainer.style.position = 'absolute';
+    tempContainer.style.left = '-9999px';
+    tempContainer.style.top = '0';
+    document.body.appendChild(tempContainer);
+
+    const clone = element.cloneNode(true) as HTMLElement;
+    tempContainer.appendChild(clone);
+
+    await new Promise(resolve => setTimeout(resolve, 100));
+
+    const canvas = await html2canvas(clone, {
+      scale: 2,
+      useCORS: true,
+      logging: false,
+      backgroundColor: '#ffffff',
+    });
+
+    document.body.removeChild(tempContainer);
+
+    // US Letter dimensions in points (jsPDF default unit)
+    const pageWidthIn = 8.5;
+    const pageHeightIn = 11;
+
+    // Calculate image dimensions scaled to page width
+    const imgWidth = pageWidthIn;
+    const imgHeight = (canvas.height * imgWidth) / canvas.width;
+
+    const pdf = new jsPDF({
+      orientation: 'portrait',
+      unit: 'in',
+      format: 'letter',
+    });
+
+    // Check if content fits on one page
+    if (imgHeight <= pageHeightIn) {
+      // Single page
+      const imgData = canvas.toDataURL('image/jpeg', 0.85);
+      pdf.addImage(imgData, 'JPEG', 0, 0, imgWidth, imgHeight);
+    } else {
+      // Multi-page: split content across pages
+      const totalPages = Math.ceil(imgHeight / pageHeightIn);
+      const pixelsPerPage = canvas.height / totalPages;
+
+      for (let page = 0; page < totalPages; page++) {
+        if (page > 0) {
+          pdf.addPage();
+        }
+
+        // Create a temporary canvas for this page's portion
+        const pageCanvas = document.createElement('canvas');
+        pageCanvas.width = canvas.width;
+        pageCanvas.height = pixelsPerPage;
+
+        const ctx = pageCanvas.getContext('2d');
+        if (ctx) {
+          ctx.drawImage(
+            canvas,
+            0, page * pixelsPerPage,           // Source x, y
+            canvas.width, pixelsPerPage,       // Source width, height
+            0, 0,                              // Destination x, y
+            canvas.width, pixelsPerPage        // Destination width, height
+          );
+        }
+
+        const pageImgData = pageCanvas.toDataURL('image/jpeg', 0.85);
+        pdf.addImage(pageImgData, 'JPEG', 0, 0, pageWidthIn, pageHeightIn);
+      }
+    }
+
+    return pdf;
+  };
+
   const handleGeneratePDF = async () => {
     if (!previewRef.current || !formData) {
       toast.error('Please fill in the quote details first');
@@ -651,37 +726,7 @@ function DocumentHubContent() {
 
     setGenerating(true);
     try {
-      const tempContainer = document.createElement('div');
-      tempContainer.style.position = 'absolute';
-      tempContainer.style.left = '-9999px';
-      tempContainer.style.top = '0';
-      document.body.appendChild(tempContainer);
-
-      const clone = previewRef.current.cloneNode(true) as HTMLElement;
-      tempContainer.appendChild(clone);
-
-      await new Promise(resolve => setTimeout(resolve, 100));
-
-      const canvas = await html2canvas(clone, {
-        scale: 2,
-        useCORS: true,
-        logging: false,
-        backgroundColor: '#ffffff',
-      });
-
-      document.body.removeChild(tempContainer);
-
-      const imgData = canvas.toDataURL('image/jpeg', 0.85);
-      const pdf = new jsPDF({
-        orientation: 'portrait',
-        unit: 'in',
-        format: 'letter',
-      });
-
-      const imgWidth = 8.5;
-      const imgHeight = (canvas.height * imgWidth) / canvas.width;
-
-      pdf.addImage(imgData, 'JPEG', 0, 0, imgWidth, imgHeight);
+      const pdf = await generateMultiPagePDF(previewRef.current);
       
       const sanitizedCompanyName = (formData.companyName || 'Draft').replace(/[^a-zA-Z0-9\s]/g, '').replace(/\s+/g, '_');
       const now = new Date();
@@ -735,37 +780,7 @@ function DocumentHubContent() {
 
     setInstallationGenerating(true);
     try {
-      const tempContainer = document.createElement('div');
-      tempContainer.style.position = 'absolute';
-      tempContainer.style.left = '-9999px';
-      tempContainer.style.top = '0';
-      document.body.appendChild(tempContainer);
-
-      const clone = installationPreviewRef.current.cloneNode(true) as HTMLElement;
-      tempContainer.appendChild(clone);
-
-      await new Promise(resolve => setTimeout(resolve, 100));
-
-      const canvas = await html2canvas(clone, {
-        scale: 2,
-        useCORS: true,
-        logging: false,
-        backgroundColor: '#ffffff',
-      });
-
-      document.body.removeChild(tempContainer);
-
-      const imgData = canvas.toDataURL('image/jpeg', 0.85);
-      const pdf = new jsPDF({
-        orientation: 'portrait',
-        unit: 'in',
-        format: 'letter',
-      });
-
-      const imgWidth = 8.5;
-      const imgHeight = (canvas.height * imgWidth) / canvas.width;
-
-      pdf.addImage(imgData, 'JPEG', 0, 0, imgWidth, imgHeight);
+      const pdf = await generateMultiPagePDF(installationPreviewRef.current);
       
       const sanitizedCompanyName = (installationFormData.shipToCompany || 'Draft').replace(/[^a-zA-Z0-9\s]/g, '').replace(/\s+/g, '_');
       const now = new Date();
@@ -880,37 +895,7 @@ function DocumentHubContent() {
 
     setServiceAgreementGenerating(true);
     try {
-      const tempContainer = document.createElement('div');
-      tempContainer.style.position = 'absolute';
-      tempContainer.style.left = '-9999px';
-      tempContainer.style.top = '0';
-      document.body.appendChild(tempContainer);
-
-      const clone = serviceAgreementPreviewRef.current.cloneNode(true) as HTMLElement;
-      tempContainer.appendChild(clone);
-
-      await new Promise(resolve => setTimeout(resolve, 100));
-
-      const canvas = await html2canvas(clone, {
-        scale: 2,
-        useCORS: true,
-        logging: false,
-        backgroundColor: '#ffffff',
-      });
-
-      document.body.removeChild(tempContainer);
-
-      const imgData = canvas.toDataURL('image/jpeg', 0.85);
-      const pdf = new jsPDF({
-        orientation: 'portrait',
-        unit: 'in',
-        format: 'letter',
-      });
-
-      const imgWidth = 8.5;
-      const imgHeight = (canvas.height * imgWidth) / canvas.width;
-
-      pdf.addImage(imgData, 'JPEG', 0, 0, imgWidth, imgHeight);
+      const pdf = await generateMultiPagePDF(serviceAgreementPreviewRef.current);
       
       const sanitizedCompanyName = (serviceAgreementFormData.shipToCompany || 'Draft').replace(/[^a-zA-Z0-9\s]/g, '').replace(/\s+/g, '_');
       const now = new Date();
