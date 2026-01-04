@@ -43,6 +43,7 @@ export interface QuoteFormData {
   returnShipping: number;
   paymentsRemaining: number;
   paymentAmount: number;
+  buyoutFinancingAmount: number;
 }
 
 interface QuoteFormProps { deal: any; company: any; contacts: any[]; lineItems: any[]; dealOwner: any; onFormChange: (data: QuoteFormData) => void; portalId?: string; }
@@ -94,6 +95,7 @@ export function QuoteForm({ deal, company, lineItems, dealOwner, onFormChange, p
     returnShipping: 0,
     paymentsRemaining: 0,
     paymentAmount: 0,
+    buyoutFinancingAmount: 0,
   });
 
   // Local string state for overage inputs to allow typing "0.0123" naturally
@@ -194,7 +196,41 @@ export function QuoteForm({ deal, company, lineItems, dealOwner, onFormChange, p
 
   return (
     <div className="space-y-6">
-      {/* Configuration Section */}
+      <div className="grid grid-cols-2 gap-4">
+        <div className="space-y-3">
+          <div><Label className="text-xs">Quote Number</Label><Input value={formData.quoteNumber} onChange={e => updateField('quoteNumber', e.target.value)} className="h-8 text-sm" /></div>
+          <div><Label className="text-xs">Quote Date</Label><Input type="date" value={formData.quoteDate} onChange={e => updateField('quoteDate', e.target.value)} className="h-8 text-sm" /></div>
+          <div><Label className="text-xs">Prepared By</Label><Input value={formData.preparedBy} onChange={e => updateField('preparedBy', e.target.value)} className="h-8 text-sm" /></div>
+        </div>
+        <div className="space-y-3">
+          <div><Label className="text-xs">Sales Rep Email</Label><Input type="email" value={formData.preparedByEmail} onChange={e => updateField('preparedByEmail', e.target.value)} className="h-8 text-sm" /></div>
+          <div><Label className="text-xs">Sales Rep Phone</Label><Input value={formData.preparedByPhone} onChange={e => updateField('preparedByPhone', e.target.value)} className="h-8 text-sm" /></div>
+        </div>
+      </div>
+      <Separator />
+      <div>
+        <h4 className="text-sm font-medium mb-3">Prepared For</h4>
+        <div className="grid grid-cols-2 gap-3">
+          <div className="col-span-2"><Label className="text-xs">Company Name</Label><Input value={formData.companyName} onChange={e => updateField('companyName', e.target.value)} className="h-8 text-sm" /></div>
+          <div className="col-span-2"><Label className="text-xs">Address</Label><Input value={formData.address} onChange={e => updateField('address', e.target.value)} className="h-8 text-sm" /></div>
+          <div className="col-span-2"><Label className="text-xs">Address Line 2</Label><Input value={formData.address2} onChange={e => updateField('address2', e.target.value)} className="h-8 text-sm" /></div>
+          <div><Label className="text-xs">City</Label><Input value={formData.city} onChange={e => updateField('city', e.target.value)} className="h-8 text-sm" /></div>
+          <div className="grid grid-cols-2 gap-2"><div><Label className="text-xs">State</Label><Input value={formData.state} onChange={e => updateField('state', e.target.value)} className="h-8 text-sm" /></div><div><Label className="text-xs">Zip</Label><Input value={formData.zip} onChange={e => updateField('zip', e.target.value)} className="h-8 text-sm" /></div></div>
+          <div className="col-span-2"><Label className="text-xs">Phone</Label><Input value={formData.phone} onChange={e => updateField('phone', e.target.value)} className="h-8 text-sm" /></div>
+        </div>
+      </div>
+      <Separator />
+      <div>
+        <div className="flex items-center justify-between mb-3"><h4 className="text-sm font-medium">Equipment</h4><Button type="button" variant="outline" size="sm" onClick={addLineItem}><Plus className="h-3 w-3 mr-1" />Add Item</Button></div>
+        <div className="space-y-2">
+          <div className="grid grid-cols-12 gap-2 text-xs font-medium text-muted-foreground px-2"><div className="col-span-1">Qty</div><div className="col-span-3">Model</div><div className="col-span-5">Description</div><div className="col-span-2">Price</div><div className="col-span-1"></div></div>
+          {formData.lineItems.map((item, idx) => (<div key={item.id} className="grid grid-cols-12 gap-2 items-center"><div className="col-span-1"><Input type="number" min="1" value={item.quantity} onChange={e => updateLineItem(idx, 'quantity', parseInt(e.target.value) || 1)} className="h-8 text-sm" /></div><div className="col-span-3"><Input value={item.model} onChange={e => updateLineItem(idx, 'model', e.target.value)} className="h-8 text-sm" /></div><div className="col-span-5"><Input value={item.description} onChange={e => updateLineItem(idx, 'description', e.target.value)} className="h-8 text-sm" /></div><div className="col-span-2"><div className="relative"><span className="absolute left-2 top-1/2 -translate-y-1/2 text-muted-foreground text-sm">$</span><Input type="number" min="0" step="0.01" value={item.price} onChange={e => updateLineItem(idx, 'price', parseFloat(e.target.value) || 0)} className="h-8 text-sm pl-5" /></div></div><div className="col-span-1"><Button type="button" variant="ghost" size="sm" onClick={() => removeLineItem(idx)} className="h-8 w-8 p-0 text-destructive"><Trash2 className="h-3.5 w-3.5" /></Button></div></div>))}
+          {formData.lineItems.length === 0 && <p className="text-sm text-muted-foreground text-center py-4">No equipment. Click Add Item.</p>}
+        </div>
+      </div>
+      <Separator />
+      
+      {/* Configuration Section - moved between Equipment and Pricing */}
       <div>
         <h4 className="text-sm font-medium mb-3">Configuration</h4>
         <div className="grid grid-cols-3 gap-4">
@@ -243,39 +279,6 @@ export function QuoteForm({ deal, company, lineItems, dealOwner, onFormChange, p
       </div>
       <Separator />
 
-      <div className="grid grid-cols-2 gap-4">
-        <div className="space-y-3">
-          <div><Label className="text-xs">Quote Number</Label><Input value={formData.quoteNumber} onChange={e => updateField('quoteNumber', e.target.value)} className="h-8 text-sm" /></div>
-          <div><Label className="text-xs">Quote Date</Label><Input type="date" value={formData.quoteDate} onChange={e => updateField('quoteDate', e.target.value)} className="h-8 text-sm" /></div>
-          <div><Label className="text-xs">Prepared By</Label><Input value={formData.preparedBy} onChange={e => updateField('preparedBy', e.target.value)} className="h-8 text-sm" /></div>
-        </div>
-        <div className="space-y-3">
-          <div><Label className="text-xs">Sales Rep Email</Label><Input type="email" value={formData.preparedByEmail} onChange={e => updateField('preparedByEmail', e.target.value)} className="h-8 text-sm" /></div>
-          <div><Label className="text-xs">Sales Rep Phone</Label><Input value={formData.preparedByPhone} onChange={e => updateField('preparedByPhone', e.target.value)} className="h-8 text-sm" /></div>
-        </div>
-      </div>
-      <Separator />
-      <div>
-        <h4 className="text-sm font-medium mb-3">Prepared For</h4>
-        <div className="grid grid-cols-2 gap-3">
-          <div className="col-span-2"><Label className="text-xs">Company Name</Label><Input value={formData.companyName} onChange={e => updateField('companyName', e.target.value)} className="h-8 text-sm" /></div>
-          <div className="col-span-2"><Label className="text-xs">Address</Label><Input value={formData.address} onChange={e => updateField('address', e.target.value)} className="h-8 text-sm" /></div>
-          <div className="col-span-2"><Label className="text-xs">Address Line 2</Label><Input value={formData.address2} onChange={e => updateField('address2', e.target.value)} className="h-8 text-sm" /></div>
-          <div><Label className="text-xs">City</Label><Input value={formData.city} onChange={e => updateField('city', e.target.value)} className="h-8 text-sm" /></div>
-          <div className="grid grid-cols-2 gap-2"><div><Label className="text-xs">State</Label><Input value={formData.state} onChange={e => updateField('state', e.target.value)} className="h-8 text-sm" /></div><div><Label className="text-xs">Zip</Label><Input value={formData.zip} onChange={e => updateField('zip', e.target.value)} className="h-8 text-sm" /></div></div>
-          <div className="col-span-2"><Label className="text-xs">Phone</Label><Input value={formData.phone} onChange={e => updateField('phone', e.target.value)} className="h-8 text-sm" /></div>
-        </div>
-      </div>
-      <Separator />
-      <div>
-        <div className="flex items-center justify-between mb-3"><h4 className="text-sm font-medium">Equipment</h4><Button type="button" variant="outline" size="sm" onClick={addLineItem}><Plus className="h-3 w-3 mr-1" />Add Item</Button></div>
-        <div className="space-y-2">
-          <div className="grid grid-cols-12 gap-2 text-xs font-medium text-muted-foreground px-2"><div className="col-span-1">Qty</div><div className="col-span-3">Model</div><div className="col-span-5">Description</div><div className="col-span-2">Price</div><div className="col-span-1"></div></div>
-          {formData.lineItems.map((item, idx) => (<div key={item.id} className="grid grid-cols-12 gap-2 items-center"><div className="col-span-1"><Input type="number" min="1" value={item.quantity} onChange={e => updateLineItem(idx, 'quantity', parseInt(e.target.value) || 1)} className="h-8 text-sm" /></div><div className="col-span-3"><Input value={item.model} onChange={e => updateLineItem(idx, 'model', e.target.value)} className="h-8 text-sm" /></div><div className="col-span-5"><Input value={item.description} onChange={e => updateLineItem(idx, 'description', e.target.value)} className="h-8 text-sm" /></div><div className="col-span-2"><div className="relative"><span className="absolute left-2 top-1/2 -translate-y-1/2 text-muted-foreground text-sm">$</span><Input type="number" min="0" step="0.01" value={item.price} onChange={e => updateLineItem(idx, 'price', parseFloat(e.target.value) || 0)} className="h-8 text-sm pl-5" /></div></div><div className="col-span-1"><Button type="button" variant="ghost" size="sm" onClick={() => removeLineItem(idx)} className="h-8 w-8 p-0 text-destructive"><Trash2 className="h-3.5 w-3.5" /></Button></div></div>))}
-          {formData.lineItems.length === 0 && <p className="text-sm text-muted-foreground text-center py-4">No equipment. Click Add Item.</p>}
-        </div>
-      </div>
-      <Separator />
       <div>
         <h4 className="text-sm font-medium mb-3">Pricing</h4>
         <div className="grid grid-cols-2 gap-4">
@@ -312,32 +315,6 @@ export function QuoteForm({ deal, company, lineItems, dealOwner, onFormChange, p
       <div>
         <h4 className="text-sm font-medium mb-3">Service Agreement</h4>
         <div className="grid grid-cols-2 gap-4">
-          <div>
-            <Label className="text-xs flex items-center justify-between">
-              <span>Base Rate (per month)</span>
-              {formData.baseRateManuallySet && (
-                <button 
-                  type="button" 
-                  onClick={clearManualBaseRate} 
-                  className="text-xs text-primary hover:underline"
-                >
-                  Auto-calculate
-                </button>
-              )}
-            </Label>
-            <div className="relative">
-              <span className="absolute left-2 top-1/2 -translate-y-1/2 text-muted-foreground text-sm">$</span>
-              <Input 
-                type="text" 
-                value={formatCurrency(formData.serviceBaseRate)} 
-                onChange={e => handleBaseRateChange(parseCurrency(e.target.value))} 
-                className="h-8 text-sm pl-5" 
-              />
-            </div>
-            {!formData.baseRateManuallySet && (formData.includedBWCopies > 0 || formData.includedColorCopies > 0) && (
-              <p className="text-xs text-muted-foreground mt-1">Auto-calculated from includes × rates</p>
-            )}
-          </div>
           <div className="grid grid-cols-2 gap-2">
             <div>
               <Label className="text-xs">Included B/W</Label>
@@ -362,82 +339,107 @@ export function QuoteForm({ deal, company, lineItems, dealOwner, onFormChange, p
               />
             </div>
           </div>
-          <div>
-            <Label className="text-xs">Overage B/W Rate</Label>
-            <div className="relative">
-              <span className="absolute left-2 top-1/2 -translate-y-1/2 text-muted-foreground text-sm">$</span>
-              <Input 
-                type="text"
-                value={overageBWText} 
-                onChange={e => {
-                  const val = e.target.value;
-                  // Allow empty, digits, decimals - including "0.0123", ".0123", "0.", etc.
-                  if (val === '' || /^\d*\.?\d*$/.test(val)) {
-                    setOverageBWText(val);
-                    // Only update numeric state when we have a valid parseable number
-                    const num = parseFloat(val);
-                    if (!isNaN(num)) {
-                      updateField('overageBWRate', num);
-                    } else if (val === '') {
+          <div className="grid grid-cols-2 gap-2">
+            <div>
+              <Label className="text-xs">Overage B/W Rate</Label>
+              <div className="relative">
+                <span className="absolute left-2 top-1/2 -translate-y-1/2 text-muted-foreground text-sm">$</span>
+                <Input 
+                  type="text"
+                  value={overageBWText} 
+                  onChange={e => {
+                    const val = e.target.value;
+                    if (val === '' || /^\d*\.?\d*$/.test(val)) {
+                      setOverageBWText(val);
+                      const num = parseFloat(val);
+                      if (!isNaN(num)) {
+                        updateField('overageBWRate', num);
+                      } else if (val === '') {
+                        updateField('overageBWRate', 0);
+                      }
+                    }
+                  }}
+                  onBlur={() => {
+                    if (overageBWText === '' || overageBWText === '.') {
+                      setOverageBWText('');
                       updateField('overageBWRate', 0);
+                    } else {
+                      const num = parseFloat(overageBWText);
+                      if (!isNaN(num)) {
+                        setOverageBWText(num === 0 ? '' : String(num));
+                      }
                     }
-                  }
-                }}
-                onBlur={() => {
-                  // Normalize on blur
-                  if (overageBWText === '' || overageBWText === '.') {
-                    setOverageBWText('');
-                    updateField('overageBWRate', 0);
-                  } else {
-                    const num = parseFloat(overageBWText);
-                    if (!isNaN(num)) {
-                      setOverageBWText(num === 0 ? '' : String(num));
-                    }
-                  }
-                }}
-                className="h-8 text-sm pl-5"
-                placeholder="0.0108"
-              />
+                  }}
+                  className="h-8 text-sm pl-5"
+                  placeholder="0.0108"
+                />
+              </div>
             </div>
-          </div>
-          <div>
-            <Label className="text-xs">Overage Color Rate</Label>
-            <div className="relative">
-              <span className="absolute left-2 top-1/2 -translate-y-1/2 text-muted-foreground text-sm">$</span>
-              <Input 
-                type="text"
-                value={overageColorText} 
-                onChange={e => {
-                  const val = e.target.value;
-                  // Allow empty, digits, decimals - including "0.0123", ".0123", "0.", etc.
-                  if (val === '' || /^\d*\.?\d*$/.test(val)) {
-                    setOverageColorText(val);
-                    // Only update numeric state when we have a valid parseable number
-                    const num = parseFloat(val);
-                    if (!isNaN(num)) {
-                      updateField('overageColorRate', num);
-                    } else if (val === '') {
+            <div>
+              <Label className="text-xs">Overage Color Rate</Label>
+              <div className="relative">
+                <span className="absolute left-2 top-1/2 -translate-y-1/2 text-muted-foreground text-sm">$</span>
+                <Input 
+                  type="text"
+                  value={overageColorText} 
+                  onChange={e => {
+                    const val = e.target.value;
+                    if (val === '' || /^\d*\.?\d*$/.test(val)) {
+                      setOverageColorText(val);
+                      const num = parseFloat(val);
+                      if (!isNaN(num)) {
+                        updateField('overageColorRate', num);
+                      } else if (val === '') {
+                        updateField('overageColorRate', 0);
+                      }
+                    }
+                  }}
+                  onBlur={() => {
+                    if (overageColorText === '' || overageColorText === '.') {
+                      setOverageColorText('');
                       updateField('overageColorRate', 0);
+                    } else {
+                      const num = parseFloat(overageColorText);
+                      if (!isNaN(num)) {
+                        setOverageColorText(num === 0 ? '' : String(num));
+                      }
                     }
-                  }
-                }}
-                onBlur={() => {
-                  // Normalize on blur
-                  if (overageColorText === '' || overageColorText === '.') {
-                    setOverageColorText('');
-                    updateField('overageColorRate', 0);
-                  } else {
-                    const num = parseFloat(overageColorText);
-                    if (!isNaN(num)) {
-                      setOverageColorText(num === 0 ? '' : String(num));
-                    }
-                  }
-                }}
-                className="h-8 text-sm pl-5"
-                placeholder="0.065"
+                  }}
+                  className="h-8 text-sm pl-5"
+                  placeholder="0.065"
+                />
+              </div>
+            </div>
+          </div>
+        </div>
+        {/* Base Rate Display - styled like Total Buyout */}
+        <div className="mt-4 p-3 bg-muted/50 rounded-lg">
+          <div className="flex justify-between items-center">
+            <div className="flex items-center gap-2">
+              <span className="text-sm font-medium">Base Rate (per month)</span>
+              {formData.baseRateManuallySet && (
+                <button 
+                  type="button" 
+                  onClick={clearManualBaseRate} 
+                  className="text-xs text-primary hover:underline"
+                >
+                  Auto-calculate
+                </button>
+              )}
+            </div>
+            <div className="flex items-center gap-1">
+              <span className="text-muted-foreground">$</span>
+              <Input 
+                type="text" 
+                value={formatCurrency(formData.serviceBaseRate)} 
+                onChange={e => handleBaseRateChange(parseCurrency(e.target.value))} 
+                className="h-7 w-24 text-right font-bold text-lg bg-transparent border-0 p-0 focus-visible:ring-0"
               />
             </div>
           </div>
+          <p className="text-xs text-muted-foreground mt-1">
+            (B/W Copies × B/W Rate) + (Color Copies × Color Rate)
+          </p>
         </div>
       </div>
 
@@ -491,6 +493,19 @@ export function QuoteForm({ deal, company, lineItems, dealOwner, onFormChange, p
                 type="text" 
                 value={formData.paymentAmount === 0 ? '' : formatCurrency(formData.paymentAmount)} 
                 onChange={e => updateField('paymentAmount', parseCurrency(e.target.value))} 
+                className="h-8 text-sm pl-5"
+                placeholder="0.00"
+              />
+            </div>
+          </div>
+          <div>
+            <Label className="text-xs">Buyout Financing Amount</Label>
+            <div className="relative">
+              <span className="absolute left-2 top-1/2 -translate-y-1/2 text-muted-foreground text-sm">$</span>
+              <Input 
+                type="text" 
+                value={formData.buyoutFinancingAmount === 0 ? '' : formatCurrency(formData.buyoutFinancingAmount)} 
+                onChange={e => updateField('buyoutFinancingAmount', parseCurrency(e.target.value))} 
                 className="h-8 text-sm pl-5"
                 placeholder="0.00"
               />
