@@ -264,36 +264,7 @@ export const QuotePreview = forwardRef<HTMLDivElement, QuotePreviewProps>(
           </table>
         </div>
 
-        {/* Buyout Information - only show if configured */}
-        {showBuyout && (
-          <div className="mb-4">
-            <p className="font-bold mb-2 text-[10px]">BUYOUT INFORMATION</p>
-            <table className="w-full border-collapse text-[10px]">
-              <tbody>
-                <tr className="border-b border-gray-300">
-                  <td className="py-1 w-1/2">Payments Remaining</td>
-                  <td className="py-1 text-right">{formData.paymentsRemaining}</td>
-                </tr>
-                <tr className="border-b border-gray-300">
-                  <td className="py-1">Payment Amount</td>
-                  <td className="py-1 text-right">${formatCurrency(formData.paymentAmount)}</td>
-                </tr>
-                <tr className="border-b border-gray-300">
-                  <td className="py-1">Early Termination Fee</td>
-                  <td className="py-1 text-right">${formatCurrency(formData.earlyTerminationFee)}</td>
-                </tr>
-                <tr className="border-b border-gray-300">
-                  <td className="py-1">Return Shipping</td>
-                  <td className="py-1 text-right">${formatCurrency(formData.returnShipping)}</td>
-                </tr>
-                <tr className="border-t-2 border-black">
-                  <td className="py-1 font-bold">Total Buyout</td>
-                  <td className="py-1 text-right font-bold">${formatCurrency(totalBuyout)}</td>
-                </tr>
-              </tbody>
-            </table>
-          </div>
-        )}
+        {/* Buyout Information - intentionally not included in document output */}
 
         {/* Terms & Conditions */}
         {dealerInfo?.termsAndConditions && (
