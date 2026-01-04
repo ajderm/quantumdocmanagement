@@ -183,55 +183,52 @@ export const LeaseReturnPreview = forwardRef<HTMLDivElement, LeaseReturnPreviewP
           <table className="w-full border-collapse text-[9px]">
             <thead>
               <tr className="border-b-2 border-black">
-                <th colSpan={4} className="text-left py-1 pb-2 font-bold">
+                <th colSpan={2} className="text-left py-1 pb-2 font-bold">
                   SIGNATURES
                 </th>
               </tr>
             </thead>
           </table>
 
-          {/* Customer Signature */}
-          <div className="mt-6 grid grid-cols-2 gap-8">
-            <div>
-              <div className="border-b border-black h-8 mb-1"></div>
-              <p className="text-[9px] font-semibold">
-                Authorized Signature (Customer)
-              </p>
-              {(formData.customerPrintedName || formData.customerTitle) && (
-                <p className="text-[9px] mt-1">
-                  {formData.customerPrintedName}
-                  {formData.customerPrintedName && formData.customerTitle && ", "}
-                  {formData.customerTitle}
-                </p>
-              )}
-            </div>
-            <div>
-              <div className="border-b border-black h-8 mb-1 flex items-end justify-start pb-1">
-                <span className="text-[9px]">
-                  {formatDate(formData.customerSignatureDate)}
-                </span>
+          {/* Two-column signature layout */}
+          <div className="mt-6 grid grid-cols-[1fr_150px] gap-4">
+            {/* Left column */}
+            <div className="space-y-6">
+              {/* Customer Signature */}
+              <div>
+                <div className="border-b border-black h-6 mb-1"></div>
+                <p className="text-[9px]">Authorized Signature (Customer)</p>
               </div>
-              <p className="text-[9px] font-semibold">Date</p>
-            </div>
-          </div>
 
-          {/* Dealer Signature */}
-          <div className="mt-6 grid grid-cols-2 gap-8">
-            <div>
-              <div className="border-b border-black h-8 mb-1 flex items-end justify-start pb-1">
-                <span className="text-[9px]">{formData.dealerRepresentative}</span>
+              {/* Printed Name & Title */}
+              <div>
+                <div className="border-b border-black h-6 mb-1"></div>
+                <p className="text-[9px]">Printed Name & Title</p>
               </div>
-              <p className="text-[9px] font-semibold">
-                Dealer (Representative)
-              </p>
+
+              {/* Dealer Representative */}
+              <div>
+                <div className="border-b border-black h-6 mb-1"></div>
+                <p className="text-[9px]">Dealer (Representative)</p>
+              </div>
             </div>
-            <div>
-              <div className="border-b border-black h-8 mb-1 flex items-end justify-start pb-1">
-                <span className="text-[9px]">
-                  {formatDate(formData.dealerSignatureDate)}
-                </span>
+
+            {/* Right column - Date fields */}
+            <div className="space-y-6">
+              {/* Date for Customer Signature */}
+              <div>
+                <div className="border-b border-black h-6 mb-1"></div>
+                <p className="text-[9px]">Date</p>
               </div>
-              <p className="text-[9px] font-semibold">Date</p>
+
+              {/* Empty space aligned with Printed Name & Title */}
+              <div className="h-6 mb-1"></div>
+
+              {/* Date for Dealer */}
+              <div>
+                <div className="border-b border-black h-6 mb-1"></div>
+                <p className="text-[9px]">Date</p>
+              </div>
             </div>
           </div>
         </div>
