@@ -4,7 +4,8 @@ import { Label } from '@/components/ui/label';
 import { Separator } from '@/components/ui/separator';
 import { Button } from '@/components/ui/button';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Plus, Trash2 } from 'lucide-react';
+import { Plus, Trash2, AlertTriangle, X } from 'lucide-react';
+import { Alert, AlertDescription } from '@/components/ui/alert';
 import { supabase } from '@/integrations/supabase/client';
 
 export interface QuoteLineItem { id: string; quantity: number; model: string; description: string; price: number; }
@@ -44,6 +45,8 @@ export interface QuoteFormData {
   buyoutFinancingAmount: number;
   // Calculated payments (from dynamic rates)
   calculatedPayments: Record<number, number>;
+  // Manual payment overrides per term (null = use calculated)
+  paymentOverrides: Record<number, number | null>;
 }
 
 interface QuoteFormProps { deal: any; company: any; contacts: any[]; lineItems: any[]; dealOwner: any; onFormChange: (data: QuoteFormData) => void; portalId?: string; savedConfig?: QuoteFormData; }
@@ -106,7 +109,11 @@ export function QuoteForm({ deal, company, lineItems, dealOwner, onFormChange, p
     paymentAmount: 0,
     buyoutFinancingAmount: 0,
     calculatedPayments: {},
+    paymentOverrides: {},
   });
+
+  // Local state for payment override text inputs
+  const [paymentOverrideTexts, setPaymentOverrideTexts] = useState<Record<number, string>>({});
 
   // Local string state for overage inputs to allow typing "0.0123" naturally
   const [overageBWText, setOverageBWText] = useState('');
@@ -170,15 +177,29 @@ export function QuoteForm({ deal, company, lineItems, dealOwner, onFormChange, p
     return [...new Set(terms)].sort((a, b) => a - b);
   }, [rateFactors, formData.leasingCompanyId, formData.leaseProgram, hasRateSheet]);
 
+  // Check if the selected company has any rates for the selected program
+  const hasRatesForSelection = useMemo(() => {
+    if (!hasRateSheet || !formData.leasingCompanyId) return true; // No warning needed if no rate sheet
+    return availableTerms.length > 0;
+  }, [hasRateSheet, formData.leasingCompanyId, availableTerms]);
+
+  // Calculate total buyout for "with buyout" formula
+  const totalBuyoutForCalc = (formData.paymentAmount * formData.paymentsRemaining) + formData.earlyTerminationFee + formData.returnShipping;
+
   // Calculate lease payment using database rates
   const calculateLeasePayment = (term: number): number => {
-    // Get financing amount (use buyoutFinancingAmount as override if > 0)
-    const amount = formData.buyoutFinancingAmount > 0 ? formData.buyoutFinancingAmount : formData.retailPrice;
+    // Get base financing amount (use buyoutFinancingAmount as override if > 0)
+    let baseAmount = formData.buyoutFinancingAmount > 0 ? formData.buyoutFinancingAmount : formData.retailPrice;
+    
+    // If "with buyout" is selected, add total buyout to the base amount
+    if (formData.leasingPriceType === 'with_buyout') {
+      baseAmount = baseAmount + totalBuyoutForCalc;
+    }
     
     if (!hasRateSheet || !formData.leasingCompanyId) {
       // Fall back to default rates
       const rateFactor = DEFAULT_RATE_FACTORS[term] || 0.025;
-      return Math.round(amount * rateFactor);
+      return Math.round(baseAmount * rateFactor);
     }
 
     const programKey = formData.leaseProgram === 'fmv' ? 'FMV' : '$1';
@@ -188,12 +209,12 @@ export function QuoteForm({ deal, company, lineItems, dealOwner, onFormChange, p
       r.leasing_company === formData.leasingCompanyId &&
       r.lease_program === programKey &&
       r.term_months === term &&
-      (r.min_amount === null || amount >= r.min_amount) &&
-      (r.max_amount === null || amount <= r.max_amount)
+      (r.min_amount === null || baseAmount >= r.min_amount) &&
+      (r.max_amount === null || baseAmount <= r.max_amount)
     );
 
     if (matchingRate) {
-      return Math.round(amount * matchingRate.rate_factor);
+      return Math.round(baseAmount * matchingRate.rate_factor);
     }
 
     // If no amount tier match, try without amount constraints
@@ -204,11 +225,46 @@ export function QuoteForm({ deal, company, lineItems, dealOwner, onFormChange, p
     );
 
     if (fallbackRate) {
-      return Math.round(amount * fallbackRate.rate_factor);
+      return Math.round(baseAmount * fallbackRate.rate_factor);
     }
 
     // Final fallback to default
-    return Math.round(amount * (DEFAULT_RATE_FACTORS[term] || 0.025));
+    return Math.round(baseAmount * (DEFAULT_RATE_FACTORS[term] || 0.025));
+  };
+
+  // Get the effective payment for a term (override or calculated)
+  const getEffectivePayment = (term: number): number => {
+    const override = formData.paymentOverrides[term];
+    if (override !== null && override !== undefined && override > 0) {
+      return override;
+    }
+    return formData.calculatedPayments[term] || calculateLeasePayment(term);
+  };
+
+  // Handle payment override change
+  const handlePaymentOverrideChange = (term: number, value: string) => {
+    setPaymentOverrideTexts(prev => ({ ...prev, [term]: value }));
+    const num = parseFloat(value.replace(/[^0-9.-]/g, ''));
+    if (!isNaN(num) && num > 0) {
+      setFormData(prev => ({
+        ...prev,
+        paymentOverrides: { ...prev.paymentOverrides, [term]: num }
+      }));
+    } else if (value === '') {
+      setFormData(prev => ({
+        ...prev,
+        paymentOverrides: { ...prev.paymentOverrides, [term]: null }
+      }));
+    }
+  };
+
+  // Clear payment override for a term
+  const clearPaymentOverride = (term: number) => {
+    setPaymentOverrideTexts(prev => ({ ...prev, [term]: '' }));
+    setFormData(prev => ({
+      ...prev,
+      paymentOverrides: { ...prev.paymentOverrides, [term]: null }
+    }));
   };
 
   // Update calculated payments when relevant values change
@@ -224,7 +280,7 @@ export function QuoteForm({ deal, company, lineItems, dealOwner, onFormChange, p
     if (currentPayments !== newPayments) {
       setFormData(prev => ({ ...prev, calculatedPayments: payments }));
     }
-  }, [formData.selectedTerms, formData.retailPrice, formData.buyoutFinancingAmount, formData.leasingCompanyId, formData.leaseProgram, rateFactors]);
+  }, [formData.selectedTerms, formData.retailPrice, formData.buyoutFinancingAmount, formData.leasingCompanyId, formData.leaseProgram, formData.leasingPriceType, formData.paymentAmount, formData.paymentsRemaining, formData.earlyTerminationFee, formData.returnShipping, rateFactors]);
 
   // Reset selected terms when company or program changes
   useEffect(() => {
@@ -241,8 +297,8 @@ export function QuoteForm({ deal, company, lineItems, dealOwner, onFormChange, p
     }
   }, [availableTerms]);
 
-  // Calculate total buyout
-  const totalBuyout = (formData.paymentAmount * formData.paymentsRemaining) + formData.earlyTerminationFee + formData.returnShipping;
+  // Calculate total buyout (for display)
+  const totalBuyout = totalBuyoutForCalc;
 
   useEffect(() => {
     const totalPrice = lineItems.reduce((sum: number, item: any) => sum + (item.price * item.quantity), 0);
@@ -473,6 +529,18 @@ export function QuoteForm({ deal, company, lineItems, dealOwner, onFormChange, p
             <Label className="text-xs mb-2 block">
               {formData.leaseProgram === 'fmv' ? 'FMV' : '$1 Buyout'} Lease Terms (up to 3)
             </Label>
+            
+            {/* Warning when no rates available for company + program combination */}
+            {!hasRatesForSelection && hasRateSheet && formData.leasingCompanyId && (
+              <Alert className="mb-3 bg-amber-50 border-amber-200">
+                <AlertTriangle className="h-4 w-4 text-amber-600" />
+                <AlertDescription className="text-amber-800 text-xs">
+                  No rates available for <strong>{formData.leasingCompanyId}</strong> with <strong>{formData.leaseProgram === 'fmv' ? 'FMV' : '$1 Buyout'}</strong> program. 
+                  Please select a different leasing company or lease program.
+                </AlertDescription>
+              </Alert>
+            )}
+            
             <div className="flex flex-wrap gap-2">
               {availableTerms.map(t => (
                 <Button 
@@ -488,13 +556,48 @@ export function QuoteForm({ deal, company, lineItems, dealOwner, onFormChange, p
                 </Button>
               ))}
             </div>
-            <div className="mt-3 space-y-1">
-              {formData.selectedTerms.map(t => (
-                <div key={t} className="flex justify-between text-sm bg-muted/50 rounded px-3 py-1.5">
-                  <span>{t} months</span>
-                  <span className="font-medium">${calculateLeasePayment(t).toLocaleString()}/mo</span>
-                </div>
-              ))}
+            <div className="mt-3 space-y-2">
+              {formData.selectedTerms.map(t => {
+                const calculatedPayment = calculateLeasePayment(t);
+                const hasOverride = formData.paymentOverrides[t] !== null && formData.paymentOverrides[t] !== undefined && formData.paymentOverrides[t]! > 0;
+                const effectivePayment = getEffectivePayment(t);
+                
+                return (
+                  <div key={t} className="flex items-center gap-2 text-sm bg-muted/50 rounded px-3 py-2">
+                    <span className="min-w-[70px]">{t} months</span>
+                    <span className={`font-medium min-w-[90px] ${hasOverride ? 'text-muted-foreground line-through' : ''}`}>
+                      ${calculatedPayment.toLocaleString()}/mo
+                    </span>
+                    <div className="flex items-center gap-1 ml-auto">
+                      <span className="text-xs text-muted-foreground">Override:</span>
+                      <div className="relative w-24">
+                        <span className="absolute left-2 top-1/2 -translate-y-1/2 text-muted-foreground text-xs">$</span>
+                        <Input
+                          type="text"
+                          value={paymentOverrideTexts[t] || ''}
+                          onChange={(e) => handlePaymentOverrideChange(t, e.target.value)}
+                          placeholder={calculatedPayment.toLocaleString()}
+                          className="h-7 text-xs pl-5 pr-7"
+                        />
+                        {hasOverride && (
+                          <button
+                            type="button"
+                            onClick={() => clearPaymentOverride(t)}
+                            className="absolute right-1.5 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
+                          >
+                            <X className="h-3 w-3" />
+                          </button>
+                        )}
+                      </div>
+                      {hasOverride && (
+                        <span className="font-medium text-primary min-w-[80px]">
+                          ${effectivePayment.toLocaleString()}/mo
+                        </span>
+                      )}
+                    </div>
+                  </div>
+                );
+              })}
             </div>
           </div>
         </div>
