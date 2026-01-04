@@ -40,6 +40,14 @@ export const QuotePreview = forwardRef<HTMLDivElement, QuotePreviewProps>(
     };
 
     const hasServiceAgreement = formData.serviceBaseRate > 0 || formData.includedBWCopies > 0 || formData.includedColorCopies > 0;
+    
+    // Configuration-based visibility
+    const showPurchase = formData.priceDisplay === 'both' || formData.priceDisplay === 'purchase_only';
+    const showLease = formData.priceDisplay === 'both' || formData.priceDisplay === 'lease_only';
+    
+    // Calculate total buyout if applicable
+    const totalBuyout = (formData.paymentAmount * formData.paymentsRemaining) + formData.earlyTerminationFee + formData.returnShipping;
+    const showBuyout = formData.leasingPriceType === 'with_buyout' && totalBuyout > 0;
 
     return (
       <div 
@@ -105,7 +113,7 @@ export const QuotePreview = forwardRef<HTMLDivElement, QuotePreviewProps>(
             <thead>
               <tr className="border-b-2 border-black">
                 <th className="text-left py-1 w-12">Qty.</th>
-                <th className="text-left py-1 w-32">Model</th>
+                <th className="text-left py-1 w-48">Model</th>
                 <th className="text-left py-1">Description</th>
               </tr>
             </thead>
@@ -130,28 +138,44 @@ export const QuotePreview = forwardRef<HTMLDivElement, QuotePreviewProps>(
         <div className="mb-4">
           <table className="w-full border-collapse text-[10px]">
             <colgroup>
-              <col style={{ width: '14%' }} />
-              <col style={{ width: '14%' }} />
-              <col style={{ width: '16px' }} />
-              <col style={{ width: '10%' }} />
-              <col style={{ width: '12%' }} />
+              {showPurchase && (
+                <>
+                  <col style={{ width: '14%' }} />
+                  <col style={{ width: '14%' }} />
+                </>
+              )}
+              {showPurchase && showLease && <col style={{ width: '16px' }} />}
+              {showLease && (
+                <>
+                  <col style={{ width: '10%' }} />
+                  <col style={{ width: '12%' }} />
+                </>
+              )}
               {hasServiceAgreement && <col style={{ width: '28%' }} />}
             </colgroup>
             <thead>
               <tr className="border-b-2 border-black">
-                <th colSpan={2} className="text-left py-1 font-bold">PURCHASE</th>
-                <th className="py-1 font-bold"></th>
-                <th colSpan={2} className="text-left py-1 font-bold">LEASE</th>
+                {showPurchase && <th colSpan={2} className="text-left py-1 font-bold">PURCHASE</th>}
+                {showPurchase && showLease && <th className="py-1 font-bold"></th>}
+                {showLease && <th colSpan={2} className="text-left py-1 font-bold">LEASE</th>}
                 {hasServiceAgreement && (
                   <th className="text-left py-1 font-bold pl-4 border-l-2 border-black">SERVICE AGREEMENT</th>
                 )}
               </tr>
               <tr className="border-b border-gray-300">
-                <th className="text-left py-1 font-semibold text-[9px]">RETAIL</th>
-                <th className="text-left py-1 font-semibold text-[9px]">CASH DISCOUNT</th>
-                <th className="text-center py-1 font-semibold text-[9px]"></th>
-                <th className="text-left py-1 font-semibold text-[9px]">TERM</th>
-                <th className="text-right py-1 font-semibold text-[9px] pr-3">PAYMENT</th>
+                {showPurchase && (
+                  <>
+                    <th className="text-left py-1 font-semibold text-[9px]">RETAIL</th>
+                    <th className="text-left py-1 font-semibold text-[9px]">CASH DISCOUNT</th>
+                  </>
+                )}
+                {showPurchase && showLease && <th className="text-center py-1 font-semibold text-[9px]"></th>}
+                {showLease && (
+                  <>
+                    <th className="text-left py-1 font-semibold text-[9px]">TERM</th>
+                    <th className="text-right py-1 font-semibold text-[9px] pr-3">PAYMENT</th>
+                  </>
+                )}
                 {hasServiceAgreement && (
                   <th className="py-1 pl-4 border-l-2 border-black"></th>
                 )}
@@ -160,19 +184,29 @@ export const QuotePreview = forwardRef<HTMLDivElement, QuotePreviewProps>(
             <tbody>
               {/* First row - main values */}
               <tr className="border-b border-gray-300">
-                <td className="py-1 align-top" rowSpan={Math.max(formData.selectedTerms.length, 1)}>
-                  <span className="font-bold">${formatCurrency(formData.retailPrice)}</span>
-                </td>
-                <td className="py-1 align-top" rowSpan={Math.max(formData.selectedTerms.length, 1)}>
-                  <span className="font-bold">${formatCurrency(formData.cashDiscount)}</span>
-                </td>
-                <td className="text-center py-1 align-middle font-bold text-gray-500" rowSpan={Math.max(formData.selectedTerms.length, 1)}>
-                  OR
-                </td>
-                <td className="py-1">{formData.selectedTerms[0]} months</td>
-                <td className="py-1 text-right font-semibold pr-3">
-                  ${calculateLeasePayment(formData.selectedTerms[0]).toLocaleString()}/mo
-                </td>
+                {showPurchase && (
+                  <>
+                    <td className="py-1 align-top" rowSpan={Math.max(formData.selectedTerms.length, 1)}>
+                      <span className="font-bold">${formatCurrency(formData.retailPrice)}</span>
+                    </td>
+                    <td className="py-1 align-top" rowSpan={Math.max(formData.selectedTerms.length, 1)}>
+                      <span className="font-bold">${formatCurrency(formData.cashDiscount)}</span>
+                    </td>
+                  </>
+                )}
+                {showPurchase && showLease && (
+                  <td className="text-center py-1 align-middle font-bold text-gray-500" rowSpan={Math.max(formData.selectedTerms.length, 1)}>
+                    OR
+                  </td>
+                )}
+                {showLease && (
+                  <>
+                    <td className="py-1">{formData.selectedTerms[0]} months</td>
+                    <td className="py-1 text-right font-semibold pr-3">
+                      ${calculateLeasePayment(formData.selectedTerms[0]).toLocaleString()}/mo
+                    </td>
+                  </>
+                )}
                 {hasServiceAgreement && (
                   <td className="py-1 pl-4 align-top border-l-2 border-black" rowSpan={Math.max(formData.selectedTerms.length, 1)}>
                     {/* Service Agreement mini-table matching blue reference layout */}
@@ -214,9 +248,12 @@ export const QuotePreview = forwardRef<HTMLDivElement, QuotePreviewProps>(
                   </td>
                 )}
               </tr>
-              {/* Additional lease term rows */}
-              {formData.selectedTerms.slice(1).map((term, idx) => (
+              {/* Additional lease term rows - only show if lease is visible */}
+              {showLease && formData.selectedTerms.slice(1).map((term, idx) => (
                 <tr key={term} className={idx === formData.selectedTerms.length - 2 ? '' : 'border-b border-gray-300'}>
+                  {showPurchase && <td></td>}
+                  {showPurchase && <td></td>}
+                  {showPurchase && <td></td>}
                   <td className="py-1">{term} months</td>
                   <td className="py-1 text-right font-semibold pr-3">
                     ${calculateLeasePayment(term).toLocaleString()}/mo
@@ -226,6 +263,37 @@ export const QuotePreview = forwardRef<HTMLDivElement, QuotePreviewProps>(
             </tbody>
           </table>
         </div>
+
+        {/* Buyout Information - only show if configured */}
+        {showBuyout && (
+          <div className="mb-4">
+            <p className="font-bold mb-2 text-[10px]">BUYOUT INFORMATION</p>
+            <table className="w-full border-collapse text-[10px]">
+              <tbody>
+                <tr className="border-b border-gray-300">
+                  <td className="py-1 w-1/2">Payments Remaining</td>
+                  <td className="py-1 text-right">{formData.paymentsRemaining}</td>
+                </tr>
+                <tr className="border-b border-gray-300">
+                  <td className="py-1">Payment Amount</td>
+                  <td className="py-1 text-right">${formatCurrency(formData.paymentAmount)}</td>
+                </tr>
+                <tr className="border-b border-gray-300">
+                  <td className="py-1">Early Termination Fee</td>
+                  <td className="py-1 text-right">${formatCurrency(formData.earlyTerminationFee)}</td>
+                </tr>
+                <tr className="border-b border-gray-300">
+                  <td className="py-1">Return Shipping</td>
+                  <td className="py-1 text-right">${formatCurrency(formData.returnShipping)}</td>
+                </tr>
+                <tr className="border-t-2 border-black">
+                  <td className="py-1 font-bold">Total Buyout</td>
+                  <td className="py-1 text-right font-bold">${formatCurrency(totalBuyout)}</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        )}
 
         {/* Terms & Conditions */}
         {dealerInfo?.termsAndConditions && (
