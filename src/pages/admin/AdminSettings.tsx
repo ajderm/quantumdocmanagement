@@ -326,7 +326,7 @@ export default function AdminSettings() {
                   <div className="space-y-2">
                     <Label>Company Logo</Label>
                     <div className="flex items-center gap-4">
-                      <div className="h-20 w-20 rounded-lg border-2 border-dashed border-border flex items-center justify-center bg-muted/50 overflow-hidden">
+                      <div className="h-20 w-32 rounded-lg border-2 border-dashed border-border flex items-center justify-center bg-muted/50 overflow-hidden">
                         {logoUrl ? (
                           <img src={logoUrl} alt="Company logo" className="h-full w-full object-contain" />
                         ) : (
@@ -353,7 +353,7 @@ export default function AdminSettings() {
                           )}
                         </Button>
                         <p className="text-xs text-muted-foreground mt-1">
-                          PNG, JPG up to 2MB. Recommended: 200x200px
+                          PNG, JPG up to 2MB. Max: 250x100px (supports rectangular logos)
                         </p>
                       </div>
                     </div>
