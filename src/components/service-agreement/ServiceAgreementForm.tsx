@@ -96,7 +96,22 @@ interface QuoteFormData {
 interface ServiceAgreementFormProps {
   formData: ServiceAgreementFormData;
   onChange: (data: ServiceAgreementFormData) => void;
-  company: { name?: string; customerNumber?: string } | null;
+  company: { 
+    name?: string; 
+    customerNumber?: string;
+    // Ship To (Delivery) Address
+    deliveryAddress?: string;
+    deliveryAddress2?: string;
+    deliveryCity?: string;
+    deliveryState?: string;
+    deliveryZip?: string;
+    // Bill To (AP) Address
+    apAddress?: string;
+    apAddress2?: string;
+    apCity?: string;
+    apState?: string;
+    apZip?: string;
+  } | null;
   lineItems: LineItem[];
   dealerSettings: { meter_methods?: string[] } | null;
   savedConfig: ServiceAgreementFormData | null;
@@ -156,19 +171,21 @@ export function ServiceAgreementForm({
     onChange({
       ...formData,
       customerNumber: company?.customerNumber || '',
+      // Ship To - use delivery address fields from HubSpot
       shipToCompany: company?.name || '',
-      shipToAddress: '',
-      shipToCity: '',
-      shipToState: '',
-      shipToZip: '',
+      shipToAddress: company?.deliveryAddress || '',
+      shipToCity: company?.deliveryCity || '',
+      shipToState: company?.deliveryState || '',
+      shipToZip: company?.deliveryZip || '',
       shipToAttn: shipToContact ? `${shipToContact.firstName || ''} ${shipToContact.lastName || ''}`.trim() : '',
       shipToPhone: shipToContact?.phone || '',
       shipToEmail: shipToContact?.email || '',
+      // Bill To - use AP address fields from HubSpot
       billToCompany: company?.name || '',
-      billToAddress: '',
-      billToCity: '',
-      billToState: '',
-      billToZip: '',
+      billToAddress: company?.apAddress || '',
+      billToCity: company?.apCity || '',
+      billToState: company?.apState || '',
+      billToZip: company?.apZip || '',
       billToAttn: billToContact ? `${billToContact.firstName || ''} ${billToContact.lastName || ''}`.trim() : '',
       billToPhone: billToContact?.phone || '',
       billToEmail: billToContact?.email || '',
