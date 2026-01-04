@@ -50,7 +50,7 @@ export const InstallationPreview = forwardRef<HTMLDivElement, InstallationPrevie
 
           {/* Right - Installation Report */}
           <div className="border border-black p-2 w-56">
-            <p className="font-bold text-center mb-1 border-b border-black pb-1">INSTALLATION REPORT</p>
+            <p className="font-bold text-center mb-1 border-b border-black pb-2">INSTALLATION REPORT</p>
             <div className="grid grid-cols-2 gap-2 text-[8px]">
               {/* Left Column - Meter Counts */}
               <div>
@@ -82,7 +82,7 @@ export const InstallationPreview = forwardRef<HTMLDivElement, InstallationPrevie
         {/* Customer Ship To / Bill To */}
         <div className="grid grid-cols-2 gap-4 mb-4">
           <div className="border border-black p-2">
-            <p className="font-bold text-[9px] mb-1 border-b border-black pb-1 text-center">CUSTOMER SHIP TO</p>
+            <p className="font-bold text-[9px] mb-1 border-b border-black pb-2 text-center">CUSTOMER SHIP TO</p>
             <table className="w-full text-[8px]">
               <tbody>
                 <tr><td className="font-bold w-16">Company:</td><td>{formData.shipToCompany}</td></tr>
@@ -95,7 +95,7 @@ export const InstallationPreview = forwardRef<HTMLDivElement, InstallationPrevie
             </table>
           </div>
           <div className="border border-black p-2">
-            <p className="font-bold text-[9px] mb-1 border-b border-black pb-1 text-center">CUSTOMER BILL TO</p>
+            <p className="font-bold text-[9px] mb-1 border-b border-black pb-2 text-center">CUSTOMER BILL TO</p>
             <table className="w-full text-[8px]">
               <tbody>
                 <tr><td className="font-bold w-16">Company:</td><td>{formData.billToCompany}</td></tr>
@@ -139,7 +139,7 @@ export const InstallationPreview = forwardRef<HTMLDivElement, InstallationPrevie
         {/* Networking & Additional Contacts - Side by Side */}
         <div className="grid grid-cols-2 gap-4 mb-4">
           <div className="border border-black p-2">
-            <p className="font-bold text-[9px] mb-1 border-b border-black pb-1 text-center">NETWORKING</p>
+            <p className="font-bold text-[9px] mb-1 border-b border-black pb-2 text-center">NETWORKING</p>
             {/* Print and Scan side by side */}
             <div className="grid grid-cols-2 gap-2">
               {/* PRINT Column */}
@@ -163,7 +163,7 @@ export const InstallationPreview = forwardRef<HTMLDivElement, InstallationPrevie
                     <tr><td>Setup:</td><td className="text-right">{formData.dealerSetupScan || '____'}</td></tr>
                     <tr><td>Windows:</td><td className="text-right">{formData.scanWindowsComputers || '____'}</td></tr>
                     <tr><td>Mac:</td><td className="text-right">{formData.scanMacComputers || '____'}</td></tr>
-                    <tr><td>Email:</td><td className="text-right truncate max-w-[60px]">{formData.emailAssigned || '____'}</td></tr>
+                    <tr><td>Email:</td><td className="text-right text-[6px] break-all">{formData.emailAssigned || '____'}</td></tr>
                     <tr><td>Password:</td><td className="text-right">{formData.emailPassword || '____'}</td></tr>
                   </tbody>
                 </table>
@@ -171,7 +171,7 @@ export const InstallationPreview = forwardRef<HTMLDivElement, InstallationPrevie
             </div>
           </div>
           <div className="border border-black p-2">
-            <p className="font-bold text-[9px] mb-1 border-b border-black pb-1 text-center">ADDITIONAL CONTACTS</p>
+            <p className="font-bold text-[9px] mb-1 border-b border-black pb-2 text-center">ADDITIONAL CONTACTS</p>
             <div className="grid grid-cols-2 gap-2">
               {/* IT Contact Column */}
               <div>
@@ -180,7 +180,7 @@ export const InstallationPreview = forwardRef<HTMLDivElement, InstallationPrevie
                   <tbody>
                     <tr><td>Name:</td><td className="text-right">{formData.itContactName || '____'}</td></tr>
                     <tr><td>Phone:</td><td className="text-right">{formData.itContactPhone || '____'}</td></tr>
-                    <tr><td>Email:</td><td className="text-right truncate max-w-[60px]">{formData.itContactEmail || '____'}</td></tr>
+                    <tr><td>Email:</td><td className="text-right text-[6px] break-all">{formData.itContactEmail || '____'}</td></tr>
                   </tbody>
                 </table>
               </div>
@@ -191,7 +191,7 @@ export const InstallationPreview = forwardRef<HTMLDivElement, InstallationPrevie
                   <tbody>
                     <tr><td>Name:</td><td className="text-right">{formData.meterContactName || '____'}</td></tr>
                     <tr><td>Phone:</td><td className="text-right">{formData.meterContactPhone || '____'}</td></tr>
-                    <tr><td>Email:</td><td className="text-right truncate max-w-[60px]">{formData.meterContactEmail || '____'}</td></tr>
+                    <tr><td>Email:</td><td className="text-right text-[6px] break-all">{formData.meterContactEmail || '____'}</td></tr>
                   </tbody>
                 </table>
               </div>
