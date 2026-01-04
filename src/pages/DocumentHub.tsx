@@ -639,6 +639,8 @@ function DocumentHubContent() {
         return;
       }
 
+      // Update savedConfig so tab switches preserve data
+      setSavedConfig(formData);
       setLastSavedData(JSON.stringify(formData));
       setHasUnsavedChanges(false);
       localStorage.removeItem(`quote_backup_${dealId}`);
@@ -740,6 +742,11 @@ function DocumentHubContent() {
         return;
       }
 
+      // Update saved config cache so tab switches preserve data
+      setInstallationSavedConfig(prev => ({
+        ...prev,
+        [installationFormData.selectedLineItemId]: installationFormData
+      }));
       setInstallationLastSavedData(JSON.stringify(installationFormData));
       setInstallationHasUnsavedChanges(false);
       toast.success('Installation configuration saved');
@@ -1297,7 +1304,7 @@ function DocumentHubContent() {
           </TabsList>
 
           {/* Quote Tab Content */}
-          <TabsContent value="quote" className="mt-0">
+          <TabsContent value="quote" className="mt-0" forceMount style={{ display: 'var(--radix-tabs-content-display, none)' }} data-state-display>
             <Card>
               <CardHeader className="pb-3">
                 <CardTitle className="text-lg flex items-center gap-2">
@@ -1348,7 +1355,7 @@ function DocumentHubContent() {
           </TabsContent>
 
           {/* Installation Tab Content */}
-          <TabsContent value="installation" className="mt-0">
+          <TabsContent value="installation" className="mt-0" forceMount style={{ display: 'var(--radix-tabs-content-display, none)' }} data-state-display>
             <Card>
               <CardHeader className="pb-3">
                 <CardTitle className="text-lg flex items-center gap-2">
@@ -1409,7 +1416,7 @@ function DocumentHubContent() {
           </TabsContent>
 
           {/* Service Agreement Tab Content */}
-          <TabsContent value="service_agreement" className="mt-0">
+          <TabsContent value="service_agreement" className="mt-0" forceMount style={{ display: 'var(--radix-tabs-content-display, none)' }} data-state-display>
             <Card>
               <CardHeader className="pb-3">
                 <CardTitle className="text-lg flex items-center gap-2">
@@ -1513,7 +1520,7 @@ function DocumentHubContent() {
           </TabsContent>
 
           {/* FMV Lease Tab Content */}
-          <TabsContent value="fmv_lease" className="mt-0">
+          <TabsContent value="fmv_lease" className="mt-0" forceMount style={{ display: 'var(--radix-tabs-content-display, none)' }} data-state-display>
             <Card>
               <CardHeader className="pb-3">
                 <CardTitle className="text-lg flex items-center gap-2">

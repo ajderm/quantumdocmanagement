@@ -153,8 +153,19 @@ export function FMVLeaseForm({
       : "";
     const equipmentCity = company ? pick(company.deliveryCity, company.city) : "";
     const equipmentState = company ? pick(company.deliveryState, company.state) : "";
-    // Explicitly get zip from delivery or fallback address - never mix with state
-    const equipmentZip = company?.deliveryZip?.trim() || company?.zip?.trim() || "";
+    
+    // Helper to validate ZIP - reject 2-letter state abbreviations
+    const isValidZip = (val: string | undefined | null): boolean => {
+      if (!val) return false;
+      const trimmed = val.trim();
+      if (/^[A-Za-z]{2}$/.test(trimmed)) return false; // Reject state abbreviation
+      return trimmed.length > 0;
+    };
+    
+    // Explicitly get zip from delivery or fallback address - never use state values
+    const rawDeliveryZip = company?.deliveryZip?.trim();
+    const rawFallbackZip = company?.zip?.trim();
+    const equipmentZip = isValidZip(rawDeliveryZip) ? rawDeliveryZip! : (isValidZip(rawFallbackZip) ? rawFallbackZip! : "");
 
     // Billing address from AP address - always use fresh HubSpot data
     const billingAddress = company

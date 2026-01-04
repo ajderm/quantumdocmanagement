@@ -324,8 +324,8 @@ Deno.serve(async (req) => {
         // Fetch company with all address fields including delivery (Ship To) and AP (Bill To) addresses
         const companyProperties = [
           'name', 'address', 'address2', 'city', 'state', 'zip', 'phone', 'domain', 'customer_number',
-          // Ship To (Delivery) Address fields
-          'street_address__del_', 'street_address_line_2__del_', 'city__del_', 'state__del_', 'postal_code__del_',
+          // Ship To (Delivery) Address fields - include both potential zip field names
+          'street_address__del_', 'street_address_line_2__del_', 'city__del_', 'state__del_', 'postal_code__del_', 'zip__del_', 'zip_code__del_',
           // Bill To (AP) Address fields (2 underscores, matching delivery pattern)
           'street_address__ap_', 'street_address_line_2__ap_', 'city__ap_', 'state__ap_', 'zip_code__ap_'
         ].join(',');
@@ -338,6 +338,29 @@ Deno.serve(async (req) => {
         // Debug: Log raw company properties to identify correct AP address field names
         console.log('Raw company properties:', JSON.stringify(companyResponse.properties));
         
+        // Helper to validate if a value looks like a valid ZIP code (not a 2-letter state)
+        const isValidZip = (val: string | null | undefined): boolean => {
+          if (!val) return false;
+          const trimmed = val.trim();
+          // ZIP codes contain digits and are not just 2 letters (state abbreviation)
+          if (/^\d{5}(-\d{4})?$/.test(trimmed)) return true; // US ZIP
+          if (/^[A-Za-z]\d[A-Za-z][ -]?\d[A-Za-z]\d$/.test(trimmed)) return true; // Canadian postal
+          // Reject if it's exactly 2 letters (state abbreviation)
+          if (/^[A-Za-z]{2}$/.test(trimmed)) return false;
+          // Accept if it contains any digits
+          return /\d/.test(trimmed);
+        };
+
+        // Get the best delivery ZIP value (try multiple fields, validate each)
+        const rawDeliveryZips = [
+          companyResponse.properties.zip__del_,
+          companyResponse.properties.zip_code__del_,
+          companyResponse.properties.postal_code__del_,
+        ];
+        const deliveryZip = rawDeliveryZips.find(isValidZip) || '';
+        
+        console.log('Delivery ZIP candidates:', rawDeliveryZips, 'Selected:', deliveryZip);
+
         company = {
           companyId: companyResponse.id,
           name: companyResponse.properties.name,
@@ -354,7 +377,7 @@ Deno.serve(async (req) => {
           deliveryAddress2: companyResponse.properties.street_address_line_2__del_ || '',
           deliveryCity: companyResponse.properties.city__del_ || '',
           deliveryState: companyResponse.properties.state__del_ || '',
-          deliveryZip: companyResponse.properties.postal_code__del_ || '',
+          deliveryZip: deliveryZip,
           // Bill To (AP) Address (2 underscores)
           apAddress: companyResponse.properties.street_address__ap_ || '',
           apAddress2: companyResponse.properties.street_address_line_2__ap_ || '',
