@@ -37,6 +37,8 @@ import { InstallationForm, InstallationFormData } from '@/components/installatio
 import { InstallationPreview } from '@/components/installation/InstallationPreview';
 import { ServiceAgreementForm, ServiceAgreementFormData } from '@/components/service-agreement/ServiceAgreementForm';
 import { ServiceAgreementPreview } from '@/components/service-agreement/ServiceAgreementPreview';
+import { FMVLeaseForm, FMVLeaseFormData } from '@/components/fmv-lease/FMVLeaseForm';
+import { FMVLeasePreview } from '@/components/fmv-lease/FMVLeasePreview';
 
 const documentTypes = [
   { code: 'quote', name: 'Quote', icon: FileText },
@@ -111,6 +113,18 @@ function DocumentHubContent() {
   const serviceAgreementAutoSaveTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   const serviceAgreementFormDataRef = useRef<ServiceAgreementFormData | null>(null);
 
+  // FMV Lease state
+  const [fmvLeaseFormData, setFmvLeaseFormData] = useState<FMVLeaseFormData | null>(null);
+  const [fmvLeaseSavedConfig, setFmvLeaseSavedConfig] = useState<FMVLeaseFormData | null>(null);
+  const [fmvLeaseGenerating, setFmvLeaseGenerating] = useState(false);
+  const [fmvLeaseSaving, setFmvLeaseSaving] = useState(false);
+  const [showFMVLeasePreview, setShowFMVLeasePreview] = useState(false);
+  const [fmvLeaseHasUnsavedChanges, setFmvLeaseHasUnsavedChanges] = useState(false);
+  const [fmvLeaseLastSavedData, setFmvLeaseLastSavedData] = useState<string | null>(null);
+  const fmvLeasePreviewRef = useRef<HTMLDivElement>(null);
+  const fmvLeaseAutoSaveTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const fmvLeaseFormDataRef = useRef<FMVLeaseFormData | null>(null);
+
   // Dealer info and settings
   const [dealerInfo, setDealerInfo] = useState<DealerInfo | null>(null);
   const [dealerSettings, setDealerSettings] = useState<DealerSettings>({});
@@ -130,6 +144,11 @@ function DocumentHubContent() {
   useEffect(() => {
     serviceAgreementFormDataRef.current = serviceAgreementFormData;
   }, [serviceAgreementFormData]);
+
+  // Keep fmvLeaseFormDataRef in sync
+  useEffect(() => {
+    fmvLeaseFormDataRef.current = fmvLeaseFormData;
+  }, [fmvLeaseFormData]);
 
   // Fetch dealer info when portalId is available
   useEffect(() => {
@@ -294,6 +313,43 @@ function DocumentHubContent() {
     }
   }, [portalId, deal?.hsObjectId]);
 
+  // Load saved FMV Lease configuration
+  useEffect(() => {
+    const loadFMVLeaseConfig = async () => {
+      const currentPortalId = portalId || localStorage.getItem('hs_portal_id');
+      const dealId = deal?.hsObjectId;
+      
+      if (!currentPortalId || !dealId) return;
+
+      try {
+        const { data, error } = await supabase
+          .from('fmv_lease_configurations')
+          .select('configuration')
+          .eq('portal_id', currentPortalId)
+          .eq('deal_id', dealId)
+          .single();
+
+        if (error) {
+          if (error.code !== 'PGRST116') {
+            console.error('Error loading FMV lease config:', error);
+          }
+          return;
+        }
+
+        if (data?.configuration) {
+          console.log('Loaded saved FMV lease configuration');
+          setFmvLeaseSavedConfig(data.configuration as unknown as FMVLeaseFormData);
+        }
+      } catch (err) {
+        console.error('Failed to load FMV lease config:', err);
+      }
+    };
+
+    if (deal?.hsObjectId) {
+      loadFMVLeaseConfig();
+    }
+  }, [portalId, deal?.hsObjectId]);
+
   // Silent auto-save function for Quote
   const performAutoSave = useCallback(async (dataToSave: QuoteFormData) => {
     const currentPortalId = portalId || localStorage.getItem('hs_portal_id');
@@ -436,10 +492,56 @@ function DocumentHubContent() {
     }, AUTO_SAVE_DELAY);
   }, [performServiceAgreementAutoSave]);
 
+  // Auto-save for FMV Lease
+  const performFMVLeaseAutoSave = useCallback(async (dataToSave: FMVLeaseFormData) => {
+    const currentPortalId = portalId || localStorage.getItem('hs_portal_id');
+    const dealId = deal?.hsObjectId;
+
+    if (!currentPortalId || !dealId || !dataToSave) return;
+
+    const dataString = JSON.stringify(dataToSave);
+    if (dataString === fmvLeaseLastSavedData) return;
+
+    try {
+      const { error: saveError } = await supabase
+        .from('fmv_lease_configurations')
+        .upsert({
+          portal_id: currentPortalId,
+          deal_id: dealId,
+          configuration: dataToSave as any,
+          updated_at: new Date().toISOString()
+        }, {
+          onConflict: 'portal_id,deal_id'
+        });
+
+      if (!saveError) {
+        setFmvLeaseLastSavedData(dataString);
+        setFmvLeaseHasUnsavedChanges(false);
+        console.log('Auto-saved FMV lease configuration');
+      }
+    } catch (err) {
+      console.error('FMV lease auto-save error:', err);
+    }
+  }, [portalId, deal?.hsObjectId, fmvLeaseLastSavedData]);
+
+  // Handle FMV Lease form change
+  const handleFMVLeaseFormChange = useCallback((data: FMVLeaseFormData) => {
+    setFmvLeaseFormData(data);
+    setFmvLeaseHasUnsavedChanges(true);
+    
+    if (fmvLeaseAutoSaveTimeoutRef.current) {
+      clearTimeout(fmvLeaseAutoSaveTimeoutRef.current);
+    }
+
+    fmvLeaseAutoSaveTimeoutRef.current = setTimeout(() => {
+      performFMVLeaseAutoSave(data);
+    }, AUTO_SAVE_DELAY);
+  }, [performFMVLeaseAutoSave]);
+
   // Auto-save on tab/window close
   useEffect(() => {
     const handleBeforeUnload = (e: BeforeUnloadEvent) => {
-      if ((hasUnsavedChanges && formDataRef.current) || (installationHasUnsavedChanges && installationFormDataRef.current) || (serviceAgreementHasUnsavedChanges && serviceAgreementFormDataRef.current)) {
+      if ((hasUnsavedChanges && formDataRef.current) || (installationHasUnsavedChanges && installationFormDataRef.current) || (serviceAgreementHasUnsavedChanges && serviceAgreementFormDataRef.current) || (fmvLeaseHasUnsavedChanges && fmvLeaseFormDataRef.current)) {
         e.preventDefault();
         e.returnValue = '';
       }
@@ -455,6 +557,9 @@ function DocumentHubContent() {
         }
         if (serviceAgreementHasUnsavedChanges && serviceAgreementFormDataRef.current) {
           performServiceAgreementAutoSave(serviceAgreementFormDataRef.current);
+        }
+        if (fmvLeaseHasUnsavedChanges && fmvLeaseFormDataRef.current) {
+          performFMVLeaseAutoSave(fmvLeaseFormDataRef.current);
         }
       }
     };
@@ -475,8 +580,11 @@ function DocumentHubContent() {
       if (serviceAgreementAutoSaveTimeoutRef.current) {
         clearTimeout(serviceAgreementAutoSaveTimeoutRef.current);
       }
+      if (fmvLeaseAutoSaveTimeoutRef.current) {
+        clearTimeout(fmvLeaseAutoSaveTimeoutRef.current);
+      }
     };
-  }, [hasUnsavedChanges, installationHasUnsavedChanges, serviceAgreementHasUnsavedChanges, performAutoSave, performInstallationAutoSave, performServiceAgreementAutoSave]);
+  }, [hasUnsavedChanges, installationHasUnsavedChanges, serviceAgreementHasUnsavedChanges, fmvLeaseHasUnsavedChanges, performAutoSave, performInstallationAutoSave, performServiceAgreementAutoSave, performFMVLeaseAutoSave]);
 
   // Recover from localStorage backup if exists
   useEffect(() => {
@@ -949,6 +1057,113 @@ function DocumentHubContent() {
     setShowServiceAgreementPreview(true);
   };
 
+  // FMV Lease handlers
+  const handleFMVLeaseSave = async () => {
+    if (!fmvLeaseFormData) {
+      toast.error('No data to save');
+      return;
+    }
+
+    const currentPortalId = portalId || localStorage.getItem('hs_portal_id');
+    const dealId = deal?.hsObjectId;
+
+    if (!currentPortalId || !dealId) {
+      toast.error('Missing portal or deal information');
+      return;
+    }
+
+    setFmvLeaseSaving(true);
+    try {
+      const { error: saveError } = await supabase
+        .from('fmv_lease_configurations')
+        .upsert({
+          portal_id: currentPortalId,
+          deal_id: dealId,
+          configuration: fmvLeaseFormData as any,
+          updated_at: new Date().toISOString()
+        }, {
+          onConflict: 'portal_id,deal_id'
+        });
+
+      if (saveError) {
+        console.error('Save error:', saveError);
+        toast.error('Failed to save FMV lease configuration');
+        return;
+      }
+
+      setFmvLeaseLastSavedData(JSON.stringify(fmvLeaseFormData));
+      setFmvLeaseHasUnsavedChanges(false);
+      toast.success('FMV lease configuration saved');
+    } catch (err) {
+      console.error('Save error:', err);
+      toast.error('Failed to save FMV lease configuration');
+    } finally {
+      setFmvLeaseSaving(false);
+    }
+  };
+
+  const handleFMVLeaseGeneratePDF = async () => {
+    if (!fmvLeasePreviewRef.current || !fmvLeaseFormData) {
+      toast.error('Please fill in the FMV lease details first');
+      return;
+    }
+
+    setFmvLeaseGenerating(true);
+    try {
+      const pdf = await generateMultiPagePDF(fmvLeasePreviewRef.current);
+      
+      const sanitizedCompanyName = (fmvLeaseFormData.companyLegalName || 'Draft').replace(/[^a-zA-Z0-9\s]/g, '').replace(/\s+/g, '_');
+      const now = new Date();
+      const dateStr = now.toISOString().split('T')[0];
+      const timeStr = now.toTimeString().slice(0, 5).replace(':', '-');
+      const fileName = `FMV_Lease_${sanitizedCompanyName}_${dateStr}_${timeStr}.pdf`;
+      
+      pdf.save(fileName);
+
+      const currentPortalId = portalId || localStorage.getItem('hs_portal_id');
+      const currentDealId = deal?.hsObjectId;
+
+      if (currentPortalId && currentDealId) {
+        try {
+          const pdfBase64 = pdf.output('datauristring').split(',')[1];
+          
+          const { data, error: attachError } = await supabase.functions.invoke('hubspot-attach-file', {
+            body: {
+              portalId: currentPortalId,
+              dealId: currentDealId,
+              fileName: fileName,
+              fileBase64: pdfBase64
+            }
+          });
+
+          if (attachError || data?.error) {
+            toast.success('PDF downloaded! (Could not attach to deal)');
+          } else {
+            toast.success('PDF downloaded and attached to deal!');
+          }
+        } catch (attachErr) {
+          console.error('Failed to attach to HubSpot:', attachErr);
+          toast.success('PDF downloaded! (Could not attach to deal)');
+        }
+      } else {
+        toast.success('FMV Lease PDF downloaded successfully!');
+      }
+    } catch (err) {
+      console.error('PDF generation error:', err);
+      toast.error('Failed to generate PDF');
+    } finally {
+      setFmvLeaseGenerating(false);
+    }
+  };
+
+  const handleFMVLeasePreview = () => {
+    if (!fmvLeaseFormData) {
+      toast.error('Please fill in the FMV lease details first');
+      return;
+    }
+    setShowFMVLeasePreview(true);
+  };
+
   // Get the saved config for the currently selected line item
   const getCurrentInstallationSavedConfig = () => {
     if (!installationFormData?.selectedLineItemId) return undefined;
@@ -1297,8 +1512,97 @@ function DocumentHubContent() {
             </Card>
           </TabsContent>
 
+          {/* FMV Lease Tab Content */}
+          <TabsContent value="fmv_lease" className="mt-0">
+            <Card>
+              <CardHeader className="pb-3">
+                <CardTitle className="text-lg flex items-center gap-2">
+                  <FileSpreadsheet className="h-5 w-5" />
+                  Generate FMV Lease Agreement
+                </CardTitle>
+                <CardDescription>
+                  Create an FMV lease agreement with customer, equipment, and payment details
+                </CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <FMVLeaseForm
+                  formData={fmvLeaseFormData || {
+                    companyLegalName: '',
+                    phone: '',
+                    billingAddress: '',
+                    billingCity: '',
+                    billingState: '',
+                    billingZip: '',
+                    equipmentAddress: '',
+                    equipmentCity: '',
+                    equipmentState: '',
+                    equipmentZip: '',
+                    equipmentItems: [],
+                    termInMonths: '',
+                    paymentFrequency: 'monthly',
+                    firstPaymentDate: null,
+                    paymentAmount: '',
+                  }}
+                  onChange={handleFMVLeaseFormChange}
+                  company={company ? {
+                    name: company.name,
+                    phone: company.phone,
+                    deliveryAddress: company.deliveryAddress,
+                    deliveryAddress2: company.deliveryAddress2,
+                    deliveryCity: company.deliveryCity,
+                    deliveryState: company.deliveryState,
+                    deliveryZip: company.deliveryZip,
+                    apAddress: company.apAddress,
+                    apAddress2: company.apAddress2,
+                    apCity: company.apCity,
+                    apState: company.apState,
+                    apZip: company.apZip,
+                    address: company.address,
+                    address2: company.address2,
+                    city: company.city,
+                    state: company.state,
+                    zip: company.zip,
+                  } : null}
+                  lineItems={lineItems}
+                  savedConfig={fmvLeaseSavedConfig}
+                  serviceAgreementFormData={serviceAgreementFormData ? {
+                    contractLengthMonths: serviceAgreementFormData.contractLengthMonths,
+                    effectiveDate: serviceAgreementFormData.effectiveDate,
+                  } : null}
+                  quoteFormData={formData ? {
+                    serviceBaseRate: formData.serviceBaseRate,
+                  } : null}
+                />
+
+                {/* Actions */}
+                <div className="flex gap-2 pt-4 border-t">
+                  <Button variant="outline" onClick={handleFMVLeaseSave} disabled={fmvLeaseSaving}>
+                    {fmvLeaseSaving ? (
+                      <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                    ) : (
+                      <Save className="h-4 w-4 mr-2" />
+                    )}
+                    {fmvLeaseSaving ? 'Saving...' : 'Save'}
+                  </Button>
+                  <Button className="flex-1" onClick={handleFMVLeaseGeneratePDF} disabled={fmvLeaseGenerating}>
+                    {fmvLeaseGenerating ? (
+                      <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                    ) : (
+                      <Download className="h-4 w-4 mr-2" />
+                    )}
+                    {fmvLeaseGenerating ? 'Generating...' : 'Generate PDF'}
+                  </Button>
+                  <Button variant="outline" onClick={handleFMVLeasePreview}>
+                    <Eye className="h-4 w-4 mr-2" />
+                    Preview
+                  </Button>
+                </div>
+              </CardContent>
+            </Card>
+          </TabsContent>
+
           {/* Placeholder for other tabs */}
-          {documentTypes.slice(3).map((doc) => (
+          {documentTypes.slice(4).map((doc) => (
             <TabsContent key={doc.code} value={doc.code} className="mt-0">
               <Card>
                 <CardContent className="py-12 text-center">
@@ -1427,6 +1731,52 @@ function DocumentHubContent() {
                     } : undefined}
                     lineItems={lineItems}
                     termsAndConditions={documentTerms.service_agreement}
+                  />
+                </div>
+              )}
+            </div>
+          </ScrollArea>
+        </DialogContent>
+      </Dialog>
+
+      {/* Hidden preview for FMV Lease PDF generation */}
+      <div className="hidden">
+        {fmvLeaseFormData && (
+          <FMVLeasePreview
+            ref={fmvLeasePreviewRef}
+            formData={fmvLeaseFormData}
+            dealerInfo={dealerInfo ? {
+              company_name: dealerInfo.companyName,
+              address_line1: dealerInfo.address,
+              phone: dealerInfo.phone,
+              website: dealerInfo.website,
+              logo_url: dealerInfo.logoUrl,
+            } : undefined}
+            termsAndConditions={documentTerms.fmv_lease}
+          />
+        )}
+      </div>
+
+      {/* FMV Lease Preview Dialog */}
+      <Dialog open={showFMVLeasePreview} onOpenChange={setShowFMVLeasePreview}>
+        <DialogContent className="max-w-4xl max-h-[90vh] p-0">
+          <DialogHeader className="p-4 pb-0">
+            <DialogTitle>FMV Lease Agreement Preview</DialogTitle>
+          </DialogHeader>
+          <ScrollArea className="max-h-[calc(90vh-80px)]">
+            <div className="p-4 flex justify-center">
+              {fmvLeaseFormData && (
+                <div className="shadow-lg border">
+                  <FMVLeasePreview
+                    formData={fmvLeaseFormData}
+                    dealerInfo={dealerInfo ? {
+                      company_name: dealerInfo.companyName,
+                      address_line1: dealerInfo.address,
+                      phone: dealerInfo.phone,
+                      website: dealerInfo.website,
+                      logo_url: dealerInfo.logoUrl,
+                    } : undefined}
+                    termsAndConditions={documentTerms.fmv_lease}
                   />
                 </div>
               )}
