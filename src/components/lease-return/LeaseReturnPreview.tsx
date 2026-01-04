@@ -191,9 +191,9 @@ export const LeaseReturnPreview = forwardRef<HTMLDivElement, LeaseReturnPreviewP
           </table>
 
           {/* Two-column signature layout */}
-          <div className="mt-6 grid grid-cols-[1fr_150px] gap-4">
+          <div className="mt-4 grid grid-cols-[1fr_150px] gap-4">
             {/* Left column */}
-            <div className="space-y-6">
+            <div className="space-y-3">
               {/* Customer Signature */}
               <div>
                 <div className="border-b border-black h-6 mb-1"></div>
@@ -214,7 +214,7 @@ export const LeaseReturnPreview = forwardRef<HTMLDivElement, LeaseReturnPreviewP
             </div>
 
             {/* Right column - Date fields */}
-            <div className="space-y-6">
+            <div className="space-y-3">
               {/* Date for Customer Signature */}
               <div>
                 <div className="border-b border-black h-6 mb-1"></div>
