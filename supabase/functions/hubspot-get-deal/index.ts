@@ -324,11 +324,10 @@ Deno.serve(async (req) => {
         // Fetch company with all address fields including delivery (Ship To) and AP (Bill To) addresses
         const companyProperties = [
           'name', 'address', 'address2', 'city', 'state', 'zip', 'phone', 'domain', 'customer_number',
-          // Ship To (Delivery) Address fields (2 underscores)
+          // Ship To (Delivery) Address fields
           'street_address__del_', 'street_address_line_2__del_', 'city__del_', 'state__del_', 'postal_code__del_',
-          // Bill To (AP) Address fields - try both 2 and 3 underscore variants
-          'street_address__ap_', 'street_address_line_2__ap_', 'city__ap_', 'state__ap_', 'zip_code__ap_',
-          'street_address___ap_', 'street_address_line_2___ap_', 'city___ap_', 'state___ap_', 'zip_code___ap_'
+          // Bill To (AP) Address fields (2 underscores, matching delivery pattern)
+          'street_address__ap_', 'street_address_line_2__ap_', 'city__ap_', 'state__ap_', 'zip_code__ap_'
         ].join(',');
         
         const companyResponse = await hubspotRequest(
@@ -356,12 +355,12 @@ Deno.serve(async (req) => {
           deliveryCity: companyResponse.properties.city__del_ || '',
           deliveryState: companyResponse.properties.state__del_ || '',
           deliveryZip: companyResponse.properties.postal_code__del_ || '',
-          // Bill To (AP) Address - try 2 underscore variant first, fallback to 3
-          apAddress: companyResponse.properties.street_address__ap_ || companyResponse.properties.street_address___ap_ || '',
-          apAddress2: companyResponse.properties.street_address_line_2__ap_ || companyResponse.properties.street_address_line_2___ap_ || '',
-          apCity: companyResponse.properties.city__ap_ || companyResponse.properties.city___ap_ || '',
-          apState: companyResponse.properties.state__ap_ || companyResponse.properties.state___ap_ || '',
-          apZip: companyResponse.properties.zip_code__ap_ || companyResponse.properties.zip_code___ap_ || '',
+          // Bill To (AP) Address (2 underscores)
+          apAddress: companyResponse.properties.street_address__ap_ || '',
+          apAddress2: companyResponse.properties.street_address_line_2__ap_ || '',
+          apCity: companyResponse.properties.city__ap_ || '',
+          apState: companyResponse.properties.state__ap_ || '',
+          apZip: companyResponse.properties.zip_code__ap_ || '',
         };
         console.log('Company fetched:', company.name, 'customerNumber:', company.customerNumber, 'deliveryAddress:', company.deliveryAddress, 'apAddress:', company.apAddress);
 
