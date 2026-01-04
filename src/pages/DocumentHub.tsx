@@ -1304,7 +1304,7 @@ function DocumentHubContent() {
           </TabsList>
 
           {/* Quote Tab Content */}
-          <TabsContent value="quote" className="mt-0" forceMount style={{ display: 'var(--radix-tabs-content-display, none)' }} data-state-display>
+          <TabsContent value="quote" className="mt-0">
             <Card>
               <CardHeader className="pb-3">
                 <CardTitle className="text-lg flex items-center gap-2">
@@ -1355,7 +1355,7 @@ function DocumentHubContent() {
           </TabsContent>
 
           {/* Installation Tab Content */}
-          <TabsContent value="installation" className="mt-0" forceMount style={{ display: 'var(--radix-tabs-content-display, none)' }} data-state-display>
+          <TabsContent value="installation" className="mt-0">
             <Card>
               <CardHeader className="pb-3">
                 <CardTitle className="text-lg flex items-center gap-2">
@@ -1416,7 +1416,7 @@ function DocumentHubContent() {
           </TabsContent>
 
           {/* Service Agreement Tab Content */}
-          <TabsContent value="service_agreement" className="mt-0" forceMount style={{ display: 'var(--radix-tabs-content-display, none)' }} data-state-display>
+          <TabsContent value="service_agreement" className="mt-0">
             <Card>
               <CardHeader className="pb-3">
                 <CardTitle className="text-lg flex items-center gap-2">
@@ -1520,7 +1520,7 @@ function DocumentHubContent() {
           </TabsContent>
 
           {/* FMV Lease Tab Content */}
-          <TabsContent value="fmv_lease" className="mt-0" forceMount style={{ display: 'var(--radix-tabs-content-display, none)' }} data-state-display>
+          <TabsContent value="fmv_lease" className="mt-0">
             <Card>
               <CardHeader className="pb-3">
                 <CardTitle className="text-lg flex items-center gap-2">
