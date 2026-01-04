@@ -216,6 +216,33 @@ export type Database = {
         }
         Relationships: []
       }
+      fmv_lease_configurations: {
+        Row: {
+          configuration: Json
+          created_at: string
+          deal_id: string
+          id: string
+          portal_id: string
+          updated_at: string
+        }
+        Insert: {
+          configuration?: Json
+          created_at?: string
+          deal_id: string
+          id?: string
+          portal_id: string
+          updated_at?: string
+        }
+        Update: {
+          configuration?: Json
+          created_at?: string
+          deal_id?: string
+          id?: string
+          portal_id?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       generated_documents: {
         Row: {
           created_at: string
