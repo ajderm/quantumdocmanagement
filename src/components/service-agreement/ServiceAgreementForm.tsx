@@ -113,6 +113,7 @@ interface ServiceAgreementFormProps {
     apZip?: string;
     // Fallback address
     address?: string;
+    address2?: string;
     city?: string;
     state?: string;
     zip?: string;
@@ -144,60 +145,180 @@ export function ServiceAgreementForm({
   // Track if we've done initial setup
   const hasInitializedRef = useRef(false);
 
-  // Initialize form data from saved config, company, contacts, and quote data - only once
+  // Initialize form data from saved config, company, contacts, and quote data
+  // - Saved config has priority
+  // - But we backfill missing Ship To / Bill To fields from HubSpot when available
   useEffect(() => {
     // Only initialize once
     if (hasInitializedRef.current) return;
 
-    if (savedConfig) {
+    // If we have a saved config but company hasn't loaded yet, initialize from saved config.
+    // (A separate effect below will backfill addresses once company becomes available.)
+    if (savedConfig && !company) {
       onChange(savedConfig);
       hasInitializedRef.current = true;
       return;
     }
 
-    // Only initialize if we have company data
-    if (!company) return;
+    // If neither company nor saved config is available, wait.
+    if (!company && !savedConfig) return;
+
+    const pick = (...vals: Array<string | undefined | null>) =>
+      vals
+        .map((v) => (v ?? "").trim())
+        .find(Boolean) || "";
+
+    const buildAddress = (line1?: string | null, line2?: string | null) => {
+      const a1 = (line1 ?? "").trim();
+      const a2 = (line2 ?? "").trim();
+      if (!a1 && !a2) return "";
+      if (a1 && a2) return `${a1}, ${a2}`;
+      return a1 || a2;
+    };
+
+    const fillIfEmpty = (current: string, next: string) => (current?.trim() ? current : next);
+
+    const base = savedConfig ? { ...formData, ...savedConfig } : { ...formData };
 
     const shipToContact = labeledContacts.shippingContact;
     const billToContact = labeledContacts.apContact;
 
     // Initialize rates from quote form data if available
-    const initialRates: ServiceAgreementFormData['rates'] = {};
+    const initialRates: ServiceAgreementFormData["rates"] = {};
     hardwareLineItems.forEach((item) => {
       initialRates[item.id] = {
-        includesBW: quoteFormData?.includedBWCopies || '',
-        includesColor: quoteFormData?.includedColorCopies || '',
-        overagesBW: quoteFormData?.overageBWRate || '',
-        overagesColor: quoteFormData?.overageColorRate || '',
-        baseRate: quoteFormData?.serviceBaseRate || '',
+        includesBW: quoteFormData?.includedBWCopies || "",
+        includesColor: quoteFormData?.includedColorCopies || "",
+        overagesBW: quoteFormData?.overageBWRate || "",
+        overagesColor: quoteFormData?.overageColorRate || "",
+        baseRate: quoteFormData?.serviceBaseRate || "",
       };
     });
 
+    const shipToAddress =
+      company &&
+      pick(
+        buildAddress(company.deliveryAddress, company.deliveryAddress2),
+        buildAddress(company.address, company.address2)
+      );
+    const shipToCity = company ? pick(company.deliveryCity, company.city) : "";
+    const shipToState = company ? pick(company.deliveryState, company.state) : "";
+    const shipToZip = company ? pick(company.deliveryZip, company.zip) : "";
+
+    const billToAddress =
+      company &&
+      pick(
+        buildAddress(company.apAddress, company.apAddress2),
+        buildAddress(company.address, company.address2)
+      );
+    const billToCity = company ? pick(company.apCity, company.city) : "";
+    const billToState = company ? pick(company.apState, company.state) : "";
+    const billToZip = company ? pick(company.apZip, company.zip) : "";
+
+    const nextRates =
+      base.rates && Object.keys(base.rates).length > 0 ? base.rates : initialRates;
+
     onChange({
-      ...formData,
-      customerNumber: company?.customerNumber || '',
-      // Ship To - use delivery address fields from HubSpot
-      shipToCompany: company?.name || '',
-      shipToAddress: company?.deliveryAddress || '',
-      shipToCity: company?.deliveryCity || '',
-      shipToState: company?.deliveryState || '',
-      shipToZip: company?.deliveryZip || '',
-      shipToAttn: shipToContact ? `${shipToContact.firstName || ''} ${shipToContact.lastName || ''}`.trim() : '',
-      shipToPhone: shipToContact?.phone || '',
-      shipToEmail: shipToContact?.email || '',
-      // Bill To - use AP address fields from HubSpot
-      billToCompany: company?.name || '',
-      billToAddress: company?.apAddress || '',
-      billToCity: company?.apCity || '',
-      billToState: company?.apState || '',
-      billToZip: company?.apZip || '',
-      billToAttn: billToContact ? `${billToContact.firstName || ''} ${billToContact.lastName || ''}`.trim() : '',
-      billToPhone: billToContact?.phone || '',
-      billToEmail: billToContact?.email || '',
-      rates: initialRates,
+      ...base,
+      customerNumber: fillIfEmpty(base.customerNumber, company?.customerNumber || ""),
+
+      // Ship To
+      shipToCompany: fillIfEmpty(base.shipToCompany, company?.name || ""),
+      shipToAddress: fillIfEmpty(base.shipToAddress, shipToAddress || ""),
+      shipToCity: fillIfEmpty(base.shipToCity, shipToCity),
+      shipToState: fillIfEmpty(base.shipToState, shipToState),
+      shipToZip: fillIfEmpty(base.shipToZip, shipToZip),
+      shipToAttn: fillIfEmpty(
+        base.shipToAttn,
+        shipToContact
+          ? `${shipToContact.firstName || ""} ${shipToContact.lastName || ""}`.trim()
+          : ""
+      ),
+      shipToPhone: fillIfEmpty(base.shipToPhone, shipToContact?.phone || ""),
+      shipToEmail: fillIfEmpty(base.shipToEmail, shipToContact?.email || ""),
+
+      // Bill To
+      billToCompany: fillIfEmpty(base.billToCompany, company?.name || ""),
+      billToAddress: fillIfEmpty(base.billToAddress, billToAddress || ""),
+      billToCity: fillIfEmpty(base.billToCity, billToCity),
+      billToState: fillIfEmpty(base.billToState, billToState),
+      billToZip: fillIfEmpty(base.billToZip, billToZip),
+      billToAttn: fillIfEmpty(
+        base.billToAttn,
+        billToContact
+          ? `${billToContact.firstName || ""} ${billToContact.lastName || ""}`.trim()
+          : ""
+      ),
+      billToPhone: fillIfEmpty(base.billToPhone, billToContact?.phone || ""),
+      billToEmail: fillIfEmpty(base.billToEmail, billToContact?.email || ""),
+
+      rates: nextRates,
     });
+
     hasInitializedRef.current = true;
-  }, [savedConfig, company, labeledContacts, quoteFormData]);
+  }, [savedConfig, company, labeledContacts, quoteFormData, hardwareLineItems]);
+
+  // Backfill addresses from company if a saved config (or prior state) left them blank.
+  useEffect(() => {
+    if (!company) return;
+
+    const pick = (...vals: Array<string | undefined | null>) =>
+      vals
+        .map((v) => (v ?? "").trim())
+        .find(Boolean) || "";
+
+    const buildAddress = (line1?: string | null, line2?: string | null) => {
+      const a1 = (line1 ?? "").trim();
+      const a2 = (line2 ?? "").trim();
+      if (!a1 && !a2) return "";
+      if (a1 && a2) return `${a1}, ${a2}`;
+      return a1 || a2;
+    };
+
+    const shipToAddress = pick(
+      buildAddress(company.deliveryAddress, company.deliveryAddress2),
+      buildAddress(company.address, company.address2)
+    );
+    const shipToCity = pick(company.deliveryCity, company.city);
+    const shipToState = pick(company.deliveryState, company.state);
+    const shipToZip = pick(company.deliveryZip, company.zip);
+
+    const billToAddress = pick(
+      buildAddress(company.apAddress, company.apAddress2),
+      buildAddress(company.address, company.address2)
+    );
+    const billToCity = pick(company.apCity, company.city);
+    const billToState = pick(company.apState, company.state);
+    const billToZip = pick(company.apZip, company.zip);
+
+    const patch: Partial<ServiceAgreementFormData> = {};
+
+    if (!formData.shipToAddress?.trim() && shipToAddress) patch.shipToAddress = shipToAddress;
+    if (!formData.shipToCity?.trim() && shipToCity) patch.shipToCity = shipToCity;
+    if (!formData.shipToState?.trim() && shipToState) patch.shipToState = shipToState;
+    if (!formData.shipToZip?.trim() && shipToZip) patch.shipToZip = shipToZip;
+
+    if (!formData.billToAddress?.trim() && billToAddress) patch.billToAddress = billToAddress;
+    if (!formData.billToCity?.trim() && billToCity) patch.billToCity = billToCity;
+    if (!formData.billToState?.trim() && billToState) patch.billToState = billToState;
+    if (!formData.billToZip?.trim() && billToZip) patch.billToZip = billToZip;
+
+    if (Object.keys(patch).length > 0) {
+      onChange({ ...formData, ...patch });
+    }
+  }, [
+    company,
+    formData,
+    formData.shipToAddress,
+    formData.shipToCity,
+    formData.shipToState,
+    formData.shipToZip,
+    formData.billToAddress,
+    formData.billToCity,
+    formData.billToState,
+    formData.billToZip,
+    onChange,
+  ]);
 
   const updateField = (field: keyof ServiceAgreementFormData, value: any) => {
     onChange({ ...formData, [field]: value });

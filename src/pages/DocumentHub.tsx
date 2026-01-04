@@ -1252,6 +1252,7 @@ function DocumentHubContent() {
                     apZip: company.apZip,
                     // Fallback address
                     address: company.address,
+                    address2: company.address2,
                     city: company.city,
                     state: company.state,
                     zip: company.zip,
