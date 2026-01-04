@@ -305,18 +305,19 @@ export function QuoteForm({ deal, company, lineItems, dealOwner, onFormChange, p
     // Get retail price from deal amount
     const dealAmount = parseFloat(deal?.amount) || 0;
     
-    // Start with HubSpot data
+    // Start with HubSpot data - use delivery address for quote (Ship To)
     const hubspotData = { 
       quoteNumber: deal?.hsObjectId || '', 
       preparedBy: dealOwner ? `${dealOwner.firstName || ''} ${dealOwner.lastName || ''}`.trim() : '', 
       preparedByEmail: dealOwner?.email || '', 
       preparedByPhone: dealOwner?.phone || '', 
       companyName: company?.name || '', 
-      address: company?.address || '', 
-      address2: company?.address2 || '', 
-      city: company?.city || '', 
-      state: company?.state || '', 
-      zip: company?.zip || '', 
+      // Use delivery address for quote, fall back to general address
+      address: company?.deliveryAddress || company?.address || '', 
+      address2: company?.deliveryAddress2 || company?.address2 || '', 
+      city: company?.deliveryCity || company?.city || '', 
+      state: company?.deliveryState || company?.state || '', 
+      zip: company?.deliveryZip || company?.zip || '', 
       phone: company?.phone || '', 
       lineItems: lineItems.map((item: any) => ({ 
         id: item.id, 

@@ -321,9 +321,18 @@ Deno.serve(async (req) => {
       
       if (companyAssociations.results?.length > 0) {
         const companyId = companyAssociations.results[0].id;
+        // Fetch company with all address fields including delivery (Ship To) and AP (Bill To) addresses
+        const companyProperties = [
+          'name', 'address', 'address2', 'city', 'state', 'zip', 'phone', 'domain', 'customer_number',
+          // Ship To (Delivery) Address fields
+          'street_address__del_', 'street_address_line_2__del_', 'city__del_', 'state__del_', 'postal_code__del_',
+          // Bill To (AP) Address fields
+          'street_address___ap_', 'street_address_line_2___ap_', 'city___ap_', 'state___ap_', 'zip_code___ap_'
+        ].join(',');
+        
         const companyResponse = await hubspotRequest(
           accessToken,
-          `/crm/v3/objects/companies/${companyId}?properties=name,address,address2,city,state,zip,phone,domain,customer_number`
+          `/crm/v3/objects/companies/${companyId}?properties=${companyProperties}`
         );
         company = {
           companyId: companyResponse.id,
@@ -336,8 +345,20 @@ Deno.serve(async (req) => {
           phone: companyResponse.properties.phone,
           domain: companyResponse.properties.domain,
           customerNumber: companyResponse.properties.customer_number || '',
+          // Ship To (Delivery) Address
+          deliveryAddress: companyResponse.properties.street_address__del_ || '',
+          deliveryAddress2: companyResponse.properties.street_address_line_2__del_ || '',
+          deliveryCity: companyResponse.properties.city__del_ || '',
+          deliveryState: companyResponse.properties.state__del_ || '',
+          deliveryZip: companyResponse.properties.postal_code__del_ || '',
+          // Bill To (AP) Address
+          apAddress: companyResponse.properties.street_address___ap_ || '',
+          apAddress2: companyResponse.properties.street_address_line_2___ap_ || '',
+          apCity: companyResponse.properties.city___ap_ || '',
+          apState: companyResponse.properties.state___ap_ || '',
+          apZip: companyResponse.properties.zip_code___ap_ || '',
         };
-        console.log('Company fetched:', company.name, 'customerNumber:', company.customerNumber);
+        console.log('Company fetched:', company.name, 'customerNumber:', company.customerNumber, 'deliveryAddress:', company.deliveryAddress, 'apAddress:', company.apAddress);
 
         // Fetch labeled contacts from company
         labeledContacts = await fetchLabeledContacts(accessToken, companyId);

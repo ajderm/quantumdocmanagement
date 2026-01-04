@@ -149,19 +149,21 @@ export function InstallationForm({
     salesRep: dealOwner ? `${dealOwner.firstName || ''} ${dealOwner.lastName || ''}`.trim() : '',
     meterMethod: '',
     cca: ccaValue || '',
+    // Ship To - use delivery address fields from HubSpot
     shipToCompany: company?.name || '',
-    shipToAddress: company?.address || '',
-    shipToCity: company?.city || '',
-    shipToState: company?.state || '',
-    shipToZip: company?.zip || '',
+    shipToAddress: company?.deliveryAddress || company?.address || '',
+    shipToCity: company?.deliveryCity || company?.city || '',
+    shipToState: company?.deliveryState || company?.state || '',
+    shipToZip: company?.deliveryZip || company?.zip || '',
     shipToAttn: '',
     shipToPhone: '',
     shipToEmail: '',
+    // Bill To - use AP address fields from HubSpot
     billToCompany: company?.name || '',
-    billToAddress: company?.address || '',
-    billToCity: company?.city || '',
-    billToState: company?.state || '',
-    billToZip: company?.zip || '',
+    billToAddress: company?.apAddress || company?.address || '',
+    billToCity: company?.apCity || company?.city || '',
+    billToState: company?.apState || company?.state || '',
+    billToZip: company?.apZip || company?.zip || '',
     billToAttn: '',
     billToPhone: '',
     billToEmail: '',
@@ -201,9 +203,18 @@ export function InstallationForm({
         salesRep: savedConfig.salesRep || (dealOwner ? `${dealOwner.firstName || ''} ${dealOwner.lastName || ''}`.trim() : ''),
         cca: savedConfig.cca || ccaValue || '',
         customerNumber: savedConfig.customerNumber || company?.customerNumber || '',
+        // Use saved config for addresses, but fall back to HubSpot data if empty
+        shipToAddress: savedConfig.shipToAddress || company?.deliveryAddress || company?.address || '',
+        shipToCity: savedConfig.shipToCity || company?.deliveryCity || company?.city || '',
+        shipToState: savedConfig.shipToState || company?.deliveryState || company?.state || '',
+        shipToZip: savedConfig.shipToZip || company?.deliveryZip || company?.zip || '',
+        billToAddress: savedConfig.billToAddress || company?.apAddress || company?.address || '',
+        billToCity: savedConfig.billToCity || company?.apCity || company?.city || '',
+        billToState: savedConfig.billToState || company?.apState || company?.state || '',
+        billToZip: savedConfig.billToZip || company?.apZip || company?.zip || '',
       }));
     }
-  }, [savedConfig, dealOwner, ccaValue, company?.customerNumber]);
+  }, [savedConfig, dealOwner, ccaValue, company]);
 
   // Update customer number when company data loads
   useEffect(() => {
