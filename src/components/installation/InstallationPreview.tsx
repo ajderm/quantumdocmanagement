@@ -115,12 +115,12 @@ export const InstallationPreview = forwardRef<HTMLDivElement, InstallationPrevie
           <table className="w-full border-collapse text-[8px]">
             <thead>
               <tr className="border-b border-black">
-                <th className="text-left py-1 w-8">Qty</th>
-                <th className="text-left py-1 w-40">Model</th>
-                <th className="text-left py-1 pl-2">Description</th>
-                <th className="text-left py-1 w-20">Serial #</th>
-                <th className="text-left py-1 w-20">MAC Address</th>
-                <th className="text-left py-1 w-16">IP Address</th>
+                <th className="text-left py-1 pb-2 w-8">Qty</th>
+                <th className="text-left py-1 pb-2 w-40">Model</th>
+                <th className="text-left py-1 pb-2 pl-2">Description</th>
+                <th className="text-left py-1 pb-2 w-20">Serial #</th>
+                <th className="text-left py-1 pb-2 w-20">MAC Address</th>
+                <th className="text-left py-1 pb-2 w-16">IP Address</th>
               </tr>
             </thead>
             <tbody>
@@ -206,12 +206,12 @@ export const InstallationPreview = forwardRef<HTMLDivElement, InstallationPrevie
             <table className="w-full border-collapse text-[8px]">
               <thead>
                 <tr className="border-b border-black">
-                  <th className="text-left py-1 w-8">Qty</th>
-                  <th className="text-left py-1 w-16">Item #</th>
-                  <th className="text-left py-1">Make/Model/Description</th>
-                  <th className="text-left py-1 w-20">Serial</th>
-                  <th className="text-left py-1 w-16">Meter(BW)</th>
-                  <th className="text-left py-1 w-16">Meter(COL)</th>
+                  <th className="text-left py-1 pb-2 w-8">Qty</th>
+                  <th className="text-left py-1 pb-2 w-16">Item #</th>
+                  <th className="text-left py-1 pb-2">Make/Model/Description</th>
+                  <th className="text-left py-1 pb-2 w-20">Serial</th>
+                  <th className="text-left py-1 pb-2 w-16">Meter(BW)</th>
+                  <th className="text-left py-1 pb-2 w-16">Meter(COL)</th>
                 </tr>
               </thead>
               <tbody>

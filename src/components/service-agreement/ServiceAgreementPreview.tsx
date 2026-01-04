@@ -82,7 +82,7 @@ export const ServiceAgreementPreview = forwardRef<HTMLDivElement, ServiceAgreeme
 
           {/* Right: Customer Number & Meter Method */}
           <div className="text-right">
-            <h1 className="text-2xl font-bold mb-2">Service Agreement</h1>
+            <h1 className="text-base font-bold mb-2">Service Agreement</h1>
             <table className="text-right ml-auto text-[9px]">
               <tbody>
                 <tr>
@@ -105,7 +105,7 @@ export const ServiceAgreementPreview = forwardRef<HTMLDivElement, ServiceAgreeme
             <table className="w-full border-collapse text-[9px]">
               <thead>
                 <tr className="border-b-2 border-black">
-                  <th colSpan={2} className="text-left py-1 font-bold">CUSTOMER SHIP TO</th>
+                  <th colSpan={2} className="text-left py-1 pb-2 font-bold">CUSTOMER SHIP TO</th>
                 </tr>
               </thead>
               <tbody>
@@ -142,7 +142,7 @@ export const ServiceAgreementPreview = forwardRef<HTMLDivElement, ServiceAgreeme
             <table className="w-full border-collapse text-[9px]">
               <thead>
                 <tr className="border-b-2 border-black">
-                  <th colSpan={2} className="text-left py-1 font-bold">CUSTOMER BILL TO</th>
+                  <th colSpan={2} className="text-left py-1 pb-2 font-bold">CUSTOMER BILL TO</th>
                 </tr>
               </thead>
               <tbody>
@@ -180,7 +180,7 @@ export const ServiceAgreementPreview = forwardRef<HTMLDivElement, ServiceAgreeme
           <table className="w-full border-collapse text-[9px]">
             <thead>
               <tr className="border-b-2 border-black">
-                <th colSpan={5} className="text-left py-1 font-bold">TERMS</th>
+                <th colSpan={5} className="text-left py-1 pb-2 font-bold">TERMS</th>
               </tr>
               <tr className="border-b border-gray-300">
                 <th className="py-1 text-center font-semibold"><span className="underline">Maintenance Type</span></th>
@@ -207,7 +207,7 @@ export const ServiceAgreementPreview = forwardRef<HTMLDivElement, ServiceAgreeme
           <table className="w-full border-collapse text-[9px]">
             <thead>
               <tr className="border-b-2 border-black">
-                <th colSpan={4} className="text-left py-1 font-bold">EQUIPMENT</th>
+                <th colSpan={4} className="text-left py-1 pb-2 font-bold">EQUIPMENT</th>
               </tr>
               <tr className="border-b border-gray-300">
                 <th className="py-1 text-left w-8"><span className="underline">Qty</span></th>
@@ -240,7 +240,7 @@ export const ServiceAgreementPreview = forwardRef<HTMLDivElement, ServiceAgreeme
           <table className="w-full border-collapse text-[9px]">
             <thead>
               <tr className="border-b-2 border-black">
-                <th colSpan={6} className="text-left py-1 font-bold">RATES</th>
+                <th colSpan={6} className="text-left py-1 pb-2 font-bold">RATES</th>
               </tr>
               <tr className="border-b border-gray-300">
                 <th className="py-1 text-left"><span className="underline">Model</span></th>
@@ -288,46 +288,46 @@ export const ServiceAgreementPreview = forwardRef<HTMLDivElement, ServiceAgreeme
           <div className="grid grid-cols-2 gap-8">
             {/* Left: Dealer */}
             <div>
-              <p className="font-bold mb-2 text-[10px]">{dealerInfo?.company_name || 'Dealer'}</p>
-              <div className="space-y-3">
+              <p className="font-bold mb-1 text-[10px]">{dealerInfo?.company_name || 'Dealer'}</p>
+              <div className="space-y-1">
                 <div>
-                  <div className="border-b border-black h-5"></div>
-                  <p className="text-[9px]">Signature</p>
+                  <div className="border-b border-black h-4"></div>
+                  <p className="text-[8px]">Signature</p>
                 </div>
                 <div>
-                  <div className="border-b border-black h-5"></div>
-                  <p className="text-[9px]">Printed Name</p>
+                  <div className="border-b border-black h-4"></div>
+                  <p className="text-[8px]">Printed Name</p>
                 </div>
                 <div>
-                  <div className="border-b border-black h-5"></div>
-                  <p className="text-[9px]">Title</p>
+                  <div className="border-b border-black h-4"></div>
+                  <p className="text-[8px]">Title</p>
                 </div>
                 <div>
-                  <div className="border-b border-black h-5"></div>
-                  <p className="text-[9px]">Date</p>
+                  <div className="border-b border-black h-4"></div>
+                  <p className="text-[8px]">Date</p>
                 </div>
               </div>
             </div>
 
             {/* Right: Customer */}
             <div>
-              <p className="font-bold mb-2 text-[10px]">{formData.billToCompany || 'Customer'}</p>
-              <div className="space-y-3">
+              <p className="font-bold mb-1 text-[10px]">{formData.billToCompany || 'Customer'}</p>
+              <div className="space-y-1">
                 <div>
-                  <div className="border-b border-black h-5"></div>
-                  <p className="text-[9px]">Signature</p>
+                  <div className="border-b border-black h-4"></div>
+                  <p className="text-[8px]">Signature</p>
                 </div>
                 <div>
-                  <div className="border-b border-black h-5"></div>
-                  <p className="text-[9px]">Printed Name</p>
+                  <div className="border-b border-black h-4"></div>
+                  <p className="text-[8px]">Printed Name</p>
                 </div>
                 <div>
-                  <div className="border-b border-black h-5"></div>
-                  <p className="text-[9px]">Title</p>
+                  <div className="border-b border-black h-4"></div>
+                  <p className="text-[8px]">Title</p>
                 </div>
                 <div>
-                  <div className="border-b border-black h-5"></div>
-                  <p className="text-[9px]">Date</p>
+                  <div className="border-b border-black h-4"></div>
+                  <p className="text-[8px]">Date</p>
                 </div>
               </div>
             </div>
