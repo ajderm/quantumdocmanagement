@@ -5,6 +5,10 @@ import { LeaseFundingFormData } from "./LeaseFundingForm";
 interface DealerInfo {
   company_name?: string;
   address_line1?: string;
+  address_line2?: string;
+  city?: string;
+  state?: string;
+  zip_code?: string;
   phone?: string;
   website?: string;
   logo_url?: string;
@@ -19,7 +23,7 @@ export const LeaseFundingPreview = forwardRef<HTMLDivElement, LeaseFundingPrevie
   ({ formData, dealerInfo }, ref) => {
     const formatCurrency = (value: string | number): string => {
       const num = typeof value === "string" ? parseFloat(value.replace(/[^0-9.]/g, "")) : value;
-      if (isNaN(num)) return "$0.00";
+      if (isNaN(num)) return "-";
       return new Intl.NumberFormat("en-US", {
         style: "currency",
         currency: "USD",
@@ -29,181 +33,155 @@ export const LeaseFundingPreview = forwardRef<HTMLDivElement, LeaseFundingPrevie
     };
 
     const formatDate = (date: Date | null): string => {
-      if (!date) return "";
+      if (!date) return "-";
       return format(date, "MM/dd/yyyy");
     };
 
     return (
       <div
         ref={ref}
-        className="bg-white text-black p-8"
-        style={{
-          width: "8.5in",
-          minHeight: "11in",
-          fontFamily: "Arial, sans-serif",
-          fontSize: "11pt",
-          lineHeight: "1.4",
-        }}
+        className="bg-white text-black p-8 min-h-[11in] w-[8.5in] text-[11px] leading-tight"
+        style={{ fontFamily: "Arial, sans-serif" }}
       >
-        {/* Header with Dealer Info */}
-        <div className="flex justify-between items-start mb-8 pb-4 border-b-2 border-gray-300">
+        {/* Header */}
+        <div className="flex justify-between items-start mb-6">
+          {/* Left: Dealer Info */}
           <div className="flex items-start gap-4">
             {dealerInfo?.logo_url && (
               <img
                 src={dealerInfo.logo_url}
                 alt="Company Logo"
-                className="h-16 w-auto object-contain"
+                className="h-12 object-contain"
+                crossOrigin="anonymous"
               />
             )}
             <div>
-              <h1 className="text-xl font-bold text-gray-900">
+              <p className="font-bold text-[10px]">
                 {dealerInfo?.company_name || "Company Name"}
-              </h1>
-              {dealerInfo?.address_line1 && (
-                <p className="text-sm text-gray-600">{dealerInfo.address_line1}</p>
+              </p>
+              <p className="text-[9px]">
+                {dealerInfo?.address_line1}
+                {dealerInfo?.address_line2 && <>, {dealerInfo.address_line2}</>}
+              </p>
+              <p className="text-[9px]">
+                {[dealerInfo?.city, dealerInfo?.state, dealerInfo?.zip_code]
+                  .filter(Boolean)
+                  .join(", ")}
+              </p>
+              {dealerInfo?.phone && (
+                <p className="text-[9px]">Phone: {dealerInfo.phone}</p>
               )}
-              <div className="flex gap-4 text-sm text-gray-600">
-                {dealerInfo?.phone && <span>{dealerInfo.phone}</span>}
-                {dealerInfo?.website && <span>{dealerInfo.website}</span>}
-              </div>
+              {dealerInfo?.website && (
+                <p className="text-[9px]">{dealerInfo.website}</p>
+              )}
             </div>
           </div>
-        </div>
 
-        {/* Document Title */}
-        <div className="text-center mb-6">
-          <h2 className="text-2xl font-bold uppercase tracking-wide">
-            Lease Funding Document
-          </h2>
+          {/* Right: Document Title */}
+          <div className="text-right">
+            <h1 className="text-base font-bold mb-2">Lease Funding Document</h1>
+          </div>
         </div>
 
         {/* Lease Information Table */}
-        <div className="mb-6">
-          <div className="bg-gray-100 px-3 py-2 font-bold text-sm uppercase tracking-wide border border-gray-300">
-            Lease Information
-          </div>
-          <table className="w-full border-collapse">
+        <div className="mb-4">
+          <table className="w-full border-collapse text-[9px]">
+            <thead>
+              <tr className="border-b-2 border-black">
+                <th colSpan={2} className="text-left py-1 pb-2 font-bold">
+                  LEASE INFORMATION
+                </th>
+              </tr>
+            </thead>
             <tbody>
               <tr className="border-b border-gray-300">
-                <td className="py-2 px-3 font-semibold bg-gray-50 w-1/3 border-r border-gray-300">
-                  Date
-                </td>
-                <td className="py-2 px-3">{formatDate(formData.date)}</td>
+                <td className="py-1 w-32 font-semibold">Date</td>
+                <td className="py-1">{formatDate(formData.date)}</td>
               </tr>
               <tr className="border-b border-gray-300">
-                <td className="py-2 px-3 font-semibold bg-gray-50 border-r border-gray-300">
-                  Customer Name
-                </td>
-                <td className="py-2 px-3">{formData.customerName}</td>
+                <td className="py-1 font-semibold">Customer Name</td>
+                <td className="py-1">{formData.customerName || "-"}</td>
               </tr>
               <tr className="border-b border-gray-300">
-                <td className="py-2 px-3 font-semibold bg-gray-50 border-r border-gray-300">
-                  Location / Branch
-                </td>
-                <td className="py-2 px-3">{formData.locationBranch}</td>
+                <td className="py-1 font-semibold">Location / Branch</td>
+                <td className="py-1">{formData.locationBranch || "-"}</td>
               </tr>
               <tr className="border-b border-gray-300">
-                <td className="py-2 px-3 font-semibold bg-gray-50 border-r border-gray-300">
-                  Sales Representative
-                </td>
-                <td className="py-2 px-3">{formData.salesRepresentative}</td>
+                <td className="py-1 font-semibold">Sales Representative</td>
+                <td className="py-1">{formData.salesRepresentative || "-"}</td>
               </tr>
             </tbody>
           </table>
         </div>
 
         {/* Equipment Table */}
-        <div className="mb-6">
-          <div className="bg-gray-100 px-3 py-2 font-bold text-sm uppercase tracking-wide border border-gray-300">
-            Equipment
-          </div>
-          <table className="w-full border-collapse">
+        <div className="mb-4">
+          <table className="w-full border-collapse text-[9px]">
+            <thead>
+              <tr className="border-b-2 border-black">
+                <th colSpan={2} className="text-left py-1 pb-2 font-bold">
+                  EQUIPMENT
+                </th>
+              </tr>
+            </thead>
             <tbody>
               <tr className="border-b border-gray-300">
-                <td className="py-2 px-3 font-semibold bg-gray-50 w-1/3 border-r border-gray-300">
-                  Make / Model
-                </td>
-                <td className="py-2 px-3">{formData.equipmentMakeModel}</td>
+                <td className="py-1 w-32 font-semibold">Make / Model</td>
+                <td className="py-1">{formData.equipmentMakeModel || "-"}</td>
               </tr>
               <tr className="border-b border-gray-300">
-                <td className="py-2 px-3 font-semibold bg-gray-50 border-r border-gray-300">
-                  ID Number
-                </td>
-                <td className="py-2 px-3">{formData.idNumber || "-"}</td>
+                <td className="py-1 font-semibold">ID Number</td>
+                <td className="py-1">{formData.idNumber || "-"}</td>
               </tr>
               <tr className="border-b border-gray-300">
-                <td className="py-2 px-3 font-semibold bg-gray-50 border-r border-gray-300">
-                  Serial Number
-                </td>
-                <td className="py-2 px-3">{formData.serialNumber || "-"}</td>
+                <td className="py-1 font-semibold">Serial Number</td>
+                <td className="py-1">{formData.serialNumber || "-"}</td>
               </tr>
             </tbody>
           </table>
         </div>
 
         {/* Lease Terms Table */}
-        <div className="mb-6">
-          <div className="bg-gray-100 px-3 py-2 font-bold text-sm uppercase tracking-wide border border-gray-300">
-            Lease Terms
-          </div>
-          <table className="w-full border-collapse">
+        <div className="mb-4">
+          <table className="w-full border-collapse text-[9px]">
+            <thead>
+              <tr className="border-b-2 border-black">
+                <th colSpan={2} className="text-left py-1 pb-2 font-bold">
+                  LEASE TERMS
+                </th>
+              </tr>
+            </thead>
             <tbody>
               <tr className="border-b border-gray-300">
-                <td className="py-2 px-3 font-semibold bg-gray-50 w-1/3 border-r border-gray-300">
-                  Lease Vendor
-                </td>
-                <td className="py-2 px-3">{formData.leaseVendor || "-"}</td>
+                <td className="py-1 w-32 font-semibold">Lease Vendor</td>
+                <td className="py-1">{formData.leaseVendor || "-"}</td>
               </tr>
               <tr className="border-b border-gray-300">
-                <td className="py-2 px-3 font-semibold bg-gray-50 border-r border-gray-300">
-                  Lease Type
-                </td>
-                <td className="py-2 px-3">{formData.leaseType}</td>
+                <td className="py-1 font-semibold">Lease Type</td>
+                <td className="py-1">{formData.leaseType || "-"}</td>
               </tr>
               <tr className="border-b border-gray-300">
-                <td className="py-2 px-3 font-semibold bg-gray-50 border-r border-gray-300">
-                  Term Length
-                </td>
-                <td className="py-2 px-3">
+                <td className="py-1 font-semibold">Term Length</td>
+                <td className="py-1">
                   {formData.termLength ? `${formData.termLength} Months` : "-"}
                 </td>
               </tr>
               <tr className="border-b border-gray-300">
-                <td className="py-2 px-3 font-semibold bg-gray-50 border-r border-gray-300">
-                  Monthly Payment
-                </td>
-                <td className="py-2 px-3">{formatCurrency(formData.monthlyPayment)}</td>
+                <td className="py-1 font-semibold">Monthly Payment</td>
+                <td className="py-1">{formatCurrency(formData.monthlyPayment)}</td>
               </tr>
               <tr className="border-b border-gray-300">
-                <td className="py-2 px-3 font-semibold bg-gray-50 border-r border-gray-300">
-                  Rate
-                </td>
-                <td className="py-2 px-3">{formData.rate || "-"}</td>
+                <td className="py-1 font-semibold">Rate</td>
+                <td className="py-1">{formData.rate || "-"}</td>
               </tr>
               <tr className="border-b border-gray-300">
-                <td className="py-2 px-3 font-semibold bg-gray-50 border-r border-gray-300">
-                  Invoice / Funding Amount
-                </td>
-                <td className="py-2 px-3 font-bold text-lg">
+                <td className="py-1 font-semibold">Invoice / Funding Amount</td>
+                <td className="py-1 font-bold">
                   {formatCurrency(formData.invoiceFundingAmount)}
                 </td>
               </tr>
             </tbody>
           </table>
-        </div>
-
-        {/* Signature Section */}
-        <div className="mt-12 pt-8">
-          <div className="grid grid-cols-2 gap-8">
-            <div>
-              <div className="border-b border-black mb-1 h-8"></div>
-              <p className="text-sm text-gray-600">Authorized Signature</p>
-            </div>
-            <div>
-              <div className="border-b border-black mb-1 h-8"></div>
-              <p className="text-sm text-gray-600">Date</p>
-            </div>
-          </div>
         </div>
       </div>
     );
