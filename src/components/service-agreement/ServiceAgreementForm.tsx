@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import {
@@ -121,12 +121,22 @@ export function ServiceAgreementForm({
     (item) => item.category?.toLowerCase() === 'hardware'
   );
 
-  // Initialize form data from saved config, company, contacts, and quote data
+  // Track if we've done initial setup
+  const hasInitializedRef = useRef(false);
+
+  // Initialize form data from saved config, company, contacts, and quote data - only once
   useEffect(() => {
+    // Only initialize once
+    if (hasInitializedRef.current) return;
+
     if (savedConfig) {
       onChange(savedConfig);
+      hasInitializedRef.current = true;
       return;
     }
+
+    // Only initialize if we have company data
+    if (!company) return;
 
     const shipToContact = labeledContacts.shippingContact;
     const billToContact = labeledContacts.apContact;
@@ -164,6 +174,7 @@ export function ServiceAgreementForm({
       billToEmail: billToContact?.email || '',
       rates: initialRates,
     });
+    hasInitializedRef.current = true;
   }, [savedConfig, company, labeledContacts, quoteFormData]);
 
   const updateField = (field: keyof ServiceAgreementFormData, value: any) => {
