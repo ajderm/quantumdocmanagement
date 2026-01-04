@@ -1235,7 +1235,27 @@ function DocumentHubContent() {
                     rates: {},
                   }}
                   onChange={handleServiceAgreementFormChange}
-                  company={company ? { name: company.name, customerNumber: company.customerNumber } : null}
+                  company={company ? { 
+                    name: company.name, 
+                    customerNumber: company.customerNumber,
+                    // Ship To (Delivery) Address
+                    deliveryAddress: company.deliveryAddress,
+                    deliveryAddress2: company.deliveryAddress2,
+                    deliveryCity: company.deliveryCity,
+                    deliveryState: company.deliveryState,
+                    deliveryZip: company.deliveryZip,
+                    // Bill To (AP) Address  
+                    apAddress: company.apAddress,
+                    apAddress2: company.apAddress2,
+                    apCity: company.apCity,
+                    apState: company.apState,
+                    apZip: company.apZip,
+                    // Fallback address
+                    address: company.address,
+                    city: company.city,
+                    state: company.state,
+                    zip: company.zip,
+                  } : null}
                   lineItems={lineItems}
                   dealerSettings={dealerSettings}
                   savedConfig={serviceAgreementSavedConfig}

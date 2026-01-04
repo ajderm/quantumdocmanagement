@@ -312,12 +312,12 @@ export function QuoteForm({ deal, company, lineItems, dealOwner, onFormChange, p
       preparedByEmail: dealOwner?.email || '', 
       preparedByPhone: dealOwner?.phone || '', 
       companyName: company?.name || '', 
-      // Use delivery address for quote, fall back to general address
-      address: company?.deliveryAddress || company?.address || '', 
-      address2: company?.deliveryAddress2 || company?.address2 || '', 
-      city: company?.deliveryCity || company?.city || '', 
-      state: company?.deliveryState || company?.state || '', 
-      zip: company?.deliveryZip || company?.zip || '', 
+      // Use default company address for "Prepared for" section
+      address: company?.address || '', 
+      address2: company?.address2 || '', 
+      city: company?.city || '', 
+      state: company?.state || '', 
+      zip: company?.zip || '',
       phone: company?.phone || '', 
       lineItems: lineItems.map((item: any) => ({ 
         id: item.id, 
