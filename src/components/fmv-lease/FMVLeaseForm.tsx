@@ -144,27 +144,29 @@ export function FMVLeaseForm({
 
     const base = savedConfig ? { ...formData, ...savedConfig } : { ...formData };
 
-    // Equipment address from Ship To (delivery)
-    const equipmentAddress =
-      company &&
-      pick(
-        buildAddress(company.deliveryAddress, company.deliveryAddress2),
-        buildAddress(company.address, company.address2)
-      );
+    // Equipment address from Ship To (delivery) - always use fresh HubSpot data
+    const equipmentAddress = company
+      ? pick(
+          buildAddress(company.deliveryAddress, company.deliveryAddress2),
+          buildAddress(company.address, company.address2)
+        )
+      : "";
     const equipmentCity = company ? pick(company.deliveryCity, company.city) : "";
     const equipmentState = company ? pick(company.deliveryState, company.state) : "";
-    const equipmentZip = company ? pick(company.deliveryZip, company.zip) : "";
+    // Explicitly get zip from delivery or fallback address - never mix with state
+    const equipmentZip = company?.deliveryZip?.trim() || company?.zip?.trim() || "";
 
-    // Billing address from AP address
-    const billingAddress =
-      company &&
-      pick(
-        buildAddress(company.apAddress, company.apAddress2),
-        buildAddress(company.address, company.address2)
-      );
+    // Billing address from AP address - always use fresh HubSpot data
+    const billingAddress = company
+      ? pick(
+          buildAddress(company.apAddress, company.apAddress2),
+          buildAddress(company.address, company.address2)
+        )
+      : "";
     const billingCity = company ? pick(company.apCity, company.city) : "";
     const billingState = company ? pick(company.apState, company.state) : "";
-    const billingZip = company ? pick(company.apZip, company.zip) : "";
+    // Explicitly get zip from AP or fallback address - never mix with state
+    const billingZip = company?.apZip?.trim() || company?.zip?.trim() || "";
 
     // Initialize equipment items from line items
     const initialEquipmentItems: FMVLeaseEquipmentItem[] = lineItems.map((item) => {
