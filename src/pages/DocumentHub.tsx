@@ -663,7 +663,7 @@ function DocumentHubContent() {
       await new Promise(resolve => setTimeout(resolve, 100));
 
       const canvas = await html2canvas(clone, {
-        scale: 1,
+        scale: 2,
         useCORS: true,
         logging: false,
         backgroundColor: '#ffffff',
@@ -671,7 +671,7 @@ function DocumentHubContent() {
 
       document.body.removeChild(tempContainer);
 
-      const imgData = canvas.toDataURL('image/jpeg', 0.75);
+      const imgData = canvas.toDataURL('image/jpeg', 0.85);
       const pdf = new jsPDF({
         orientation: 'portrait',
         unit: 'in',
@@ -747,7 +747,7 @@ function DocumentHubContent() {
       await new Promise(resolve => setTimeout(resolve, 100));
 
       const canvas = await html2canvas(clone, {
-        scale: 1,
+        scale: 2,
         useCORS: true,
         logging: false,
         backgroundColor: '#ffffff',
@@ -755,7 +755,7 @@ function DocumentHubContent() {
 
       document.body.removeChild(tempContainer);
 
-      const imgData = canvas.toDataURL('image/jpeg', 0.75);
+      const imgData = canvas.toDataURL('image/jpeg', 0.85);
       const pdf = new jsPDF({
         orientation: 'portrait',
         unit: 'in',
@@ -892,7 +892,7 @@ function DocumentHubContent() {
       await new Promise(resolve => setTimeout(resolve, 100));
 
       const canvas = await html2canvas(clone, {
-        scale: 1,
+        scale: 2,
         useCORS: true,
         logging: false,
         backgroundColor: '#ffffff',
@@ -900,7 +900,7 @@ function DocumentHubContent() {
 
       document.body.removeChild(tempContainer);
 
-      const imgData = canvas.toDataURL('image/jpeg', 0.75);
+      const imgData = canvas.toDataURL('image/jpeg', 0.85);
       const pdf = new jsPDF({
         orientation: 'portrait',
         unit: 'in',

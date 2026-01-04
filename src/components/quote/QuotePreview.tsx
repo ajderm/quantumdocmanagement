@@ -110,9 +110,9 @@ export const QuotePreview = forwardRef<HTMLDivElement, QuotePreviewProps>(
           <table className="w-full border-collapse text-[9px]">
             <thead>
               <tr className="border-b-2 border-black">
-                <th className="text-left py-1 pb-2 w-12"><span className="underline">Qty.</span></th>
-                <th className="text-left py-1 pb-2 w-48"><span className="underline">Model</span></th>
-                <th className="text-left py-1 pb-2"><span className="underline">Description</span></th>
+                <th className="text-left py-1 pb-2 w-12">Qty.</th>
+                <th className="text-left py-1 pb-2 w-48">Model</th>
+                <th className="text-left py-1 pb-2">Description</th>
               </tr>
             </thead>
             <tbody>
