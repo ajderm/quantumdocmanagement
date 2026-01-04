@@ -33,6 +33,8 @@ import {
 } from 'lucide-react';
 import { QuoteForm, QuoteFormData } from '@/components/quote/QuoteForm';
 import { QuotePreview } from '@/components/quote/QuotePreview';
+import { InstallationForm, InstallationFormData } from '@/components/installation/InstallationForm';
+import { InstallationPreview } from '@/components/installation/InstallationPreview';
 
 const documentTypes = [
   { code: 'quote', name: 'Quote', icon: FileText },
@@ -56,16 +58,26 @@ interface DealerInfo {
   termsAndConditions?: string;
 }
 
+interface DealerSettings {
+  meter_methods?: string[];
+  cca_value?: string;
+}
+
+interface DocumentTerms {
+  [key: string]: string;
+}
+
 // Auto-save debounce delay in milliseconds
 const AUTO_SAVE_DELAY = 3000;
 
 function DocumentHubContent() {
   const { deal, company, contacts, lineItems, dealOwner, loading, error, portalId } = useHubSpot();
+  
+  // Quote state
   const [generating, setGenerating] = useState(false);
   const [saving, setSaving] = useState(false);
   const [showPreview, setShowPreview] = useState(false);
   const [formData, setFormData] = useState<QuoteFormData | null>(null);
-  const [dealerInfo, setDealerInfo] = useState<DealerInfo | null>(null);
   const [savedConfig, setSavedConfig] = useState<QuoteFormData | null>(null);
   const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false);
   const [lastSavedData, setLastSavedData] = useState<string | null>(null);
@@ -73,10 +85,32 @@ function DocumentHubContent() {
   const autoSaveTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   const formDataRef = useRef<QuoteFormData | null>(null);
 
+  // Installation state
+  const [installationFormData, setInstallationFormData] = useState<InstallationFormData | null>(null);
+  const [installationSavedConfig, setInstallationSavedConfig] = useState<Record<string, InstallationFormData>>({});
+  const [installationGenerating, setInstallationGenerating] = useState(false);
+  const [installationSaving, setInstallationSaving] = useState(false);
+  const [showInstallationPreview, setShowInstallationPreview] = useState(false);
+  const [installationHasUnsavedChanges, setInstallationHasUnsavedChanges] = useState(false);
+  const [installationLastSavedData, setInstallationLastSavedData] = useState<string | null>(null);
+  const installationPreviewRef = useRef<HTMLDivElement>(null);
+  const installationAutoSaveTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const installationFormDataRef = useRef<InstallationFormData | null>(null);
+
+  // Dealer info and settings
+  const [dealerInfo, setDealerInfo] = useState<DealerInfo | null>(null);
+  const [dealerSettings, setDealerSettings] = useState<DealerSettings>({});
+  const [documentTerms, setDocumentTerms] = useState<DocumentTerms>({});
+
   // Keep formDataRef in sync with formData
   useEffect(() => {
     formDataRef.current = formData;
   }, [formData]);
+
+  // Keep installationFormDataRef in sync
+  useEffect(() => {
+    installationFormDataRef.current = installationFormData;
+  }, [installationFormData]);
 
   // Fetch dealer info when portalId is available
   useEffect(() => {
@@ -112,6 +146,16 @@ function DocumentHubContent() {
             termsAndConditions: quoteTerms
           });
         }
+
+        // Store document terms
+        if (data?.documentTerms) {
+          setDocumentTerms(data.documentTerms);
+        }
+
+        // Store dealer settings (meter methods, CCA)
+        if (data?.dealerSettings) {
+          setDealerSettings(data.dealerSettings);
+        }
       } catch (err) {
         console.error('Failed to fetch dealer info:', err);
       }
@@ -120,7 +164,7 @@ function DocumentHubContent() {
     fetchDealerInfo();
   }, [portalId]);
 
-  // Load saved configuration on mount
+  // Load saved quote configuration on mount
   useEffect(() => {
     const loadSavedConfig = async () => {
       const currentPortalId = portalId || localStorage.getItem('hs_portal_id');
@@ -137,7 +181,7 @@ function DocumentHubContent() {
           .single();
 
         if (error) {
-          if (error.code !== 'PGRST116') { // Not found is OK
+          if (error.code !== 'PGRST116') {
             console.error('Error loading saved config:', error);
           }
           return;
@@ -157,14 +201,50 @@ function DocumentHubContent() {
     }
   }, [portalId, deal?.hsObjectId]);
 
-  // Silent auto-save function (doesn't show toasts or sync to HubSpot)
+  // Load saved installation configurations
+  useEffect(() => {
+    const loadInstallationConfigs = async () => {
+      const currentPortalId = portalId || localStorage.getItem('hs_portal_id');
+      const dealId = deal?.hsObjectId;
+      
+      if (!currentPortalId || !dealId) return;
+
+      try {
+        const { data, error } = await supabase
+          .from('installation_configurations')
+          .select('line_item_id, configuration')
+          .eq('portal_id', currentPortalId)
+          .eq('deal_id', dealId);
+
+        if (error) {
+          console.error('Error loading installation configs:', error);
+          return;
+        }
+
+        if (data) {
+          const configs: Record<string, InstallationFormData> = {};
+          data.forEach(row => {
+            configs[row.line_item_id] = row.configuration as unknown as InstallationFormData;
+          });
+          setInstallationSavedConfig(configs);
+        }
+      } catch (err) {
+        console.error('Failed to load installation configs:', err);
+      }
+    };
+
+    if (deal?.hsObjectId) {
+      loadInstallationConfigs();
+    }
+  }, [portalId, deal?.hsObjectId]);
+
+  // Silent auto-save function for Quote
   const performAutoSave = useCallback(async (dataToSave: QuoteFormData) => {
     const currentPortalId = portalId || localStorage.getItem('hs_portal_id');
     const dealId = deal?.hsObjectId;
 
     if (!currentPortalId || !dealId || !dataToSave) return;
 
-    // Check if data has actually changed
     const dataString = JSON.stringify(dataToSave);
     if (dataString === lastSavedData) return;
 
@@ -190,52 +270,87 @@ function DocumentHubContent() {
     }
   }, [portalId, deal?.hsObjectId, lastSavedData]);
 
-  // Handle form change with auto-save debounce
+  // Handle quote form change with auto-save debounce
   const handleFormChange = useCallback((data: QuoteFormData) => {
     setFormData(data);
     setHasUnsavedChanges(true);
     
-    // Clear existing timeout
     if (autoSaveTimeoutRef.current) {
       clearTimeout(autoSaveTimeoutRef.current);
     }
 
-    // Set new debounced auto-save
     autoSaveTimeoutRef.current = setTimeout(() => {
       performAutoSave(data);
     }, AUTO_SAVE_DELAY);
   }, [performAutoSave]);
 
-  // Auto-save on tab/window close or visibility change
+  // Auto-save for installation
+  const performInstallationAutoSave = useCallback(async (dataToSave: InstallationFormData) => {
+    const currentPortalId = portalId || localStorage.getItem('hs_portal_id');
+    const dealId = deal?.hsObjectId;
+    const lineItemId = dataToSave.selectedLineItemId;
+
+    if (!currentPortalId || !dealId || !lineItemId || !dataToSave) return;
+
+    const dataString = JSON.stringify(dataToSave);
+    if (dataString === installationLastSavedData) return;
+
+    try {
+      const { error: saveError } = await supabase
+        .from('installation_configurations')
+        .upsert({
+          portal_id: currentPortalId,
+          deal_id: dealId,
+          line_item_id: lineItemId,
+          configuration: dataToSave as any,
+          updated_at: new Date().toISOString()
+        }, {
+          onConflict: 'portal_id,deal_id,line_item_id'
+        });
+
+      if (!saveError) {
+        setInstallationLastSavedData(dataString);
+        setInstallationHasUnsavedChanges(false);
+        console.log('Auto-saved installation configuration');
+      }
+    } catch (err) {
+      console.error('Installation auto-save error:', err);
+    }
+  }, [portalId, deal?.hsObjectId, installationLastSavedData]);
+
+  // Handle installation form change
+  const handleInstallationFormChange = useCallback((data: InstallationFormData) => {
+    setInstallationFormData(data);
+    setInstallationHasUnsavedChanges(true);
+    
+    if (installationAutoSaveTimeoutRef.current) {
+      clearTimeout(installationAutoSaveTimeoutRef.current);
+    }
+
+    if (data.selectedLineItemId) {
+      installationAutoSaveTimeoutRef.current = setTimeout(() => {
+        performInstallationAutoSave(data);
+      }, AUTO_SAVE_DELAY);
+    }
+  }, [performInstallationAutoSave]);
+
+  // Auto-save on tab/window close
   useEffect(() => {
     const handleBeforeUnload = (e: BeforeUnloadEvent) => {
-      if (hasUnsavedChanges && formDataRef.current) {
-        // Perform synchronous save attempt
-        const currentPortalId = portalId || localStorage.getItem('hs_portal_id');
-        const dealId = deal?.hsObjectId;
-        
-        if (currentPortalId && dealId) {
-          // Use sendBeacon for reliable save on page unload
-          const payload = JSON.stringify({
-            portal_id: currentPortalId,
-            deal_id: dealId,
-            configuration: formDataRef.current,
-            updated_at: new Date().toISOString()
-          });
-          
-          // Store in localStorage as backup
-          localStorage.setItem(`quote_backup_${dealId}`, payload);
-        }
-        
-        // Show browser's native "unsaved changes" dialog
+      if ((hasUnsavedChanges && formDataRef.current) || (installationHasUnsavedChanges && installationFormDataRef.current)) {
         e.preventDefault();
         e.returnValue = '';
       }
     };
 
     const handleVisibilityChange = () => {
-      if (document.visibilityState === 'hidden' && hasUnsavedChanges && formDataRef.current) {
-        performAutoSave(formDataRef.current);
+      if (document.visibilityState === 'hidden') {
+        if (hasUnsavedChanges && formDataRef.current) {
+          performAutoSave(formDataRef.current);
+        }
+        if (installationHasUnsavedChanges && installationFormDataRef.current) {
+          performInstallationAutoSave(installationFormDataRef.current);
+        }
       }
     };
 
@@ -246,12 +361,14 @@ function DocumentHubContent() {
       window.removeEventListener('beforeunload', handleBeforeUnload);
       document.removeEventListener('visibilitychange', handleVisibilityChange);
       
-      // Clear timeout on unmount
       if (autoSaveTimeoutRef.current) {
         clearTimeout(autoSaveTimeoutRef.current);
       }
+      if (installationAutoSaveTimeoutRef.current) {
+        clearTimeout(installationAutoSaveTimeoutRef.current);
+      }
     };
-  }, [hasUnsavedChanges, portalId, deal?.hsObjectId, performAutoSave]);
+  }, [hasUnsavedChanges, installationHasUnsavedChanges, performAutoSave, performInstallationAutoSave]);
 
   // Recover from localStorage backup if exists
   useEffect(() => {
@@ -289,7 +406,6 @@ function DocumentHubContent() {
 
     setSaving(true);
     try {
-      // Upsert configuration to database
       const { error: saveError } = await supabase
         .from('quote_configurations')
         .upsert({
@@ -307,14 +423,10 @@ function DocumentHubContent() {
         return;
       }
 
-      // Update last saved data to prevent unnecessary auto-saves
       setLastSavedData(JSON.stringify(formData));
       setHasUnsavedChanges(false);
-
-      // Clear any localStorage backup
       localStorage.removeItem(`quote_backup_${dealId}`);
 
-      // If buyoutFinancingAmount is set, update HubSpot deal
       if (formData.buyoutFinancingAmount > 0) {
         try {
           const { error: hubspotError } = await supabase.functions.invoke('hubspot-update-deal', {
@@ -348,6 +460,51 @@ function DocumentHubContent() {
     }
   };
 
+  const handleInstallationSave = async () => {
+    if (!installationFormData || !installationFormData.selectedLineItemId) {
+      toast.error('Please select a hardware item first');
+      return;
+    }
+
+    const currentPortalId = portalId || localStorage.getItem('hs_portal_id');
+    const dealId = deal?.hsObjectId;
+
+    if (!currentPortalId || !dealId) {
+      toast.error('Missing portal or deal information');
+      return;
+    }
+
+    setInstallationSaving(true);
+    try {
+      const { error: saveError } = await supabase
+        .from('installation_configurations')
+        .upsert({
+          portal_id: currentPortalId,
+          deal_id: dealId,
+          line_item_id: installationFormData.selectedLineItemId,
+          configuration: installationFormData as any,
+          updated_at: new Date().toISOString()
+        }, {
+          onConflict: 'portal_id,deal_id,line_item_id'
+        });
+
+      if (saveError) {
+        console.error('Save error:', saveError);
+        toast.error('Failed to save installation configuration');
+        return;
+      }
+
+      setInstallationLastSavedData(JSON.stringify(installationFormData));
+      setInstallationHasUnsavedChanges(false);
+      toast.success('Installation configuration saved');
+    } catch (err) {
+      console.error('Save error:', err);
+      toast.error('Failed to save installation configuration');
+    } finally {
+      setInstallationSaving(false);
+    }
+  };
+
   const handleGeneratePDF = async () => {
     if (!previewRef.current || !formData) {
       toast.error('Please fill in the quote details first');
@@ -356,18 +513,15 @@ function DocumentHubContent() {
 
     setGenerating(true);
     try {
-      // Create a temporary container for rendering
       const tempContainer = document.createElement('div');
       tempContainer.style.position = 'absolute';
       tempContainer.style.left = '-9999px';
       tempContainer.style.top = '0';
       document.body.appendChild(tempContainer);
 
-      // Clone the preview element
       const clone = previewRef.current.cloneNode(true) as HTMLElement;
       tempContainer.appendChild(clone);
 
-      // Wait for rendering
       await new Promise(resolve => setTimeout(resolve, 100));
 
       const canvas = await html2canvas(clone, {
@@ -377,7 +531,6 @@ function DocumentHubContent() {
         backgroundColor: '#ffffff',
       });
 
-      // Clean up
       document.body.removeChild(tempContainer);
 
       const imgData = canvas.toDataURL('image/png');
@@ -392,29 +545,21 @@ function DocumentHubContent() {
 
       pdf.addImage(imgData, 'PNG', 0, 0, imgWidth, imgHeight);
       
-      // Generate filename: Quote_Company_Name_Date_Time.pdf
       const sanitizedCompanyName = (formData.companyName || 'Draft').replace(/[^a-zA-Z0-9\s]/g, '').replace(/\s+/g, '_');
       const now = new Date();
       const dateStr = now.toISOString().split('T')[0];
       const timeStr = now.toTimeString().slice(0, 5).replace(':', '-');
       const fileName = `Quote_${sanitizedCompanyName}_${dateStr}_${timeStr}.pdf`;
       
-      // Save locally
       pdf.save(fileName);
 
-      // Attach to HubSpot deal
       const currentPortalId = portalId || localStorage.getItem('hs_portal_id');
       const currentDealId = deal?.hsObjectId;
 
-      console.log('Preparing to attach to HubSpot:', { currentPortalId, dealId: currentDealId, fileName });
-
       if (currentPortalId && currentDealId) {
         try {
-          // Convert PDF to base64
           const pdfBase64 = pdf.output('datauristring').split(',')[1];
-          console.log('PDF base64 length:', pdfBase64?.length);
           
-          console.log('Invoking hubspot-attach-file function...');
           const { data, error: attachError } = await supabase.functions.invoke('hubspot-attach-file', {
             body: {
               portalId: currentPortalId,
@@ -424,13 +569,7 @@ function DocumentHubContent() {
             }
           });
 
-          console.log('HubSpot attach response:', { data, error: attachError });
-
-          if (attachError) {
-            console.error('Error attaching to HubSpot:', attachError);
-            toast.success('PDF downloaded! (Could not attach to deal)');
-          } else if (data?.error) {
-            console.error('HubSpot API error:', data.error);
+          if (attachError || data?.error) {
             toast.success('PDF downloaded! (Could not attach to deal)');
           } else {
             toast.success('PDF downloaded and attached to deal!');
@@ -440,7 +579,6 @@ function DocumentHubContent() {
           toast.success('PDF downloaded! (Could not attach to deal)');
         }
       } else {
-        console.log('Missing portalId or dealId, skipping attachment');
         toast.success('Quote PDF downloaded successfully!');
       }
     } catch (err) {
@@ -451,12 +589,111 @@ function DocumentHubContent() {
     }
   };
 
+  const handleInstallationGeneratePDF = async () => {
+    if (!installationPreviewRef.current || !installationFormData || !installationFormData.selectedLineItemId) {
+      toast.error('Please select a hardware item and fill in the details first');
+      return;
+    }
+
+    setInstallationGenerating(true);
+    try {
+      const tempContainer = document.createElement('div');
+      tempContainer.style.position = 'absolute';
+      tempContainer.style.left = '-9999px';
+      tempContainer.style.top = '0';
+      document.body.appendChild(tempContainer);
+
+      const clone = installationPreviewRef.current.cloneNode(true) as HTMLElement;
+      tempContainer.appendChild(clone);
+
+      await new Promise(resolve => setTimeout(resolve, 100));
+
+      const canvas = await html2canvas(clone, {
+        scale: 2,
+        useCORS: true,
+        logging: false,
+        backgroundColor: '#ffffff',
+      });
+
+      document.body.removeChild(tempContainer);
+
+      const imgData = canvas.toDataURL('image/png');
+      const pdf = new jsPDF({
+        orientation: 'portrait',
+        unit: 'in',
+        format: 'letter',
+      });
+
+      const imgWidth = 8.5;
+      const imgHeight = (canvas.height * imgWidth) / canvas.width;
+
+      pdf.addImage(imgData, 'PNG', 0, 0, imgWidth, imgHeight);
+      
+      const sanitizedCompanyName = (installationFormData.shipToCompany || 'Draft').replace(/[^a-zA-Z0-9\s]/g, '').replace(/\s+/g, '_');
+      const sanitizedModel = (installationFormData.installedModel || 'Equipment').replace(/[^a-zA-Z0-9\s]/g, '').replace(/\s+/g, '_');
+      const now = new Date();
+      const dateStr = now.toISOString().split('T')[0];
+      const timeStr = now.toTimeString().slice(0, 5).replace(':', '-');
+      const fileName = `Installation_${sanitizedCompanyName}_${sanitizedModel}_${dateStr}_${timeStr}.pdf`;
+      
+      pdf.save(fileName);
+
+      const currentPortalId = portalId || localStorage.getItem('hs_portal_id');
+      const currentDealId = deal?.hsObjectId;
+
+      if (currentPortalId && currentDealId) {
+        try {
+          const pdfBase64 = pdf.output('datauristring').split(',')[1];
+          
+          const { data, error: attachError } = await supabase.functions.invoke('hubspot-attach-file', {
+            body: {
+              portalId: currentPortalId,
+              dealId: currentDealId,
+              fileName: fileName,
+              fileBase64: pdfBase64
+            }
+          });
+
+          if (attachError || data?.error) {
+            toast.success('PDF downloaded! (Could not attach to deal)');
+          } else {
+            toast.success('PDF downloaded and attached to deal!');
+          }
+        } catch (attachErr) {
+          console.error('Failed to attach to HubSpot:', attachErr);
+          toast.success('PDF downloaded! (Could not attach to deal)');
+        }
+      } else {
+        toast.success('Installation PDF downloaded successfully!');
+      }
+    } catch (err) {
+      console.error('PDF generation error:', err);
+      toast.error('Failed to generate PDF');
+    } finally {
+      setInstallationGenerating(false);
+    }
+  };
+
   const handlePreview = () => {
     if (!formData) {
       toast.error('Please fill in the quote details first');
       return;
     }
     setShowPreview(true);
+  };
+
+  const handleInstallationPreview = () => {
+    if (!installationFormData || !installationFormData.selectedLineItemId) {
+      toast.error('Please select a hardware item first');
+      return;
+    }
+    setShowInstallationPreview(true);
+  };
+
+  // Get the saved config for the currently selected line item
+  const getCurrentInstallationSavedConfig = () => {
+    if (!installationFormData?.selectedLineItemId) return undefined;
+    return installationSavedConfig[installationFormData.selectedLineItemId];
   };
 
   if (loading) {
@@ -479,6 +716,11 @@ function DocumentHubContent() {
       </div>
     );
   }
+
+  // Count hardware items for badge
+  const hardwareLineItems = lineItems.filter(
+    (item) => item.category?.toLowerCase() === 'hardware' || !item.category
+  );
 
   return (
     <div className="min-h-screen bg-background">
@@ -570,6 +812,11 @@ function DocumentHubContent() {
                 >
                   <Icon className="h-3.5 w-3.5 mr-1.5" />
                   {doc.name}
+                  {doc.code === 'installation' && hardwareLineItems.length > 0 && (
+                    <Badge variant="outline" className="ml-1.5 text-[10px] px-1 py-0">
+                      {hardwareLineItems.length}
+                    </Badge>
+                  )}
                 </TabsTrigger>
               );
             })}
@@ -626,8 +873,67 @@ function DocumentHubContent() {
             </Card>
           </TabsContent>
 
+          {/* Installation Tab Content */}
+          <TabsContent value="installation" className="mt-0">
+            <Card>
+              <CardHeader className="pb-3">
+                <CardTitle className="text-lg flex items-center gap-2">
+                  <ClipboardList className="h-5 w-5" />
+                  Generate Installation Document
+                  {hardwareLineItems.length > 0 && (
+                    <Badge variant="secondary" className="ml-2">
+                      {hardwareLineItems.length} hardware item{hardwareLineItems.length !== 1 ? 's' : ''}
+                    </Badge>
+                  )}
+                </CardTitle>
+                <CardDescription>
+                  Create an installation document for each hardware item
+                </CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <InstallationForm
+                  deal={deal}
+                  company={company}
+                  contacts={contacts}
+                  lineItems={lineItems}
+                  dealOwner={dealOwner}
+                  meterMethods={dealerSettings.meter_methods || []}
+                  ccaValue={dealerSettings.cca_value || ''}
+                  onFormChange={handleInstallationFormChange}
+                  savedConfig={getCurrentInstallationSavedConfig()}
+                />
+
+                {/* Actions */}
+                {installationFormData?.selectedLineItemId && (
+                  <div className="flex gap-2 pt-4 border-t">
+                    <Button variant="outline" onClick={handleInstallationSave} disabled={installationSaving}>
+                      {installationSaving ? (
+                        <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                      ) : (
+                        <Save className="h-4 w-4 mr-2" />
+                      )}
+                      {installationSaving ? 'Saving...' : 'Save'}
+                    </Button>
+                    <Button className="flex-1" onClick={handleInstallationGeneratePDF} disabled={installationGenerating}>
+                      {installationGenerating ? (
+                        <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                      ) : (
+                        <Download className="h-4 w-4 mr-2" />
+                      )}
+                      {installationGenerating ? 'Generating...' : 'Generate PDF'}
+                    </Button>
+                    <Button variant="outline" onClick={handleInstallationPreview}>
+                      <Eye className="h-4 w-4 mr-2" />
+                      Preview
+                    </Button>
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+          </TabsContent>
+
           {/* Placeholder for other tabs */}
-          {documentTypes.slice(1).map((doc) => (
+          {documentTypes.slice(2).map((doc) => (
             <TabsContent key={doc.code} value={doc.code} className="mt-0">
               <Card>
                 <CardContent className="py-12 text-center">
@@ -643,14 +949,33 @@ function DocumentHubContent() {
         </Tabs>
       </div>
 
-      {/* Hidden preview for PDF generation */}
+      {/* Hidden preview for Quote PDF generation */}
       <div className="hidden">
         {formData && (
           <QuotePreview ref={previewRef} formData={formData} dealerInfo={dealerInfo || undefined} />
         )}
       </div>
 
-      {/* Preview Dialog */}
+      {/* Hidden preview for Installation PDF generation */}
+      <div className="hidden">
+        {installationFormData && (
+          <InstallationPreview
+            ref={installationPreviewRef}
+            formData={installationFormData}
+            dealerInfo={dealerInfo ? {
+              companyName: dealerInfo.companyName,
+              address: dealerInfo.address,
+              phone: dealerInfo.phone,
+              website: dealerInfo.website,
+              logoUrl: dealerInfo.logoUrl,
+            } : undefined}
+            removalReceiptTerms={documentTerms.installation_removal_receipt}
+            deliveryAcceptanceTerms={documentTerms.installation_delivery_acceptance}
+          />
+        )}
+      </div>
+
+      {/* Quote Preview Dialog */}
       <Dialog open={showPreview} onOpenChange={setShowPreview}>
         <DialogContent className="max-w-4xl max-h-[90vh] p-0">
           <DialogHeader className="p-4 pb-0">
@@ -661,6 +986,35 @@ function DocumentHubContent() {
               {formData && (
                 <div className="shadow-lg border">
                   <QuotePreview formData={formData} dealerInfo={dealerInfo || undefined} />
+                </div>
+              )}
+            </div>
+          </ScrollArea>
+        </DialogContent>
+      </Dialog>
+
+      {/* Installation Preview Dialog */}
+      <Dialog open={showInstallationPreview} onOpenChange={setShowInstallationPreview}>
+        <DialogContent className="max-w-4xl max-h-[90vh] p-0">
+          <DialogHeader className="p-4 pb-0">
+            <DialogTitle>Installation Document Preview</DialogTitle>
+          </DialogHeader>
+          <ScrollArea className="max-h-[calc(90vh-80px)]">
+            <div className="p-4 flex justify-center">
+              {installationFormData && (
+                <div className="shadow-lg border">
+                  <InstallationPreview
+                    formData={installationFormData}
+                    dealerInfo={dealerInfo ? {
+                      companyName: dealerInfo.companyName,
+                      address: dealerInfo.address,
+                      phone: dealerInfo.phone,
+                      website: dealerInfo.website,
+                      logoUrl: dealerInfo.logoUrl,
+                    } : undefined}
+                    removalReceiptTerms={documentTerms.installation_removal_receipt}
+                    deliveryAcceptanceTerms={documentTerms.installation_delivery_acceptance}
+                  />
                 </div>
               )}
             </div>

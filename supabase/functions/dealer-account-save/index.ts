@@ -16,6 +16,7 @@ Deno.serve(async (req) => {
     const portalId: string | null = body.portalId || body.portal_id || null;
     const accountData = body.accountData;
     const documentTerms: Record<string, string> | undefined = body.documentTerms;
+    const dealerSettings: Record<string, any> | undefined = body.dealerSettings;
 
     console.log('Saving dealer account for portal:', portalId);
 
@@ -123,6 +124,30 @@ Deno.serve(async (req) => {
 
           if (upsertError) {
             console.error('Error saving document terms for', docType, ':', upsertError);
+          }
+        }
+      }
+    }
+
+    // Save dealer settings if provided
+    if (dealerSettings && result?.id) {
+      console.log('Saving dealer settings for account:', result.id);
+      
+      for (const [settingKey, settingValue] of Object.entries(dealerSettings)) {
+        if (settingValue !== undefined) {
+          const { error: upsertError } = await supabase
+            .from('dealer_settings')
+            .upsert({
+              dealer_account_id: result.id,
+              setting_key: settingKey,
+              setting_value: settingValue,
+              updated_at: new Date().toISOString(),
+            }, {
+              onConflict: 'dealer_account_id,setting_key',
+            });
+
+          if (upsertError) {
+            console.error('Error saving dealer setting', settingKey, ':', upsertError);
           }
         }
       }

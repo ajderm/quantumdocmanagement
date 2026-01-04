@@ -61,7 +61,10 @@ Deno.serve(async (req) => {
 
     // Fetch document-specific terms if dealer account exists
     let documentTerms: Record<string, string> = {};
+    let dealerSettings: Record<string, any> = {};
+    
     if (data?.id) {
+      // Fetch document terms
       const { data: termsData, error: termsError } = await supabase
         .from('document_terms')
         .select('document_type, terms_and_conditions')
@@ -73,11 +76,23 @@ Deno.serve(async (req) => {
           return acc;
         }, {} as Record<string, string>);
       }
+
+      // Fetch dealer settings (meter_methods, cca_value)
+      const { data: settingsData, error: settingsError } = await supabase
+        .from('dealer_settings')
+        .select('setting_key, setting_value')
+        .eq('dealer_account_id', data.id);
+
+      if (!settingsError && settingsData) {
+        settingsData.forEach(item => {
+          dealerSettings[item.setting_key] = item.setting_value;
+        });
+      }
     }
 
     console.log('Dealer account found:', data ? data.id : 'none');
 
-    return new Response(JSON.stringify({ dealer: data, documentTerms }), {
+    return new Response(JSON.stringify({ dealer: data, documentTerms, dealerSettings }), {
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
     });
   } catch (error: unknown) {
