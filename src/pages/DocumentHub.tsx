@@ -28,7 +28,8 @@ import {
   Settings,
   UserCircle,
   Download,
-  Eye
+  Eye,
+  Save
 } from 'lucide-react';
 import { QuoteForm, QuoteFormData } from '@/components/quote/QuoteForm';
 import { QuotePreview } from '@/components/quote/QuotePreview';
@@ -58,9 +59,11 @@ interface DealerInfo {
 function DocumentHubContent() {
   const { deal, company, contacts, lineItems, dealOwner, loading, error, portalId } = useHubSpot();
   const [generating, setGenerating] = useState(false);
+  const [saving, setSaving] = useState(false);
   const [showPreview, setShowPreview] = useState(false);
   const [formData, setFormData] = useState<QuoteFormData | null>(null);
   const [dealerInfo, setDealerInfo] = useState<DealerInfo | null>(null);
+  const [savedConfig, setSavedConfig] = useState<QuoteFormData | null>(null);
   const previewRef = useRef<HTMLDivElement>(null);
 
   // Fetch dealer info when portalId is available
@@ -105,9 +108,114 @@ function DocumentHubContent() {
     fetchDealerInfo();
   }, [portalId]);
 
+  // Load saved configuration on mount
+  useEffect(() => {
+    const loadSavedConfig = async () => {
+      const currentPortalId = portalId || localStorage.getItem('hs_portal_id');
+      const dealId = deal?.hsObjectId;
+      
+      if (!currentPortalId || !dealId) return;
+
+      try {
+        const { data, error } = await supabase
+          .from('quote_configurations')
+          .select('configuration')
+          .eq('portal_id', currentPortalId)
+          .eq('deal_id', dealId)
+          .single();
+
+        if (error) {
+          if (error.code !== 'PGRST116') { // Not found is OK
+            console.error('Error loading saved config:', error);
+          }
+          return;
+        }
+
+        if (data?.configuration) {
+          console.log('Loaded saved configuration');
+          setSavedConfig(data.configuration as unknown as QuoteFormData);
+        }
+      } catch (err) {
+        console.error('Failed to load saved config:', err);
+      }
+    };
+
+    if (deal?.hsObjectId) {
+      loadSavedConfig();
+    }
+  }, [portalId, deal?.hsObjectId]);
+
   const handleFormChange = useCallback((data: QuoteFormData) => {
     setFormData(data);
   }, []);
+
+  const handleSave = async () => {
+    if (!formData) {
+      toast.error('No data to save');
+      return;
+    }
+
+    const currentPortalId = portalId || localStorage.getItem('hs_portal_id');
+    const dealId = deal?.hsObjectId;
+
+    if (!currentPortalId || !dealId) {
+      toast.error('Missing portal or deal information');
+      return;
+    }
+
+    setSaving(true);
+    try {
+      // Upsert configuration to database
+      const { error: saveError } = await supabase
+        .from('quote_configurations')
+        .upsert({
+          portal_id: currentPortalId,
+          deal_id: dealId,
+          configuration: formData as any,
+          updated_at: new Date().toISOString()
+        }, {
+          onConflict: 'deal_id,portal_id'
+        });
+
+      if (saveError) {
+        console.error('Save error:', saveError);
+        toast.error('Failed to save configuration');
+        return;
+      }
+
+      // If buyoutFinancingAmount is set, update HubSpot deal
+      if (formData.buyoutFinancingAmount > 0) {
+        try {
+          const { error: hubspotError } = await supabase.functions.invoke('hubspot-update-deal', {
+            body: {
+              portalId: currentPortalId,
+              dealId: dealId,
+              properties: {
+                financing_amount: formData.buyoutFinancingAmount.toString()
+              }
+            }
+          });
+
+          if (hubspotError) {
+            console.error('HubSpot update error:', hubspotError);
+            toast.success('Configuration saved (HubSpot sync failed)');
+          } else {
+            toast.success('Configuration saved & synced to HubSpot');
+          }
+        } catch (hsErr) {
+          console.error('HubSpot sync error:', hsErr);
+          toast.success('Configuration saved (HubSpot sync failed)');
+        }
+      } else {
+        toast.success('Configuration saved');
+      }
+    } catch (err) {
+      console.error('Save error:', err);
+      toast.error('Failed to save configuration');
+    } finally {
+      setSaving(false);
+    }
+  };
 
   const handleGeneratePDF = async () => {
     if (!previewRef.current || !formData) {
@@ -165,11 +273,11 @@ function DocumentHubContent() {
 
       // Attach to HubSpot deal
       const currentPortalId = portalId || localStorage.getItem('hs_portal_id');
-      const dealId = deal?.hsObjectId;
+      const currentDealId = deal?.hsObjectId;
 
-      console.log('Preparing to attach to HubSpot:', { currentPortalId, dealId, fileName });
+      console.log('Preparing to attach to HubSpot:', { currentPortalId, dealId: currentDealId, fileName });
 
-      if (currentPortalId && dealId) {
+      if (currentPortalId && currentDealId) {
         try {
           // Convert PDF to base64
           const pdfBase64 = pdf.output('datauristring').split(',')[1];
@@ -179,7 +287,7 @@ function DocumentHubContent() {
           const { data, error: attachError } = await supabase.functions.invoke('hubspot-attach-file', {
             body: {
               portalId: currentPortalId,
-              dealId: dealId,
+              dealId: currentDealId,
               fileName: fileName,
               fileBase64: pdfBase64
             }
@@ -357,10 +465,19 @@ function DocumentHubContent() {
                   dealOwner={dealOwner}
                   onFormChange={handleFormChange}
                   portalId={portalId || localStorage.getItem('hs_portal_id') || undefined}
+                  savedConfig={savedConfig || undefined}
                 />
 
                 {/* Actions */}
                 <div className="flex gap-2 pt-4 border-t">
+                  <Button variant="outline" onClick={handleSave} disabled={saving}>
+                    {saving ? (
+                      <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                    ) : (
+                      <Save className="h-4 w-4 mr-2" />
+                    )}
+                    {saving ? 'Saving...' : 'Save'}
+                  </Button>
                   <Button className="flex-1" onClick={handleGeneratePDF} disabled={generating}>
                     {generating ? (
                       <Loader2 className="h-4 w-4 mr-2 animate-spin" />

@@ -441,6 +441,33 @@ export type Database = {
           },
         ]
       }
+      quote_configurations: {
+        Row: {
+          configuration: Json
+          created_at: string
+          deal_id: string
+          id: string
+          portal_id: string
+          updated_at: string
+        }
+        Insert: {
+          configuration: Json
+          created_at?: string
+          deal_id: string
+          id?: string
+          portal_id: string
+          updated_at?: string
+        }
+        Update: {
+          configuration?: Json
+          created_at?: string
+          deal_id?: string
+          id?: string
+          portal_id?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       user_roles: {
         Row: {
           id: string

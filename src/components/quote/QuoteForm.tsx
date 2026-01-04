@@ -46,7 +46,7 @@ export interface QuoteFormData {
   buyoutFinancingAmount: number;
 }
 
-interface QuoteFormProps { deal: any; company: any; contacts: any[]; lineItems: any[]; dealOwner: any; onFormChange: (data: QuoteFormData) => void; portalId?: string; }
+interface QuoteFormProps { deal: any; company: any; contacts: any[]; lineItems: any[]; dealOwner: any; onFormChange: (data: QuoteFormData) => void; portalId?: string; savedConfig?: QuoteFormData; }
 
 interface LeasingPartner {
   id: string;
@@ -62,7 +62,7 @@ const parseCurrency = (value: string): number => {
   return parseFloat(value.replace(/[^0-9.-]/g, '')) || 0;
 };
 
-export function QuoteForm({ deal, company, lineItems, dealOwner, onFormChange, portalId }: QuoteFormProps) {
+export function QuoteForm({ deal, company, lineItems, dealOwner, onFormChange, portalId, savedConfig }: QuoteFormProps) {
   const [formData, setFormData] = useState<QuoteFormData>({ 
     quoteNumber: '', 
     quoteDate: new Date().toISOString().split('T')[0], 
@@ -101,6 +101,8 @@ export function QuoteForm({ deal, company, lineItems, dealOwner, onFormChange, p
   // Local string state for overage inputs to allow typing "0.0123" naturally
   const [overageBWText, setOverageBWText] = useState('');
   const [overageColorText, setOverageColorText] = useState('');
+  // Local string state for buyout financing amount to allow natural number entry
+  const [buyoutFinancingText, setBuyoutFinancingText] = useState('');
   
   // Leasing partners for dropdown
   const [leasingPartners, setLeasingPartners] = useState<LeasingPartner[]>([]);
@@ -141,8 +143,9 @@ export function QuoteForm({ deal, company, lineItems, dealOwner, onFormChange, p
 
   useEffect(() => {
     const totalPrice = lineItems.reduce((sum: number, item: any) => sum + (item.price * item.quantity), 0);
-    setFormData(prev => ({ 
-      ...prev, 
+    
+    // Start with HubSpot data
+    const hubspotData = { 
       quoteNumber: deal?.hsObjectId || '', 
       preparedBy: dealOwner ? `${dealOwner.firstName || ''} ${dealOwner.lastName || ''}`.trim() : '', 
       preparedByEmail: dealOwner?.email || '', 
@@ -163,8 +166,40 @@ export function QuoteForm({ deal, company, lineItems, dealOwner, onFormChange, p
       })), 
       retailPrice: totalPrice, 
       cashDiscount: totalPrice * 0.95 
-    }));
-  }, [deal, company, dealOwner, lineItems]);
+    };
+
+    // If we have saved config, merge it with HubSpot data
+    // HubSpot data takes precedence for contact/company info
+    if (savedConfig) {
+      setFormData(prev => ({ 
+        ...prev, 
+        ...savedConfig,
+        // Override with fresh HubSpot data for these fields
+        quoteNumber: hubspotData.quoteNumber || savedConfig.quoteNumber,
+        preparedBy: hubspotData.preparedBy || savedConfig.preparedBy,
+        preparedByEmail: hubspotData.preparedByEmail || savedConfig.preparedByEmail,
+        preparedByPhone: hubspotData.preparedByPhone || savedConfig.preparedByPhone,
+        companyName: hubspotData.companyName || savedConfig.companyName,
+        address: hubspotData.address || savedConfig.address,
+        address2: hubspotData.address2 || savedConfig.address2,
+        city: hubspotData.city || savedConfig.city,
+        state: hubspotData.state || savedConfig.state,
+        zip: hubspotData.zip || savedConfig.zip,
+        phone: hubspotData.phone || savedConfig.phone,
+        // Use saved lineItems if they exist, otherwise HubSpot's
+        lineItems: savedConfig.lineItems?.length > 0 ? savedConfig.lineItems : hubspotData.lineItems,
+        retailPrice: savedConfig.retailPrice || hubspotData.retailPrice,
+        cashDiscount: savedConfig.cashDiscount || hubspotData.cashDiscount
+      }));
+      
+      // Also restore text states for inputs
+      if (savedConfig.overageBWRate > 0) setOverageBWText(String(savedConfig.overageBWRate));
+      if (savedConfig.overageColorRate > 0) setOverageColorText(String(savedConfig.overageColorRate));
+      if (savedConfig.buyoutFinancingAmount > 0) setBuyoutFinancingText(String(savedConfig.buyoutFinancingAmount));
+    } else {
+      setFormData(prev => ({ ...prev, ...hubspotData }));
+    }
+  }, [deal, company, dealOwner, lineItems, savedConfig]);
 
   // Auto-calculate base rate when service values change (if not manually set)
   useEffect(() => {
@@ -504,10 +539,32 @@ export function QuoteForm({ deal, company, lineItems, dealOwner, onFormChange, p
               <span className="absolute left-2 top-1/2 -translate-y-1/2 text-muted-foreground text-sm">$</span>
               <Input 
                 type="text" 
-                value={formData.buyoutFinancingAmount === 0 ? '' : formatCurrency(formData.buyoutFinancingAmount)} 
-                onChange={e => updateField('buyoutFinancingAmount', parseCurrency(e.target.value))} 
+                value={buyoutFinancingText} 
+                onChange={e => {
+                  const val = e.target.value;
+                  if (val === '' || /^\d*\.?\d*$/.test(val)) {
+                    setBuyoutFinancingText(val);
+                    const num = parseFloat(val);
+                    if (!isNaN(num)) {
+                      updateField('buyoutFinancingAmount', num);
+                    } else if (val === '') {
+                      updateField('buyoutFinancingAmount', 0);
+                    }
+                  }
+                }}
+                onBlur={() => {
+                  if (buyoutFinancingText === '' || buyoutFinancingText === '.') {
+                    setBuyoutFinancingText('');
+                    updateField('buyoutFinancingAmount', 0);
+                  } else {
+                    const num = parseFloat(buyoutFinancingText);
+                    if (!isNaN(num)) {
+                      setBuyoutFinancingText(num === 0 ? '' : String(num));
+                    }
+                  }
+                }}
                 className="h-8 text-sm pl-5"
-                placeholder="0.00"
+                placeholder="5000"
               />
             </div>
           </div>
