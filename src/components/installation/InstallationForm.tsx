@@ -217,63 +217,58 @@ export function InstallationForm({
 
   // Pre-fill labeled contacts (Ship To, Bill To, IT Contact) when available
   // Apply labeled contacts to fill empty fields - check saved config values too
+  // Pre-fill labeled contacts - runs after initial load to fill empty fields
   useEffect(() => {
-    if (labeledContacts) {
+    if (!labeledContacts) return;
+    
+    // Small delay to ensure savedConfig has been applied first
+    const timer = setTimeout(() => {
       setFormData(prev => {
         const updates: Partial<InstallationFormData> = {};
 
-        // Shipping contact -> Ship To (only if not already set from saved config or user input)
+        // Shipping contact -> Ship To ATTN, Email, Phone
         if (labeledContacts.shippingContact) {
           const c = labeledContacts.shippingContact;
-          const savedShipToAttn = savedConfig?.shipToAttn;
-          const savedShipToEmail = savedConfig?.shipToEmail;
-          const savedShipToPhone = savedConfig?.shipToPhone;
-          
-          // Only apply if both current value and saved value are empty
-          if (!prev.shipToAttn && !savedShipToAttn) {
-            updates.shipToAttn = `${c.firstName || ''} ${c.lastName || ''}`.trim();
+          // Apply if current value is empty (regardless of savedConfig - we want fresh data if empty)
+          if (!prev.shipToAttn || prev.shipToAttn.trim() === '') {
+            const name = `${c.firstName || ''} ${c.lastName || ''}`.trim();
+            if (name) updates.shipToAttn = name;
           }
-          if (!prev.shipToEmail && !savedShipToEmail) {
-            updates.shipToEmail = c.email || '';
+          if (!prev.shipToEmail || prev.shipToEmail.trim() === '') {
+            if (c.email) updates.shipToEmail = c.email;
           }
-          if (!prev.shipToPhone && !savedShipToPhone) {
-            updates.shipToPhone = c.phone || '';
+          if (!prev.shipToPhone || prev.shipToPhone.trim() === '') {
+            if (c.phone) updates.shipToPhone = c.phone;
           }
         }
 
-        // AP contact -> Bill To
+        // AP contact -> Bill To ATTN, Email, Phone
         if (labeledContacts.apContact) {
           const c = labeledContacts.apContact;
-          const savedBillToAttn = savedConfig?.billToAttn;
-          const savedBillToEmail = savedConfig?.billToEmail;
-          const savedBillToPhone = savedConfig?.billToPhone;
-          
-          if (!prev.billToAttn && !savedBillToAttn) {
-            updates.billToAttn = `${c.firstName || ''} ${c.lastName || ''}`.trim();
+          if (!prev.billToAttn || prev.billToAttn.trim() === '') {
+            const name = `${c.firstName || ''} ${c.lastName || ''}`.trim();
+            if (name) updates.billToAttn = name;
           }
-          if (!prev.billToEmail && !savedBillToEmail) {
-            updates.billToEmail = c.email || '';
+          if (!prev.billToEmail || prev.billToEmail.trim() === '') {
+            if (c.email) updates.billToEmail = c.email;
           }
-          if (!prev.billToPhone && !savedBillToPhone) {
-            updates.billToPhone = c.phone || '';
+          if (!prev.billToPhone || prev.billToPhone.trim() === '') {
+            if (c.phone) updates.billToPhone = c.phone;
           }
         }
 
         // IT contact -> IT Contact fields
         if (labeledContacts.itContact) {
           const c = labeledContacts.itContact;
-          const savedItName = savedConfig?.itContactName;
-          const savedItEmail = savedConfig?.itContactEmail;
-          const savedItPhone = savedConfig?.itContactPhone;
-          
-          if (!prev.itContactName && !savedItName) {
-            updates.itContactName = `${c.firstName || ''} ${c.lastName || ''}`.trim();
+          if (!prev.itContactName || prev.itContactName.trim() === '') {
+            const name = `${c.firstName || ''} ${c.lastName || ''}`.trim();
+            if (name) updates.itContactName = name;
           }
-          if (!prev.itContactEmail && !savedItEmail) {
-            updates.itContactEmail = c.email || '';
+          if (!prev.itContactEmail || prev.itContactEmail.trim() === '') {
+            if (c.email) updates.itContactEmail = c.email;
           }
-          if (!prev.itContactPhone && !savedItPhone) {
-            updates.itContactPhone = c.phone || '';
+          if (!prev.itContactPhone || prev.itContactPhone.trim() === '') {
+            if (c.phone) updates.itContactPhone = c.phone;
           }
         }
 
@@ -283,8 +278,10 @@ export function InstallationForm({
         }
         return prev;
       });
-    }
-  }, [labeledContacts, savedConfig]);
+    }, 100);
+    
+    return () => clearTimeout(timer);
+  }, [labeledContacts]);
 
   // Update form when line item is selected
   useEffect(() => {
