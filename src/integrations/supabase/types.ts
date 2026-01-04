@@ -274,6 +274,50 @@ export type Database = {
         }
         Relationships: []
       }
+      lease_rate_factors: {
+        Row: {
+          created_at: string
+          id: string
+          lease_program: string
+          leasing_company: string
+          max_amount: number | null
+          min_amount: number | null
+          rate_factor: number
+          rate_sheet_id: string
+          term_months: number
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          lease_program: string
+          leasing_company: string
+          max_amount?: number | null
+          min_amount?: number | null
+          rate_factor: number
+          rate_sheet_id: string
+          term_months: number
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          lease_program?: string
+          leasing_company?: string
+          max_amount?: number | null
+          min_amount?: number | null
+          rate_factor?: number
+          rate_sheet_id?: string
+          term_months?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "lease_rate_factors_rate_sheet_id_fkey"
+            columns: ["rate_sheet_id"]
+            isOneToOne: false
+            referencedRelation: "uploaded_rate_sheets"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       lease_rate_sheets: {
         Row: {
           created_at: string
@@ -465,6 +509,36 @@ export type Database = {
           id?: string
           portal_id?: string
           updated_at?: string
+        }
+        Relationships: []
+      }
+      uploaded_rate_sheets: {
+        Row: {
+          created_at: string
+          dealer_account_id: string
+          file_name: string
+          id: string
+          is_active: boolean
+          row_count: number | null
+          uploaded_at: string
+        }
+        Insert: {
+          created_at?: string
+          dealer_account_id: string
+          file_name: string
+          id?: string
+          is_active?: boolean
+          row_count?: number | null
+          uploaded_at?: string
+        }
+        Update: {
+          created_at?: string
+          dealer_account_id?: string
+          file_name?: string
+          id?: string
+          is_active?: boolean
+          row_count?: number | null
+          uploaded_at?: string
         }
         Relationships: []
       }

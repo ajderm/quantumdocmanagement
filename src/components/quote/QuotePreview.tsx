@@ -13,20 +13,11 @@ interface QuotePreviewProps {
   };
 }
 
-const RATE_FACTORS: Record<number, number> = {
-  12: 0.088,
-  24: 0.046,
-  36: 0.032,
-  48: 0.026,
-  60: 0.022,
-  72: 0.019,
-};
-
 export const QuotePreview = forwardRef<HTMLDivElement, QuotePreviewProps>(
   ({ formData, dealerInfo }, ref) => {
-    const calculateLeasePayment = (term: number): number => {
-      const rateFactor = RATE_FACTORS[term] || 0.025;
-      return Math.round(formData.retailPrice * rateFactor);
+    // Use pre-calculated payments from formData
+    const getLeasePayment = (term: number): number => {
+      return formData.calculatedPayments?.[term] || 0;
     };
 
     const formatDate = (dateString: string) => {
@@ -48,6 +39,9 @@ export const QuotePreview = forwardRef<HTMLDivElement, QuotePreviewProps>(
     // Calculate total buyout if applicable
     const totalBuyout = (formData.paymentAmount * formData.paymentsRemaining) + formData.earlyTerminationFee + formData.returnShipping;
     const showBuyout = formData.leasingPriceType === 'with_buyout' && totalBuyout > 0;
+
+    // Get lease program display name
+    const leaseTypeName = formData.leaseProgram === 'fmv' ? 'FMV Lease' : '$1 Buyout Lease';
 
     return (
       <div 
@@ -157,7 +151,7 @@ export const QuotePreview = forwardRef<HTMLDivElement, QuotePreviewProps>(
               <tr className="border-b-2 border-black">
                 {showPurchase && <th colSpan={2} className="text-left py-1 font-bold">PURCHASE</th>}
                 {showPurchase && showLease && <th className="py-1 font-bold"></th>}
-                {showLease && <th colSpan={2} className="text-left py-1 font-bold">LEASE</th>}
+                {showLease && <th colSpan={2} className="text-left py-1 font-bold">{leaseTypeName.toUpperCase()}</th>}
                 {hasServiceAgreement && (
                   <th className="text-left py-1 font-bold pl-4 border-l-2 border-black">SERVICE AGREEMENT</th>
                 )}
@@ -199,11 +193,11 @@ export const QuotePreview = forwardRef<HTMLDivElement, QuotePreviewProps>(
                     OR
                   </td>
                 )}
-                {showLease && (
+                {showLease && formData.selectedTerms.length > 0 && (
                   <>
                     <td className="py-1">{formData.selectedTerms[0]} months</td>
                     <td className="py-1 text-right font-semibold pr-3">
-                      ${calculateLeasePayment(formData.selectedTerms[0]).toLocaleString()}/mo
+                      ${getLeasePayment(formData.selectedTerms[0]).toLocaleString()}/mo
                     </td>
                   </>
                 )}
@@ -248,13 +242,12 @@ export const QuotePreview = forwardRef<HTMLDivElement, QuotePreviewProps>(
                   </td>
                 )}
               </tr>
-              {/* Additional lease term rows - only show if lease is visible */}
-              {/* Note: Purchase and OR cells have rowSpan, so no empty cells needed */}
+              {/* Additional lease term rows */}
               {showLease && formData.selectedTerms.slice(1).map((term, idx) => (
                 <tr key={term} className={idx === formData.selectedTerms.length - 2 ? '' : 'border-b border-gray-300'}>
                   <td className="py-1">{term} months</td>
                   <td className="py-1 text-right font-semibold pr-3">
-                    ${calculateLeasePayment(term).toLocaleString()}/mo
+                    ${getLeasePayment(term).toLocaleString()}/mo
                   </td>
                 </tr>
               ))}
@@ -262,7 +255,12 @@ export const QuotePreview = forwardRef<HTMLDivElement, QuotePreviewProps>(
           </table>
         </div>
 
-        {/* Buyout Information - intentionally not included in document output */}
+        {/* Leasing Company Info */}
+        {showLease && formData.leasingCompanyId && (
+          <div className="mb-4 text-[9px] text-gray-600">
+            <p>Financing provided by: {formData.leasingCompanyId}</p>
+          </div>
+        )}
 
         {/* Terms & Conditions */}
         {dealerInfo?.termsAndConditions && (
