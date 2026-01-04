@@ -111,6 +111,11 @@ interface ServiceAgreementFormProps {
     apCity?: string;
     apState?: string;
     apZip?: string;
+    // Fallback address
+    address?: string;
+    city?: string;
+    state?: string;
+    zip?: string;
   } | null;
   lineItems: LineItem[];
   dealerSettings: { meter_methods?: string[] } | null;
