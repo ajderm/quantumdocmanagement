@@ -82,7 +82,7 @@ export const InstallationPreview = forwardRef<HTMLDivElement, InstallationPrevie
         {/* Customer Ship To / Bill To */}
         <div className="grid grid-cols-2 gap-4 mb-4">
           <div className="border border-black p-2">
-            <p className="font-bold text-[9px] mb-1 border-b border-black pb-1">CUSTOMER SHIP TO</p>
+            <p className="font-bold text-[9px] mb-1 border-b border-black pb-1 text-center">CUSTOMER SHIP TO</p>
             <table className="w-full text-[8px]">
               <tbody>
                 <tr><td className="font-bold w-16">Company:</td><td>{formData.shipToCompany}</td></tr>
@@ -95,7 +95,7 @@ export const InstallationPreview = forwardRef<HTMLDivElement, InstallationPrevie
             </table>
           </div>
           <div className="border border-black p-2">
-            <p className="font-bold text-[9px] mb-1 border-b border-black pb-1">CUSTOMER BILL TO</p>
+            <p className="font-bold text-[9px] mb-1 border-b border-black pb-1 text-center">CUSTOMER BILL TO</p>
             <table className="w-full text-[8px]">
               <tbody>
                 <tr><td className="font-bold w-16">Company:</td><td>{formData.billToCompany}</td></tr>
@@ -115,19 +115,19 @@ export const InstallationPreview = forwardRef<HTMLDivElement, InstallationPrevie
           <table className="w-full border-collapse text-[8px]">
             <thead>
               <tr className="border-b border-black">
-                <th className="text-left py-1 w-10">Qty</th>
-                <th className="text-left py-1 w-24">Model</th>
-                <th className="text-left py-1">Description</th>
-                <th className="text-left py-1 w-24">Serial #</th>
-                <th className="text-left py-1 w-24">MAC Address</th>
-                <th className="text-left py-1 w-20">IP Address</th>
+                <th className="text-left py-1 w-8">Qty</th>
+                <th className="text-left py-1 w-40">Model</th>
+                <th className="text-left py-1 pl-2">Description</th>
+                <th className="text-left py-1 w-20">Serial #</th>
+                <th className="text-left py-1 w-20">MAC Address</th>
+                <th className="text-left py-1 w-16">IP Address</th>
               </tr>
             </thead>
             <tbody>
               <tr className="border-b border-gray-300">
                 <td className="py-1">{formData.installedQty}</td>
                 <td className="py-1">{formData.installedModel}</td>
-                <td className="py-1">{formData.installedDescription}</td>
+                <td className="py-1 pl-2">{formData.installedDescription}</td>
                 <td className="py-1">{formData.installedSerial}</td>
                 <td className="py-1">{formData.installedMacAddress}</td>
                 <td className="py-1">{formData.installedIpAddress}</td>
@@ -139,7 +139,7 @@ export const InstallationPreview = forwardRef<HTMLDivElement, InstallationPrevie
         {/* Networking & Additional Contacts - Side by Side */}
         <div className="grid grid-cols-2 gap-4 mb-4">
           <div className="border border-black p-2">
-            <p className="font-bold text-[9px] mb-1 border-b border-black pb-1">NETWORKING</p>
+            <p className="font-bold text-[9px] mb-1 border-b border-black pb-1 text-center">NETWORKING</p>
             {/* Print and Scan side by side */}
             <div className="grid grid-cols-2 gap-2">
               {/* PRINT Column */}
@@ -171,7 +171,7 @@ export const InstallationPreview = forwardRef<HTMLDivElement, InstallationPrevie
             </div>
           </div>
           <div className="border border-black p-2">
-            <p className="font-bold text-[9px] mb-1 border-b border-black pb-1">ADDITIONAL CONTACTS</p>
+            <p className="font-bold text-[9px] mb-1 border-b border-black pb-1 text-center">ADDITIONAL CONTACTS</p>
             <div className="grid grid-cols-2 gap-2">
               {/* IT Contact Column */}
               <div>
@@ -269,10 +269,10 @@ export const InstallationPreview = forwardRef<HTMLDivElement, InstallationPrevie
             {/* Technician Side */}
             <div className="border-r border-gray-300 pr-4">
               <p className="font-bold text-[8px] mb-2">{dealerInfo?.companyName || 'TECHNICIAN'}</p>
-              <div className="grid grid-cols-2 gap-2">
+              <div className="space-y-2">
                 <div>
                   <div className="border-b border-black h-5 mb-0.5"></div>
-                  <p className="text-[7px]">Signature</p>
+                  <p className="text-[7px]">Installed By (sign)</p>
                 </div>
                 <div>
                   <div className="border-b border-black h-5 mb-0.5"></div>
@@ -282,7 +282,7 @@ export const InstallationPreview = forwardRef<HTMLDivElement, InstallationPrevie
             </div>
             {/* Customer Side */}
             <div>
-              <p className="font-bold text-[8px] mb-2">CUSTOMER</p>
+              <p className="font-bold text-[8px] mb-2">{formData.shipToCompany || 'CUSTOMER'}</p>
               <div className="grid grid-cols-2 gap-2 mb-2">
                 <div>
                   <div className="border-b border-black h-5 mb-0.5"></div>
