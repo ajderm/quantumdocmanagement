@@ -25,8 +25,10 @@ import {
   ArrowLeft,
   FileText
 } from 'lucide-react';
-import { useState } from 'react';
-import { Link } from 'react-router-dom';
+import { useState, useEffect } from 'react';
+import { Link, useSearchParams } from 'react-router-dom';
+import { supabase } from '@/integrations/supabase/client';
+import { toast } from 'sonner';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -41,18 +43,16 @@ interface LeasingPartner {
   contact_email: string | null;
   contact_phone: string | null;
   is_active: boolean;
-  rateSheets: number;
+  dealer_account_id: string;
 }
 
-// Demo data
-const demoPartners: LeasingPartner[] = [
-  { id: '1', name: 'GreatAmerica Financial Services', contact_name: 'Mike Johnson', contact_email: 'mike@greatamerica.com', contact_phone: '(800) 234-5678', is_active: true, rateSheets: 2 },
-  { id: '2', name: 'Wells Fargo Equipment Finance', contact_name: 'Sarah Williams', contact_email: 'swilliams@wellsfargo.com', contact_phone: '(800) 345-6789', is_active: true, rateSheets: 1 },
-  { id: '3', name: 'US Bank Equipment Finance', contact_name: null, contact_email: null, contact_phone: null, is_active: true, rateSheets: 0 },
-];
-
 export default function LeasingPartners() {
-  const [partners, setPartners] = useState<LeasingPartner[]>(demoPartners);
+  const [searchParams] = useSearchParams();
+  const portalId = searchParams.get('portalId') || localStorage.getItem('hs_portal_id');
+  
+  const [partners, setPartners] = useState<LeasingPartner[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [dealerAccountId, setDealerAccountId] = useState<string | null>(null);
   
   // Dialog states
   const [addPartnerOpen, setAddPartnerOpen] = useState(false);
@@ -68,31 +68,117 @@ export default function LeasingPartners() {
     contact_phone: '',
   });
 
-  const handleAddPartner = async () => {
-    if (!partnerForm.name.trim()) return;
+  // Fetch dealer account and partners on mount
+  useEffect(() => {
+    const fetchData = async () => {
+      if (!portalId) {
+        setLoading(false);
+        return;
+      }
 
-    setAddingPartner(true);
-    await new Promise(resolve => setTimeout(resolve, 500));
+      try {
+        // Get dealer account
+        const { data: dealerData, error: dealerError } = await supabase.functions.invoke('dealer-account-get', {
+          body: { portalId }
+        });
 
-    const newPartner: LeasingPartner = {
-      id: Date.now().toString(),
-      name: partnerForm.name,
-      contact_name: partnerForm.contact_name || null,
-      contact_email: partnerForm.contact_email || null,
-      contact_phone: partnerForm.contact_phone || null,
-      is_active: true,
-      rateSheets: 0,
+        if (dealerError || !dealerData?.dealer?.id) {
+          console.error('Failed to get dealer account:', dealerError);
+          setLoading(false);
+          return;
+        }
+
+        const accountId = dealerData.dealer.id;
+        setDealerAccountId(accountId);
+
+        // Fetch partners
+        const { data: partnersData, error: partnersError } = await supabase
+          .from('leasing_partners')
+          .select('*')
+          .eq('dealer_account_id', accountId)
+          .eq('is_active', true)
+          .order('name');
+
+        if (partnersError) {
+          console.error('Failed to fetch partners:', partnersError);
+        } else {
+          setPartners(partnersData || []);
+        }
+      } catch (err) {
+        console.error('Error fetching data:', err);
+      } finally {
+        setLoading(false);
+      }
     };
 
-    setPartners(prev => [...prev, newPartner].sort((a, b) => a.name.localeCompare(b.name)));
-    setAddPartnerOpen(false);
-    setPartnerForm({ name: '', contact_name: '', contact_email: '', contact_phone: '' });
-    setAddingPartner(false);
+    fetchData();
+  }, [portalId]);
+
+  const handleAddPartner = async () => {
+    if (!partnerForm.name.trim() || !dealerAccountId) return;
+
+    setAddingPartner(true);
+    try {
+      const { data, error } = await supabase
+        .from('leasing_partners')
+        .insert({
+          name: partnerForm.name.trim(),
+          contact_name: partnerForm.contact_name.trim() || null,
+          contact_email: partnerForm.contact_email.trim() || null,
+          contact_phone: partnerForm.contact_phone.trim() || null,
+          dealer_account_id: dealerAccountId,
+          is_active: true,
+        })
+        .select()
+        .single();
+
+      if (error) {
+        console.error('Failed to add partner:', error);
+        toast.error('Failed to add partner');
+        return;
+      }
+
+      setPartners(prev => [...prev, data].sort((a, b) => a.name.localeCompare(b.name)));
+      setAddPartnerOpen(false);
+      setPartnerForm({ name: '', contact_name: '', contact_email: '', contact_phone: '' });
+      toast.success('Partner added successfully');
+    } catch (err) {
+      console.error('Error adding partner:', err);
+      toast.error('Failed to add partner');
+    } finally {
+      setAddingPartner(false);
+    }
   };
 
-  const handleDeletePartner = (partner: LeasingPartner) => {
-    setPartners(prev => prev.filter(p => p.id !== partner.id));
+  const handleDeletePartner = async (partner: LeasingPartner) => {
+    try {
+      // Soft delete by setting is_active to false
+      const { error } = await supabase
+        .from('leasing_partners')
+        .update({ is_active: false })
+        .eq('id', partner.id);
+
+      if (error) {
+        console.error('Failed to delete partner:', error);
+        toast.error('Failed to delete partner');
+        return;
+      }
+
+      setPartners(prev => prev.filter(p => p.id !== partner.id));
+      toast.success('Partner deleted');
+    } catch (err) {
+      console.error('Error deleting partner:', err);
+      toast.error('Failed to delete partner');
+    }
   };
+
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-background flex items-center justify-center">
+        <Loader2 className="h-8 w-8 animate-spin text-primary" />
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-background">
@@ -114,7 +200,7 @@ export default function LeasingPartners() {
       <div className="max-w-4xl mx-auto p-6">
         {/* Back link */}
         <Button variant="ghost" size="sm" className="mb-4" asChild>
-          <Link to="/admin">
+          <Link to={`/admin${portalId ? `?portalId=${portalId}` : ''}`}>
             <ArrowLeft className="h-4 w-4 mr-2" />
             Back to Settings
           </Link>
@@ -130,7 +216,7 @@ export default function LeasingPartners() {
           </div>
           <Dialog open={addPartnerOpen} onOpenChange={setAddPartnerOpen}>
             <DialogTrigger asChild>
-              <Button>
+              <Button disabled={!dealerAccountId}>
                 <Plus className="h-4 w-4 mr-2" />
                 Add Partner
               </Button>
@@ -203,80 +289,91 @@ export default function LeasingPartners() {
         </div>
 
         {/* Partners list */}
-        <div className="space-y-4">
-          {partners.map((partner) => (
-            <Card key={partner.id}>
-              <CardHeader className="pb-3">
-                <div className="flex items-start justify-between">
-                  <div className="flex items-center gap-3">
-                    <div className="h-10 w-10 rounded-lg bg-primary/10 flex items-center justify-center">
-                      <CreditCard className="h-5 w-5 text-primary" />
+        {partners.length === 0 ? (
+          <Card>
+            <CardContent className="py-12 text-center">
+              <CreditCard className="h-12 w-12 mx-auto text-muted-foreground mb-4" />
+              <h3 className="text-lg font-medium mb-2">No Leasing Partners</h3>
+              <p className="text-muted-foreground mb-4">
+                Add your first leasing partner to get started
+              </p>
+              <Button onClick={() => setAddPartnerOpen(true)} disabled={!dealerAccountId}>
+                <Plus className="h-4 w-4 mr-2" />
+                Add Partner
+              </Button>
+            </CardContent>
+          </Card>
+        ) : (
+          <div className="space-y-4">
+            {partners.map((partner) => (
+              <Card key={partner.id}>
+                <CardHeader className="pb-3">
+                  <div className="flex items-start justify-between">
+                    <div className="flex items-center gap-3">
+                      <div className="h-10 w-10 rounded-lg bg-primary/10 flex items-center justify-center">
+                        <CreditCard className="h-5 w-5 text-primary" />
+                      </div>
+                      <div>
+                        <CardTitle className="text-lg">{partner.name}</CardTitle>
+                        {partner.contact_name && (
+                          <CardDescription>
+                            {partner.contact_name}
+                            {partner.contact_email && ` • ${partner.contact_email}`}
+                          </CardDescription>
+                        )}
+                      </div>
                     </div>
-                    <div>
-                      <CardTitle className="text-lg">{partner.name}</CardTitle>
-                      {partner.contact_name && (
-                        <CardDescription>
-                          {partner.contact_name}
-                          {partner.contact_email && ` • ${partner.contact_email}`}
-                        </CardDescription>
-                      )}
+                    <div className="flex items-center gap-2">
+                      <Badge variant={partner.is_active ? 'default' : 'secondary'}>
+                        {partner.is_active ? 'Active' : 'Inactive'}
+                      </Badge>
+                      <DropdownMenu>
+                        <DropdownMenuTrigger asChild>
+                          <Button variant="ghost" size="icon">
+                            <MoreVertical className="h-4 w-4" />
+                          </Button>
+                        </DropdownMenuTrigger>
+                        <DropdownMenuContent align="end">
+                          <DropdownMenuItem>
+                            <Pencil className="h-4 w-4 mr-2" />
+                            Edit Partner
+                          </DropdownMenuItem>
+                          <DropdownMenuItem 
+                            className="text-destructive"
+                            onClick={() => handleDeletePartner(partner)}
+                          >
+                            <Trash2 className="h-4 w-4 mr-2" />
+                            Delete Partner
+                          </DropdownMenuItem>
+                        </DropdownMenuContent>
+                      </DropdownMenu>
                     </div>
                   </div>
-                  <div className="flex items-center gap-2">
-                    <Badge variant={partner.is_active ? 'default' : 'secondary'}>
-                      {partner.is_active ? 'Active' : 'Inactive'}
-                    </Badge>
-                    <DropdownMenu>
-                      <DropdownMenuTrigger asChild>
-                        <Button variant="ghost" size="icon">
-                          <MoreVertical className="h-4 w-4" />
-                        </Button>
-                      </DropdownMenuTrigger>
-                      <DropdownMenuContent align="end">
-                        <DropdownMenuItem>
-                          <Pencil className="h-4 w-4 mr-2" />
-                          Edit Partner
-                        </DropdownMenuItem>
-                        <DropdownMenuItem 
-                          className="text-destructive"
-                          onClick={() => handleDeletePartner(partner)}
-                        >
-                          <Trash2 className="h-4 w-4 mr-2" />
-                          Delete Partner
-                        </DropdownMenuItem>
-                      </DropdownMenuContent>
-                    </DropdownMenu>
+                </CardHeader>
+                <CardContent>
+                  <Separator className="mb-4" />
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                      <FileSpreadsheet className="h-4 w-4" />
+                      <span>No rate sheets uploaded</span>
+                    </div>
+                    <Button 
+                      variant="outline" 
+                      size="sm"
+                      onClick={() => {
+                        setSelectedPartner(partner);
+                        setUploadRatesOpen(true);
+                      }}
+                    >
+                      <Upload className="h-4 w-4 mr-2" />
+                      Upload Rate Sheet
+                    </Button>
                   </div>
-                </div>
-              </CardHeader>
-              <CardContent>
-                <Separator className="mb-4" />
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                    <FileSpreadsheet className="h-4 w-4" />
-                    <span>
-                      {partner.rateSheets === 0 
-                        ? 'No rate sheets uploaded' 
-                        : `${partner.rateSheets} rate sheet${partner.rateSheets > 1 ? 's' : ''}`
-                      }
-                    </span>
-                  </div>
-                  <Button 
-                    variant="outline" 
-                    size="sm"
-                    onClick={() => {
-                      setSelectedPartner(partner);
-                      setUploadRatesOpen(true);
-                    }}
-                  >
-                    <Upload className="h-4 w-4 mr-2" />
-                    Upload Rate Sheet
-                  </Button>
-                </div>
-              </CardContent>
-            </Card>
-          ))}
-        </div>
+                </CardContent>
+              </Card>
+            ))}
+          </div>
+        )}
 
         {/* Upload Rate Sheet Dialog */}
         <Dialog open={uploadRatesOpen} onOpenChange={setUploadRatesOpen}>
