@@ -133,9 +133,9 @@ export function InstallationForm({
   savedConfig,
   labeledContacts,
 }: InstallationFormProps) {
-  // Filter line items to show only hardware
+  // Filter line items to show only hardware (hs_product_type = "Hardware")
   const hardwareLineItems = lineItems.filter(
-    (item) => item.category?.toLowerCase() === 'hardware' || !item.category
+    (item) => item.category?.toLowerCase() === 'hardware'
   );
 
   const [formData, setFormData] = useState<InstallationFormData>({
