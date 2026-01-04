@@ -12,6 +12,19 @@ interface HubSpotToken {
   portal_id: string;
 }
 
+interface LabeledContact {
+  firstName: string;
+  lastName: string;
+  email: string;
+  phone: string;
+}
+
+interface LabeledContacts {
+  shippingContact: LabeledContact | null;
+  apContact: LabeledContact | null;
+  itContact: LabeledContact | null;
+}
+
 // Validate portalId format (should be numeric)
 function validatePortalId(portalId: string): boolean {
   return /^\d{1,20}$/.test(portalId);
@@ -125,6 +138,88 @@ async function hubspotRequest(accessToken: string, endpoint: string) {
   return response.json();
 }
 
+// Fetch labeled contacts from company using V4 Associations API
+async function fetchLabeledContacts(accessToken: string, companyId: string): Promise<LabeledContacts> {
+  const labeledContacts: LabeledContacts = {
+    shippingContact: null,
+    apContact: null,
+    itContact: null,
+  };
+
+  try {
+    // Use V4 associations API to get contacts with labels
+    const associationsResponse = await hubspotRequest(
+      accessToken,
+      `/crm/v4/objects/companies/${companyId}/associations/contacts`
+    );
+
+    console.log('Company contact associations:', JSON.stringify(associationsResponse));
+
+    if (!associationsResponse.results?.length) {
+      return labeledContacts;
+    }
+
+    // Map of label names to our labeled contact keys (case-insensitive)
+    const labelMapping: Record<string, keyof LabeledContacts> = {
+      'shipping_contact': 'shippingContact',
+      'shipping contact': 'shippingContact',
+      'shipping': 'shippingContact',
+      'ap_contact': 'apContact',
+      'ap contact': 'apContact',
+      'billing_contact': 'apContact',
+      'billing contact': 'apContact',
+      'accounts_payable': 'apContact',
+      'it_contact': 'itContact',
+      'it contact': 'itContact',
+      'it': 'itContact',
+    };
+
+    // Collect contact IDs by their label
+    const contactsToFetch: Map<string, keyof LabeledContacts> = new Map();
+
+    for (const result of associationsResponse.results) {
+      const contactId = result.toObjectId;
+      const associationTypes = result.associationTypes || [];
+
+      for (const assocType of associationTypes) {
+        // Check the label field (for user-defined labels)
+        const label = assocType.label?.toLowerCase();
+        if (label && labelMapping[label]) {
+          contactsToFetch.set(contactId, labelMapping[label]);
+          break;
+        }
+      }
+    }
+
+    console.log('Labeled contacts to fetch:', Array.from(contactsToFetch.entries()));
+
+    // Fetch contact details for each labeled contact
+    for (const [contactId, labelKey] of contactsToFetch) {
+      try {
+        const contactResponse = await hubspotRequest(
+          accessToken,
+          `/crm/v3/objects/contacts/${contactId}?properties=firstname,lastname,email,phone`
+        );
+
+        labeledContacts[labelKey] = {
+          firstName: contactResponse.properties.firstname || '',
+          lastName: contactResponse.properties.lastname || '',
+          email: contactResponse.properties.email || '',
+          phone: contactResponse.properties.phone || '',
+        };
+
+        console.log(`Fetched ${labelKey}:`, labeledContacts[labelKey]);
+      } catch (e) {
+        console.error(`Failed to fetch contact ${contactId}:`, e);
+      }
+    }
+  } catch (e) {
+    console.error('Failed to fetch labeled contacts:', e);
+  }
+
+  return labeledContacts;
+}
+
 Deno.serve(async (req) => {
   if (req.method === 'OPTIONS') {
     return new Response(null, { headers: corsHeaders });
@@ -212,6 +307,12 @@ Deno.serve(async (req) => {
 
     // Fetch associated company with all address fields including customer_number
     let company = null;
+    let labeledContacts: LabeledContacts = {
+      shippingContact: null,
+      apContact: null,
+      itContact: null,
+    };
+
     try {
       const companyAssociations = await hubspotRequest(
         accessToken,
@@ -237,12 +338,15 @@ Deno.serve(async (req) => {
           customerNumber: companyResponse.properties.customer_number || '',
         };
         console.log('Company fetched:', company.name, 'customerNumber:', company.customerNumber);
+
+        // Fetch labeled contacts from company
+        labeledContacts = await fetchLabeledContacts(accessToken, companyId);
       }
     } catch (e) {
       console.error('Failed to fetch company:', e);
     }
 
-    // Fetch associated contacts
+    // Fetch associated contacts (from deal)
     let contacts: any[] = [];
     try {
       const contactAssociations = await hubspotRequest(
@@ -310,6 +414,7 @@ Deno.serve(async (req) => {
       company,
       contacts,
       lineItems,
+      labeledContacts,
     };
 
     console.log('Returning data successfully');

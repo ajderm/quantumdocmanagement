@@ -102,7 +102,6 @@ export const InstallationPreview = forwardRef<HTMLDivElement, InstallationPrevie
             <table className="w-full text-[8px]">
               <tbody>
                 <tr><td className="font-bold w-16">Company:</td><td>{formData.shipToCompany}</td></tr>
-                <tr><td className="font-bold">Dept:</td><td>{formData.shipToDept}</td></tr>
                 <tr><td className="font-bold">Address:</td><td>{formData.shipToAddress}</td></tr>
                 <tr><td className="font-bold">City/St/Zip:</td><td>{formData.shipToCity}, {formData.shipToState} {formData.shipToZip}</td></tr>
                 <tr><td className="font-bold">ATTN:</td><td>{formData.shipToAttn}</td></tr>
@@ -116,7 +115,6 @@ export const InstallationPreview = forwardRef<HTMLDivElement, InstallationPrevie
             <table className="w-full text-[8px]">
               <tbody>
                 <tr><td className="font-bold w-16">Company:</td><td>{formData.billToCompany}</td></tr>
-                <tr><td className="font-bold">Dept:</td><td>{formData.billToDept}</td></tr>
                 <tr><td className="font-bold">Address:</td><td>{formData.billToAddress}</td></tr>
                 <tr><td className="font-bold">City/St/Zip:</td><td>{formData.billToCity}, {formData.billToState} {formData.billToZip}</td></tr>
                 <tr><td className="font-bold">ATTN:</td><td>{formData.billToAttn}</td></tr>
@@ -158,22 +156,35 @@ export const InstallationPreview = forwardRef<HTMLDivElement, InstallationPrevie
         <div className="grid grid-cols-2 gap-4 mb-4">
           <div className="border border-black p-2">
             <p className="font-bold text-[9px] mb-1 border-b border-black pb-1">NETWORKING</p>
-            <table className="w-full text-[8px]">
-              <tbody>
-                <tr><td colSpan={2} className="font-bold pt-1 pb-0.5">DEALER SETUP - PRINT</td></tr>
-                <tr><td className="pl-2 w-32">Dealer Setup Print:</td><td>{formData.dealerSetupPrint || '____'}</td></tr>
-                <tr><td className="pl-2">Windows Computers:</td><td>{formData.printWindowsComputers || '____'}</td></tr>
-                <tr><td className="pl-2">Mac Computers:</td><td>{formData.printMacComputers || '____'}</td></tr>
-                <tr><td className="pl-2">Allow Print From USB:</td><td>{formData.allowPrintFromUSB || '____'}</td></tr>
-                <tr><td className="pl-2">Allow Mobile Print:</td><td>{formData.allowMobilePrint || '____'}</td></tr>
-                <tr><td colSpan={2} className="font-bold pt-2 pb-0.5">DEALER SETUP - SCAN</td></tr>
-                <tr><td className="pl-2">Dealer Setup Scan:</td><td>{formData.dealerSetupScan || '____'}</td></tr>
-                <tr><td className="pl-2">Windows Computers:</td><td>{formData.scanWindowsComputers || '____'}</td></tr>
-                <tr><td className="pl-2">Mac Computers:</td><td>{formData.scanMacComputers || '____'}</td></tr>
-                <tr><td className="pl-2">Email Assigned:</td><td>{formData.emailAssigned || '____'}</td></tr>
-                <tr><td className="pl-2">Password:</td><td>{formData.emailPassword || '____'}</td></tr>
-              </tbody>
-            </table>
+            {/* Print and Scan side by side */}
+            <div className="grid grid-cols-2 gap-2">
+              {/* PRINT Column */}
+              <div>
+                <p className="font-bold text-[8px] mb-1 text-center border-b border-gray-300 pb-0.5">PRINT</p>
+                <table className="w-full text-[7px]">
+                  <tbody>
+                    <tr><td>Setup:</td><td className="text-right">{formData.dealerSetupPrint || '____'}</td></tr>
+                    <tr><td>Windows:</td><td className="text-right">{formData.printWindowsComputers || '____'}</td></tr>
+                    <tr><td>Mac:</td><td className="text-right">{formData.printMacComputers || '____'}</td></tr>
+                    <tr><td>USB:</td><td className="text-right">{formData.allowPrintFromUSB || '____'}</td></tr>
+                    <tr><td>Mobile:</td><td className="text-right">{formData.allowMobilePrint || '____'}</td></tr>
+                  </tbody>
+                </table>
+              </div>
+              {/* SCAN Column */}
+              <div>
+                <p className="font-bold text-[8px] mb-1 text-center border-b border-gray-300 pb-0.5">SCAN</p>
+                <table className="w-full text-[7px]">
+                  <tbody>
+                    <tr><td>Setup:</td><td className="text-right">{formData.dealerSetupScan || '____'}</td></tr>
+                    <tr><td>Windows:</td><td className="text-right">{formData.scanWindowsComputers || '____'}</td></tr>
+                    <tr><td>Mac:</td><td className="text-right">{formData.scanMacComputers || '____'}</td></tr>
+                    <tr><td>Email:</td><td className="text-right truncate max-w-[60px]">{formData.emailAssigned || '____'}</td></tr>
+                    <tr><td>Password:</td><td className="text-right">{formData.emailPassword || '____'}</td></tr>
+                  </tbody>
+                </table>
+              </div>
+            </div>
           </div>
           <div className="border border-black p-2">
             <p className="font-bold text-[9px] mb-1 border-b border-black pb-1">ADDITIONAL CONTACTS</p>

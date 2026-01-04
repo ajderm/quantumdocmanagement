@@ -71,7 +71,7 @@ interface DocumentTerms {
 const AUTO_SAVE_DELAY = 3000;
 
 function DocumentHubContent() {
-  const { deal, company, contacts, lineItems, dealOwner, loading, error, portalId } = useHubSpot();
+  const { deal, company, contacts, lineItems, dealOwner, labeledContacts, loading, error, portalId } = useHubSpot();
   
   // Quote state
   const [generating, setGenerating] = useState(false);
@@ -931,6 +931,7 @@ function DocumentHubContent() {
                   onFormChange={handleInstallationFormChange}
                   onLineItemSwitch={handleInstallationLineItemSwitch}
                   savedConfig={getCurrentInstallationSavedConfig()}
+                  labeledContacts={labeledContacts || undefined}
                 />
 
                 {/* Actions */}
