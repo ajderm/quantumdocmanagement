@@ -216,36 +216,69 @@ export function InstallationForm({
   }, [company?.customerNumber]);
 
   // Pre-fill labeled contacts (Ship To, Bill To, IT Contact) when available
+  // Apply labeled contacts to fill empty fields - check saved config values too
   useEffect(() => {
-    if (!savedConfig && labeledContacts) {
+    if (labeledContacts) {
       setFormData(prev => {
         const updates: Partial<InstallationFormData> = {};
 
-        // Shipping contact -> Ship To
+        // Shipping contact -> Ship To (only if not already set from saved config or user input)
         if (labeledContacts.shippingContact) {
           const c = labeledContacts.shippingContact;
-          if (!prev.shipToAttn) updates.shipToAttn = `${c.firstName || ''} ${c.lastName || ''}`.trim();
-          if (!prev.shipToEmail) updates.shipToEmail = c.email || '';
-          if (!prev.shipToPhone) updates.shipToPhone = c.phone || '';
+          const savedShipToAttn = savedConfig?.shipToAttn;
+          const savedShipToEmail = savedConfig?.shipToEmail;
+          const savedShipToPhone = savedConfig?.shipToPhone;
+          
+          // Only apply if both current value and saved value are empty
+          if (!prev.shipToAttn && !savedShipToAttn) {
+            updates.shipToAttn = `${c.firstName || ''} ${c.lastName || ''}`.trim();
+          }
+          if (!prev.shipToEmail && !savedShipToEmail) {
+            updates.shipToEmail = c.email || '';
+          }
+          if (!prev.shipToPhone && !savedShipToPhone) {
+            updates.shipToPhone = c.phone || '';
+          }
         }
 
         // AP contact -> Bill To
         if (labeledContacts.apContact) {
           const c = labeledContacts.apContact;
-          if (!prev.billToAttn) updates.billToAttn = `${c.firstName || ''} ${c.lastName || ''}`.trim();
-          if (!prev.billToEmail) updates.billToEmail = c.email || '';
-          if (!prev.billToPhone) updates.billToPhone = c.phone || '';
+          const savedBillToAttn = savedConfig?.billToAttn;
+          const savedBillToEmail = savedConfig?.billToEmail;
+          const savedBillToPhone = savedConfig?.billToPhone;
+          
+          if (!prev.billToAttn && !savedBillToAttn) {
+            updates.billToAttn = `${c.firstName || ''} ${c.lastName || ''}`.trim();
+          }
+          if (!prev.billToEmail && !savedBillToEmail) {
+            updates.billToEmail = c.email || '';
+          }
+          if (!prev.billToPhone && !savedBillToPhone) {
+            updates.billToPhone = c.phone || '';
+          }
         }
 
         // IT contact -> IT Contact fields
         if (labeledContacts.itContact) {
           const c = labeledContacts.itContact;
-          if (!prev.itContactName) updates.itContactName = `${c.firstName || ''} ${c.lastName || ''}`.trim();
-          if (!prev.itContactEmail) updates.itContactEmail = c.email || '';
-          if (!prev.itContactPhone) updates.itContactPhone = c.phone || '';
+          const savedItName = savedConfig?.itContactName;
+          const savedItEmail = savedConfig?.itContactEmail;
+          const savedItPhone = savedConfig?.itContactPhone;
+          
+          if (!prev.itContactName && !savedItName) {
+            updates.itContactName = `${c.firstName || ''} ${c.lastName || ''}`.trim();
+          }
+          if (!prev.itContactEmail && !savedItEmail) {
+            updates.itContactEmail = c.email || '';
+          }
+          if (!prev.itContactPhone && !savedItPhone) {
+            updates.itContactPhone = c.phone || '';
+          }
         }
 
         if (Object.keys(updates).length > 0) {
+          console.log('Applying labeled contacts:', updates);
           return { ...prev, ...updates };
         }
         return prev;
