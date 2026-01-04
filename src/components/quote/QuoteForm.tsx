@@ -256,8 +256,14 @@ export function QuoteForm({ deal, company, lineItems, dealOwner, onFormChange }:
                 value={formData.overageBWRate === 0 ? '' : String(formData.overageBWRate)} 
                 onChange={e => {
                   const val = e.target.value;
-                  if (val === '' || /^\d*\.?\d*$/.test(val)) {
-                    updateField('overageBWRate', val === '' ? 0 : parseFloat(val) || 0);
+                  // Allow empty, digits, decimals - including starting with "."
+                  if (val === '' || /^[0-9]*\.?[0-9]*$/.test(val)) {
+                    // Don't convert incomplete values like "." to 0, keep as string representation
+                    if (val === '' || val === '.') {
+                      updateField('overageBWRate', 0);
+                    } else {
+                      updateField('overageBWRate', parseFloat(val) || 0);
+                    }
                   }
                 }}
                 className="h-8 text-sm pl-5"
@@ -274,8 +280,14 @@ export function QuoteForm({ deal, company, lineItems, dealOwner, onFormChange }:
                 value={formData.overageColorRate === 0 ? '' : String(formData.overageColorRate)} 
                 onChange={e => {
                   const val = e.target.value;
-                  if (val === '' || /^\d*\.?\d*$/.test(val)) {
-                    updateField('overageColorRate', val === '' ? 0 : parseFloat(val) || 0);
+                  // Allow empty, digits, decimals - including starting with "."
+                  if (val === '' || /^[0-9]*\.?[0-9]*$/.test(val)) {
+                    // Don't convert incomplete values like "." to 0, keep as string representation
+                    if (val === '' || val === '.') {
+                      updateField('overageColorRate', 0);
+                    } else {
+                      updateField('overageColorRate', parseFloat(val) || 0);
+                    }
                   }
                 }}
                 className="h-8 text-sm pl-5"
