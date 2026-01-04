@@ -221,8 +221,11 @@ export const LeaseReturnPreview = forwardRef<HTMLDivElement, LeaseReturnPreviewP
                 <p className="text-[9px]">Date</p>
               </div>
 
-              {/* Empty space aligned with Printed Name & Title */}
-              <div className="h-6 mb-1"></div>
+              {/* Empty space aligned with Printed Name & Title - matching full height */}
+              <div>
+                <div className="h-6 mb-1"></div>
+                <p className="text-[9px] invisible">Placeholder</p>
+              </div>
 
               {/* Date for Dealer */}
               <div>
