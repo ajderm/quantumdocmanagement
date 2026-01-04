@@ -1,6 +1,19 @@
 import { createContext, useContext, useEffect, useState, type ReactNode } from "react";
 import { supabase } from "@/integrations/supabase/client";
 
+interface LabeledContact {
+  firstName: string;
+  lastName: string;
+  email: string;
+  phone: string;
+}
+
+interface LabeledContacts {
+  shippingContact: LabeledContact | null;
+  apContact: LabeledContact | null;
+  itContact: LabeledContact | null;
+}
+
 type HubSpotContextType = {
   portalId: string | null;
   userId: string | null;
@@ -9,6 +22,7 @@ type HubSpotContextType = {
   contacts: any[];
   lineItems: any[];
   dealOwner: any;
+  labeledContacts: LabeledContacts | null;
   loading: boolean;
   isEmbedded: boolean;
   error: string | null;
@@ -44,6 +58,7 @@ export function HubSpotProvider({ children }: { children: ReactNode }) {
   const [contacts, setContacts] = useState<any[]>([]);
   const [lineItems, setLineItems] = useState<any[]>([]);
   const [dealOwner, setDealOwner] = useState<any>(null);
+  const [labeledContacts, setLabeledContacts] = useState<LabeledContacts | null>(null);
 
   const [loading, setLoading] = useState(true);
   const [isEmbedded, setIsEmbedded] = useState(false);
@@ -87,6 +102,7 @@ export function HubSpotProvider({ children }: { children: ReactNode }) {
         if (data?.contacts) setContacts(data.contacts);
         if (data?.lineItems) setLineItems(data.lineItems);
         if (data?.dealOwner) setDealOwner(data.dealOwner);
+        if (data?.labeledContacts) setLabeledContacts(data.labeledContacts);
 
         setError(null);
       } catch (err: unknown) {
@@ -118,6 +134,7 @@ export function HubSpotProvider({ children }: { children: ReactNode }) {
         contacts,
         lineItems,
         dealOwner,
+        labeledContacts,
         loading,
         isEmbedded,
         error,

@@ -19,6 +19,19 @@ export interface RemovedEquipmentItem {
   meterColor: string;
 }
 
+export interface LabeledContact {
+  firstName: string;
+  lastName: string;
+  email: string;
+  phone: string;
+}
+
+export interface LabeledContacts {
+  shippingContact: LabeledContact | null;
+  apContact: LabeledContact | null;
+  itContact: LabeledContact | null;
+}
+
 export interface InstallationFormData {
   // Selected line item
   selectedLineItemId: string;
@@ -36,7 +49,6 @@ export interface InstallationFormData {
   
   // Customer Ship To
   shipToCompany: string;
-  shipToDept: string;
   shipToAddress: string;
   shipToCity: string;
   shipToState: string;
@@ -47,7 +59,6 @@ export interface InstallationFormData {
   
   // Customer Bill To
   billToCompany: string;
-  billToDept: string;
   billToAddress: string;
   billToCity: string;
   billToState: string;
@@ -104,6 +115,7 @@ interface InstallationFormProps {
   onFormChange: (data: InstallationFormData) => void;
   onLineItemSwitch?: (newLineItemId: string, currentFormData: InstallationFormData) => void;
   savedConfig?: InstallationFormData;
+  labeledContacts?: LabeledContacts;
 }
 
 const MAX_REMOVED_EQUIPMENT = 10;
@@ -119,6 +131,7 @@ export function InstallationForm({
   onFormChange,
   onLineItemSwitch,
   savedConfig,
+  labeledContacts,
 }: InstallationFormProps) {
   // Filter line items to show only hardware
   const hardwareLineItems = lineItems.filter(
@@ -137,16 +150,14 @@ export function InstallationForm({
     meterMethod: '',
     cca: ccaValue || '',
     shipToCompany: company?.name || '',
-    shipToDept: '',
     shipToAddress: company?.address || '',
     shipToCity: company?.city || '',
     shipToState: company?.state || '',
     shipToZip: company?.zip || '',
-    shipToAttn: contacts[0] ? `${contacts[0].firstName || ''} ${contacts[0].lastName || ''}`.trim() : '',
-    shipToPhone: contacts[0]?.phone || company?.phone || '',
-    shipToEmail: contacts[0]?.email || '',
+    shipToAttn: '',
+    shipToPhone: '',
+    shipToEmail: '',
     billToCompany: company?.name || '',
-    billToDept: '',
     billToAddress: company?.address || '',
     billToCity: company?.city || '',
     billToState: company?.state || '',
@@ -203,6 +214,44 @@ export function InstallationForm({
       }));
     }
   }, [company?.customerNumber]);
+
+  // Pre-fill labeled contacts (Ship To, Bill To, IT Contact) when available
+  useEffect(() => {
+    if (!savedConfig && labeledContacts) {
+      setFormData(prev => {
+        const updates: Partial<InstallationFormData> = {};
+
+        // Shipping contact -> Ship To
+        if (labeledContacts.shippingContact) {
+          const c = labeledContacts.shippingContact;
+          if (!prev.shipToAttn) updates.shipToAttn = `${c.firstName || ''} ${c.lastName || ''}`.trim();
+          if (!prev.shipToEmail) updates.shipToEmail = c.email || '';
+          if (!prev.shipToPhone) updates.shipToPhone = c.phone || '';
+        }
+
+        // AP contact -> Bill To
+        if (labeledContacts.apContact) {
+          const c = labeledContacts.apContact;
+          if (!prev.billToAttn) updates.billToAttn = `${c.firstName || ''} ${c.lastName || ''}`.trim();
+          if (!prev.billToEmail) updates.billToEmail = c.email || '';
+          if (!prev.billToPhone) updates.billToPhone = c.phone || '';
+        }
+
+        // IT contact -> IT Contact fields
+        if (labeledContacts.itContact) {
+          const c = labeledContacts.itContact;
+          if (!prev.itContactName) updates.itContactName = `${c.firstName || ''} ${c.lastName || ''}`.trim();
+          if (!prev.itContactEmail) updates.itContactEmail = c.email || '';
+          if (!prev.itContactPhone) updates.itContactPhone = c.phone || '';
+        }
+
+        if (Object.keys(updates).length > 0) {
+          return { ...prev, ...updates };
+        }
+        return prev;
+      });
+    }
+  }, [labeledContacts, savedConfig]);
 
   // Update form when line item is selected
   useEffect(() => {
@@ -489,10 +538,6 @@ export function InstallationForm({
                 <Input value={formData.shipToCompany} onChange={(e) => updateField('shipToCompany', e.target.value)} className="h-8 text-sm" />
               </div>
               <div>
-                <Label className="text-xs">Dept</Label>
-                <Input value={formData.shipToDept} onChange={(e) => updateField('shipToDept', e.target.value)} className="h-8 text-sm" />
-              </div>
-              <div>
                 <Label className="text-xs">Address</Label>
                 <Input value={formData.shipToAddress} onChange={(e) => updateField('shipToAddress', e.target.value)} className="h-8 text-sm" />
               </div>
@@ -522,10 +567,6 @@ export function InstallationForm({
               <div>
                 <Label className="text-xs">Company</Label>
                 <Input value={formData.billToCompany} onChange={(e) => updateField('billToCompany', e.target.value)} className="h-8 text-sm" />
-              </div>
-              <div>
-                <Label className="text-xs">Dept</Label>
-                <Input value={formData.billToDept} onChange={(e) => updateField('billToDept', e.target.value)} className="h-8 text-sm" />
               </div>
               <div>
                 <Label className="text-xs">Address</Label>
