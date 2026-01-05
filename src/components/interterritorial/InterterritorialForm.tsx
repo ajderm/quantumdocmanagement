@@ -6,9 +6,17 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Calendar } from '@/components/ui/calendar';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { CalendarIcon, Plus, Trash2 } from 'lucide-react';
 import { format } from 'date-fns';
 import { cn } from '@/lib/utils';
+
+const PAYMENT_FREQUENCIES = [
+  { value: "Monthly", label: "Monthly" },
+  { value: "Quarterly", label: "Quarterly" },
+  { value: "Semi-Annually", label: "Semi-Annually" },
+  { value: "Annually", label: "Annually" },
+];
 
 export interface InterterritorialEquipmentItem {
   id: string;
@@ -239,7 +247,13 @@ export function InterterritorialForm({
       
       // Service Agreement
       serviceBaseCharge: fillIfEmpty(base.serviceBaseCharge, firstRate?.baseRate || ''),
-      serviceIncludes: fillIfEmpty(base.serviceIncludes, firstRate?.includesBW ? `${firstRate.includesBW} BW` : ''),
+      serviceIncludes: fillIfEmpty(
+        base.serviceIncludes,
+        [
+          firstRate?.includesBW ? `${firstRate.includesBW} B/W` : '',
+          firstRate?.includesColor ? `${firstRate.includesColor} Color` : ''
+        ].filter(Boolean).join(', ')
+      ),
       serviceOverageBW: fillIfEmpty(base.serviceOverageBW, firstRate?.overagesBW || ''),
       serviceOverageColor: fillIfEmpty(base.serviceOverageColor, firstRate?.overagesColor || ''),
       serviceFrequency: base.serviceFrequency || 'Monthly',
@@ -646,11 +660,21 @@ export function InterterritorialForm({
             <div className="grid grid-cols-2 gap-2">
               <div className="space-y-1">
                 <Label className="text-xs">Frequency</Label>
-                <Input
+                <Select
                   value={formData.serviceFrequency}
-                  onChange={(e) => updateField('serviceFrequency', e.target.value)}
-                  className="h-8 text-sm"
-                />
+                  onValueChange={(value) => updateField('serviceFrequency', value)}
+                >
+                  <SelectTrigger className="h-8 text-sm">
+                    <SelectValue placeholder="Select frequency" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {PAYMENT_FREQUENCIES.map((freq) => (
+                      <SelectItem key={freq.value} value={freq.value}>
+                        {freq.label}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
               </div>
               <div className="space-y-1">
                 <Label className="text-xs">Bill To</Label>

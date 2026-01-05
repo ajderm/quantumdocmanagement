@@ -15,6 +15,7 @@ import {
   PopoverTrigger,
 } from "@/components/ui/popover";
 import { Button } from "@/components/ui/button";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { CalendarIcon } from "lucide-react";
 import { format } from "date-fns";
 import { cn } from "@/lib/utils";
@@ -146,27 +147,17 @@ export function ServiceAgreementForm({
   const hasInitializedRef = useRef(false);
 
   // Initialize form data from saved config, company, contacts, and quote data
-  // - Saved config has priority
-  // - But we backfill missing Ship To / Bill To fields from HubSpot when available
   useEffect(() => {
-    // Only initialize once
     if (hasInitializedRef.current) return;
-
-    // If we have a saved config but company hasn't loaded yet, initialize from saved config.
-    // (A separate effect below will backfill addresses once company becomes available.)
     if (savedConfig && !company) {
       onChange(savedConfig);
       hasInitializedRef.current = true;
       return;
     }
-
-    // If neither company nor saved config is available, wait.
     if (!company && !savedConfig) return;
 
     const pick = (...vals: Array<string | undefined | null>) =>
-      vals
-        .map((v) => (v ?? "").trim())
-        .find(Boolean) || "";
+      vals.map((v) => (v ?? "").trim()).find(Boolean) || "";
 
     const buildAddress = (line1?: string | null, line2?: string | null) => {
       const a1 = (line1 ?? "").trim();
@@ -183,7 +174,6 @@ export function ServiceAgreementForm({
     const shipToContact = labeledContacts.shippingContact;
     const billToContact = labeledContacts.apContact;
 
-    // Initialize rates from quote form data if available
     const initialRates: ServiceAgreementFormData["rates"] = {};
     hardwareLineItems.forEach((item) => {
       initialRates[item.id] = {
@@ -195,77 +185,55 @@ export function ServiceAgreementForm({
       };
     });
 
-    const shipToAddress =
-      company &&
-      pick(
-        buildAddress(company.deliveryAddress, company.deliveryAddress2),
-        buildAddress(company.address, company.address2)
-      );
+    const shipToAddress = company && pick(
+      buildAddress(company.deliveryAddress, company.deliveryAddress2),
+      buildAddress(company.address, company.address2)
+    );
     const shipToCity = company ? pick(company.deliveryCity, company.city) : "";
     const shipToState = company ? pick(company.deliveryState, company.state) : "";
     const shipToZip = company ? pick(company.deliveryZip, company.zip) : "";
 
-    const billToAddress =
-      company &&
-      pick(
-        buildAddress(company.apAddress, company.apAddress2),
-        buildAddress(company.address, company.address2)
-      );
+    const billToAddress = company && pick(
+      buildAddress(company.apAddress, company.apAddress2),
+      buildAddress(company.address, company.address2)
+    );
     const billToCity = company ? pick(company.apCity, company.city) : "";
     const billToState = company ? pick(company.apState, company.state) : "";
     const billToZip = company ? pick(company.apZip, company.zip) : "";
 
-    const nextRates =
-      base.rates && Object.keys(base.rates).length > 0 ? base.rates : initialRates;
+    const nextRates = base.rates && Object.keys(base.rates).length > 0 ? base.rates : initialRates;
 
     onChange({
       ...base,
       customerNumber: fillIfEmpty(base.customerNumber, company?.customerNumber || ""),
-
-      // Ship To
       shipToCompany: fillIfEmpty(base.shipToCompany, company?.name || ""),
       shipToAddress: fillIfEmpty(base.shipToAddress, shipToAddress || ""),
       shipToCity: fillIfEmpty(base.shipToCity, shipToCity),
       shipToState: fillIfEmpty(base.shipToState, shipToState),
       shipToZip: fillIfEmpty(base.shipToZip, shipToZip),
-      shipToAttn: fillIfEmpty(
-        base.shipToAttn,
-        shipToContact
-          ? `${shipToContact.firstName || ""} ${shipToContact.lastName || ""}`.trim()
-          : ""
-      ),
+      shipToAttn: fillIfEmpty(base.shipToAttn, shipToContact ? `${shipToContact.firstName || ""} ${shipToContact.lastName || ""}`.trim() : ""),
       shipToPhone: fillIfEmpty(base.shipToPhone, shipToContact?.phone || ""),
       shipToEmail: fillIfEmpty(base.shipToEmail, shipToContact?.email || ""),
-
-      // Bill To
       billToCompany: fillIfEmpty(base.billToCompany, company?.name || ""),
       billToAddress: fillIfEmpty(base.billToAddress, billToAddress || ""),
       billToCity: fillIfEmpty(base.billToCity, billToCity),
       billToState: fillIfEmpty(base.billToState, billToState),
       billToZip: fillIfEmpty(base.billToZip, billToZip),
-      billToAttn: fillIfEmpty(
-        base.billToAttn,
-        billToContact
-          ? `${billToContact.firstName || ""} ${billToContact.lastName || ""}`.trim()
-          : ""
-      ),
+      billToAttn: fillIfEmpty(base.billToAttn, billToContact ? `${billToContact.firstName || ""} ${billToContact.lastName || ""}`.trim() : ""),
       billToPhone: fillIfEmpty(base.billToPhone, billToContact?.phone || ""),
       billToEmail: fillIfEmpty(base.billToEmail, billToContact?.email || ""),
-
       rates: nextRates,
     });
 
     hasInitializedRef.current = true;
   }, [savedConfig, company, labeledContacts, quoteFormData, hardwareLineItems]);
 
-  // Backfill addresses from company if a saved config (or prior state) left them blank.
+  // Backfill addresses from company if left blank
   useEffect(() => {
     if (!company) return;
 
     const pick = (...vals: Array<string | undefined | null>) =>
-      vals
-        .map((v) => (v ?? "").trim())
-        .find(Boolean) || "";
+      vals.map((v) => (v ?? "").trim()).find(Boolean) || "";
 
     const buildAddress = (line1?: string | null, line2?: string | null) => {
       const a1 = (line1 ?? "").trim();
@@ -275,35 +243,22 @@ export function ServiceAgreementForm({
       return a1 || a2;
     };
 
-    const shipToAddress = pick(
-      buildAddress(company.deliveryAddress, company.deliveryAddress2),
-      buildAddress(company.address, company.address2)
-    );
+    const shipToAddress = pick(buildAddress(company.deliveryAddress, company.deliveryAddress2), buildAddress(company.address, company.address2));
     const shipToCity = pick(company.deliveryCity, company.city);
     const shipToState = pick(company.deliveryState, company.state);
     const shipToZip = pick(company.deliveryZip, company.zip);
-
-    const billToAddress = pick(
-      buildAddress(company.apAddress, company.apAddress2),
-      buildAddress(company.address, company.address2)
-    );
+    const billToAddress = pick(buildAddress(company.apAddress, company.apAddress2), buildAddress(company.address, company.address2));
     const billToCity = pick(company.apCity, company.city);
     const billToState = pick(company.apState, company.state);
     const billToZip = pick(company.apZip, company.zip);
 
     const patch: Partial<ServiceAgreementFormData> = {};
-
-    // Company name
     if (!formData.shipToCompany?.trim() && company.name) patch.shipToCompany = company.name;
     if (!formData.billToCompany?.trim() && company.name) patch.billToCompany = company.name;
-
-    // Ship To address
     if (!formData.shipToAddress?.trim() && shipToAddress) patch.shipToAddress = shipToAddress;
     if (!formData.shipToCity?.trim() && shipToCity) patch.shipToCity = shipToCity;
     if (!formData.shipToState?.trim() && shipToState) patch.shipToState = shipToState;
     if (!formData.shipToZip?.trim() && shipToZip) patch.shipToZip = shipToZip;
-
-    // Bill To address
     if (!formData.billToAddress?.trim() && billToAddress) patch.billToAddress = billToAddress;
     if (!formData.billToCity?.trim() && billToCity) patch.billToCity = billToCity;
     if (!formData.billToState?.trim() && billToState) patch.billToState = billToState;
@@ -312,29 +267,13 @@ export function ServiceAgreementForm({
     if (Object.keys(patch).length > 0) {
       onChange({ ...formData, ...patch });
     }
-  }, [
-    company,
-    formData,
-    formData.shipToCompany,
-    formData.billToCompany,
-    formData.shipToAddress,
-    formData.shipToCity,
-    formData.shipToState,
-    formData.shipToZip,
-    formData.billToAddress,
-    formData.billToCity,
-    formData.billToState,
-    formData.billToZip,
-    onChange,
-  ]);
+  }, [company, formData.shipToCompany, formData.billToCompany, formData.shipToAddress, formData.shipToCity, formData.shipToState, formData.shipToZip, formData.billToAddress, formData.billToCity, formData.billToState, formData.billToZip]);
 
-  // Backfill contact fields from labeledContacts when empty
+  // Backfill contact fields
   useEffect(() => {
     if (!labeledContacts) return;
 
     const patch: Partial<ServiceAgreementFormData> = {};
-
-    // Ship To contact (shipping_contacts)
     const shipToContact = labeledContacts.shippingContact;
     if (shipToContact) {
       if (!formData.shipToAttn?.trim()) {
@@ -345,7 +284,6 @@ export function ServiceAgreementForm({
       if (!formData.shipToEmail?.trim() && shipToContact.email) patch.shipToEmail = shipToContact.email;
     }
 
-    // Bill To contact (ap_contact)
     const billToContact = labeledContacts.apContact;
     if (billToContact) {
       if (!formData.billToAttn?.trim()) {
@@ -359,17 +297,7 @@ export function ServiceAgreementForm({
     if (Object.keys(patch).length > 0) {
       onChange({ ...formData, ...patch });
     }
-  }, [
-    labeledContacts,
-    formData,
-    formData.shipToAttn,
-    formData.shipToPhone,
-    formData.shipToEmail,
-    formData.billToAttn,
-    formData.billToPhone,
-    formData.billToEmail,
-    onChange,
-  ]);
+  }, [labeledContacts, formData.shipToAttn, formData.shipToPhone, formData.shipToEmail, formData.billToAttn, formData.billToPhone, formData.billToEmail]);
 
   const updateField = (field: keyof ServiceAgreementFormData, value: any) => {
     onChange({ ...formData, [field]: value });
@@ -389,379 +317,285 @@ export function ServiceAgreementForm({
   };
 
   return (
-    <div className="space-y-8">
+    <div className="space-y-4">
       {/* Header Section */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-        <div className="space-y-2">
-          <Label htmlFor="customerNumber">Customer Number</Label>
-          <Input
-            id="customerNumber"
-            value={formData.customerNumberOverride || formData.customerNumber}
-            onChange={(e) => updateField('customerNumberOverride', e.target.value)}
-            placeholder={company?.customerNumber || 'Enter customer number'}
-          />
-        </div>
-        <div className="space-y-2">
-          <Label htmlFor="meterMethod">Meter Method</Label>
-          <Select
-            value={formData.meterMethod}
-            onValueChange={(value) => updateField('meterMethod', value)}
-          >
-            <SelectTrigger>
-              <SelectValue placeholder="Select meter method" />
-            </SelectTrigger>
-            <SelectContent>
-              {meterMethods.map((method) => (
-                <SelectItem key={method} value={method}>
-                  {method}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-        </div>
-      </div>
+      <Card>
+        <CardHeader className="py-3">
+          <CardTitle className="text-sm">Agreement Details</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <div className="space-y-2">
+              <Label htmlFor="customerNumber">Customer Number</Label>
+              <Input
+                id="customerNumber"
+                value={formData.customerNumberOverride || formData.customerNumber}
+                onChange={(e) => updateField('customerNumberOverride', e.target.value)}
+                placeholder={company?.customerNumber || 'Enter customer number'}
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="meterMethod">Meter Method</Label>
+              <Select
+                value={formData.meterMethod}
+                onValueChange={(value) => updateField('meterMethod', value)}
+              >
+                <SelectTrigger>
+                  <SelectValue placeholder="Select meter method" />
+                </SelectTrigger>
+                <SelectContent>
+                  {meterMethods.map((method) => (
+                    <SelectItem key={method} value={method}>
+                      {method}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+          </div>
+        </CardContent>
+      </Card>
 
       {/* Ship To / Bill To Section */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
         {/* Ship To */}
-        <div className="space-y-4">
-          <h3 className="text-lg font-semibold border-b pb-2">Customer Ship To</h3>
-          <div className="grid grid-cols-1 gap-3">
-            <div className="space-y-1">
-              <Label htmlFor="shipToCompany">Company</Label>
-              <Input
-                id="shipToCompany"
-                value={formData.shipToCompany}
-                onChange={(e) => updateField('shipToCompany', e.target.value)}
-              />
-            </div>
-            <div className="space-y-1">
-              <Label htmlFor="shipToAddress">Address</Label>
-              <Input
-                id="shipToAddress"
-                value={formData.shipToAddress}
-                onChange={(e) => updateField('shipToAddress', e.target.value)}
-              />
-            </div>
-            <div className="grid grid-cols-3 gap-2">
+        <Card>
+          <CardHeader className="py-3">
+            <CardTitle className="text-sm">Customer Ship To</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="grid grid-cols-1 gap-3">
               <div className="space-y-1">
-                <Label htmlFor="shipToCity">City</Label>
-                <Input
-                  id="shipToCity"
-                  value={formData.shipToCity}
-                  onChange={(e) => updateField('shipToCity', e.target.value)}
-                />
+                <Label htmlFor="shipToCompany">Company</Label>
+                <Input id="shipToCompany" value={formData.shipToCompany} onChange={(e) => updateField('shipToCompany', e.target.value)} />
               </div>
               <div className="space-y-1">
-                <Label htmlFor="shipToState">State</Label>
-                <Input
-                  id="shipToState"
-                  value={formData.shipToState}
-                  onChange={(e) => updateField('shipToState', e.target.value)}
-                />
+                <Label htmlFor="shipToAddress">Address</Label>
+                <Input id="shipToAddress" value={formData.shipToAddress} onChange={(e) => updateField('shipToAddress', e.target.value)} />
+              </div>
+              <div className="grid grid-cols-3 gap-2">
+                <div className="space-y-1">
+                  <Label htmlFor="shipToCity">City</Label>
+                  <Input id="shipToCity" value={formData.shipToCity} onChange={(e) => updateField('shipToCity', e.target.value)} />
+                </div>
+                <div className="space-y-1">
+                  <Label htmlFor="shipToState">State</Label>
+                  <Input id="shipToState" value={formData.shipToState} onChange={(e) => updateField('shipToState', e.target.value)} />
+                </div>
+                <div className="space-y-1">
+                  <Label htmlFor="shipToZip">Zip</Label>
+                  <Input id="shipToZip" value={formData.shipToZip} onChange={(e) => updateField('shipToZip', e.target.value)} />
+                </div>
               </div>
               <div className="space-y-1">
-                <Label htmlFor="shipToZip">Zip</Label>
-                <Input
-                  id="shipToZip"
-                  value={formData.shipToZip}
-                  onChange={(e) => updateField('shipToZip', e.target.value)}
-                />
+                <Label htmlFor="shipToAttn">Attn</Label>
+                <Input id="shipToAttn" value={formData.shipToAttn} onChange={(e) => updateField('shipToAttn', e.target.value)} />
+              </div>
+              <div className="grid grid-cols-2 gap-2">
+                <div className="space-y-1">
+                  <Label htmlFor="shipToPhone">Phone</Label>
+                  <Input id="shipToPhone" value={formData.shipToPhone} onChange={(e) => updateField('shipToPhone', e.target.value)} />
+                </div>
+                <div className="space-y-1">
+                  <Label htmlFor="shipToEmail">Email</Label>
+                  <Input id="shipToEmail" value={formData.shipToEmail} onChange={(e) => updateField('shipToEmail', e.target.value)} />
+                </div>
               </div>
             </div>
-            <div className="space-y-1">
-              <Label htmlFor="shipToAttn">Attn</Label>
-              <Input
-                id="shipToAttn"
-                value={formData.shipToAttn}
-                onChange={(e) => updateField('shipToAttn', e.target.value)}
-              />
-            </div>
-            <div className="grid grid-cols-2 gap-2">
-              <div className="space-y-1">
-                <Label htmlFor="shipToPhone">Phone</Label>
-                <Input
-                  id="shipToPhone"
-                  value={formData.shipToPhone}
-                  onChange={(e) => updateField('shipToPhone', e.target.value)}
-                />
-              </div>
-              <div className="space-y-1">
-                <Label htmlFor="shipToEmail">Email</Label>
-                <Input
-                  id="shipToEmail"
-                  value={formData.shipToEmail}
-                  onChange={(e) => updateField('shipToEmail', e.target.value)}
-                />
-              </div>
-            </div>
-          </div>
-        </div>
+          </CardContent>
+        </Card>
 
         {/* Bill To */}
-        <div className="space-y-4">
-          <h3 className="text-lg font-semibold border-b pb-2">Customer Bill To</h3>
-          <div className="grid grid-cols-1 gap-3">
-            <div className="space-y-1">
-              <Label htmlFor="billToCompany">Company</Label>
-              <Input
-                id="billToCompany"
-                value={formData.billToCompany}
-                onChange={(e) => updateField('billToCompany', e.target.value)}
-              />
-            </div>
-            <div className="space-y-1">
-              <Label htmlFor="billToAddress">Address</Label>
-              <Input
-                id="billToAddress"
-                value={formData.billToAddress}
-                onChange={(e) => updateField('billToAddress', e.target.value)}
-              />
-            </div>
-            <div className="grid grid-cols-3 gap-2">
+        <Card>
+          <CardHeader className="py-3">
+            <CardTitle className="text-sm">Customer Bill To</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="grid grid-cols-1 gap-3">
               <div className="space-y-1">
-                <Label htmlFor="billToCity">City</Label>
-                <Input
-                  id="billToCity"
-                  value={formData.billToCity}
-                  onChange={(e) => updateField('billToCity', e.target.value)}
-                />
+                <Label htmlFor="billToCompany">Company</Label>
+                <Input id="billToCompany" value={formData.billToCompany} onChange={(e) => updateField('billToCompany', e.target.value)} />
               </div>
               <div className="space-y-1">
-                <Label htmlFor="billToState">State</Label>
-                <Input
-                  id="billToState"
-                  value={formData.billToState}
-                  onChange={(e) => updateField('billToState', e.target.value)}
-                />
+                <Label htmlFor="billToAddress">Address</Label>
+                <Input id="billToAddress" value={formData.billToAddress} onChange={(e) => updateField('billToAddress', e.target.value)} />
+              </div>
+              <div className="grid grid-cols-3 gap-2">
+                <div className="space-y-1">
+                  <Label htmlFor="billToCity">City</Label>
+                  <Input id="billToCity" value={formData.billToCity} onChange={(e) => updateField('billToCity', e.target.value)} />
+                </div>
+                <div className="space-y-1">
+                  <Label htmlFor="billToState">State</Label>
+                  <Input id="billToState" value={formData.billToState} onChange={(e) => updateField('billToState', e.target.value)} />
+                </div>
+                <div className="space-y-1">
+                  <Label htmlFor="billToZip">Zip</Label>
+                  <Input id="billToZip" value={formData.billToZip} onChange={(e) => updateField('billToZip', e.target.value)} />
+                </div>
               </div>
               <div className="space-y-1">
-                <Label htmlFor="billToZip">Zip</Label>
-                <Input
-                  id="billToZip"
-                  value={formData.billToZip}
-                  onChange={(e) => updateField('billToZip', e.target.value)}
-                />
+                <Label htmlFor="billToAttn">Attn</Label>
+                <Input id="billToAttn" value={formData.billToAttn} onChange={(e) => updateField('billToAttn', e.target.value)} />
+              </div>
+              <div className="grid grid-cols-2 gap-2">
+                <div className="space-y-1">
+                  <Label htmlFor="billToPhone">Phone</Label>
+                  <Input id="billToPhone" value={formData.billToPhone} onChange={(e) => updateField('billToPhone', e.target.value)} />
+                </div>
+                <div className="space-y-1">
+                  <Label htmlFor="billToEmail">Email</Label>
+                  <Input id="billToEmail" value={formData.billToEmail} onChange={(e) => updateField('billToEmail', e.target.value)} />
+                </div>
               </div>
             </div>
-            <div className="space-y-1">
-              <Label htmlFor="billToAttn">Attn</Label>
-              <Input
-                id="billToAttn"
-                value={formData.billToAttn}
-                onChange={(e) => updateField('billToAttn', e.target.value)}
-              />
-            </div>
-            <div className="grid grid-cols-2 gap-2">
-              <div className="space-y-1">
-                <Label htmlFor="billToPhone">Phone</Label>
-                <Input
-                  id="billToPhone"
-                  value={formData.billToPhone}
-                  onChange={(e) => updateField('billToPhone', e.target.value)}
-                />
-              </div>
-              <div className="space-y-1">
-                <Label htmlFor="billToEmail">Email</Label>
-                <Input
-                  id="billToEmail"
-                  value={formData.billToEmail}
-                  onChange={(e) => updateField('billToEmail', e.target.value)}
-                />
-              </div>
-            </div>
-          </div>
-        </div>
+          </CardContent>
+        </Card>
       </div>
 
       {/* Terms Section */}
-      <div className="space-y-4">
-        <h3 className="text-lg font-semibold border-b pb-2">Terms</h3>
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4">
-          <div className="space-y-2">
-            <Label htmlFor="maintenanceType">Maintenance Type</Label>
-            <Select
-              value={formData.maintenanceType}
-              onValueChange={(value) => updateField('maintenanceType', value)}
-            >
-              <SelectTrigger>
-                <SelectValue placeholder="Select type" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="Base + Overages">Base + Overages</SelectItem>
-                <SelectItem value="CPC (Cost-Per-Copy)">CPC (Cost-Per-Copy)</SelectItem>
-              </SelectContent>
-            </Select>
+      <Card>
+        <CardHeader className="py-3">
+          <CardTitle className="text-sm">Terms</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4">
+            <div className="space-y-2">
+              <Label htmlFor="maintenanceType">Maintenance Type</Label>
+              <Select value={formData.maintenanceType} onValueChange={(value) => updateField('maintenanceType', value)}>
+                <SelectTrigger><SelectValue placeholder="Select type" /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="Base + Overages">Base + Overages</SelectItem>
+                  <SelectItem value="CPC (Cost-Per-Copy)">CPC (Cost-Per-Copy)</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="paperStaples">Paper & Staples</Label>
+              <Select value={formData.paperStaples} onValueChange={(value) => updateField('paperStaples', value)}>
+                <SelectTrigger><SelectValue placeholder="Select option" /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="Excludes Paper">Excludes Paper</SelectItem>
+                  <SelectItem value="Excludes Paper & Staples">Excludes Paper & Staples</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="drumToner">Drum & Toner</Label>
+              <Select value={formData.drumToner} onValueChange={(value) => updateField('drumToner', value)}>
+                <SelectTrigger><SelectValue placeholder="Select option" /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="Drum & Toner Included MDT">Drum & Toner Included MDT</SelectItem>
+                  <SelectItem value="Drum Included MD">Drum Included MD</SelectItem>
+                  <SelectItem value="Drum Excluded MA">Drum Excluded MA</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="space-y-2">
+              <Label>Effective Date</Label>
+              <Popover>
+                <PopoverTrigger asChild>
+                  <Button variant="outline" className={cn("w-full justify-start text-left font-normal", !formData.effectiveDate && "text-muted-foreground")}>
+                    <CalendarIcon className="mr-2 h-4 w-4" />
+                    {formData.effectiveDate ? format(formData.effectiveDate, "PPP") : "Pick a date"}
+                  </Button>
+                </PopoverTrigger>
+                <PopoverContent className="w-auto p-0" align="start">
+                  <Calendar mode="single" selected={formData.effectiveDate || undefined} onSelect={(date) => updateField('effectiveDate', date)} initialFocus className="pointer-events-auto" />
+                </PopoverContent>
+              </Popover>
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="contractLengthMonths">Contract Length (Months)</Label>
+              <Input id="contractLengthMonths" type="number" value={formData.contractLengthMonths} onChange={(e) => updateField('contractLengthMonths', e.target.value)} placeholder="e.g., 36" />
+            </div>
           </div>
-          <div className="space-y-2">
-            <Label htmlFor="paperStaples">Paper & Staples</Label>
-            <Select
-              value={formData.paperStaples}
-              onValueChange={(value) => updateField('paperStaples', value)}
-            >
-              <SelectTrigger>
-                <SelectValue placeholder="Select option" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="Excludes Paper">Excludes Paper</SelectItem>
-                <SelectItem value="Excludes Paper & Staples">Excludes Paper & Staples</SelectItem>
-              </SelectContent>
-            </Select>
-          </div>
-          <div className="space-y-2">
-            <Label htmlFor="drumToner">Drum & Toner</Label>
-            <Select
-              value={formData.drumToner}
-              onValueChange={(value) => updateField('drumToner', value)}
-            >
-              <SelectTrigger>
-                <SelectValue placeholder="Select option" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="Drum & Toner Included MDT">Drum & Toner Included MDT</SelectItem>
-                <SelectItem value="Drum Included MD">Drum Included MD</SelectItem>
-                <SelectItem value="Drum Excluded MA">Drum Excluded MA</SelectItem>
-              </SelectContent>
-            </Select>
-          </div>
-          <div className="space-y-2">
-            <Label>Effective Date</Label>
-            <Popover>
-              <PopoverTrigger asChild>
-                <Button
-                  variant="outline"
-                  className={cn(
-                    "w-full justify-start text-left font-normal",
-                    !formData.effectiveDate && "text-muted-foreground"
-                  )}
-                >
-                  <CalendarIcon className="mr-2 h-4 w-4" />
-                  {formData.effectiveDate ? format(formData.effectiveDate, "PPP") : "Pick a date"}
-                </Button>
-              </PopoverTrigger>
-              <PopoverContent className="w-auto p-0" align="start">
-                <Calendar
-                  mode="single"
-                  selected={formData.effectiveDate || undefined}
-                  onSelect={(date) => updateField('effectiveDate', date)}
-                  initialFocus
-                />
-              </PopoverContent>
-            </Popover>
-          </div>
-          <div className="space-y-2">
-            <Label htmlFor="contractLengthMonths">Contract Length (Months)</Label>
-            <Input
-              id="contractLengthMonths"
-              type="number"
-              value={formData.contractLengthMonths}
-              onChange={(e) => updateField('contractLengthMonths', e.target.value)}
-              placeholder="e.g., 36"
-            />
-          </div>
-        </div>
-      </div>
+        </CardContent>
+      </Card>
 
       {/* Equipment Table */}
-      <div className="space-y-4">
-        <h3 className="text-lg font-semibold border-b pb-2">Equipment</h3>
-        {lineItems.length === 0 ? (
-          <p className="text-muted-foreground text-sm">No line items associated with this deal.</p>
-        ) : (
-          <div className="border rounded-lg overflow-hidden">
-            <table className="w-full text-sm">
-              <thead className="bg-muted">
-                <tr>
-                  <th className="px-4 py-2 text-left font-medium">Qty</th>
-                  <th className="px-4 py-2 text-left font-medium">Model</th>
-                  <th className="px-4 py-2 text-left font-medium">Description</th>
-                  <th className="px-4 py-2 text-left font-medium">Serial</th>
-                </tr>
-              </thead>
-              <tbody>
-                {lineItems.map((item, index) => (
-                  <tr key={item.id} className={index % 2 === 0 ? 'bg-background' : 'bg-muted/30'}>
-                    <td className="px-4 py-2">{item.quantity}</td>
-                    <td className="px-4 py-2">{item.name}</td>
-                    <td className="px-4 py-2">{item.description || '-'}</td>
-                    <td className="px-4 py-2">{item.serial || '-'}</td>
+      <Card>
+        <CardHeader className="py-3">
+          <CardTitle className="text-sm">Equipment</CardTitle>
+        </CardHeader>
+        <CardContent>
+          {lineItems.length === 0 ? (
+            <p className="text-muted-foreground text-sm">No line items associated with this deal.</p>
+          ) : (
+            <div className="border rounded-lg overflow-hidden">
+              <table className="w-full text-sm">
+                <thead className="bg-muted">
+                  <tr>
+                    <th className="px-4 py-2 text-left font-medium">Qty</th>
+                    <th className="px-4 py-2 text-left font-medium">Model</th>
+                    <th className="px-4 py-2 text-left font-medium">Description</th>
+                    <th className="px-4 py-2 text-left font-medium">Serial</th>
                   </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        )}
-      </div>
+                </thead>
+                <tbody>
+                  {lineItems.map((item, index) => (
+                    <tr key={item.id} className={index % 2 === 0 ? 'bg-background' : 'bg-muted/30'}>
+                      <td className="px-4 py-2">{item.quantity}</td>
+                      <td className="px-4 py-2">{item.name}</td>
+                      <td className="px-4 py-2">{item.description || '-'}</td>
+                      <td className="px-4 py-2">{item.serial || '-'}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          )}
+        </CardContent>
+      </Card>
 
       {/* Rates Table (Hardware Only) */}
-      <div className="space-y-4">
-        <h3 className="text-lg font-semibold border-b pb-2">Rates</h3>
-        {hardwareLineItems.length === 0 ? (
-          <p className="text-muted-foreground text-sm">No hardware line items available for rates.</p>
-        ) : (
-          <div className="border rounded-lg overflow-hidden">
-            <table className="w-full text-sm">
-              <thead className="bg-muted">
-                <tr>
-                  <th className="px-3 py-2 text-left font-medium">Model</th>
-                  <th className="px-3 py-2 text-left font-medium">Includes (B/W)</th>
-                  <th className="px-3 py-2 text-left font-medium">Includes (Color)</th>
-                  <th className="px-3 py-2 text-left font-medium">Overages (B/W)</th>
-                  <th className="px-3 py-2 text-left font-medium">Overages (Color)</th>
-                  <th className="px-3 py-2 text-left font-medium">Base Rate</th>
-                </tr>
-              </thead>
-              <tbody>
-                {hardwareLineItems.map((item, index) => (
-                  <tr key={item.id} className={index % 2 === 0 ? 'bg-background' : 'bg-muted/30'}>
-                    <td className="px-3 py-2 font-medium">{item.name}</td>
-                    <td className="px-3 py-1">
-                      <Input
-                        className="h-8"
-                        value={formData.rates[item.id]?.includesBW || ''}
-                        onChange={(e) => updateRate(item.id, 'includesBW', e.target.value)}
-                        placeholder="0"
-                      />
-                    </td>
-                    <td className="px-3 py-1">
-                      <Input
-                        className="h-8"
-                        value={formData.rates[item.id]?.includesColor || ''}
-                        onChange={(e) => updateRate(item.id, 'includesColor', e.target.value)}
-                        placeholder="0"
-                      />
-                    </td>
-                    <td className="px-3 py-1">
-                      <Input
-                        className="h-8"
-                        value={formData.rates[item.id]?.overagesBW || ''}
-                        onChange={(e) => updateRate(item.id, 'overagesBW', e.target.value)}
-                        placeholder="0.00"
-                      />
-                    </td>
-                    <td className="px-3 py-1">
-                      <Input
-                        className="h-8"
-                        value={formData.rates[item.id]?.overagesColor || ''}
-                        onChange={(e) => updateRate(item.id, 'overagesColor', e.target.value)}
-                        placeholder="0.00"
-                      />
-                    </td>
-                    <td className="px-3 py-1">
-                      <Input
-                        className="h-8"
-                        value={formData.rates[item.id]?.baseRate || ''}
-                        onChange={(e) => updateRate(item.id, 'baseRate', e.target.value)}
-                        placeholder="0.00"
-                      />
-                    </td>
+      <Card>
+        <CardHeader className="py-3">
+          <CardTitle className="text-sm">Rates</CardTitle>
+        </CardHeader>
+        <CardContent>
+          {hardwareLineItems.length === 0 ? (
+            <p className="text-muted-foreground text-sm">No hardware line items available for rates.</p>
+          ) : (
+            <div className="border rounded-lg overflow-hidden">
+              <table className="w-full text-sm">
+                <thead className="bg-muted">
+                  <tr>
+                    <th className="px-3 py-2 text-left font-medium">Model</th>
+                    <th className="px-3 py-2 text-left font-medium">Includes (B/W)</th>
+                    <th className="px-3 py-2 text-left font-medium">Includes (Color)</th>
+                    <th className="px-3 py-2 text-left font-medium">Overages (B/W)</th>
+                    <th className="px-3 py-2 text-left font-medium">Overages (Color)</th>
+                    <th className="px-3 py-2 text-left font-medium">Base Rate</th>
                   </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        )}
-      </div>
+                </thead>
+                <tbody>
+                  {hardwareLineItems.map((item, index) => (
+                    <tr key={item.id} className={index % 2 === 0 ? 'bg-background' : 'bg-muted/30'}>
+                      <td className="px-3 py-2 font-medium">{item.name}</td>
+                      <td className="px-3 py-1">
+                        <Input className="h-8" value={formData.rates[item.id]?.includesBW || ''} onChange={(e) => updateRate(item.id, 'includesBW', e.target.value)} placeholder="0" />
+                      </td>
+                      <td className="px-3 py-1">
+                        <Input className="h-8" value={formData.rates[item.id]?.includesColor || ''} onChange={(e) => updateRate(item.id, 'includesColor', e.target.value)} placeholder="0" />
+                      </td>
+                      <td className="px-3 py-1">
+                        <Input className="h-8" value={formData.rates[item.id]?.overagesBW || ''} onChange={(e) => updateRate(item.id, 'overagesBW', e.target.value)} placeholder="0.00" />
+                      </td>
+                      <td className="px-3 py-1">
+                        <Input className="h-8" value={formData.rates[item.id]?.overagesColor || ''} onChange={(e) => updateRate(item.id, 'overagesColor', e.target.value)} placeholder="0.00" />
+                      </td>
+                      <td className="px-3 py-1">
+                        <Input className="h-8" value={formData.rates[item.id]?.baseRate || ''} onChange={(e) => updateRate(item.id, 'baseRate', e.target.value)} placeholder="0.00" />
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          )}
+        </CardContent>
+      </Card>
     </div>
   );
 }
