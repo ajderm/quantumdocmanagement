@@ -259,262 +259,76 @@ function DocumentHubContent() {
     fetchDealerInfo();
   }, [portalId]);
 
-  // Load saved quote configuration on mount
+  // Load ALL saved configurations in bulk via edge function
   useEffect(() => {
-    const loadSavedConfig = async () => {
+    const loadAllConfigs = async () => {
       const currentPortalId = portalId || localStorage.getItem('hs_portal_id');
       const dealId = deal?.hsObjectId;
       
       if (!currentPortalId || !dealId) return;
 
       try {
-        const { data, error } = await supabase
-          .from('quote_configurations')
-          .select('configuration')
-          .eq('portal_id', currentPortalId)
-          .eq('deal_id', dealId)
-          .single();
+        const { data, error } = await supabase.functions.invoke('get-configurations-bulk', {
+          body: { portalId: currentPortalId, dealId }
+        });
 
         if (error) {
-          if (error.code !== 'PGRST116') {
-            console.error('Error loading saved config:', error);
+          console.error('Error loading configurations:', error);
+          return;
+        }
+
+        if (data?.data) {
+          const configs = data.data;
+          
+          // Set quote config
+          if (configs.quote) {
+            console.log('Loaded saved quote configuration');
+            setSavedConfig(configs.quote as QuoteFormData);
           }
-          return;
-        }
-
-        if (data?.configuration) {
-          console.log('Loaded saved configuration');
-          setSavedConfig(data.configuration as unknown as QuoteFormData);
-        }
-      } catch (err) {
-        console.error('Failed to load saved config:', err);
-      }
-    };
-
-    if (deal?.hsObjectId) {
-      loadSavedConfig();
-    }
-  }, [portalId, deal?.hsObjectId]);
-
-  // Load saved installation configurations
-  useEffect(() => {
-    const loadInstallationConfigs = async () => {
-      const currentPortalId = portalId || localStorage.getItem('hs_portal_id');
-      const dealId = deal?.hsObjectId;
-      
-      if (!currentPortalId || !dealId) return;
-
-      try {
-        const { data, error } = await supabase
-          .from('installation_configurations')
-          .select('line_item_id, configuration')
-          .eq('portal_id', currentPortalId)
-          .eq('deal_id', dealId);
-
-        if (error) {
-          console.error('Error loading installation configs:', error);
-          return;
-        }
-
-        if (data) {
-          const configs: Record<string, InstallationFormData> = {};
-          data.forEach(row => {
-            configs[row.line_item_id] = row.configuration as unknown as InstallationFormData;
-          });
-          setInstallationSavedConfig(configs);
-        }
-      } catch (err) {
-        console.error('Failed to load installation configs:', err);
-      }
-    };
-
-    if (deal?.hsObjectId) {
-      loadInstallationConfigs();
-    }
-  }, [portalId, deal?.hsObjectId]);
-
-  // Load saved service agreement configuration
-  useEffect(() => {
-    const loadServiceAgreementConfig = async () => {
-      const currentPortalId = portalId || localStorage.getItem('hs_portal_id');
-      const dealId = deal?.hsObjectId;
-      
-      if (!currentPortalId || !dealId) return;
-
-      try {
-        const { data, error } = await supabase
-          .from('service_agreement_configurations')
-          .select('configuration')
-          .eq('portal_id', currentPortalId)
-          .eq('deal_id', dealId)
-          .single();
-
-        if (error) {
-          if (error.code !== 'PGRST116') {
-            console.error('Error loading service agreement config:', error);
+          
+          // Set installation configs (keyed by line_item_id)
+          if (configs.installation && Object.keys(configs.installation).length > 0) {
+            console.log('Loaded saved installation configurations');
+            setInstallationSavedConfig(configs.installation as Record<string, InstallationFormData>);
           }
-          return;
-        }
-
-        if (data?.configuration) {
-          console.log('Loaded saved service agreement configuration');
-          setServiceAgreementSavedConfig(data.configuration as unknown as ServiceAgreementFormData);
-        }
-      } catch (err) {
-        console.error('Failed to load service agreement config:', err);
-      }
-    };
-
-    if (deal?.hsObjectId) {
-      loadServiceAgreementConfig();
-    }
-  }, [portalId, deal?.hsObjectId]);
-
-  // Load saved FMV Lease configuration
-  useEffect(() => {
-    const loadFMVLeaseConfig = async () => {
-      const currentPortalId = portalId || localStorage.getItem('hs_portal_id');
-      const dealId = deal?.hsObjectId;
-      
-      if (!currentPortalId || !dealId) return;
-
-      try {
-        const { data, error } = await supabase
-          .from('fmv_lease_configurations')
-          .select('configuration')
-          .eq('portal_id', currentPortalId)
-          .eq('deal_id', dealId)
-          .single();
-
-        if (error) {
-          if (error.code !== 'PGRST116') {
-            console.error('Error loading FMV lease config:', error);
+          
+          // Set service agreement config
+          if (configs.serviceAgreement) {
+            console.log('Loaded saved service agreement configuration');
+            setServiceAgreementSavedConfig(configs.serviceAgreement as ServiceAgreementFormData);
           }
-          return;
-        }
-
-        if (data?.configuration) {
-          console.log('Loaded saved FMV lease configuration');
-          setFmvLeaseSavedConfig(data.configuration as unknown as FMVLeaseFormData);
-        }
-      } catch (err) {
-        console.error('Failed to load FMV lease config:', err);
-      }
-    };
-
-    if (deal?.hsObjectId) {
-      loadFMVLeaseConfig();
-    }
-  }, [portalId, deal?.hsObjectId]);
-
-  // Load saved lease funding configurations (per-line-item like Installation)
-  useEffect(() => {
-    const loadLeaseFundingConfigs = async () => {
-      const currentPortalId = portalId || localStorage.getItem('hs_portal_id');
-      const dealId = deal?.hsObjectId;
-      
-      if (!currentPortalId || !dealId) return;
-
-      try {
-        const { data, error } = await supabase
-          .from('lease_funding_configurations')
-          .select('line_item_id, configuration')
-          .eq('portal_id', currentPortalId)
-          .eq('deal_id', dealId);
-
-        if (error) {
-          console.error('Error loading lease funding configs:', error);
-          return;
-        }
-
-        if (data) {
-          const configs: Record<string, LeaseFundingFormData> = {};
-          data.forEach(row => {
-            configs[row.line_item_id] = row.configuration as unknown as LeaseFundingFormData;
-          });
-          setLeaseFundingSavedConfig(configs);
-        }
-      } catch (err) {
-        console.error('Failed to load lease funding configs:', err);
-      }
-    };
-
-    if (deal?.hsObjectId) {
-      loadLeaseFundingConfigs();
-    }
-  }, [portalId, deal?.hsObjectId]);
-
-  // Load saved lease return configuration
-  useEffect(() => {
-    const loadLeaseReturnConfig = async () => {
-      const currentPortalId = portalId || localStorage.getItem('hs_portal_id');
-      const dealId = deal?.hsObjectId;
-      
-      if (!currentPortalId || !dealId) return;
-
-      try {
-        const { data, error } = await supabase
-          .from('lease_return_configurations')
-          .select('configuration')
-          .eq('portal_id', currentPortalId)
-          .eq('deal_id', dealId)
-          .single();
-
-        if (error) {
-          if (error.code !== 'PGRST116') {
-            console.error('Error loading lease return config:', error);
+          
+          // Set FMV lease config
+          if (configs.fmvLease) {
+            console.log('Loaded saved FMV lease configuration');
+            setFmvLeaseSavedConfig(configs.fmvLease as FMVLeaseFormData);
           }
-          return;
-        }
-
-        if (data?.configuration) {
-          console.log('Loaded saved lease return configuration');
-          setLeaseReturnSavedConfig(data.configuration as unknown as LeaseReturnFormData);
-        }
-      } catch (err) {
-        console.error('Failed to load lease return config:', err);
-      }
-    };
-
-    if (deal?.hsObjectId) {
-      loadLeaseReturnConfig();
-    }
-  }, [portalId, deal?.hsObjectId]);
-
-  // Load saved interterritorial configuration
-  useEffect(() => {
-    const loadInterterritorialConfig = async () => {
-      const currentPortalId = portalId || localStorage.getItem('hs_portal_id');
-      const dealId = deal?.hsObjectId;
-      
-      if (!currentPortalId || !dealId) return;
-
-      try {
-        const { data, error } = await supabase
-          .from('interterritorial_configurations')
-          .select('configuration')
-          .eq('portal_id', currentPortalId)
-          .eq('deal_id', dealId)
-          .single();
-
-        if (error) {
-          if (error.code !== 'PGRST116') {
-            console.error('Error loading interterritorial config:', error);
+          
+          // Set lease funding configs (keyed by line_item_id)
+          if (configs.leaseFunding && Object.keys(configs.leaseFunding).length > 0) {
+            console.log('Loaded saved lease funding configurations');
+            setLeaseFundingSavedConfig(configs.leaseFunding as Record<string, LeaseFundingFormData>);
           }
-          return;
-        }
-
-        if (data?.configuration) {
-          console.log('Loaded saved interterritorial configuration');
-          setInterterritorialSavedConfig(data.configuration as unknown as InterterritorialFormData);
+          
+          // Set lease return config
+          if (configs.leaseReturn) {
+            console.log('Loaded saved lease return configuration');
+            setLeaseReturnSavedConfig(configs.leaseReturn as LeaseReturnFormData);
+          }
+          
+          // Set interterritorial config
+          if (configs.interterritorial) {
+            console.log('Loaded saved interterritorial configuration');
+            setInterterritorialSavedConfig(configs.interterritorial as InterterritorialFormData);
+          }
         }
       } catch (err) {
-        console.error('Failed to load interterritorial config:', err);
+        console.error('Failed to load configurations:', err);
       }
     };
 
     if (deal?.hsObjectId) {
-      loadInterterritorialConfig();
+      loadAllConfigs();
     }
   }, [portalId, deal?.hsObjectId]);
 
@@ -529,16 +343,14 @@ function DocumentHubContent() {
     if (dataString === lastSavedData) return;
 
     try {
-      const { error: saveError } = await supabase
-        .from('quote_configurations')
-        .upsert({
-          portal_id: currentPortalId,
-          deal_id: dealId,
-          configuration: dataToSave as any,
-          updated_at: new Date().toISOString()
-        }, {
-          onConflict: 'deal_id,portal_id'
-        });
+      const { error: saveError } = await supabase.functions.invoke('save-configuration', {
+        body: {
+          portalId: currentPortalId,
+          dealId,
+          configType: 'quote',
+          configuration: dataToSave
+        }
+      });
 
       if (!saveError) {
         setLastSavedData(dataString);
@@ -576,17 +388,15 @@ function DocumentHubContent() {
     if (dataString === installationLastSavedData) return;
 
     try {
-      const { error: saveError } = await supabase
-        .from('installation_configurations')
-        .upsert({
-          portal_id: currentPortalId,
-          deal_id: dealId,
-          line_item_id: lineItemId,
-          configuration: dataToSave as any,
-          updated_at: new Date().toISOString()
-        }, {
-          onConflict: 'portal_id,deal_id,line_item_id'
-        });
+      const { error: saveError } = await supabase.functions.invoke('save-configuration', {
+        body: {
+          portalId: currentPortalId,
+          dealId,
+          configType: 'installation',
+          lineItemId,
+          configuration: dataToSave
+        }
+      });
 
       if (!saveError) {
         setInstallationLastSavedData(dataString);
@@ -625,16 +435,14 @@ function DocumentHubContent() {
     if (dataString === serviceAgreementLastSavedData) return;
 
     try {
-      const { error: saveError } = await supabase
-        .from('service_agreement_configurations')
-        .upsert({
-          portal_id: currentPortalId,
-          deal_id: dealId,
-          configuration: dataToSave as any,
-          updated_at: new Date().toISOString()
-        }, {
-          onConflict: 'portal_id,deal_id'
-        });
+      const { error: saveError } = await supabase.functions.invoke('save-configuration', {
+        body: {
+          portalId: currentPortalId,
+          dealId,
+          configType: 'service_agreement',
+          configuration: dataToSave
+        }
+      });
 
       if (!saveError) {
         setServiceAgreementLastSavedData(dataString);
@@ -671,16 +479,14 @@ function DocumentHubContent() {
     if (dataString === fmvLeaseLastSavedData) return;
 
     try {
-      const { error: saveError } = await supabase
-        .from('fmv_lease_configurations')
-        .upsert({
-          portal_id: currentPortalId,
-          deal_id: dealId,
-          configuration: dataToSave as any,
-          updated_at: new Date().toISOString()
-        }, {
-          onConflict: 'portal_id,deal_id'
-        });
+      const { error: saveError } = await supabase.functions.invoke('save-configuration', {
+        body: {
+          portalId: currentPortalId,
+          dealId,
+          configType: 'fmv_lease',
+          configuration: dataToSave
+        }
+      });
 
       if (!saveError) {
         setFmvLeaseLastSavedData(dataString);
@@ -718,17 +524,15 @@ function DocumentHubContent() {
     if (dataString === leaseFundingLastSavedData) return;
 
     try {
-      const { error: saveError } = await supabase
-        .from('lease_funding_configurations')
-        .upsert({
-          portal_id: currentPortalId,
-          deal_id: dealId,
-          line_item_id: lineItemId,
-          configuration: dataToSave as any,
-          updated_at: new Date().toISOString()
-        }, {
-          onConflict: 'portal_id,deal_id,line_item_id'
-        });
+      const { error: saveError } = await supabase.functions.invoke('save-configuration', {
+        body: {
+          portalId: currentPortalId,
+          dealId,
+          configType: 'lease_funding',
+          lineItemId,
+          configuration: dataToSave
+        }
+      });
 
       if (!saveError) {
         setLeaseFundingLastSavedData(dataString);
@@ -767,16 +571,14 @@ function DocumentHubContent() {
     if (dataString === leaseReturnLastSavedData) return;
 
     try {
-      const { error: saveError } = await supabase
-        .from('lease_return_configurations')
-        .upsert({
-          portal_id: currentPortalId,
-          deal_id: dealId,
-          configuration: dataToSave as any,
-          updated_at: new Date().toISOString()
-        }, {
-          onConflict: 'portal_id,deal_id'
-        });
+      const { error: saveError } = await supabase.functions.invoke('save-configuration', {
+        body: {
+          portalId: currentPortalId,
+          dealId,
+          configType: 'lease_return',
+          configuration: dataToSave
+        }
+      });
 
       if (!saveError) {
         setLeaseReturnLastSavedData(dataString);
@@ -813,16 +615,14 @@ function DocumentHubContent() {
     if (dataString === interterritorialLastSavedData) return;
 
     try {
-      const { error: saveError } = await supabase
-        .from('interterritorial_configurations')
-        .upsert({
-          portal_id: currentPortalId,
-          deal_id: dealId,
-          configuration: dataToSave as any,
-          updated_at: new Date().toISOString()
-        }, {
-          onConflict: 'portal_id,deal_id'
-        });
+      const { error: saveError } = await supabase.functions.invoke('save-configuration', {
+        body: {
+          portalId: currentPortalId,
+          dealId,
+          configType: 'interterritorial',
+          configuration: dataToSave
+        }
+      });
 
       if (!saveError) {
         setInterterritorialLastSavedData(dataString);
@@ -950,16 +750,14 @@ function DocumentHubContent() {
 
     setSaving(true);
     try {
-      const { error: saveError } = await supabase
-        .from('quote_configurations')
-        .upsert({
-          portal_id: currentPortalId,
-          deal_id: dealId,
-          configuration: formData as any,
-          updated_at: new Date().toISOString()
-        }, {
-          onConflict: 'deal_id,portal_id'
-        });
+      const { error: saveError } = await supabase.functions.invoke('save-configuration', {
+        body: {
+          portalId: currentPortalId,
+          dealId,
+          configType: 'quote',
+          configuration: formData
+        }
+      });
 
       if (saveError) {
         console.error('Save error:', saveError);
@@ -1013,17 +811,15 @@ function DocumentHubContent() {
 
     if (currentPortalId && dealId && currentFormData.selectedLineItemId) {
       try {
-        await supabase
-          .from('installation_configurations')
-          .upsert({
-            portal_id: currentPortalId,
-            deal_id: dealId,
-            line_item_id: currentFormData.selectedLineItemId,
-            configuration: currentFormData as any,
-            updated_at: new Date().toISOString()
-          }, {
-            onConflict: 'portal_id,deal_id,line_item_id'
-          });
+        await supabase.functions.invoke('save-configuration', {
+          body: {
+            portalId: currentPortalId,
+            dealId,
+            configType: 'installation',
+            lineItemId: currentFormData.selectedLineItemId,
+            configuration: currentFormData
+          }
+        });
         
         // Update saved config cache
         setInstallationSavedConfig(prev => ({
@@ -1052,17 +848,15 @@ function DocumentHubContent() {
 
     setInstallationSaving(true);
     try {
-      const { error: saveError } = await supabase
-        .from('installation_configurations')
-        .upsert({
-          portal_id: currentPortalId,
-          deal_id: dealId,
-          line_item_id: installationFormData.selectedLineItemId,
-          configuration: installationFormData as any,
-          updated_at: new Date().toISOString()
-        }, {
-          onConflict: 'portal_id,deal_id,line_item_id'
-        });
+      const { error: saveError } = await supabase.functions.invoke('save-configuration', {
+        body: {
+          portalId: currentPortalId,
+          dealId,
+          configType: 'installation',
+          lineItemId: installationFormData.selectedLineItemId,
+          configuration: installationFormData
+        }
+      });
 
       if (saveError) {
         console.error('Save error:', saveError);
@@ -1302,16 +1096,14 @@ function DocumentHubContent() {
 
     setServiceAgreementSaving(true);
     try {
-      const { error: saveError } = await supabase
-        .from('service_agreement_configurations')
-        .upsert({
-          portal_id: currentPortalId,
-          deal_id: dealId,
-          configuration: serviceAgreementFormData as any,
-          updated_at: new Date().toISOString()
-        }, {
-          onConflict: 'portal_id,deal_id'
-        });
+      const { error: saveError } = await supabase.functions.invoke('save-configuration', {
+        body: {
+          portalId: currentPortalId,
+          dealId,
+          configType: 'service_agreement',
+          configuration: serviceAgreementFormData
+        }
+      });
 
       if (saveError) {
         console.error('Save error:', saveError);
@@ -1409,16 +1201,14 @@ function DocumentHubContent() {
 
     setFmvLeaseSaving(true);
     try {
-      const { error: saveError } = await supabase
-        .from('fmv_lease_configurations')
-        .upsert({
-          portal_id: currentPortalId,
-          deal_id: dealId,
-          configuration: fmvLeaseFormData as any,
-          updated_at: new Date().toISOString()
-        }, {
-          onConflict: 'portal_id,deal_id'
-        });
+      const { error: saveError } = await supabase.functions.invoke('save-configuration', {
+        body: {
+          portalId: currentPortalId,
+          dealId,
+          configType: 'fmv_lease',
+          configuration: fmvLeaseFormData
+        }
+      });
 
       if (saveError) {
         console.error('Save error:', saveError);
@@ -1506,17 +1296,15 @@ function DocumentHubContent() {
 
     if (currentPortalId && dealId && currentFormData.selectedLineItemId) {
       try {
-        await supabase
-          .from('lease_funding_configurations')
-          .upsert({
-            portal_id: currentPortalId,
-            deal_id: dealId,
-            line_item_id: currentFormData.selectedLineItemId,
-            configuration: currentFormData as any,
-            updated_at: new Date().toISOString()
-          }, {
-            onConflict: 'portal_id,deal_id,line_item_id'
-          });
+        await supabase.functions.invoke('save-configuration', {
+          body: {
+            portalId: currentPortalId,
+            dealId,
+            configType: 'lease_funding',
+            lineItemId: currentFormData.selectedLineItemId,
+            configuration: currentFormData
+          }
+        });
         
         // Update saved config cache
         setLeaseFundingSavedConfig(prev => ({
@@ -1545,17 +1333,15 @@ function DocumentHubContent() {
 
     setLeaseFundingSaving(true);
     try {
-      const { error: saveError } = await supabase
-        .from('lease_funding_configurations')
-        .upsert({
-          portal_id: currentPortalId,
-          deal_id: dealId,
-          line_item_id: leaseFundingFormData.selectedLineItemId,
-          configuration: leaseFundingFormData as any,
-          updated_at: new Date().toISOString()
-        }, {
-          onConflict: 'portal_id,deal_id,line_item_id'
-        });
+      const { error: saveError } = await supabase.functions.invoke('save-configuration', {
+        body: {
+          portalId: currentPortalId,
+          dealId,
+          configType: 'lease_funding',
+          lineItemId: leaseFundingFormData.selectedLineItemId,
+          configuration: leaseFundingFormData
+        }
+      });
 
       if (saveError) {
         console.error('Save error:', saveError);
@@ -1658,16 +1444,14 @@ function DocumentHubContent() {
 
     setLeaseReturnSaving(true);
     try {
-      const { error: saveError } = await supabase
-        .from('lease_return_configurations')
-        .upsert({
-          portal_id: currentPortalId,
-          deal_id: dealId,
-          configuration: leaseReturnFormData as any,
-          updated_at: new Date().toISOString()
-        }, {
-          onConflict: 'portal_id,deal_id'
-        });
+      const { error: saveError } = await supabase.functions.invoke('save-configuration', {
+        body: {
+          portalId: currentPortalId,
+          dealId,
+          configType: 'lease_return',
+          configuration: leaseReturnFormData
+        }
+      });
 
       if (saveError) {
         console.error('Save error:', saveError);
@@ -1766,16 +1550,14 @@ function DocumentHubContent() {
 
     setInterterritorialSaving(true);
     try {
-      const { error: saveError } = await supabase
-        .from('interterritorial_configurations')
-        .upsert({
-          portal_id: currentPortalId,
-          deal_id: dealId,
-          configuration: interterritorialFormData as any,
-          updated_at: new Date().toISOString()
-        }, {
-          onConflict: 'portal_id,deal_id'
-        });
+      const { error: saveError } = await supabase.functions.invoke('save-configuration', {
+        body: {
+          portalId: currentPortalId,
+          dealId,
+          configType: 'interterritorial',
+          configuration: interterritorialFormData
+        }
+      });
 
       if (saveError) {
         console.error('Save error:', saveError);

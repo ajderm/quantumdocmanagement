@@ -23,3 +23,12 @@ verify_jwt = false
 
 [functions.get-rate-factors]
 verify_jwt = false
+
+[functions.get-configuration]
+verify_jwt = false
+
+[functions.save-configuration]
+verify_jwt = false
+
+[functions.get-configurations-bulk]
+verify_jwt = false
