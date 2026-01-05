@@ -436,7 +436,7 @@ Deno.serve(async (req) => {
         const lineItemPromises = lineItemAssociations.results.map(async (assoc: any) => {
           const lineItemResponse = await hubspotRequest(
             accessToken,
-            `/crm/v3/objects/line_items/${assoc.id}?properties=name,description,quantity,price,hs_sku,hs_product_type,hs_recurring_billing_period`
+            `/crm/v3/objects/line_items/${assoc.id}?properties=name,description,quantity,price,hs_sku,hs_product_type,hs_recurring_billing_period,hs_cost_of_goods_sold`
           );
           return {
             id: lineItemResponse.id,
@@ -447,6 +447,7 @@ Deno.serve(async (req) => {
             price: parseFloat(lineItemResponse.properties.price) || 0,
             sku: lineItemResponse.properties.hs_sku,
             category: lineItemResponse.properties.hs_product_type,
+            cost: parseFloat(lineItemResponse.properties.hs_cost_of_goods_sold) || 0,
           };
         });
         lineItems = await Promise.all(lineItemPromises);

@@ -66,15 +66,15 @@ export const InterterritorialPreview = forwardRef<HTMLDivElement, Interterritori
         </div>
 
         {/* Coordinator Info Header */}
-        <div className="border border-black p-1 mb-2 bg-gray-100">
-          <p className="font-bold text-[9px] text-center">INTERTERRITORIAL COORDINATOR INFORMATION</p>
+        <div className="mb-2">
+          <p className="font-bold text-[9px] border-b-2 border-black pb-1">INTERTERRITORIAL COORDINATOR INFORMATION</p>
         </div>
 
         {/* Three-Column Dealer Section */}
-        <div className="grid grid-cols-3 gap-0 mb-3">
+        <div className="grid grid-cols-3 gap-4 mb-3">
           {/* Originating Dealer */}
-          <div className="border border-black p-2">
-            <p className="font-bold text-[9px] mb-1 border-b border-black pb-1 text-center bg-gray-50">ORIGINATING DEALER</p>
+          <div>
+            <p className="font-bold text-[9px] border-b-2 border-black pb-1 mb-1">ORIGINATING DEALER</p>
             <table className="w-full text-[8px]">
               <tbody>
                 <tr><td className="font-bold w-12">Name:</td><td>{formData.originatingName}</td></tr>
@@ -88,8 +88,8 @@ export const InterterritorialPreview = forwardRef<HTMLDivElement, Interterritori
           </div>
 
           {/* Installing Dealer */}
-          <div className="border border-black border-l-0 p-2">
-            <p className="font-bold text-[9px] mb-1 border-b border-black pb-1 text-center bg-gray-50">INSTALLING DEALER</p>
+          <div>
+            <p className="font-bold text-[9px] border-b-2 border-black pb-1 mb-1">INSTALLING DEALER</p>
             <table className="w-full text-[8px]">
               <tbody>
                 <tr><td className="font-bold w-12">Name:</td><td>{formData.installingName || '_____'}</td></tr>
@@ -103,8 +103,8 @@ export const InterterritorialPreview = forwardRef<HTMLDivElement, Interterritori
           </div>
 
           {/* Customer Installed To */}
-          <div className="border border-black border-l-0 p-2">
-            <p className="font-bold text-[9px] mb-1 border-b border-black pb-1 text-center bg-gray-50">CUSTOMER INSTALLED TO</p>
+          <div>
+            <p className="font-bold text-[9px] border-b-2 border-black pb-1 mb-1">CUSTOMER INSTALLED TO</p>
             <table className="w-full text-[8px]">
               <tbody>
                 <tr><td className="font-bold w-12">Name:</td><td>{formData.customerName}</td></tr>
@@ -120,27 +120,27 @@ export const InterterritorialPreview = forwardRef<HTMLDivElement, Interterritori
 
         {/* Equipment To Be Installed */}
         <div className="mb-3">
-          <p className="font-bold text-[9px] mb-1 bg-gray-100 p-1 border border-black">EQUIPMENT TO BE INSTALLED</p>
-          <table className="w-full border-collapse text-[8px] border border-black">
+          <p className="font-bold text-[9px] border-b-2 border-black pb-1 mb-1">EQUIPMENT TO BE INSTALLED</p>
+          <table className="w-full text-[8px]">
             <thead>
-              <tr className="border-b border-black bg-gray-50">
-                <th className="text-left py-1 px-1 w-8 border-r border-black">Qty.</th>
-                <th className="text-left py-1 px-1 w-28 border-r border-black">Vendor Product Code</th>
-                <th className="text-left py-1 px-1 border-r border-black">Description</th>
-                <th className="text-right py-1 px-1 w-16 border-r border-black">Price</th>
-                <th className="text-right py-1 px-1 w-16 border-r border-black">Cost</th>
-                <th className="text-right py-1 px-1 w-16">Fee</th>
+              <tr className="border-b border-black">
+                <th className="text-left py-1 w-8">Qty.</th>
+                <th className="text-left py-1 w-28">Vendor Product Code</th>
+                <th className="text-left py-1">Description</th>
+                <th className="text-right py-1 w-16">Price</th>
+                <th className="text-right py-1 w-16">Cost</th>
+                <th className="text-right py-1 w-16">Fee</th>
               </tr>
             </thead>
             <tbody>
               {formData.equipmentItems.map((item) => (
                 <tr key={item.id} className="border-b border-gray-300">
-                  <td className="py-1 px-1 border-r border-gray-300">{item.qty}</td>
-                  <td className="py-1 px-1 border-r border-gray-300">{item.vendorProductCode}</td>
-                  <td className="py-1 px-1 border-r border-gray-300">{item.description}</td>
-                  <td className="py-1 px-1 text-right border-r border-gray-300">${formatCurrency(item.price)}</td>
-                  <td className="py-1 px-1 text-right border-r border-gray-300">${formatCurrency(item.cost)}</td>
-                  <td className="py-1 px-1 text-right">${formatCurrency(item.fee)}</td>
+                  <td className="py-1">{item.qty}</td>
+                  <td className="py-1">{item.vendorProductCode}</td>
+                  <td className="py-1">{item.description}</td>
+                  <td className="py-1 text-right">${formatCurrency(item.price)}</td>
+                  <td className="py-1 text-right">${formatCurrency(item.cost)}</td>
+                  <td className="py-1 text-right">${formatCurrency(item.fee)}</td>
                 </tr>
               ))}
               {formData.equipmentItems.length === 0 && (
@@ -150,16 +150,16 @@ export const InterterritorialPreview = forwardRef<HTMLDivElement, Interterritori
               )}
             </tbody>
           </table>
-          <div className="border border-t-0 border-black p-1 text-right font-bold text-[9px] bg-gray-50">
+          <div className="pt-1 text-right font-bold text-[9px] border-t border-black mt-1">
             TOTAL AMOUNT BILLED TO {formData.installingName || '[Installing Dealer]'}: ${formatCurrency(calculateTotalFee())}
           </div>
         </div>
 
         {/* Service Agreement & Removal Equipment Side by Side */}
-        <div className="grid grid-cols-2 gap-0 mb-3">
+        <div className="grid grid-cols-2 gap-4 mb-3">
           {/* Service Agreement */}
-          <div className="border border-black p-2">
-            <p className="font-bold text-[9px] mb-1 border-b border-black pb-1 text-center bg-gray-50">SERVICE AGREEMENT</p>
+          <div>
+            <p className="font-bold text-[9px] border-b-2 border-black pb-1 mb-1">SERVICE AGREEMENT</p>
             <table className="w-full text-[8px]">
               <tbody>
                 <tr><td className="font-bold">Base Charge:</td><td>${formData.serviceBaseCharge || '0.00'}</td></tr>
@@ -173,13 +173,13 @@ export const InterterritorialPreview = forwardRef<HTMLDivElement, Interterritori
           </div>
 
           {/* Removal Equipment */}
-          <div className="border border-black border-l-0 p-2">
-            <p className="font-bold text-[9px] mb-1 border-b border-black pb-1 text-center bg-gray-50">REMOVAL EQUIPMENT</p>
+          <div>
+            <p className="font-bold text-[9px] border-b-2 border-black pb-1 mb-1">REMOVAL EQUIPMENT</p>
             {formData.removalEquipment.length === 0 ? (
               <p className="text-[8px] text-gray-500 text-center py-2">No removal equipment</p>
             ) : (
               <div className="space-y-1">
-                <table className="w-full text-[7px] border-collapse">
+                <table className="w-full text-[7px]">
                   <thead>
                     <tr className="border-b border-gray-300">
                       <th className="text-left py-0.5 w-6">Qty</th>
@@ -215,16 +215,14 @@ export const InterterritorialPreview = forwardRef<HTMLDivElement, Interterritori
         {/* Terms and Conditions */}
         {termsAndConditions && (
           <div className="mb-3">
-            <p className="font-bold text-[9px] mb-1 bg-gray-100 p-1 border border-black">ACCEPTANCE OF TERMS</p>
-            <div className="border border-t-0 border-black p-2">
-              <p className="text-[7px] whitespace-pre-wrap">{termsAndConditions}</p>
-            </div>
+            <p className="font-bold text-[9px] border-b-2 border-black pb-1 mb-1">ACCEPTANCE OF TERMS</p>
+            <p className="text-[7px] whitespace-pre-wrap">{termsAndConditions}</p>
           </div>
         )}
 
         {/* Signature Section */}
-        <div className="border border-black p-3 mt-4">
-          <p className="font-bold text-[9px] mb-3">INSTALLING DEALER SIGNATURE</p>
+        <div className="mt-4">
+          <p className="font-bold text-[9px] border-b-2 border-black pb-1 mb-3">INSTALLING DEALER SIGNATURE</p>
           <div className="grid grid-cols-2 gap-4">
             <div className="space-y-3">
               <div>
