@@ -2495,7 +2495,16 @@ function DocumentHubContent() {
                   serviceAgreementFormData={serviceAgreementFormData ? {
                     rates: serviceAgreementFormData.rates,
                     contractLengthMonths: serviceAgreementFormData.contractLengthMonths,
+                    shipToCompany: serviceAgreementFormData.shipToCompany,
+                    shipToAddress: serviceAgreementFormData.shipToAddress,
+                    shipToCity: serviceAgreementFormData.shipToCity,
+                    shipToState: serviceAgreementFormData.shipToState,
+                    shipToZip: serviceAgreementFormData.shipToZip,
+                    shipToAttn: serviceAgreementFormData.shipToAttn,
+                    shipToPhone: serviceAgreementFormData.shipToPhone,
+                    shipToEmail: serviceAgreementFormData.shipToEmail,
                   } : null}
+                  quoteFormData={formData ? { phone: formData.phone } : null}
                   savedConfig={interterritorialSavedConfig}
                 />
 

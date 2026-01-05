@@ -103,6 +103,15 @@ interface ServiceAgreementFormData {
     overagesColor?: string;
   }>;
   contractLengthMonths?: string;
+  // Ship To fields for Customer Installed To
+  shipToCompany?: string;
+  shipToAddress?: string;
+  shipToCity?: string;
+  shipToState?: string;
+  shipToZip?: string;
+  shipToAttn?: string;
+  shipToPhone?: string;
+  shipToEmail?: string;
 }
 
 interface LineItem {
@@ -114,6 +123,11 @@ interface LineItem {
   sku?: string;
   model?: string;
   category?: string;
+  cost?: number;
+}
+
+interface QuoteFormData {
+  phone?: string;
 }
 
 interface InterterritorialFormProps {
@@ -126,6 +140,7 @@ interface InterterritorialFormProps {
   fmvLeaseFormData: FMVLeaseFormData | null;
   serviceAgreementFormData: ServiceAgreementFormData | null;
   savedConfig: InterterritorialFormData | null;
+  quoteFormData: QuoteFormData | null;
 }
 
 const MAX_REMOVAL_EQUIPMENT = 10;
@@ -140,6 +155,7 @@ export function InterterritorialForm({
   fmvLeaseFormData,
   serviceAgreementFormData,
   savedConfig,
+  quoteFormData,
 }: InterterritorialFormProps) {
   const hasInitializedRef = useRef(false);
 
@@ -155,9 +171,9 @@ export function InterterritorialForm({
     // Build originating dealer address from dealerInfo
     const originatingAddress = dealerInfo?.address || '';
 
-    // Build customer address from FMV Lease
-    const customerAddress = fmvLeaseFormData
-      ? `${fmvLeaseFormData.equipmentAddress || ''}, ${fmvLeaseFormData.equipmentCity || ''}, ${fmvLeaseFormData.equipmentState || ''} ${fmvLeaseFormData.equipmentZip || ''}`.replace(/^,\s*/, '').replace(/,\s*,/g, ',').trim()
+    // Build customer address from Service Agreement Ship To
+    const customerAddress = serviceAgreementFormData
+      ? `${serviceAgreementFormData.shipToAddress || ''}, ${serviceAgreementFormData.shipToCity || ''}, ${serviceAgreementFormData.shipToState || ''} ${serviceAgreementFormData.shipToZip || ''}`.replace(/^,\s*/, '').replace(/,\s*,/g, ',').trim()
       : '';
 
     // Initialize equipment items from line items
@@ -169,7 +185,7 @@ export function InterterritorialForm({
         vendorProductCode: savedItem?.vendorProductCode ?? (item.sku || item.model || ''),
         description: savedItem?.description ?? (item.description || item.name || ''),
         price: savedItem?.price ?? item.price,
-        cost: savedItem?.cost ?? 0,
+        cost: savedItem?.cost ?? (item.cost || 0),
         fee: savedItem?.fee ?? 0,
       };
     });
@@ -179,14 +195,24 @@ export function InterterritorialForm({
       ? Object.values(serviceAgreementFormData.rates)[0]
       : null;
 
+    // Parse requestedInstallDate from saved config (handles string from JSON)
+    let parsedInstallDate: Date | null = null;
+    if (base.requestedInstallDate) {
+      if (typeof base.requestedInstallDate === 'string') {
+        parsedInstallDate = new Date(base.requestedInstallDate);
+      } else {
+        parsedInstallDate = base.requestedInstallDate;
+      }
+    }
+
     onChange({
       ...base,
-      requestedInstallDate: base.requestedInstallDate || null,
+      requestedInstallDate: parsedInstallDate,
       
-      // Originating Dealer
+      // Originating Dealer - use Quote phone if available
       originatingName: fillIfEmpty(base.originatingName, dealerInfo?.companyName || ''),
       originatingBillTo: fillIfEmpty(base.originatingBillTo, originatingAddress),
-      originatingPhone: fillIfEmpty(base.originatingPhone, dealerInfo?.phone || ''),
+      originatingPhone: fillIfEmpty(base.originatingPhone, quoteFormData?.phone || dealerInfo?.phone || ''),
       originatingAttn: fillIfEmpty(base.originatingAttn, dealOwner ? `${dealOwner.firstName || ''} ${dealOwner.lastName || ''}`.trim() : ''),
       originatingEmail: fillIfEmpty(base.originatingEmail, dealOwner?.email || ''),
       originatingCca: fillIfEmpty(base.originatingCca, dealerSettings.cca_value || ''),
@@ -200,12 +226,12 @@ export function InterterritorialForm({
       installingCca: base.installingCca || '',
       installingDealerNumber: base.installingDealerNumber || '',
       
-      // Customer Installed To
-      customerName: fillIfEmpty(base.customerName, fmvLeaseFormData?.companyLegalName || ''),
+      // Customer Installed To - from Service Agreement Ship To
+      customerName: fillIfEmpty(base.customerName, serviceAgreementFormData?.shipToCompany || ''),
       customerAddress: fillIfEmpty(base.customerAddress, customerAddress),
-      customerPhone: fillIfEmpty(base.customerPhone, fmvLeaseFormData?.phone || ''),
-      customerAttn: base.customerAttn || '',
-      customerEmail: base.customerEmail || '',
+      customerPhone: fillIfEmpty(base.customerPhone, serviceAgreementFormData?.shipToPhone || ''),
+      customerAttn: fillIfEmpty(base.customerAttn, serviceAgreementFormData?.shipToAttn || ''),
+      customerEmail: fillIfEmpty(base.customerEmail, serviceAgreementFormData?.shipToEmail || ''),
       customerFax: base.customerFax || '',
       
       // Equipment
