@@ -43,6 +43,8 @@ import { LeaseFundingForm, LeaseFundingFormData } from '@/components/lease-fundi
 import { LeaseFundingPreview } from '@/components/lease-funding/LeaseFundingPreview';
 import { LeaseReturnForm, LeaseReturnFormData } from '@/components/lease-return/LeaseReturnForm';
 import { LeaseReturnPreview } from '@/components/lease-return/LeaseReturnPreview';
+import { InterterritorialForm, InterterritorialFormData } from '@/components/interterritorial/InterterritorialForm';
+import { InterterritorialPreview } from '@/components/interterritorial/InterterritorialPreview';
 
 const documentTypes = [
   { code: 'quote', name: 'Quote', icon: FileText },
@@ -153,6 +155,18 @@ function DocumentHubContent() {
   const leaseReturnAutoSaveTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   const leaseReturnFormDataRef = useRef<LeaseReturnFormData | null>(null);
 
+  // Interterritorial state
+  const [interterritorialFormData, setInterterritorialFormData] = useState<InterterritorialFormData | null>(null);
+  const [interterritorialSavedConfig, setInterterritorialSavedConfig] = useState<InterterritorialFormData | null>(null);
+  const [interterritorialGenerating, setInterterritorialGenerating] = useState(false);
+  const [interterritorialSaving, setInterterritorialSaving] = useState(false);
+  const [showInterterritorialPreview, setShowInterterritorialPreview] = useState(false);
+  const [interterritorialHasUnsavedChanges, setInterterritorialHasUnsavedChanges] = useState(false);
+  const [interterritorialLastSavedData, setInterterritorialLastSavedData] = useState<string | null>(null);
+  const interterritorialPreviewRef = useRef<HTMLDivElement>(null);
+  const interterritorialAutoSaveTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const interterritorialFormDataRef = useRef<InterterritorialFormData | null>(null);
+
   // Dealer info and settings
   const [dealerInfo, setDealerInfo] = useState<DealerInfo | null>(null);
   const [dealerSettings, setDealerSettings] = useState<DealerSettings>({});
@@ -187,6 +201,11 @@ function DocumentHubContent() {
   useEffect(() => {
     leaseReturnFormDataRef.current = leaseReturnFormData;
   }, [leaseReturnFormData]);
+
+  // Keep interterritorialFormDataRef in sync
+  useEffect(() => {
+    interterritorialFormDataRef.current = interterritorialFormData;
+  }, [interterritorialFormData]);
 
   // Fetch dealer info when portalId is available
   useEffect(() => {
@@ -459,6 +478,43 @@ function DocumentHubContent() {
 
     if (deal?.hsObjectId) {
       loadLeaseReturnConfig();
+    }
+  }, [portalId, deal?.hsObjectId]);
+
+  // Load saved interterritorial configuration
+  useEffect(() => {
+    const loadInterterritorialConfig = async () => {
+      const currentPortalId = portalId || localStorage.getItem('hs_portal_id');
+      const dealId = deal?.hsObjectId;
+      
+      if (!currentPortalId || !dealId) return;
+
+      try {
+        const { data, error } = await supabase
+          .from('interterritorial_configurations')
+          .select('configuration')
+          .eq('portal_id', currentPortalId)
+          .eq('deal_id', dealId)
+          .single();
+
+        if (error) {
+          if (error.code !== 'PGRST116') {
+            console.error('Error loading interterritorial config:', error);
+          }
+          return;
+        }
+
+        if (data?.configuration) {
+          console.log('Loaded saved interterritorial configuration');
+          setInterterritorialSavedConfig(data.configuration as unknown as InterterritorialFormData);
+        }
+      } catch (err) {
+        console.error('Failed to load interterritorial config:', err);
+      }
+    };
+
+    if (deal?.hsObjectId) {
+      loadInterterritorialConfig();
     }
   }, [portalId, deal?.hsObjectId]);
 
@@ -746,10 +802,56 @@ function DocumentHubContent() {
     }, AUTO_SAVE_DELAY);
   }, [performLeaseReturnAutoSave]);
 
+  // Auto-save for Interterritorial
+  const performInterterritorialAutoSave = useCallback(async (dataToSave: InterterritorialFormData) => {
+    const currentPortalId = portalId || localStorage.getItem('hs_portal_id');
+    const dealId = deal?.hsObjectId;
+
+    if (!currentPortalId || !dealId || !dataToSave) return;
+
+    const dataString = JSON.stringify(dataToSave);
+    if (dataString === interterritorialLastSavedData) return;
+
+    try {
+      const { error: saveError } = await supabase
+        .from('interterritorial_configurations')
+        .upsert({
+          portal_id: currentPortalId,
+          deal_id: dealId,
+          configuration: dataToSave as any,
+          updated_at: new Date().toISOString()
+        }, {
+          onConflict: 'portal_id,deal_id'
+        });
+
+      if (!saveError) {
+        setInterterritorialLastSavedData(dataString);
+        setInterterritorialHasUnsavedChanges(false);
+        console.log('Auto-saved interterritorial configuration');
+      }
+    } catch (err) {
+      console.error('Interterritorial auto-save error:', err);
+    }
+  }, [portalId, deal?.hsObjectId, interterritorialLastSavedData]);
+
+  // Handle interterritorial form change
+  const handleInterterritorialFormChange = useCallback((data: InterterritorialFormData) => {
+    setInterterritorialFormData(data);
+    setInterterritorialHasUnsavedChanges(true);
+    
+    if (interterritorialAutoSaveTimeoutRef.current) {
+      clearTimeout(interterritorialAutoSaveTimeoutRef.current);
+    }
+
+    interterritorialAutoSaveTimeoutRef.current = setTimeout(() => {
+      performInterterritorialAutoSave(data);
+    }, AUTO_SAVE_DELAY);
+  }, [performInterterritorialAutoSave]);
+
   // Auto-save on tab/window close
   useEffect(() => {
     const handleBeforeUnload = (e: BeforeUnloadEvent) => {
-      if ((hasUnsavedChanges && formDataRef.current) || (installationHasUnsavedChanges && installationFormDataRef.current) || (serviceAgreementHasUnsavedChanges && serviceAgreementFormDataRef.current) || (fmvLeaseHasUnsavedChanges && fmvLeaseFormDataRef.current) || (leaseFundingHasUnsavedChanges && leaseFundingFormDataRef.current) || (leaseReturnHasUnsavedChanges && leaseReturnFormDataRef.current)) {
+      if ((hasUnsavedChanges && formDataRef.current) || (installationHasUnsavedChanges && installationFormDataRef.current) || (serviceAgreementHasUnsavedChanges && serviceAgreementFormDataRef.current) || (fmvLeaseHasUnsavedChanges && fmvLeaseFormDataRef.current) || (leaseFundingHasUnsavedChanges && leaseFundingFormDataRef.current) || (leaseReturnHasUnsavedChanges && leaseReturnFormDataRef.current) || (interterritorialHasUnsavedChanges && interterritorialFormDataRef.current)) {
         e.preventDefault();
         e.returnValue = '';
       }
@@ -774,6 +876,9 @@ function DocumentHubContent() {
         }
         if (leaseReturnHasUnsavedChanges && leaseReturnFormDataRef.current) {
           performLeaseReturnAutoSave(leaseReturnFormDataRef.current);
+        }
+        if (interterritorialHasUnsavedChanges && interterritorialFormDataRef.current) {
+          performInterterritorialAutoSave(interterritorialFormDataRef.current);
         }
       }
     };
@@ -803,8 +908,11 @@ function DocumentHubContent() {
       if (leaseReturnAutoSaveTimeoutRef.current) {
         clearTimeout(leaseReturnAutoSaveTimeoutRef.current);
       }
+      if (interterritorialAutoSaveTimeoutRef.current) {
+        clearTimeout(interterritorialAutoSaveTimeoutRef.current);
+      }
     };
-  }, [hasUnsavedChanges, installationHasUnsavedChanges, serviceAgreementHasUnsavedChanges, fmvLeaseHasUnsavedChanges, leaseFundingHasUnsavedChanges, leaseReturnHasUnsavedChanges, performAutoSave, performInstallationAutoSave, performServiceAgreementAutoSave, performFMVLeaseAutoSave, performLeaseFundingAutoSave, performLeaseReturnAutoSave]);
+  }, [hasUnsavedChanges, installationHasUnsavedChanges, serviceAgreementHasUnsavedChanges, fmvLeaseHasUnsavedChanges, leaseFundingHasUnsavedChanges, leaseReturnHasUnsavedChanges, interterritorialHasUnsavedChanges, performAutoSave, performInstallationAutoSave, performServiceAgreementAutoSave, performFMVLeaseAutoSave, performLeaseFundingAutoSave, performLeaseReturnAutoSave, performInterterritorialAutoSave]);
 
   // Recover from localStorage backup if exists
   useEffect(() => {
@@ -1641,6 +1749,114 @@ function DocumentHubContent() {
     setShowLeaseReturnPreview(true);
   };
 
+  // Interterritorial handlers
+  const handleInterterritorialSave = async () => {
+    if (!interterritorialFormData) {
+      toast.error('No data to save');
+      return;
+    }
+
+    const currentPortalId = portalId || localStorage.getItem('hs_portal_id');
+    const dealId = deal?.hsObjectId;
+
+    if (!currentPortalId || !dealId) {
+      toast.error('Missing portal or deal information');
+      return;
+    }
+
+    setInterterritorialSaving(true);
+    try {
+      const { error: saveError } = await supabase
+        .from('interterritorial_configurations')
+        .upsert({
+          portal_id: currentPortalId,
+          deal_id: dealId,
+          configuration: interterritorialFormData as any,
+          updated_at: new Date().toISOString()
+        }, {
+          onConflict: 'portal_id,deal_id'
+        });
+
+      if (saveError) {
+        console.error('Save error:', saveError);
+        toast.error('Failed to save interterritorial configuration');
+        return;
+      }
+
+      setInterterritorialSavedConfig(interterritorialFormData);
+      setInterterritorialLastSavedData(JSON.stringify(interterritorialFormData));
+      setInterterritorialHasUnsavedChanges(false);
+      toast.success('Interterritorial configuration saved');
+    } catch (err) {
+      console.error('Save error:', err);
+      toast.error('Failed to save interterritorial configuration');
+    } finally {
+      setInterterritorialSaving(false);
+    }
+  };
+
+  const handleInterterritorialGeneratePDF = async () => {
+    if (!interterritorialPreviewRef.current || !interterritorialFormData) {
+      toast.error('Please fill in the interterritorial details first');
+      return;
+    }
+
+    setInterterritorialGenerating(true);
+    try {
+      const pdf = await generateMultiPagePDF(interterritorialPreviewRef.current);
+      
+      const sanitizedCompanyName = (interterritorialFormData.customerName || 'Draft').replace(/[^a-zA-Z0-9\s]/g, '').replace(/\s+/g, '_');
+      const now = new Date();
+      const dateStr = now.toISOString().split('T')[0];
+      const timeStr = now.toTimeString().slice(0, 5).replace(':', '-');
+      const fileName = `Interterritorial_Request_${sanitizedCompanyName}_${dateStr}_${timeStr}.pdf`;
+      
+      pdf.save(fileName);
+
+      const currentPortalId = portalId || localStorage.getItem('hs_portal_id');
+      const currentDealId = deal?.hsObjectId;
+
+      if (currentPortalId && currentDealId) {
+        try {
+          const pdfBase64 = pdf.output('datauristring').split(',')[1];
+          
+          const { data, error: attachError } = await supabase.functions.invoke('hubspot-attach-file', {
+            body: {
+              portalId: currentPortalId,
+              dealId: currentDealId,
+              fileName: fileName,
+              fileBase64: pdfBase64
+            }
+          });
+
+          if (attachError || data?.error) {
+            toast.success('PDF downloaded! (Could not attach to deal)');
+          } else {
+            toast.success('PDF downloaded and attached to deal!');
+          }
+        } catch (attachErr) {
+          console.error('Failed to attach to HubSpot:', attachErr);
+          toast.success('PDF downloaded! (Could not attach to deal)');
+        }
+      } else {
+        toast.success('Interterritorial PDF downloaded successfully!');
+      }
+    } catch (err) {
+      console.error('PDF generation error:', err);
+      toast.error('Failed to generate PDF');
+    } finally {
+      setInterterritorialGenerating(false);
+    }
+  };
+
+  const handleInterterritorialPreview = () => {
+    if (!interterritorialFormData) {
+      toast.error('Please fill in the interterritorial details first');
+      return;
+    }
+    setShowInterterritorialPreview(true);
+  };
+
   // Get the saved config for the currently selected line item
   const getCurrentInstallationSavedConfig = () => {
     if (!installationFormData?.selectedLineItemId) return undefined;
@@ -2219,8 +2435,99 @@ function DocumentHubContent() {
             </Card>
           </TabsContent>
 
+          {/* Interterritorial Tab Content */}
+          <TabsContent value="interterritorial" className="mt-0">
+            <Card>
+              <CardHeader className="pb-3">
+                <CardTitle className="text-lg flex items-center gap-2">
+                  <MapPin className="h-5 w-5" />
+                  Interterritorial Equipment Placement Request
+                </CardTitle>
+                <CardDescription>
+                  Create an interterritorial request for equipment placement by another dealer
+                </CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <InterterritorialForm
+                  formData={interterritorialFormData || {
+                    requestedInstallDate: null,
+                    originatingName: '',
+                    originatingBillTo: '',
+                    originatingPhone: '',
+                    originatingAttn: '',
+                    originatingEmail: '',
+                    originatingCca: '',
+                    installingName: '',
+                    installingAddress: '',
+                    installingPhone: '',
+                    installingAttn: '',
+                    installingEmail: '',
+                    installingCca: '',
+                    installingDealerNumber: '',
+                    customerName: '',
+                    customerAddress: '',
+                    customerPhone: '',
+                    customerAttn: '',
+                    customerEmail: '',
+                    customerFax: '',
+                    equipmentItems: [],
+                    serviceBaseCharge: '',
+                    serviceIncludes: '',
+                    serviceOverageBW: '',
+                    serviceOverageColor: '',
+                    serviceFrequency: 'Monthly',
+                    serviceBillTo: 'Originating Dealer',
+                    removalEquipment: [],
+                  }}
+                  onChange={handleInterterritorialFormChange}
+                  dealerInfo={dealerInfo}
+                  dealerSettings={dealerSettings}
+                  dealOwner={dealOwner}
+                  lineItems={lineItems}
+                  fmvLeaseFormData={fmvLeaseFormData ? {
+                    companyLegalName: fmvLeaseFormData.companyLegalName,
+                    equipmentAddress: fmvLeaseFormData.equipmentAddress,
+                    equipmentCity: fmvLeaseFormData.equipmentCity,
+                    equipmentState: fmvLeaseFormData.equipmentState,
+                    equipmentZip: fmvLeaseFormData.equipmentZip,
+                    phone: fmvLeaseFormData.phone,
+                  } : null}
+                  serviceAgreementFormData={serviceAgreementFormData ? {
+                    rates: serviceAgreementFormData.rates,
+                    contractLengthMonths: serviceAgreementFormData.contractLengthMonths,
+                  } : null}
+                  savedConfig={interterritorialSavedConfig}
+                />
+
+                {/* Actions */}
+                <div className="flex gap-2 pt-4 border-t">
+                  <Button variant="outline" onClick={handleInterterritorialSave} disabled={interterritorialSaving}>
+                    {interterritorialSaving ? (
+                      <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                    ) : (
+                      <Save className="h-4 w-4 mr-2" />
+                    )}
+                    {interterritorialSaving ? 'Saving...' : 'Save'}
+                  </Button>
+                  <Button className="flex-1" onClick={handleInterterritorialGeneratePDF} disabled={interterritorialGenerating}>
+                    {interterritorialGenerating ? (
+                      <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                    ) : (
+                      <Download className="h-4 w-4 mr-2" />
+                    )}
+                    {interterritorialGenerating ? 'Generating...' : 'Generate PDF'}
+                  </Button>
+                  <Button variant="outline" onClick={handleInterterritorialPreview}>
+                    <Eye className="h-4 w-4 mr-2" />
+                    Preview
+                  </Button>
+                </div>
+              </CardContent>
+            </Card>
+          </TabsContent>
+
           {/* Placeholder for other tabs */}
-          {documentTypes.slice(6).map((doc) => (
+          {documentTypes.slice(7).map((doc) => (
             <TabsContent key={doc.code} value={doc.code} className="mt-0">
               <Card>
                 <CardContent className="py-12 text-center">
@@ -2482,6 +2789,52 @@ function DocumentHubContent() {
                       website: dealerInfo.website,
                       logo_url: dealerInfo.logoUrl,
                     } : undefined}
+                  />
+                </div>
+              )}
+            </div>
+          </ScrollArea>
+        </DialogContent>
+      </Dialog>
+
+      {/* Hidden preview for Interterritorial PDF generation */}
+      <div className="hidden">
+        {interterritorialFormData && (
+          <InterterritorialPreview
+            ref={interterritorialPreviewRef}
+            formData={interterritorialFormData}
+            dealerInfo={dealerInfo ? {
+              companyName: dealerInfo.companyName,
+              address: dealerInfo.address,
+              phone: dealerInfo.phone,
+              website: dealerInfo.website,
+              logoUrl: dealerInfo.logoUrl,
+            } : undefined}
+            termsAndConditions={documentTerms.interterritorial}
+          />
+        )}
+      </div>
+
+      {/* Interterritorial Preview Dialog */}
+      <Dialog open={showInterterritorialPreview} onOpenChange={setShowInterterritorialPreview}>
+        <DialogContent className="max-w-4xl max-h-[90vh] p-0">
+          <DialogHeader className="p-4 pb-0">
+            <DialogTitle>Interterritorial Request Preview</DialogTitle>
+          </DialogHeader>
+          <ScrollArea className="max-h-[calc(90vh-80px)]">
+            <div className="p-4 flex justify-center">
+              {interterritorialFormData && (
+                <div className="shadow-lg border">
+                  <InterterritorialPreview
+                    formData={interterritorialFormData}
+                    dealerInfo={dealerInfo ? {
+                      companyName: dealerInfo.companyName,
+                      address: dealerInfo.address,
+                      phone: dealerInfo.phone,
+                      website: dealerInfo.website,
+                      logoUrl: dealerInfo.logoUrl,
+                    } : undefined}
+                    termsAndConditions={documentTerms.interterritorial}
                   />
                 </div>
               )}
