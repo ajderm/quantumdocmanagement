@@ -18,6 +18,7 @@ const DOCUMENT_TYPES = [
   { code: 'fmv_lease', name: 'FMV Lease' },
   { code: 'installation_removal_receipt', name: 'Installation: Removal Receipt' },
   { code: 'installation_delivery_acceptance', name: 'Installation: Delivery & Acceptance' },
+  { code: 'interterritorial', name: 'Interterritorial' },
 ];
 
 export default function AdminSettings() {
@@ -62,6 +63,7 @@ export default function AdminSettings() {
     fmv_lease: '',
     installation_removal_receipt: '',
     installation_delivery_acceptance: '',
+    interterritorial: '',
   });
 
   // Load existing dealer account data
