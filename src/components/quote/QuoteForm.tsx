@@ -1,9 +1,9 @@
 import { useState, useEffect, useMemo, useRef } from 'react';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Separator } from '@/components/ui/separator';
 import { Button } from '@/components/ui/button';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Plus, Trash2, AlertTriangle, X } from 'lucide-react';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { supabase } from '@/integrations/supabase/client';
@@ -429,518 +429,483 @@ export function QuoteForm({ deal, company, lineItems, dealOwner, onFormChange, p
   };
 
   return (
-    <div className="space-y-6">
-      <div className="grid grid-cols-2 gap-4">
-        <div className="space-y-3">
-          <div><Label className="text-xs">Quote Number</Label><Input value={formData.quoteNumber} onChange={e => updateField('quoteNumber', e.target.value)} className="h-8 text-sm" /></div>
-          <div><Label className="text-xs">Quote Date</Label><Input type="date" value={formData.quoteDate} onChange={e => updateField('quoteDate', e.target.value)} className="h-8 text-sm" /></div>
-          <div><Label className="text-xs">Prepared By</Label><Input value={formData.preparedBy} onChange={e => updateField('preparedBy', e.target.value)} className="h-8 text-sm" /></div>
-        </div>
-        <div className="space-y-3">
-          <div><Label className="text-xs">Sales Rep Email</Label><Input type="email" value={formData.preparedByEmail} onChange={e => updateField('preparedByEmail', e.target.value)} className="h-8 text-sm" /></div>
-          <div><Label className="text-xs">Sales Rep Phone</Label><Input value={formData.preparedByPhone} onChange={e => updateField('preparedByPhone', e.target.value)} className="h-8 text-sm" /></div>
-        </div>
-      </div>
-      <Separator />
-      <div>
-        <h4 className="text-sm font-medium mb-3">Prepared For</h4>
-        <div className="grid grid-cols-2 gap-3">
-          <div className="col-span-2"><Label className="text-xs">Company Name</Label><Input value={formData.companyName} onChange={e => updateField('companyName', e.target.value)} className="h-8 text-sm" /></div>
-          <div className="col-span-2"><Label className="text-xs">Address</Label><Input value={formData.address} onChange={e => updateField('address', e.target.value)} className="h-8 text-sm" /></div>
-          <div className="col-span-2"><Label className="text-xs">Address Line 2</Label><Input value={formData.address2} onChange={e => updateField('address2', e.target.value)} className="h-8 text-sm" /></div>
-          <div><Label className="text-xs">City</Label><Input value={formData.city} onChange={e => updateField('city', e.target.value)} className="h-8 text-sm" /></div>
-          <div className="grid grid-cols-2 gap-2"><div><Label className="text-xs">State</Label><Input value={formData.state} onChange={e => updateField('state', e.target.value)} className="h-8 text-sm" /></div><div><Label className="text-xs">Zip</Label><Input value={formData.zip} onChange={e => updateField('zip', e.target.value)} className="h-8 text-sm" /></div></div>
-          <div className="col-span-2"><Label className="text-xs">Phone</Label><Input value={formData.phone} onChange={e => updateField('phone', e.target.value)} className="h-8 text-sm" /></div>
-        </div>
-      </div>
-      <Separator />
-      <div>
-        <div className="flex items-center justify-between mb-3"><h4 className="text-sm font-medium">Equipment</h4><Button type="button" variant="outline" size="sm" onClick={addLineItem}><Plus className="h-3 w-3 mr-1" />Add Item</Button></div>
-        <div className="space-y-2">
-          <div className="grid grid-cols-12 gap-2 text-xs font-medium text-muted-foreground px-2"><div className="col-span-1">Qty</div><div className="col-span-3">Model</div><div className="col-span-5">Description</div><div className="col-span-2">Price</div><div className="col-span-1"></div></div>
-          {formData.lineItems.map((item, idx) => (<div key={item.id} className="grid grid-cols-12 gap-2 items-center"><div className="col-span-1"><Input type="number" min="1" value={item.quantity} onChange={e => updateLineItem(idx, 'quantity', parseInt(e.target.value) || 1)} className="h-8 text-sm" /></div><div className="col-span-3"><Input value={item.model} onChange={e => updateLineItem(idx, 'model', e.target.value)} className="h-8 text-sm" /></div><div className="col-span-5"><Input value={item.description} onChange={e => updateLineItem(idx, 'description', e.target.value)} className="h-8 text-sm" /></div><div className="col-span-2"><div className="relative"><span className="absolute left-2 top-1/2 -translate-y-1/2 text-muted-foreground text-sm">$</span><Input type="number" min="0" step="0.01" value={item.price} onChange={e => updateLineItem(idx, 'price', parseFloat(e.target.value) || 0)} className="h-8 text-sm pl-5" /></div></div><div className="col-span-1"><Button type="button" variant="ghost" size="sm" onClick={() => removeLineItem(idx)} className="h-8 w-8 p-0 text-destructive"><Trash2 className="h-3.5 w-3.5" /></Button></div></div>))}
-          {formData.lineItems.length === 0 && <p className="text-sm text-muted-foreground text-center py-4">No equipment. Click Add Item.</p>}
-        </div>
-      </div>
-      <Separator />
-      
-      {/* Configuration Section */}
-      <div>
-        <h4 className="text-sm font-medium mb-3">Configuration</h4>
-        <div className="grid grid-cols-4 gap-4">
-          <div>
-            <Label className="text-xs">Leasing Company</Label>
-            <Select value={formData.leasingCompanyId} onValueChange={(v) => updateField('leasingCompanyId', v)}>
-              <SelectTrigger className="h-8 text-sm">
-                <SelectValue placeholder="Select leasing company" />
-              </SelectTrigger>
-              <SelectContent>
-                {leasingCompanies.length > 0 ? (
-                  leasingCompanies.map((company) => (
-                    <SelectItem key={company} value={company}>{company}</SelectItem>
-                  ))
-                ) : (
-                  <SelectItem value="none" disabled>No rate sheet uploaded</SelectItem>
-                )}
-              </SelectContent>
-            </Select>
+    <div className="space-y-4">
+      {/* Quote Details */}
+      <Card>
+        <CardHeader className="py-3">
+          <CardTitle className="text-sm">Quote Details</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <div className="grid grid-cols-2 gap-4">
+            <div className="space-y-3">
+              <div><Label className="text-xs">Quote Number</Label><Input value={formData.quoteNumber} onChange={e => updateField('quoteNumber', e.target.value)} className="h-8 text-sm" /></div>
+              <div><Label className="text-xs">Quote Date</Label><Input type="date" value={formData.quoteDate} onChange={e => updateField('quoteDate', e.target.value)} className="h-8 text-sm" /></div>
+              <div><Label className="text-xs">Prepared By</Label><Input value={formData.preparedBy} onChange={e => updateField('preparedBy', e.target.value)} className="h-8 text-sm" /></div>
+            </div>
+            <div className="space-y-3">
+              <div><Label className="text-xs">Sales Rep Email</Label><Input type="email" value={formData.preparedByEmail} onChange={e => updateField('preparedByEmail', e.target.value)} className="h-8 text-sm" /></div>
+              <div><Label className="text-xs">Sales Rep Phone</Label><Input value={formData.preparedByPhone} onChange={e => updateField('preparedByPhone', e.target.value)} className="h-8 text-sm" /></div>
+            </div>
           </div>
-          <div>
-            <Label className="text-xs">Price Display</Label>
-            <Select value={formData.priceDisplay} onValueChange={(v) => updateField('priceDisplay', v as 'both' | 'purchase_only' | 'lease_only')}>
-              <SelectTrigger className="h-8 text-sm">
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="both">Show Purchase and Lease Price</SelectItem>
-                <SelectItem value="purchase_only">Show Purchase Price Only</SelectItem>
-                <SelectItem value="lease_only">Show Lease Price Only</SelectItem>
-              </SelectContent>
-            </Select>
-          </div>
-          <div>
-            <Label className="text-xs">Leasing Price</Label>
-            <Select value={formData.leasingPriceType} onValueChange={(v) => updateField('leasingPriceType', v as 'without_buyout' | 'with_buyout')}>
-              <SelectTrigger className="h-8 text-sm">
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="without_buyout">Lease Price Without Buyout</SelectItem>
-                <SelectItem value="with_buyout">Lease Price With Buyout</SelectItem>
-              </SelectContent>
-            </Select>
-          </div>
-          <div>
-            <Label className="text-xs">Lease Program</Label>
-            <Select value={formData.leaseProgram} onValueChange={(v) => updateField('leaseProgram', v as 'fmv' | 'dollar_buyout')}>
-              <SelectTrigger className="h-8 text-sm">
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="fmv">FMV (Fair Market Value)</SelectItem>
-                <SelectItem value="dollar_buyout">$1 Buyout</SelectItem>
-              </SelectContent>
-            </Select>
-          </div>
-        </div>
-      </div>
-      <Separator />
+        </CardContent>
+      </Card>
 
-      <div>
-        <h4 className="text-sm font-medium mb-3">Pricing</h4>
-        <div className="grid grid-cols-2 gap-4">
-          <div className="space-y-3">
+      {/* Prepared For */}
+      <Card>
+        <CardHeader className="py-3">
+          <CardTitle className="text-sm">Prepared For</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <div className="grid grid-cols-2 gap-3">
+            <div className="col-span-2"><Label className="text-xs">Company Name</Label><Input value={formData.companyName} onChange={e => updateField('companyName', e.target.value)} className="h-8 text-sm" /></div>
+            <div className="col-span-2"><Label className="text-xs">Address</Label><Input value={formData.address} onChange={e => updateField('address', e.target.value)} className="h-8 text-sm" /></div>
+            <div className="col-span-2"><Label className="text-xs">Address Line 2</Label><Input value={formData.address2} onChange={e => updateField('address2', e.target.value)} className="h-8 text-sm" /></div>
+            <div><Label className="text-xs">City</Label><Input value={formData.city} onChange={e => updateField('city', e.target.value)} className="h-8 text-sm" /></div>
+            <div className="grid grid-cols-2 gap-2"><div><Label className="text-xs">State</Label><Input value={formData.state} onChange={e => updateField('state', e.target.value)} className="h-8 text-sm" /></div><div><Label className="text-xs">Zip</Label><Input value={formData.zip} onChange={e => updateField('zip', e.target.value)} className="h-8 text-sm" /></div></div>
+            <div className="col-span-2"><Label className="text-xs">Phone</Label><Input value={formData.phone} onChange={e => updateField('phone', e.target.value)} className="h-8 text-sm" /></div>
+          </div>
+        </CardContent>
+      </Card>
+
+      {/* Equipment */}
+      <Card>
+        <CardHeader className="py-3">
+          <CardTitle className="text-sm flex items-center justify-between">
+            <span>Equipment</span>
+            <Button type="button" variant="outline" size="sm" onClick={addLineItem}><Plus className="h-3 w-3 mr-1" />Add Item</Button>
+          </CardTitle>
+        </CardHeader>
+        <CardContent>
+          <div className="space-y-2">
+            <div className="grid grid-cols-12 gap-2 text-xs font-medium text-muted-foreground px-2"><div className="col-span-1">Qty</div><div className="col-span-3">Model</div><div className="col-span-5">Description</div><div className="col-span-2">Price</div><div className="col-span-1"></div></div>
+            {formData.lineItems.map((item, idx) => (<div key={item.id} className="grid grid-cols-12 gap-2 items-center"><div className="col-span-1"><Input type="number" min="1" value={item.quantity} onChange={e => updateLineItem(idx, 'quantity', parseInt(e.target.value) || 1)} className="h-8 text-sm" /></div><div className="col-span-3"><Input value={item.model} onChange={e => updateLineItem(idx, 'model', e.target.value)} className="h-8 text-sm" /></div><div className="col-span-5"><Input value={item.description} onChange={e => updateLineItem(idx, 'description', e.target.value)} className="h-8 text-sm" /></div><div className="col-span-2"><div className="relative"><span className="absolute left-2 top-1/2 -translate-y-1/2 text-muted-foreground text-sm">$</span><Input type="number" min="0" step="0.01" value={item.price} onChange={e => updateLineItem(idx, 'price', parseFloat(e.target.value) || 0)} className="h-8 text-sm pl-5" /></div></div><div className="col-span-1"><Button type="button" variant="ghost" size="sm" onClick={() => removeLineItem(idx)} className="h-8 w-8 p-0 text-destructive"><Trash2 className="h-3.5 w-3.5" /></Button></div></div>))}
+            {formData.lineItems.length === 0 && <p className="text-sm text-muted-foreground text-center py-4">No equipment. Click Add Item.</p>}
+          </div>
+        </CardContent>
+      </Card>
+      
+      {/* Configuration */}
+      <Card>
+        <CardHeader className="py-3">
+          <CardTitle className="text-sm">Configuration</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <div className="grid grid-cols-4 gap-4">
             <div>
-              <Label className="text-xs">Retail Price</Label>
-              <div className="relative">
-                <span className="absolute left-2 top-1/2 -translate-y-1/2 text-muted-foreground text-sm">$</span>
-                <Input 
-                  type="text" 
-                  value={formatCurrency(formData.retailPrice)} 
-                  onChange={e => updateField('retailPrice', parseCurrency(e.target.value))} 
-                  className="h-8 text-sm pl-5" 
-                />
+              <Label className="text-xs">Leasing Company</Label>
+              <Select value={formData.leasingCompanyId} onValueChange={(v) => updateField('leasingCompanyId', v)}>
+                <SelectTrigger className="h-8 text-sm">
+                  <SelectValue placeholder="Select leasing company" />
+                </SelectTrigger>
+                <SelectContent>
+                  {leasingCompanies.length > 0 ? (
+                    leasingCompanies.map((company) => (
+                      <SelectItem key={company} value={company}>{company}</SelectItem>
+                    ))
+                  ) : (
+                    <SelectItem value="none" disabled>No rate sheet uploaded</SelectItem>
+                  )}
+                </SelectContent>
+              </Select>
+            </div>
+            <div>
+              <Label className="text-xs">Price Display</Label>
+              <Select value={formData.priceDisplay} onValueChange={(v) => updateField('priceDisplay', v as 'both' | 'purchase_only' | 'lease_only')}>
+                <SelectTrigger className="h-8 text-sm">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="both">Show Purchase and Lease Price</SelectItem>
+                  <SelectItem value="purchase_only">Show Purchase Price Only</SelectItem>
+                  <SelectItem value="lease_only">Show Lease Price Only</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            <div>
+              <Label className="text-xs">Leasing Price</Label>
+              <Select value={formData.leasingPriceType} onValueChange={(v) => updateField('leasingPriceType', v as 'without_buyout' | 'with_buyout')}>
+                <SelectTrigger className="h-8 text-sm">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="without_buyout">Lease Price Without Buyout</SelectItem>
+                  <SelectItem value="with_buyout">Lease Price With Buyout</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            <div>
+              <Label className="text-xs">Lease Program</Label>
+              <Select value={formData.leaseProgram} onValueChange={(v) => updateField('leaseProgram', v as 'fmv' | 'dollar_buyout')}>
+                <SelectTrigger className="h-8 text-sm">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="fmv">FMV (Fair Market Value)</SelectItem>
+                  <SelectItem value="dollar_buyout">$1 Buyout</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+          </div>
+        </CardContent>
+      </Card>
+
+      {/* Pricing */}
+      <Card>
+        <CardHeader className="py-3">
+          <CardTitle className="text-sm">Pricing</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <div className="grid grid-cols-2 gap-4">
+            <div className="space-y-3">
+              <div>
+                <Label className="text-xs">Retail Price</Label>
+                <div className="relative">
+                  <span className="absolute left-2 top-1/2 -translate-y-1/2 text-muted-foreground text-sm">$</span>
+                  <Input 
+                    type="text" 
+                    value={formatCurrency(formData.retailPrice)} 
+                    onChange={e => updateField('retailPrice', parseCurrency(e.target.value))} 
+                    className="h-8 text-sm pl-5" 
+                  />
+                </div>
+              </div>
+              <div>
+                <Label className="text-xs">Discount</Label>
+                <div className="relative">
+                  <Input 
+                    type="number" 
+                    min="0"
+                    max="100"
+                    step="0.1"
+                    value={formData.cashDiscountPercent} 
+                    onChange={e => updateField('cashDiscountPercent', parseFloat(e.target.value) || 0)} 
+                    className="h-8 text-sm pr-7" 
+                  />
+                  <span className="absolute right-2 top-1/2 -translate-y-1/2 text-muted-foreground text-sm">%</span>
+                </div>
+              </div>
+              <div>
+                <Label className="text-xs">Cash Discount Price</Label>
+                <div className="relative">
+                  <span className="absolute left-2 top-1/2 -translate-y-1/2 text-muted-foreground text-sm">$</span>
+                  <Input 
+                    type="text" 
+                    value={formatCurrency(formData.cashDiscount)} 
+                    readOnly
+                    className="h-8 text-sm pl-5 bg-muted/50" 
+                  />
+                </div>
               </div>
             </div>
             <div>
-              <Label className="text-xs">Discount</Label>
-              <div className="relative">
+              <Label className="text-xs mb-2 block">
+                {formData.leaseProgram === 'fmv' ? 'FMV' : '$1 Buyout'} Lease Terms (up to 3)
+              </Label>
+              
+              {/* Warning when no rates available for company + program combination */}
+              {!hasRatesForSelection && hasRateSheet && formData.leasingCompanyId && (
+                <Alert className="mb-3 bg-amber-50 border-amber-200">
+                  <AlertTriangle className="h-4 w-4 text-amber-600" />
+                  <AlertDescription className="text-amber-800 text-xs">
+                    No rates available for <strong>{formData.leasingCompanyId}</strong> with <strong>{formData.leaseProgram === 'fmv' ? 'FMV' : '$1 Buyout'}</strong> program. 
+                    Please select a different leasing company or lease program.
+                  </AlertDescription>
+                </Alert>
+              )}
+              
+              <div className="flex flex-wrap gap-2">
+                {availableTerms.map(t => (
+                  <Button 
+                    key={t} 
+                    type="button" 
+                    variant={formData.selectedTerms.includes(t) ? "default" : "outline"} 
+                    size="sm" 
+                    onClick={() => toggleTerm(t)} 
+                    disabled={!formData.selectedTerms.includes(t) && formData.selectedTerms.length >= 3} 
+                    className="h-7 text-xs"
+                  >
+                    {t} mo
+                  </Button>
+                ))}
+              </div>
+              <div className="mt-3 space-y-2">
+                {formData.selectedTerms.map(t => {
+                  const calculatedPayment = calculateLeasePayment(t);
+                  const hasOverride = formData.paymentOverrides[t] !== null && formData.paymentOverrides[t] !== undefined && formData.paymentOverrides[t]! > 0;
+                  const effectivePayment = getEffectivePayment(t);
+                  
+                  return (
+                    <div key={t} className="flex items-center gap-2 text-sm bg-muted/50 rounded px-3 py-2">
+                      <span className="min-w-[70px]">{t} months</span>
+                      <span className={`font-medium min-w-[90px] ${hasOverride ? 'text-muted-foreground line-through' : ''}`}>
+                        ${calculatedPayment.toLocaleString()}/mo
+                      </span>
+                      <div className="flex items-center gap-1 ml-auto">
+                        <span className="text-xs text-muted-foreground">Override:</span>
+                        <div className="relative w-24">
+                          <span className="absolute left-2 top-1/2 -translate-y-1/2 text-muted-foreground text-xs">$</span>
+                          <Input
+                            type="text"
+                            value={paymentOverrideTexts[t] || ''}
+                            onChange={(e) => handlePaymentOverrideChange(t, e.target.value)}
+                            placeholder={calculatedPayment.toLocaleString()}
+                            className="h-7 text-xs pl-5 pr-7"
+                          />
+                          {hasOverride && (
+                            <button
+                              type="button"
+                              onClick={() => clearPaymentOverride(t)}
+                              className="absolute right-1.5 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
+                            >
+                              <X className="h-3 w-3" />
+                            </button>
+                          )}
+                        </div>
+                        {hasOverride && (
+                          <span className="font-medium text-primary min-w-[80px]">
+                            ${effectivePayment.toLocaleString()}/mo
+                          </span>
+                        )}
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+          </div>
+        </CardContent>
+      </Card>
+
+      {/* Service Agreement */}
+      <Card>
+        <CardHeader className="py-3">
+          <CardTitle className="text-sm">Service Agreement</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <div className="grid grid-cols-2 gap-4">
+            <div className="grid grid-cols-2 gap-2">
+              <div>
+                <Label className="text-xs">Included B/W</Label>
                 <Input 
                   type="number" 
                   min="0"
-                  max="100"
-                  step="0.1"
-                  value={formData.cashDiscountPercent} 
-                  onChange={e => updateField('cashDiscountPercent', parseFloat(e.target.value) || 0)} 
-                  className="h-8 text-sm pr-7" 
+                  value={formData.includedBWCopies || ''} 
+                  onChange={e => updateField('includedBWCopies', parseInt(e.target.value) || 0)} 
+                  className="h-8 text-sm"
+                  placeholder="15000"
                 />
-                <span className="absolute right-2 top-1/2 -translate-y-1/2 text-muted-foreground text-sm">%</span>
+              </div>
+              <div>
+                <Label className="text-xs">Included Color</Label>
+                <Input 
+                  type="number"
+                  min="0" 
+                  value={formData.includedColorCopies || ''} 
+                  onChange={e => updateField('includedColorCopies', parseInt(e.target.value) || 0)} 
+                  className="h-8 text-sm"
+                  placeholder="5000"
+                />
+              </div>
+            </div>
+            <div className="grid grid-cols-2 gap-2">
+              <div>
+                <Label className="text-xs">Overage B/W Rate</Label>
+                <div className="relative">
+                  <span className="absolute left-2 top-1/2 -translate-y-1/2 text-muted-foreground text-sm">$</span>
+                  <Input 
+                    type="text"
+                    value={overageBWText} 
+                    onChange={e => {
+                      const val = e.target.value;
+                      if (val === '' || /^\d*\.?\d*$/.test(val)) {
+                        setOverageBWText(val);
+                        const num = parseFloat(val);
+                        if (!isNaN(num)) {
+                          updateField('overageBWRate', num);
+                        } else if (val === '') {
+                          updateField('overageBWRate', 0);
+                        }
+                      }
+                    }}
+                    onBlur={() => {
+                      if (overageBWText === '' || overageBWText === '.') {
+                        setOverageBWText('');
+                        updateField('overageBWRate', 0);
+                      } else {
+                        const num = parseFloat(overageBWText);
+                        if (!isNaN(num)) {
+                          setOverageBWText(num === 0 ? '' : String(num));
+                        }
+                      }
+                    }}
+                    className="h-8 text-sm pl-5"
+                    placeholder="0.0108"
+                  />
+                </div>
+              </div>
+              <div>
+                <Label className="text-xs">Overage Color Rate</Label>
+                <div className="relative">
+                  <span className="absolute left-2 top-1/2 -translate-y-1/2 text-muted-foreground text-sm">$</span>
+                  <Input 
+                    type="text"
+                    value={overageColorText} 
+                    onChange={e => {
+                      const val = e.target.value;
+                      if (val === '' || /^\d*\.?\d*$/.test(val)) {
+                        setOverageColorText(val);
+                        const num = parseFloat(val);
+                        if (!isNaN(num)) {
+                          updateField('overageColorRate', num);
+                        } else if (val === '') {
+                          updateField('overageColorRate', 0);
+                        }
+                      }
+                    }}
+                    onBlur={() => {
+                      if (overageColorText === '' || overageColorText === '.') {
+                        setOverageColorText('');
+                        updateField('overageColorRate', 0);
+                      } else {
+                        const num = parseFloat(overageColorText);
+                        if (!isNaN(num)) {
+                          setOverageColorText(num === 0 ? '' : String(num));
+                        }
+                      }
+                    }}
+                    className="h-8 text-sm pl-5"
+                    placeholder="0.065"
+                  />
+                </div>
+              </div>
+            </div>
+          </div>
+          {/* Base Rate Display */}
+          <div className="mt-4 p-3 bg-muted/50 rounded-lg">
+            <div className="flex justify-between items-center">
+              <div className="flex items-center gap-2">
+                <span className="text-sm font-medium">Base Rate (per month)</span>
+                {formData.baseRateManuallySet && (
+                  <button 
+                    type="button" 
+                    onClick={clearManualBaseRate}
+                    className="text-xs text-muted-foreground hover:text-foreground underline"
+                  >
+                    Reset to calculated
+                  </button>
+                )}
+              </div>
+              <div className="relative w-32">
+                <span className="absolute left-2 top-1/2 -translate-y-1/2 text-muted-foreground text-sm">$</span>
+                <Input 
+                  type="number"
+                  step="0.01"
+                  value={formData.serviceBaseRate || ''}
+                  onChange={e => handleBaseRateChange(parseFloat(e.target.value) || 0)}
+                  className="h-8 text-sm pl-5 font-medium"
+                />
+              </div>
+            </div>
+          </div>
+        </CardContent>
+      </Card>
+
+      {/* Buyout Information */}
+      <Card>
+        <CardHeader className="py-3">
+          <CardTitle className="text-sm">Buyout Information</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <div className="grid grid-cols-5 gap-3">
+            <div>
+              <Label className="text-xs">Payments Remaining</Label>
+              <Input 
+                type="number"
+                min="0"
+                value={formData.paymentsRemaining || ''} 
+                onChange={e => updateField('paymentsRemaining', parseInt(e.target.value) || 0)} 
+                className="h-8 text-sm"
+                placeholder="0"
+              />
+            </div>
+            <div>
+              <Label className="text-xs">Current Payment</Label>
+              <div className="relative">
+                <span className="absolute left-2 top-1/2 -translate-y-1/2 text-muted-foreground text-sm">$</span>
+                <Input 
+                  type="text"
+                  value={paymentAmountText}
+                  onChange={e => {
+                    const val = e.target.value;
+                    if (val === '' || /^\d*\.?\d*$/.test(val)) {
+                      setPaymentAmountText(val);
+                      const num = parseFloat(val);
+                      if (!isNaN(num)) updateField('paymentAmount', num);
+                      else if (val === '') updateField('paymentAmount', 0);
+                    }
+                  }}
+                  className="h-8 text-sm pl-5"
+                  placeholder="0.00"
+                />
               </div>
             </div>
             <div>
-              <Label className="text-xs">Cash Discount Price</Label>
+              <Label className="text-xs">Early Term. Fee</Label>
+              <div className="relative">
+                <span className="absolute left-2 top-1/2 -translate-y-1/2 text-muted-foreground text-sm">$</span>
+                <Input 
+                  type="text"
+                  value={earlyTerminationFeeText}
+                  onChange={e => {
+                    const val = e.target.value;
+                    if (val === '' || /^\d*\.?\d*$/.test(val)) {
+                      setEarlyTerminationFeeText(val);
+                      const num = parseFloat(val);
+                      if (!isNaN(num)) updateField('earlyTerminationFee', num);
+                      else if (val === '') updateField('earlyTerminationFee', 0);
+                    }
+                  }}
+                  className="h-8 text-sm pl-5"
+                  placeholder="0.00"
+                />
+              </div>
+            </div>
+            <div>
+              <Label className="text-xs">Return Shipping</Label>
+              <div className="relative">
+                <span className="absolute left-2 top-1/2 -translate-y-1/2 text-muted-foreground text-sm">$</span>
+                <Input 
+                  type="text"
+                  value={returnShippingText}
+                  onChange={e => {
+                    const val = e.target.value;
+                    if (val === '' || /^\d*\.?\d*$/.test(val)) {
+                      setReturnShippingText(val);
+                      const num = parseFloat(val);
+                      if (!isNaN(num)) updateField('returnShipping', num);
+                      else if (val === '') updateField('returnShipping', 0);
+                    }
+                  }}
+                  className="h-8 text-sm pl-5"
+                  placeholder="0.00"
+                />
+              </div>
+            </div>
+            <div>
+              <Label className="text-xs">Total Buyout</Label>
               <div className="relative">
                 <span className="absolute left-2 top-1/2 -translate-y-1/2 text-muted-foreground text-sm">$</span>
                 <Input 
                   type="text" 
-                  value={formatCurrency(formData.cashDiscount)} 
+                  value={formatCurrency(totalBuyout)} 
                   readOnly
-                  className="h-8 text-sm pl-5 bg-muted/50" 
+                  className="h-8 text-sm pl-5 bg-muted/50 font-medium" 
                 />
               </div>
             </div>
           </div>
-          <div>
-            <Label className="text-xs mb-2 block">
-              {formData.leaseProgram === 'fmv' ? 'FMV' : '$1 Buyout'} Lease Terms (up to 3)
-            </Label>
-            
-            {/* Warning when no rates available for company + program combination */}
-            {!hasRatesForSelection && hasRateSheet && formData.leasingCompanyId && (
-              <Alert className="mb-3 bg-amber-50 border-amber-200">
-                <AlertTriangle className="h-4 w-4 text-amber-600" />
-                <AlertDescription className="text-amber-800 text-xs">
-                  No rates available for <strong>{formData.leasingCompanyId}</strong> with <strong>{formData.leaseProgram === 'fmv' ? 'FMV' : '$1 Buyout'}</strong> program. 
-                  Please select a different leasing company or lease program.
-                </AlertDescription>
-              </Alert>
-            )}
-            
-            <div className="flex flex-wrap gap-2">
-              {availableTerms.map(t => (
-                <Button 
-                  key={t} 
-                  type="button" 
-                  variant={formData.selectedTerms.includes(t) ? "default" : "outline"} 
-                  size="sm" 
-                  onClick={() => toggleTerm(t)} 
-                  disabled={!formData.selectedTerms.includes(t) && formData.selectedTerms.length >= 3} 
-                  className="h-7 text-xs"
-                >
-                  {t} mo
-                </Button>
-              ))}
-            </div>
-            <div className="mt-3 space-y-2">
-              {formData.selectedTerms.map(t => {
-                const calculatedPayment = calculateLeasePayment(t);
-                const hasOverride = formData.paymentOverrides[t] !== null && formData.paymentOverrides[t] !== undefined && formData.paymentOverrides[t]! > 0;
-                const effectivePayment = getEffectivePayment(t);
-                
-                return (
-                  <div key={t} className="flex items-center gap-2 text-sm bg-muted/50 rounded px-3 py-2">
-                    <span className="min-w-[70px]">{t} months</span>
-                    <span className={`font-medium min-w-[90px] ${hasOverride ? 'text-muted-foreground line-through' : ''}`}>
-                      ${calculatedPayment.toLocaleString()}/mo
-                    </span>
-                    <div className="flex items-center gap-1 ml-auto">
-                      <span className="text-xs text-muted-foreground">Override:</span>
-                      <div className="relative w-24">
-                        <span className="absolute left-2 top-1/2 -translate-y-1/2 text-muted-foreground text-xs">$</span>
-                        <Input
-                          type="text"
-                          value={paymentOverrideTexts[t] || ''}
-                          onChange={(e) => handlePaymentOverrideChange(t, e.target.value)}
-                          placeholder={calculatedPayment.toLocaleString()}
-                          className="h-7 text-xs pl-5 pr-7"
-                        />
-                        {hasOverride && (
-                          <button
-                            type="button"
-                            onClick={() => clearPaymentOverride(t)}
-                            className="absolute right-1.5 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
-                          >
-                            <X className="h-3 w-3" />
-                          </button>
-                        )}
-                      </div>
-                      {hasOverride && (
-                        <span className="font-medium text-primary min-w-[80px]">
-                          ${effectivePayment.toLocaleString()}/mo
-                        </span>
-                      )}
-                    </div>
-                  </div>
-                );
-              })}
-            </div>
-          </div>
-        </div>
-      </div>
-      <Separator />
-      <div>
-        <h4 className="text-sm font-medium mb-3">Service Agreement</h4>
-        <div className="grid grid-cols-2 gap-4">
-          <div className="grid grid-cols-2 gap-2">
-            <div>
-              <Label className="text-xs">Included B/W</Label>
-              <Input 
-                type="number" 
-                min="0"
-                value={formData.includedBWCopies || ''} 
-                onChange={e => updateField('includedBWCopies', parseInt(e.target.value) || 0)} 
-                className="h-8 text-sm"
-                placeholder="15000"
-              />
-            </div>
-            <div>
-              <Label className="text-xs">Included Color</Label>
-              <Input 
-                type="number"
-                min="0" 
-                value={formData.includedColorCopies || ''} 
-                onChange={e => updateField('includedColorCopies', parseInt(e.target.value) || 0)} 
-                className="h-8 text-sm"
-                placeholder="5000"
-              />
-            </div>
-          </div>
-          <div className="grid grid-cols-2 gap-2">
-            <div>
-              <Label className="text-xs">Overage B/W Rate</Label>
-              <div className="relative">
-                <span className="absolute left-2 top-1/2 -translate-y-1/2 text-muted-foreground text-sm">$</span>
-                <Input 
-                  type="text"
-                  value={overageBWText} 
-                  onChange={e => {
-                    const val = e.target.value;
-                    if (val === '' || /^\d*\.?\d*$/.test(val)) {
-                      setOverageBWText(val);
-                      const num = parseFloat(val);
-                      if (!isNaN(num)) {
-                        updateField('overageBWRate', num);
-                      } else if (val === '') {
-                        updateField('overageBWRate', 0);
-                      }
-                    }
-                  }}
-                  onBlur={() => {
-                    if (overageBWText === '' || overageBWText === '.') {
-                      setOverageBWText('');
-                      updateField('overageBWRate', 0);
-                    } else {
-                      const num = parseFloat(overageBWText);
-                      if (!isNaN(num)) {
-                        setOverageBWText(num === 0 ? '' : String(num));
-                      }
-                    }
-                  }}
-                  className="h-8 text-sm pl-5"
-                  placeholder="0.0108"
-                />
-              </div>
-            </div>
-            <div>
-              <Label className="text-xs">Overage Color Rate</Label>
-              <div className="relative">
-                <span className="absolute left-2 top-1/2 -translate-y-1/2 text-muted-foreground text-sm">$</span>
-                <Input 
-                  type="text"
-                  value={overageColorText} 
-                  onChange={e => {
-                    const val = e.target.value;
-                    if (val === '' || /^\d*\.?\d*$/.test(val)) {
-                      setOverageColorText(val);
-                      const num = parseFloat(val);
-                      if (!isNaN(num)) {
-                        updateField('overageColorRate', num);
-                      } else if (val === '') {
-                        updateField('overageColorRate', 0);
-                      }
-                    }
-                  }}
-                  onBlur={() => {
-                    if (overageColorText === '' || overageColorText === '.') {
-                      setOverageColorText('');
-                      updateField('overageColorRate', 0);
-                    } else {
-                      const num = parseFloat(overageColorText);
-                      if (!isNaN(num)) {
-                        setOverageColorText(num === 0 ? '' : String(num));
-                      }
-                    }
-                  }}
-                  className="h-8 text-sm pl-5"
-                  placeholder="0.065"
-                />
-              </div>
-            </div>
-          </div>
-        </div>
-        {/* Base Rate Display */}
-        <div className="mt-4 p-3 bg-muted/50 rounded-lg">
-          <div className="flex justify-between items-center">
-            <div className="flex items-center gap-2">
-              <span className="text-sm font-medium">Base Rate (per month)</span>
-              {formData.baseRateManuallySet && (
-                <button 
-                  type="button" 
-                  onClick={clearManualBaseRate} 
-                  className="text-xs text-primary hover:underline"
-                >
-                  Auto-calculate
-                </button>
-              )}
-            </div>
-            <div className="flex items-center gap-1">
-              <span className="text-muted-foreground">$</span>
-              <Input 
-                type="text" 
-                value={formatCurrency(formData.serviceBaseRate)} 
-                onChange={e => handleBaseRateChange(parseCurrency(e.target.value))} 
-                className="h-7 w-24 text-right font-bold text-lg bg-transparent border-0 p-0 focus-visible:ring-0"
-              />
-            </div>
-          </div>
-        </div>
-      </div>
-
-      {/* Buyout Section */}
-      <Separator />
-      <div>
-        <h4 className="text-sm font-medium mb-3">Buyout Information</h4>
-        <div className="grid grid-cols-2 gap-4">
-          <div>
-            <Label className="text-xs">Early Termination Fee</Label>
-            <div className="relative">
-              <span className="absolute left-2 top-1/2 -translate-y-1/2 text-muted-foreground text-sm">$</span>
-              <Input 
-                type="text" 
-                value={earlyTerminationFeeText} 
-                onChange={e => {
-                  const val = e.target.value;
-                  if (val === '' || /^\d*\.?\d*$/.test(val)) {
-                    setEarlyTerminationFeeText(val);
-                    const num = parseFloat(val);
-                    if (!isNaN(num)) {
-                      updateField('earlyTerminationFee', num);
-                    } else if (val === '') {
-                      updateField('earlyTerminationFee', 0);
-                    }
-                  }
-                }}
-                onBlur={() => {
-                  if (earlyTerminationFeeText === '' || earlyTerminationFeeText === '.') {
-                    setEarlyTerminationFeeText('');
-                    updateField('earlyTerminationFee', 0);
-                  } else {
-                    const num = parseFloat(earlyTerminationFeeText);
-                    if (!isNaN(num)) {
-                      setEarlyTerminationFeeText(num === 0 ? '' : String(num));
-                    }
-                  }
-                }}
-                className="h-8 text-sm pl-5"
-                placeholder="500"
-              />
-            </div>
-          </div>
-          <div>
-            <Label className="text-xs">Return Shipping</Label>
-            <div className="relative">
-              <span className="absolute left-2 top-1/2 -translate-y-1/2 text-muted-foreground text-sm">$</span>
-              <Input 
-                type="text" 
-                value={returnShippingText} 
-                onChange={e => {
-                  const val = e.target.value;
-                  if (val === '' || /^\d*\.?\d*$/.test(val)) {
-                    setReturnShippingText(val);
-                    const num = parseFloat(val);
-                    if (!isNaN(num)) {
-                      updateField('returnShipping', num);
-                    } else if (val === '') {
-                      updateField('returnShipping', 0);
-                    }
-                  }
-                }}
-                onBlur={() => {
-                  if (returnShippingText === '' || returnShippingText === '.') {
-                    setReturnShippingText('');
-                    updateField('returnShipping', 0);
-                  } else {
-                    const num = parseFloat(returnShippingText);
-                    if (!isNaN(num)) {
-                      setReturnShippingText(num === 0 ? '' : String(num));
-                    }
-                  }
-                }}
-                className="h-8 text-sm pl-5"
-                placeholder="200"
-              />
-            </div>
-          </div>
-          <div>
-            <Label className="text-xs">Payments Remaining</Label>
-            <Input 
-              type="number" 
-              min="0"
-              value={formData.paymentsRemaining || ''} 
-              onChange={e => updateField('paymentsRemaining', parseInt(e.target.value) || 0)} 
-              className="h-8 text-sm"
-              placeholder="0"
-            />
-          </div>
-          <div>
-            <Label className="text-xs">Payment Amount</Label>
-            <div className="relative">
-              <span className="absolute left-2 top-1/2 -translate-y-1/2 text-muted-foreground text-sm">$</span>
-              <Input 
-                type="text" 
-                value={paymentAmountText} 
-                onChange={e => {
-                  const val = e.target.value;
-                  if (val === '' || /^\d*\.?\d*$/.test(val)) {
-                    setPaymentAmountText(val);
-                    const num = parseFloat(val);
-                    if (!isNaN(num)) {
-                      updateField('paymentAmount', num);
-                    } else if (val === '') {
-                      updateField('paymentAmount', 0);
-                    }
-                  }
-                }}
-                onBlur={() => {
-                  if (paymentAmountText === '' || paymentAmountText === '.') {
-                    setPaymentAmountText('');
-                    updateField('paymentAmount', 0);
-                  } else {
-                    const num = parseFloat(paymentAmountText);
-                    if (!isNaN(num)) {
-                      setPaymentAmountText(num === 0 ? '' : String(num));
-                    }
-                  }
-                }}
-                className="h-8 text-sm pl-5"
-                placeholder="1500"
-              />
-            </div>
-          </div>
-          <div>
-            <Label className="text-xs">Financing Amount Override</Label>
-            <div className="relative">
-              <span className="absolute left-2 top-1/2 -translate-y-1/2 text-muted-foreground text-sm">$</span>
-              <Input 
-                type="text" 
-                value={buyoutFinancingText} 
-                onChange={e => {
-                  const val = e.target.value;
-                  if (val === '' || /^\d*\.?\d*$/.test(val)) {
-                    setBuyoutFinancingText(val);
-                    const num = parseFloat(val);
-                    if (!isNaN(num)) {
-                      updateField('buyoutFinancingAmount', num);
-                    } else if (val === '') {
-                      updateField('buyoutFinancingAmount', 0);
-                    }
-                  }
-                }}
-                onBlur={() => {
-                  if (buyoutFinancingText === '' || buyoutFinancingText === '.') {
-                    setBuyoutFinancingText('');
-                    updateField('buyoutFinancingAmount', 0);
-                  } else {
-                    const num = parseFloat(buyoutFinancingText);
-                    if (!isNaN(num)) {
-                      setBuyoutFinancingText(num === 0 ? '' : String(num));
-                    }
-                  }
-                }}
-                className="h-8 text-sm pl-5"
-                placeholder="Use retail price"
-              />
-            </div>
-          </div>
-        </div>
-        {/* Total Buyout Display */}
-        <div className="mt-4 p-3 bg-muted/50 rounded-lg">
-          <div className="flex justify-between items-center">
-            <span className="text-sm font-medium">Total Buyout</span>
-            <span className="text-lg font-bold">${formatCurrency(totalBuyout)}</span>
-          </div>
-        </div>
-      </div>
+        </CardContent>
+      </Card>
     </div>
   );
 }
