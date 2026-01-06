@@ -9,11 +9,17 @@ interface NewCustomerPreviewProps {
     phone: string;
     logoUrl?: string;
   };
+  termsAndConditions?: string;
 }
 
+const DEFAULT_TERMS = `TERMS OF SALE: Net 30 Days. A service charge of 1.5% per month (18% per annum) will be applied to all past due balances. In the event collection efforts are required, buyer agrees to pay all costs of collection including reasonable attorney fees.
+
+CREDIT AUTHORIZATION: The undersigned authorizes the company to make whatever credit inquiries it deems necessary in connection with this credit application or any update, renewal, or extension of credit. The undersigned certifies that the information provided is true and complete and is given to induce credit to be extended.`;
+
 export const NewCustomerPreview = forwardRef<HTMLDivElement, NewCustomerPreviewProps>(
-  ({ formData, dealerInfo }, ref) => {
+  ({ formData, dealerInfo, termsAndConditions }, ref) => {
     const today = new Date().toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' });
+    const termsText = termsAndConditions || DEFAULT_TERMS;
 
     return (
       <div
@@ -195,15 +201,27 @@ export const NewCustomerPreview = forwardRef<HTMLDivElement, NewCustomerPreviewP
           </div>
         </div>
 
-        {/* Terms & Signature */}
-        <div className="mt-6 pt-4 border-t border-gray-400">
-          <div className="text-xs mb-4">
-            I certify that all information provided in this application is true and complete. I authorize 
-            {dealerInfo?.companyName ? ` ${dealerInfo.companyName}` : ' the company'} to verify the information 
-            provided and to obtain credit reports as necessary. I understand that this application does not 
-            guarantee the extension of credit.
+        {/* Terms & Conditions */}
+        <div className="mb-4">
+          <div className="font-bold bg-gray-200 px-2 py-1 mb-2">TERMS & CONDITIONS</div>
+          <div className="text-xs px-2 whitespace-pre-wrap">{termsText}</div>
+        </div>
+
+        {/* Acknowledgement & Authorization */}
+        <div className="mb-4">
+          <div className="font-bold bg-gray-200 px-2 py-1 mb-2">ACKNOWLEDGEMENT & AUTHORIZATION</div>
+          <div className="text-xs px-2">
+            I certify that all information provided in this application is true and complete to the best of my knowledge. 
+            I authorize {dealerInfo?.companyName ? dealerInfo.companyName : 'the company'} and its agents to verify the 
+            information provided herein and to obtain credit reports and make any credit inquiries deemed necessary in 
+            connection with this credit application or any update, renewal, or extension of credit. I understand that 
+            this application does not guarantee the extension of credit and that credit terms are subject to approval.
           </div>
-          <div className="grid grid-cols-2 gap-8 mt-6">
+        </div>
+
+        {/* Signature Block */}
+        <div className="mt-6 pt-4 border-t-2 border-black">
+          <div className="grid grid-cols-2 gap-8 mt-4">
             <div>
               <div className="border-b border-black mb-1 h-8"></div>
               <div className="text-xs">Authorized Signature</div>

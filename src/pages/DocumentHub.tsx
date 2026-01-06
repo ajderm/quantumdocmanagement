@@ -73,6 +73,7 @@ interface DealerInfo {
 interface DealerSettings {
   meter_methods?: string[];
   cca_value?: string;
+  enabled_forms?: string[];
 }
 
 interface DocumentTerms {
@@ -1870,7 +1871,9 @@ function DocumentHubContent() {
         {/* Document Type Tabs */}
         <Tabs defaultValue="quote" className="w-full">
           <TabsList className="w-full h-auto flex-wrap justify-start gap-1 bg-transparent p-0 mb-4">
-            {documentTypes.map((doc) => {
+            {documentTypes
+              .filter(doc => !dealerSettings.enabled_forms || dealerSettings.enabled_forms.length === 0 || dealerSettings.enabled_forms.includes(doc.code))
+              .map((doc) => {
               const Icon = doc.icon;
               return (
                 <TabsTrigger
@@ -2772,6 +2775,50 @@ function DocumentHubContent() {
                       logoUrl: dealerInfo.logoUrl,
                     } : undefined}
                     termsAndConditions={documentTerms.interterritorial}
+                  />
+                </div>
+              )}
+            </div>
+          </ScrollArea>
+        </DialogContent>
+      </Dialog>
+
+      {/* Hidden preview for New Customer PDF generation */}
+      <div className="hidden">
+        {newCustomerFormData && (
+          <NewCustomerPreview
+            ref={newCustomerPreviewRef}
+            formData={newCustomerFormData}
+            dealerInfo={dealerInfo ? {
+              companyName: dealerInfo.companyName,
+              address: dealerInfo.address,
+              phone: dealerInfo.phone,
+              logoUrl: dealerInfo.logoUrl,
+            } : undefined}
+            termsAndConditions={documentTerms.new_customer}
+          />
+        )}
+      </div>
+
+      {/* New Customer Preview Dialog */}
+      <Dialog open={showNewCustomerPreview} onOpenChange={setShowNewCustomerPreview}>
+        <DialogContent className="max-w-4xl max-h-[90vh] p-0">
+          <DialogHeader className="p-4 pb-0">
+            <DialogTitle>New Customer Application Preview</DialogTitle>
+          </DialogHeader>
+          <ScrollArea className="max-h-[calc(90vh-80px)]">
+            <div className="p-4 flex justify-center">
+              {newCustomerFormData && (
+                <div className="shadow-lg border">
+                  <NewCustomerPreview
+                    formData={newCustomerFormData}
+                    dealerInfo={dealerInfo ? {
+                      companyName: dealerInfo.companyName,
+                      address: dealerInfo.address,
+                      phone: dealerInfo.phone,
+                      logoUrl: dealerInfo.logoUrl,
+                    } : undefined}
+                    termsAndConditions={documentTerms.new_customer}
                   />
                 </div>
               )}

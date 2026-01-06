@@ -19,6 +19,21 @@ const DOCUMENT_TYPES = [
   { code: 'installation_removal_receipt', name: 'Installation: Removal Receipt' },
   { code: 'installation_delivery_acceptance', name: 'Installation: Delivery & Acceptance' },
   { code: 'interterritorial', name: 'Interterritorial' },
+  { code: 'new_customer', name: 'New Customer Application' },
+];
+
+// All available form types for visibility toggle
+const ALL_FORM_TYPES = [
+  { code: 'quote', name: 'Quote' },
+  { code: 'installation', name: 'Installation' },
+  { code: 'service_agreement', name: 'Service Agreement' },
+  { code: 'fmv_lease', name: 'FMV Lease' },
+  { code: 'lease_funding', name: 'Lease Funding' },
+  { code: 'lease_return', name: 'Lease Return' },
+  { code: 'interterritorial', name: 'Interterritorial' },
+  { code: 'new_customer', name: 'New Customer Application' },
+  { code: 'relocation', name: 'Relocation' },
+  { code: 'equipment_removal', name: 'Equipment Removal' },
 ];
 
 export default function AdminSettings() {
@@ -42,6 +57,9 @@ export default function AdminSettings() {
   const [newMeterMethod, setNewMeterMethod] = useState('');
   const [ccaValue, setCcaValue] = useState('');
   
+  // Form visibility settings
+  const [enabledForms, setEnabledForms] = useState<string[]>(ALL_FORM_TYPES.map(f => f.code));
+  
   // Form state
   const [formData, setFormData] = useState({
     company_name: '',
@@ -64,6 +82,7 @@ export default function AdminSettings() {
     installation_removal_receipt: '',
     installation_delivery_acceptance: '',
     interterritorial: '',
+    new_customer: '',
   });
 
   // Load existing dealer account data
@@ -107,7 +126,7 @@ export default function AdminSettings() {
           }));
         }
 
-        // Load dealer settings (meter methods, CCA value)
+        // Load dealer settings (meter methods, CCA value, enabled forms)
         if (result?.dealerSettings) {
           const settings = result.dealerSettings;
           if (settings.meter_methods) {
@@ -115,6 +134,9 @@ export default function AdminSettings() {
           }
           if (settings.cca_value) {
             setCcaValue(settings.cca_value);
+          }
+          if (settings.enabled_forms && Array.isArray(settings.enabled_forms)) {
+            setEnabledForms(settings.enabled_forms);
           }
         }
       } catch (error) {
@@ -225,6 +247,7 @@ export default function AdminSettings() {
       const dealerSettings = {
         meter_methods: meterMethods,
         cca_value: ccaValue,
+        enabled_forms: enabledForms,
       };
 
       const { data: result, error: invokeError } = await supabase.functions.invoke('dealer-account-save', {
@@ -312,6 +335,43 @@ export default function AdminSettings() {
 
           <TabsContent value="company">
             <div className="space-y-6">
+              {/* Form Visibility Card */}
+              <Card>
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2">
+                    <FileText className="h-5 w-5" />
+                    Form Visibility
+                  </CardTitle>
+                  <CardDescription>
+                    Select which document types are available in the Document Hub for this organization
+                  </CardDescription>
+                </CardHeader>
+                <CardContent>
+                  <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3">
+                    {ALL_FORM_TYPES.map((form) => (
+                      <label
+                        key={form.code}
+                        className="flex items-center gap-2 p-2 rounded-lg border cursor-pointer hover:bg-muted/50 transition-colors"
+                      >
+                        <input
+                          type="checkbox"
+                          checked={enabledForms.includes(form.code)}
+                          onChange={(e) => {
+                            if (e.target.checked) {
+                              setEnabledForms(prev => [...prev, form.code]);
+                            } else {
+                              setEnabledForms(prev => prev.filter(f => f !== form.code));
+                            }
+                          }}
+                          className="h-4 w-4 rounded border-input"
+                        />
+                        <span className="text-sm">{form.name}</span>
+                      </label>
+                    ))}
+                  </div>
+                </CardContent>
+              </Card>
+
               {/* Company Info Card */}
               <Card>
                 <CardHeader>
