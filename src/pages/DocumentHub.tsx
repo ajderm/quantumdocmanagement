@@ -520,7 +520,20 @@ function DocumentHubContent() {
   const handleFormChange = useCallback((data: QuoteFormData) => {
     setFormData(data);
     setHasUnsavedChanges(true);
-    
+
+    const currentPortalId = portalId || localStorage.getItem('hs_portal_id');
+    const dealId = deal?.hsObjectId;
+    if (currentPortalId && dealId) {
+      try {
+        localStorage.setItem(
+          `quote_backup_${currentPortalId}_${dealId}`,
+          JSON.stringify({ configuration: data, updatedAt: new Date().toISOString() })
+        );
+      } catch {
+        // ignore localStorage write errors
+      }
+    }
+
     if (autoSaveTimeoutRef.current) {
       clearTimeout(autoSaveTimeoutRef.current);
     }
@@ -528,7 +541,7 @@ function DocumentHubContent() {
     autoSaveTimeoutRef.current = setTimeout(() => {
       performAutoSave(data);
     }, AUTO_SAVE_DELAY);
-  }, [performAutoSave]);
+  }, [performAutoSave, portalId, deal?.hsObjectId]);
 
   // Auto-save for installation
   const performInstallationAutoSave = useCallback(async (dataToSave: InstallationFormData) => {
@@ -612,7 +625,20 @@ function DocumentHubContent() {
   const handleServiceAgreementFormChange = useCallback((data: ServiceAgreementFormData) => {
     setServiceAgreementFormData(data);
     setServiceAgreementHasUnsavedChanges(true);
-    
+
+    const currentPortalId = portalId || localStorage.getItem('hs_portal_id');
+    const dealId = deal?.hsObjectId;
+    if (currentPortalId && dealId) {
+      try {
+        localStorage.setItem(
+          `service_agreement_backup_${currentPortalId}_${dealId}`,
+          JSON.stringify({ configuration: data, updatedAt: new Date().toISOString() })
+        );
+      } catch {
+        // ignore
+      }
+    }
+
     if (serviceAgreementAutoSaveTimeoutRef.current) {
       clearTimeout(serviceAgreementAutoSaveTimeoutRef.current);
     }
@@ -620,7 +646,7 @@ function DocumentHubContent() {
     serviceAgreementAutoSaveTimeoutRef.current = setTimeout(() => {
       performServiceAgreementAutoSave(data);
     }, AUTO_SAVE_DELAY);
-  }, [performServiceAgreementAutoSave]);
+  }, [performServiceAgreementAutoSave, portalId, deal?.hsObjectId]);
 
   // Auto-save for FMV Lease
   const performFMVLeaseAutoSave = useCallback(async (dataToSave: FMVLeaseFormData) => {
@@ -656,7 +682,20 @@ function DocumentHubContent() {
   const handleFMVLeaseFormChange = useCallback((data: FMVLeaseFormData) => {
     setFmvLeaseFormData(data);
     setFmvLeaseHasUnsavedChanges(true);
-    
+
+    const currentPortalId = portalId || localStorage.getItem('hs_portal_id');
+    const dealId = deal?.hsObjectId;
+    if (currentPortalId && dealId) {
+      try {
+        localStorage.setItem(
+          `fmv_lease_backup_${currentPortalId}_${dealId}`,
+          JSON.stringify({ configuration: data, updatedAt: new Date().toISOString() })
+        );
+      } catch {
+        // ignore
+      }
+    }
+
     if (fmvLeaseAutoSaveTimeoutRef.current) {
       clearTimeout(fmvLeaseAutoSaveTimeoutRef.current);
     }
@@ -664,7 +703,7 @@ function DocumentHubContent() {
     fmvLeaseAutoSaveTimeoutRef.current = setTimeout(() => {
       performFMVLeaseAutoSave(data);
     }, AUTO_SAVE_DELAY);
-  }, [performFMVLeaseAutoSave]);
+  }, [performFMVLeaseAutoSave, portalId, deal?.hsObjectId]);
 
   // Auto-save for Lease Funding (per-line-item like Installation)
   const performLeaseFundingAutoSave = useCallback(async (dataToSave: LeaseFundingFormData) => {
@@ -748,7 +787,20 @@ function DocumentHubContent() {
   const handleLeaseReturnFormChange = useCallback((data: LeaseReturnFormData) => {
     setLeaseReturnFormData(data);
     setLeaseReturnHasUnsavedChanges(true);
-    
+
+    const currentPortalId = portalId || localStorage.getItem('hs_portal_id');
+    const dealId = deal?.hsObjectId;
+    if (currentPortalId && dealId) {
+      try {
+        localStorage.setItem(
+          `lease_return_backup_${currentPortalId}_${dealId}`,
+          JSON.stringify({ configuration: data, updatedAt: new Date().toISOString() })
+        );
+      } catch {
+        // ignore
+      }
+    }
+
     if (leaseReturnAutoSaveTimeoutRef.current) {
       clearTimeout(leaseReturnAutoSaveTimeoutRef.current);
     }
@@ -756,7 +808,7 @@ function DocumentHubContent() {
     leaseReturnAutoSaveTimeoutRef.current = setTimeout(() => {
       performLeaseReturnAutoSave(data);
     }, AUTO_SAVE_DELAY);
-  }, [performLeaseReturnAutoSave]);
+  }, [performLeaseReturnAutoSave, portalId, deal?.hsObjectId]);
 
   // Auto-save for Interterritorial
   const performInterterritorialAutoSave = useCallback(async (dataToSave: InterterritorialFormData) => {
@@ -792,7 +844,20 @@ function DocumentHubContent() {
   const handleInterterritorialFormChange = useCallback((data: InterterritorialFormData) => {
     setInterterritorialFormData(data);
     setInterterritorialHasUnsavedChanges(true);
-    
+
+    const currentPortalId = portalId || localStorage.getItem('hs_portal_id');
+    const dealId = deal?.hsObjectId;
+    if (currentPortalId && dealId) {
+      try {
+        localStorage.setItem(
+          `interterritorial_backup_${currentPortalId}_${dealId}`,
+          JSON.stringify({ configuration: data, updatedAt: new Date().toISOString() })
+        );
+      } catch {
+        // ignore
+      }
+    }
+
     if (interterritorialAutoSaveTimeoutRef.current) {
       clearTimeout(interterritorialAutoSaveTimeoutRef.current);
     }
@@ -800,7 +865,7 @@ function DocumentHubContent() {
     interterritorialAutoSaveTimeoutRef.current = setTimeout(() => {
       performInterterritorialAutoSave(data);
     }, AUTO_SAVE_DELAY);
-  }, [performInterterritorialAutoSave]);
+  }, [performInterterritorialAutoSave, portalId, deal?.hsObjectId]);
 
   // Auto-save for New Customer
   const performNewCustomerAutoSave = useCallback(async (dataToSave: NewCustomerFormData) => {
@@ -824,9 +889,23 @@ function DocumentHubContent() {
   const handleNewCustomerFormChange = useCallback((data: NewCustomerFormData) => {
     setNewCustomerFormData(data);
     setNewCustomerHasUnsavedChanges(true);
+
+    const currentPortalId = portalId || localStorage.getItem('hs_portal_id');
+    const dealId = deal?.hsObjectId;
+    if (currentPortalId && dealId) {
+      try {
+        localStorage.setItem(
+          `new_customer_backup_${currentPortalId}_${dealId}`,
+          JSON.stringify({ configuration: data, updatedAt: new Date().toISOString() })
+        );
+      } catch {
+        // ignore
+      }
+    }
+
     if (newCustomerAutoSaveTimeoutRef.current) clearTimeout(newCustomerAutoSaveTimeoutRef.current);
     newCustomerAutoSaveTimeoutRef.current = setTimeout(() => performNewCustomerAutoSave(data), AUTO_SAVE_DELAY);
-  }, [performNewCustomerAutoSave]);
+  }, [performNewCustomerAutoSave, portalId, deal?.hsObjectId]);
 
   const handleNewCustomerClearAll = useCallback(() => {
     const emptyForm: NewCustomerFormData = {
@@ -900,9 +979,23 @@ function DocumentHubContent() {
   const handleRelocationFormChange = useCallback((data: RelocationFormData) => {
     setRelocationFormData(data);
     setRelocationHasUnsavedChanges(true);
+
+    const currentPortalId = portalId || localStorage.getItem('hs_portal_id');
+    const dealId = deal?.hsObjectId;
+    if (currentPortalId && dealId) {
+      try {
+        localStorage.setItem(
+          `relocation_backup_${currentPortalId}_${dealId}`,
+          JSON.stringify({ configuration: data, updatedAt: new Date().toISOString() })
+        );
+      } catch {
+        // ignore
+      }
+    }
+
     if (relocationAutoSaveTimeoutRef.current) clearTimeout(relocationAutoSaveTimeoutRef.current);
     relocationAutoSaveTimeoutRef.current = setTimeout(() => performRelocationAutoSave(data), AUTO_SAVE_DELAY);
-  }, [performRelocationAutoSave]);
+  }, [performRelocationAutoSave, portalId, deal?.hsObjectId]);
 
   const handleRelocationSave = async () => {
     if (!relocationFormData) { toast.error('No data to save'); return; }
@@ -959,9 +1052,23 @@ function DocumentHubContent() {
   const handleRemovalFormChange = useCallback((data: RemovalFormData) => {
     setRemovalFormData(data);
     setRemovalHasUnsavedChanges(true);
+
+    const currentPortalId = portalId || localStorage.getItem('hs_portal_id');
+    const dealId = deal?.hsObjectId;
+    if (currentPortalId && dealId) {
+      try {
+        localStorage.setItem(
+          `removal_backup_${currentPortalId}_${dealId}`,
+          JSON.stringify({ configuration: data, updatedAt: new Date().toISOString() })
+        );
+      } catch {
+        // ignore
+      }
+    }
+
     if (removalAutoSaveTimeoutRef.current) clearTimeout(removalAutoSaveTimeoutRef.current);
     removalAutoSaveTimeoutRef.current = setTimeout(() => performRemovalAutoSave(data), AUTO_SAVE_DELAY);
-  }, [performRemovalAutoSave]);
+  }, [performRemovalAutoSave, portalId, deal?.hsObjectId]);
 
   const handleRemovalSave = async () => {
     if (!removalFormData) { toast.error('No data to save'); return; }
@@ -1073,37 +1180,88 @@ function DocumentHubContent() {
     };
   }, [hasUnsavedChanges, installationHasUnsavedChanges, serviceAgreementHasUnsavedChanges, fmvLeaseHasUnsavedChanges, leaseFundingHasUnsavedChanges, leaseReturnHasUnsavedChanges, interterritorialHasUnsavedChanges, relocationHasUnsavedChanges, removalHasUnsavedChanges, performAutoSave, performInstallationAutoSave, performServiceAgreementAutoSave, performFMVLeaseAutoSave, performLeaseFundingAutoSave, performLeaseReturnAutoSave, performInterterritorialAutoSave, performRelocationAutoSave, performRemovalAutoSave]);
 
-  // Recover from localStorage backup if exists (with tenant scoping)
+  // Recover from localStorage backups (portal+deal scoped; prevents cross-tenant leakage)
   useEffect(() => {
     const currentPortalId = portalId || localStorage.getItem('hs_portal_id');
     const dealId = deal?.hsObjectId;
     if (!currentPortalId || !dealId) return;
 
-    // Use portal-scoped backup key to prevent cross-tenant data leakage
-    const backupKey = `quote_backup_${currentPortalId}_${dealId}`;
-    const backup = localStorage.getItem(backupKey);
-    
-    // Also check for legacy backup key and migrate if found
-    const legacyBackupKey = `quote_backup_${dealId}`;
-    const legacyBackup = localStorage.getItem(legacyBackupKey);
-    
-    const backupData = backup || legacyBackup;
-    
-    if (backupData && !savedConfig) {
+    const readBackup = <T,>(key: string): T | null => {
+      const raw = localStorage.getItem(key);
+      if (!raw) return null;
       try {
-        const parsed = JSON.parse(backupData);
-        if (parsed.configuration) {
-          console.log('Recovered backup configuration');
-          setSavedConfig(parsed.configuration as QuoteFormData);
-        }
+        const parsed = JSON.parse(raw);
+        return (parsed?.configuration ?? null) as T | null;
       } catch {
-        // Ignore parse errors
+        return null;
       }
-      // Clean up both keys
-      localStorage.removeItem(backupKey);
-      localStorage.removeItem(legacyBackupKey);
+    };
+
+    const quoteBackup = readBackup<QuoteFormData>(`quote_backup_${currentPortalId}_${dealId}`);
+    if (quoteBackup && !savedConfig) {
+      setSavedConfig(quoteBackup);
+      if (!formDataRef.current) setFormData(quoteBackup);
+      setHasUnsavedChanges(true);
+      localStorage.removeItem(`quote_backup_${currentPortalId}_${dealId}`);
+      localStorage.removeItem(`quote_backup_${dealId}`); // legacy cleanup
     }
-  }, [portalId, deal?.hsObjectId, savedConfig]);
+
+    const serviceAgreementBackup = readBackup<ServiceAgreementFormData>(`service_agreement_backup_${currentPortalId}_${dealId}`);
+    if (serviceAgreementBackup && !serviceAgreementSavedConfig) {
+      setServiceAgreementSavedConfig(serviceAgreementBackup);
+      if (!serviceAgreementFormDataRef.current) setServiceAgreementFormData(serviceAgreementBackup);
+      setServiceAgreementHasUnsavedChanges(true);
+      localStorage.removeItem(`service_agreement_backup_${currentPortalId}_${dealId}`);
+    }
+
+    const fmvLeaseBackup = readBackup<FMVLeaseFormData>(`fmv_lease_backup_${currentPortalId}_${dealId}`);
+    if (fmvLeaseBackup && !fmvLeaseSavedConfig) {
+      setFmvLeaseSavedConfig(fmvLeaseBackup);
+      if (!fmvLeaseFormDataRef.current) setFmvLeaseFormData(fmvLeaseBackup);
+      setFmvLeaseHasUnsavedChanges(true);
+      localStorage.removeItem(`fmv_lease_backup_${currentPortalId}_${dealId}`);
+    }
+
+    const leaseReturnBackup = readBackup<LeaseReturnFormData>(`lease_return_backup_${currentPortalId}_${dealId}`);
+    if (leaseReturnBackup && !leaseReturnSavedConfig) {
+      setLeaseReturnSavedConfig(leaseReturnBackup);
+      if (!leaseReturnFormDataRef.current) setLeaseReturnFormData(leaseReturnBackup);
+      setLeaseReturnHasUnsavedChanges(true);
+      localStorage.removeItem(`lease_return_backup_${currentPortalId}_${dealId}`);
+    }
+
+    const interterritorialBackup = readBackup<InterterritorialFormData>(`interterritorial_backup_${currentPortalId}_${dealId}`);
+    if (interterritorialBackup && !interterritorialSavedConfig) {
+      setInterterritorialSavedConfig(interterritorialBackup);
+      if (!interterritorialFormDataRef.current) setInterterritorialFormData(interterritorialBackup);
+      setInterterritorialHasUnsavedChanges(true);
+      localStorage.removeItem(`interterritorial_backup_${currentPortalId}_${dealId}`);
+    }
+
+    const newCustomerBackup = readBackup<NewCustomerFormData>(`new_customer_backup_${currentPortalId}_${dealId}`);
+    if (newCustomerBackup && !newCustomerSavedConfig) {
+      setNewCustomerSavedConfig(newCustomerBackup);
+      if (!newCustomerFormDataRef.current) setNewCustomerFormData(newCustomerBackup);
+      setNewCustomerHasUnsavedChanges(true);
+      localStorage.removeItem(`new_customer_backup_${currentPortalId}_${dealId}`);
+    }
+
+    const relocationBackup = readBackup<RelocationFormData>(`relocation_backup_${currentPortalId}_${dealId}`);
+    if (relocationBackup && !relocationSavedConfig) {
+      setRelocationSavedConfig(relocationBackup);
+      if (!relocationFormDataRef.current) setRelocationFormData(relocationBackup);
+      setRelocationHasUnsavedChanges(true);
+      localStorage.removeItem(`relocation_backup_${currentPortalId}_${dealId}`);
+    }
+
+    const removalBackup = readBackup<RemovalFormData>(`removal_backup_${currentPortalId}_${dealId}`);
+    if (removalBackup && !removalSavedConfig) {
+      setRemovalSavedConfig(removalBackup);
+      if (!removalFormDataRef.current) setRemovalFormData(removalBackup);
+      setRemovalHasUnsavedChanges(true);
+      localStorage.removeItem(`removal_backup_${currentPortalId}_${dealId}`);
+    }
+  }, [portalId, deal?.hsObjectId, savedConfig, serviceAgreementSavedConfig, fmvLeaseSavedConfig, leaseReturnSavedConfig, interterritorialSavedConfig, newCustomerSavedConfig, relocationSavedConfig, removalSavedConfig]);
 
   const handleSave = async () => {
     if (!formData) {
