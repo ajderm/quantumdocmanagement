@@ -246,6 +246,80 @@ function DocumentHubContent() {
     relocationFormDataRef.current = relocationFormData;
   }, [relocationFormData]);
 
+  // Initialize relocation form data when HubSpot data loads
+  useEffect(() => {
+    if (loading) return;
+    // Don't reinitialize if we already have data or if we have a saved config
+    if (relocationFormData || relocationSavedConfig) return;
+
+    const defaultData = getDefaultRelocationFormData();
+    
+    // Pre-populate company name
+    if (company?.name) {
+      defaultData.companyName = company.name;
+    }
+    
+    // Pre-populate submitted by from deal owner
+    if (dealOwner) {
+      defaultData.submittedBy = `${dealOwner.firstName || ''} ${dealOwner.lastName || ''}`.trim();
+    }
+    
+    // Pre-populate Bill To from HubSpot company AP address (same as Service Agreement)
+    if (company) {
+      defaultData.billToAddress = company.apAddress || '';
+      const cityStZipParts = [
+        company.apCity,
+        company.apState,
+        company.apZip
+      ].filter(Boolean);
+      // Format as "City, ST Zip"
+      if (cityStZipParts.length > 0) {
+        const city = company.apCity || '';
+        const state = company.apState || '';
+        const zip = company.apZip || '';
+        defaultData.billToCityStZip = `${city}${city && state ? ', ' : ''}${state}${(city || state) && zip ? ' ' : ''}${zip}`.trim();
+      }
+    }
+    
+    // Pre-populate Bill To contact from labeled AP contact
+    if (labeledContacts?.apContact) {
+      const ap = labeledContacts.apContact;
+      defaultData.billToPhone = ap.phone || '';
+      defaultData.billToEmail = ap.email || '';
+    }
+    
+    // Pre-populate Current Location from HubSpot company delivery address (Ship To)
+    if (company) {
+      defaultData.currentCompanyName = company.name || '';
+      defaultData.currentAddress = company.deliveryAddress || '';
+      defaultData.currentCity = company.deliveryCity || '';
+      defaultData.currentState = company.deliveryState || '';
+      defaultData.currentZip = company.deliveryZip || '';
+    }
+    
+    // Pre-populate Current Location contact from labeled shipping contact
+    if (labeledContacts?.shippingContact) {
+      const sc = labeledContacts.shippingContact;
+      defaultData.currentContact = `${sc.firstName || ''} ${sc.lastName || ''}`.trim();
+      defaultData.currentPhone = sc.phone || '';
+      defaultData.currentEmail = sc.email || '';
+    }
+    
+    // Pre-populate equipment from line items
+    if (lineItems && lineItems.length > 0) {
+      defaultData.equipmentItems = lineItems.slice(0, 20).map(item => ({
+        id: item.hsObjectId || crypto.randomUUID(),
+        makeModel: item.name || '',
+        serialNumber: item.properties?.serial_number || '',
+        equipmentId: item.properties?.equipment_id || '',
+        networkPrint: false,
+        scan: false,
+        notes: '',
+      }));
+    }
+    
+    setRelocationFormData(defaultData);
+  }, [loading, company, dealOwner, labeledContacts, lineItems, relocationFormData, relocationSavedConfig]);
   // Fetch dealer info when portalId is available
   useEffect(() => {
     const fetchDealerInfo = async () => {
@@ -370,7 +444,9 @@ function DocumentHubContent() {
           // Set relocation config
           if (configs.relocation) {
             console.log('Loaded saved relocation configuration');
-            setRelocationSavedConfig(configs.relocation as RelocationFormData);
+            const savedRelocation = configs.relocation as RelocationFormData;
+            setRelocationSavedConfig(savedRelocation);
+            setRelocationFormData(savedRelocation);
           }
         }
       } catch (err) {
@@ -2570,44 +2646,17 @@ function DocumentHubContent() {
                 <CardDescription>Request equipment relocation to a new location</CardDescription>
               </CardHeader>
               <CardContent className="space-y-4">
-                <RelocationForm
-                  formData={relocationFormData || (() => {
-                    const defaultData = getDefaultRelocationFormData();
-                    // Pre-populate from company, deal owner, and service agreement if available
-                    if (company?.name) defaultData.companyName = company.name;
-                    if (dealOwner) defaultData.submittedBy = `${dealOwner.firstName || ''} ${dealOwner.lastName || ''}`.trim();
-                    // Pre-populate current location from service agreement shipTo
-                    if (serviceAgreementFormData) {
-                      defaultData.currentCompanyName = serviceAgreementFormData.shipToCompany || '';
-                      defaultData.currentAddress = serviceAgreementFormData.shipToAddress || '';
-                      defaultData.currentCity = serviceAgreementFormData.shipToCity || '';
-                      defaultData.currentState = serviceAgreementFormData.shipToState || '';
-                      defaultData.currentZip = serviceAgreementFormData.shipToZip || '';
-                      defaultData.currentContact = serviceAgreementFormData.shipToAttn || '';
-                      defaultData.currentPhone = serviceAgreementFormData.shipToPhone || '';
-                      defaultData.currentEmail = serviceAgreementFormData.shipToEmail || '';
-                      // Bill To from service agreement
-                      defaultData.billToAddress = serviceAgreementFormData.billToAddress || '';
-                      defaultData.billToCityStZip = `${serviceAgreementFormData.billToCity || ''}, ${serviceAgreementFormData.billToState || ''} ${serviceAgreementFormData.billToZip || ''}`.trim();
-                      defaultData.billToPhone = serviceAgreementFormData.billToPhone || '';
-                      defaultData.billToEmail = serviceAgreementFormData.billToEmail || '';
-                    }
-                    // Pre-populate equipment from line items
-                    if (lineItems && lineItems.length > 0) {
-                      defaultData.equipmentItems = lineItems.slice(0, 20).map(item => ({
-                        id: item.hsObjectId || crypto.randomUUID(),
-                        makeModel: item.name || '',
-                        serialNumber: item.properties?.serial_number || '',
-                        equipmentId: item.properties?.equipment_id || '',
-                        networkPrint: false,
-                        scan: false,
-                        notes: '',
-                      }));
-                    }
-                    return defaultData;
-                  })()}
-                  onChange={handleRelocationFormChange}
-                />
+                {relocationFormData && (
+                  <RelocationForm
+                    formData={relocationFormData}
+                    onChange={handleRelocationFormChange}
+                  />
+                )}
+                {!relocationFormData && (
+                  <div className="flex items-center justify-center py-8">
+                    <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
+                  </div>
+                )}
                 <div className="flex gap-2 pt-4 border-t">
                   <Button variant="outline" onClick={handleRelocationSave} disabled={relocationSaving}>
                     {relocationSaving ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <Save className="h-4 w-4 mr-2" />}
