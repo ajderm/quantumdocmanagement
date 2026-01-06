@@ -60,6 +60,7 @@ export interface ServiceAgreementFormData {
     overagesBW: string;
     overagesColor: string;
     baseRate: string;
+    baseRateManuallySet?: boolean;
   }>;
 }
 
@@ -304,13 +305,53 @@ export function ServiceAgreementForm({
   };
 
   const updateRate = (lineItemId: string, field: string, value: string) => {
+    const currentRate = formData.rates[lineItemId] || { includesBW: '', includesColor: '', overagesBW: '', overagesColor: '', baseRate: '' };
+    const updatedRate = { ...currentRate, [field]: value };
+    
+    // Auto-calculate baseRate if not manually set and we're updating includes/overages
+    if (field !== 'baseRate') {
+      const includesBW = parseFloat(updatedRate.includesBW) || 0;
+      const includesColor = parseFloat(updatedRate.includesColor) || 0;
+      const overagesBW = parseFloat(updatedRate.overagesBW) || 0;
+      const overagesColor = parseFloat(updatedRate.overagesColor) || 0;
+      
+      // Calculate: (Includes BW * Overage BW) + (Includes Color * Overage Color)
+      const calculatedBaseRate = (includesBW * overagesBW) + (includesColor * overagesColor);
+      
+      // Only auto-update if not manually set
+      if (!updatedRate.baseRateManuallySet) {
+        updatedRate.baseRate = calculatedBaseRate > 0 ? calculatedBaseRate.toFixed(2) : '';
+      }
+    } else {
+      // User is manually setting the base rate
+      updatedRate.baseRateManuallySet = true;
+    }
+    
+    onChange({
+      ...formData,
+      rates: {
+        ...formData.rates,
+        [lineItemId]: updatedRate,
+      },
+    });
+  };
+
+  const clearManualBaseRate = (lineItemId: string) => {
+    const currentRate = formData.rates[lineItemId] || { includesBW: '', includesColor: '', overagesBW: '', overagesColor: '', baseRate: '' };
+    const includesBW = parseFloat(currentRate.includesBW) || 0;
+    const includesColor = parseFloat(currentRate.includesColor) || 0;
+    const overagesBW = parseFloat(currentRate.overagesBW) || 0;
+    const overagesColor = parseFloat(currentRate.overagesColor) || 0;
+    const calculatedBaseRate = (includesBW * overagesBW) + (includesColor * overagesColor);
+    
     onChange({
       ...formData,
       rates: {
         ...formData.rates,
         [lineItemId]: {
-          ...formData.rates[lineItemId],
-          [field]: value,
+          ...currentRate,
+          baseRate: calculatedBaseRate > 0 ? calculatedBaseRate.toFixed(2) : '',
+          baseRateManuallySet: false,
         },
       },
     });
@@ -586,7 +627,18 @@ export function ServiceAgreementForm({
                         <Input className="h-8" value={formData.rates[item.id]?.overagesColor || ''} onChange={(e) => updateRate(item.id, 'overagesColor', e.target.value)} placeholder="0.00" />
                       </td>
                       <td className="px-3 py-1">
-                        <Input className="h-8" value={formData.rates[item.id]?.baseRate || ''} onChange={(e) => updateRate(item.id, 'baseRate', e.target.value)} placeholder="0.00" />
+                        <div className="space-y-1">
+                          <Input className="h-8" value={formData.rates[item.id]?.baseRate || ''} onChange={(e) => updateRate(item.id, 'baseRate', e.target.value)} placeholder="0.00" />
+                          {formData.rates[item.id]?.baseRateManuallySet && (
+                            <button 
+                              type="button" 
+                              onClick={() => clearManualBaseRate(item.id)}
+                              className="text-xs text-muted-foreground hover:text-foreground underline"
+                            >
+                              Reset to calculated
+                            </button>
+                          )}
+                        </div>
                       </td>
                     </tr>
                   ))}

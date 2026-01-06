@@ -533,16 +533,52 @@ export function InterterritorialForm({
       {/* Equipment To Be Installed */}
       <Card>
         <CardHeader className="py-3">
-          <CardTitle className="text-sm">Equipment To Be Installed</CardTitle>
+          <CardTitle className="text-sm flex items-center justify-between">
+            <span>Equipment To Be Installed</span>
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              onClick={() => {
+                const newItem: InterterritorialEquipmentItem = {
+                  id: `manual-${Date.now()}`,
+                  qty: 1,
+                  vendorProductCode: '',
+                  description: '',
+                  price: 0,
+                  cost: 0,
+                  fee: 0,
+                };
+                onChange({ ...formData, equipmentItems: [...formData.equipmentItems, newItem] });
+              }}
+            >
+              <Plus className="h-3 w-3 mr-1" />
+              Add Equipment
+            </Button>
+          </CardTitle>
         </CardHeader>
         <CardContent>
           {formData.equipmentItems.length === 0 ? (
-            <p className="text-sm text-muted-foreground">No equipment items available</p>
+            <p className="text-sm text-muted-foreground">No equipment items. Click "Add Equipment" to add items.</p>
           ) : (
             <div className="space-y-3">
               {formData.equipmentItems.map((item, index) => (
-                <div key={item.id} className="border rounded-lg p-3 space-y-3">
-                  <div className="grid grid-cols-12 gap-2">
+                <div key={item.id} className="border rounded-lg p-3 space-y-3 relative">
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="sm"
+                    className="absolute top-2 right-2 h-7 w-7 p-0 text-muted-foreground hover:text-destructive"
+                    onClick={() => {
+                      onChange({
+                        ...formData,
+                        equipmentItems: formData.equipmentItems.filter((_, i) => i !== index),
+                      });
+                    }}
+                  >
+                    <Trash2 className="h-4 w-4" />
+                  </Button>
+                  <div className="grid grid-cols-12 gap-2 pr-10">
                     <div className="col-span-1">
                       <Label className="text-xs">Qty</Label>
                       <Input

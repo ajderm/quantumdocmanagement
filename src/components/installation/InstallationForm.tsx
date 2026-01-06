@@ -590,84 +590,138 @@ export function InstallationForm({
           <Separator />
 
           {/* Customer Ship To / Bill To */}
-          <div className="grid grid-cols-2 gap-6">
-            <div className="space-y-3">
-              <h3 className="font-semibold text-sm">Customer Ship To</h3>
-              <div>
-                <Label className="text-xs">Company</Label>
-                <Input value={formData.shipToCompany} onChange={(e) => updateField('shipToCompany', e.target.value)} className="h-8 text-sm" />
-              </div>
-              <div>
-                <Label className="text-xs">Address</Label>
-                <Input value={formData.shipToAddress} onChange={(e) => updateField('shipToAddress', e.target.value)} className="h-8 text-sm" />
-              </div>
-              <div className="grid grid-cols-3 gap-2">
-                <Input value={formData.shipToCity} onChange={(e) => updateField('shipToCity', e.target.value)} className="h-8 text-sm" placeholder="City" />
-                <Input value={formData.shipToState} onChange={(e) => updateField('shipToState', e.target.value)} className="h-8 text-sm" placeholder="State" />
-                <Input value={formData.shipToZip} onChange={(e) => updateField('shipToZip', e.target.value)} className="h-8 text-sm" placeholder="ZIP" />
-              </div>
-              <div className="grid grid-cols-2 gap-2">
-                <div>
-                  <Label className="text-xs">ATTN</Label>
-                  <Input value={formData.shipToAttn} onChange={(e) => updateField('shipToAttn', e.target.value)} className="h-8 text-sm" />
+          <Card>
+            <CardHeader className="py-3">
+              <CardTitle className="text-sm">Customer Addresses</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="grid grid-cols-2 gap-6">
+                <div className="space-y-3">
+                  <h4 className="text-xs font-medium text-muted-foreground">Ship To</h4>
+                  <div>
+                    <Label className="text-xs">Company</Label>
+                    <Input value={formData.shipToCompany} onChange={(e) => updateField('shipToCompany', e.target.value)} className="h-8 text-sm" />
+                  </div>
+                  <div>
+                    <Label className="text-xs">Address</Label>
+                    <Input value={formData.shipToAddress} onChange={(e) => updateField('shipToAddress', e.target.value)} className="h-8 text-sm" />
+                  </div>
+                  <div className="grid grid-cols-3 gap-2">
+                    <Input value={formData.shipToCity} onChange={(e) => updateField('shipToCity', e.target.value)} className="h-8 text-sm" placeholder="City" />
+                    <Input value={formData.shipToState} onChange={(e) => updateField('shipToState', e.target.value)} className="h-8 text-sm" placeholder="State" />
+                    <Input value={formData.shipToZip} onChange={(e) => updateField('shipToZip', e.target.value)} className="h-8 text-sm" placeholder="ZIP" />
+                  </div>
+                  <div className="grid grid-cols-2 gap-2">
+                    <div>
+                      <Label className="text-xs">ATTN</Label>
+                      <Input value={formData.shipToAttn} onChange={(e) => updateField('shipToAttn', e.target.value)} className="h-8 text-sm" />
+                    </div>
+                    <div>
+                      <Label className="text-xs">Phone</Label>
+                      <Input value={formData.shipToPhone} onChange={(e) => updateField('shipToPhone', e.target.value)} className="h-8 text-sm" />
+                    </div>
+                  </div>
+                  <div>
+                    <Label className="text-xs">Email</Label>
+                    <Input value={formData.shipToEmail} onChange={(e) => updateField('shipToEmail', e.target.value)} className="h-8 text-sm" />
+                  </div>
                 </div>
-                <div>
-                  <Label className="text-xs">Phone</Label>
-                  <Input value={formData.shipToPhone} onChange={(e) => updateField('shipToPhone', e.target.value)} className="h-8 text-sm" />
-                </div>
-              </div>
-              <div>
-                <Label className="text-xs">Email</Label>
-                <Input value={formData.shipToEmail} onChange={(e) => updateField('shipToEmail', e.target.value)} className="h-8 text-sm" />
-              </div>
-            </div>
 
-            <div className="space-y-3">
-              <h3 className="font-semibold text-sm">Customer Bill To</h3>
-              <div>
-                <Label className="text-xs">Company</Label>
-                <Input value={formData.billToCompany} onChange={(e) => updateField('billToCompany', e.target.value)} className="h-8 text-sm" />
-              </div>
-              <div>
-                <Label className="text-xs">Address</Label>
-                <Input value={formData.billToAddress} onChange={(e) => updateField('billToAddress', e.target.value)} className="h-8 text-sm" />
-              </div>
-              <div className="grid grid-cols-3 gap-2">
-                <Input value={formData.billToCity} onChange={(e) => updateField('billToCity', e.target.value)} className="h-8 text-sm" placeholder="City" />
-                <Input value={formData.billToState} onChange={(e) => updateField('billToState', e.target.value)} className="h-8 text-sm" placeholder="State" />
-                <Input value={formData.billToZip} onChange={(e) => updateField('billToZip', e.target.value)} className="h-8 text-sm" placeholder="ZIP" />
-              </div>
-              <div className="grid grid-cols-2 gap-2">
-                <div>
-                  <Label className="text-xs">ATTN</Label>
-                  <Input value={formData.billToAttn} onChange={(e) => updateField('billToAttn', e.target.value)} className="h-8 text-sm" />
+                <div className="space-y-3">
+                  <h4 className="text-xs font-medium text-muted-foreground">Bill To</h4>
+                  <div>
+                    <Label className="text-xs">Company</Label>
+                    <Input value={formData.billToCompany} onChange={(e) => updateField('billToCompany', e.target.value)} className="h-8 text-sm" />
+                  </div>
+                  <div>
+                    <Label className="text-xs">Address</Label>
+                    <Input value={formData.billToAddress} onChange={(e) => updateField('billToAddress', e.target.value)} className="h-8 text-sm" />
+                  </div>
+                  <div className="grid grid-cols-3 gap-2">
+                    <Input value={formData.billToCity} onChange={(e) => updateField('billToCity', e.target.value)} className="h-8 text-sm" placeholder="City" />
+                    <Input value={formData.billToState} onChange={(e) => updateField('billToState', e.target.value)} className="h-8 text-sm" placeholder="State" />
+                    <Input value={formData.billToZip} onChange={(e) => updateField('billToZip', e.target.value)} className="h-8 text-sm" placeholder="ZIP" />
+                  </div>
+                  <div className="grid grid-cols-2 gap-2">
+                    <div>
+                      <Label className="text-xs">ATTN</Label>
+                      <Input value={formData.billToAttn} onChange={(e) => updateField('billToAttn', e.target.value)} className="h-8 text-sm" />
+                    </div>
+                    <div>
+                      <Label className="text-xs">Phone</Label>
+                      <Input value={formData.billToPhone} onChange={(e) => updateField('billToPhone', e.target.value)} className="h-8 text-sm" />
+                    </div>
+                  </div>
+                  <div>
+                    <Label className="text-xs">Email</Label>
+                    <Input value={formData.billToEmail} onChange={(e) => updateField('billToEmail', e.target.value)} className="h-8 text-sm" />
+                  </div>
                 </div>
-                <div>
-                  <Label className="text-xs">Phone</Label>
-                  <Input value={formData.billToPhone} onChange={(e) => updateField('billToPhone', e.target.value)} className="h-8 text-sm" />
-                </div>
               </div>
-              <div>
-                <Label className="text-xs">Email</Label>
-                <Input value={formData.billToEmail} onChange={(e) => updateField('billToEmail', e.target.value)} className="h-8 text-sm" />
-              </div>
-            </div>
-          </div>
+            </CardContent>
+          </Card>
 
           <Separator />
 
-          {/* Networking & Contacts */}
-          <div className="grid grid-cols-2 gap-6">
-            <div className="space-y-4">
-              <h3 className="font-semibold text-sm">Networking</h3>
-              
-              {/* Dealer Setup - Print */}
-              <div className="space-y-3">
-                <h4 className="text-xs font-medium text-muted-foreground">Dealer Setup - Print</h4>
-                <div className="grid grid-cols-2 gap-3">
+          {/* Networking */}
+          <Card>
+            <CardHeader className="py-3">
+              <CardTitle className="text-sm">Networking</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="grid grid-cols-2 gap-6">
+                {/* Dealer Setup - Print */}
+                <div className="space-y-3">
+                  <h4 className="text-xs font-medium text-muted-foreground">Dealer Setup - Print</h4>
+                  <div className="grid grid-cols-2 gap-3">
+                    <div>
+                      <Label className="text-xs">Dealer Setup Print</Label>
+                      <Select value={formData.dealerSetupPrint} onValueChange={(v) => updateField('dealerSetupPrint', v)}>
+                        <SelectTrigger className="h-8 text-sm"><SelectValue placeholder="Select..." /></SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="Yes">Yes</SelectItem>
+                          <SelectItem value="No">No</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
+                    <div>
+                      <Label className="text-xs">Windows Computers</Label>
+                      <Input 
+                        type="number" 
+                        min="0"
+                        value={formData.printWindowsComputers} 
+                        onChange={(e) => updateField('printWindowsComputers', e.target.value)} 
+                        className="h-8 text-sm" 
+                        placeholder="0" 
+                      />
+                    </div>
+                  </div>
+                  <div className="grid grid-cols-2 gap-3">
+                    <div>
+                      <Label className="text-xs">Mac Computers</Label>
+                      <Input 
+                        type="number" 
+                        min="0"
+                        value={formData.printMacComputers} 
+                        onChange={(e) => updateField('printMacComputers', e.target.value)} 
+                        className="h-8 text-sm" 
+                        placeholder="0" 
+                      />
+                    </div>
+                    <div>
+                      <Label className="text-xs">Allow Print From USB</Label>
+                      <Select value={formData.allowPrintFromUSB} onValueChange={(v) => updateField('allowPrintFromUSB', v)}>
+                        <SelectTrigger className="h-8 text-sm"><SelectValue placeholder="Select..." /></SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="Yes">Yes</SelectItem>
+                          <SelectItem value="No">No</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
+                  </div>
                   <div>
-                    <Label className="text-xs">Dealer Setup Print</Label>
-                    <Select value={formData.dealerSetupPrint} onValueChange={(v) => updateField('dealerSetupPrint', v)}>
+                    <Label className="text-xs">Allow Mobile Print</Label>
+                    <Select value={formData.allowMobilePrint} onValueChange={(v) => updateField('allowMobilePrint', v)}>
                       <SelectTrigger className="h-8 text-sm"><SelectValue placeholder="Select..." /></SelectTrigger>
                       <SelectContent>
                         <SelectItem value="Yes">Yes</SelectItem>
@@ -675,201 +729,168 @@ export function InstallationForm({
                       </SelectContent>
                     </Select>
                   </div>
-                  <div>
-                    <Label className="text-xs">Windows Computers</Label>
-                    <Input 
-                      type="number" 
-                      min="0"
-                      value={formData.printWindowsComputers} 
-                      onChange={(e) => updateField('printWindowsComputers', e.target.value)} 
-                      className="h-8 text-sm" 
-                      placeholder="0" 
-                    />
-                  </div>
                 </div>
-                <div className="grid grid-cols-2 gap-3">
-                  <div>
-                    <Label className="text-xs">Mac Computers</Label>
-                    <Input 
-                      type="number" 
-                      min="0"
-                      value={formData.printMacComputers} 
-                      onChange={(e) => updateField('printMacComputers', e.target.value)} 
-                      className="h-8 text-sm" 
-                      placeholder="0" 
-                    />
-                  </div>
-                  <div>
-                    <Label className="text-xs">Allow Print From USB</Label>
-                    <Select value={formData.allowPrintFromUSB} onValueChange={(v) => updateField('allowPrintFromUSB', v)}>
-                      <SelectTrigger className="h-8 text-sm"><SelectValue placeholder="Select..." /></SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="Yes">Yes</SelectItem>
-                        <SelectItem value="No">No</SelectItem>
-                      </SelectContent>
-                    </Select>
-                  </div>
-                </div>
-                <div>
-                  <Label className="text-xs">Allow Mobile Print</Label>
-                  <Select value={formData.allowMobilePrint} onValueChange={(v) => updateField('allowMobilePrint', v)}>
-                    <SelectTrigger className="h-8 text-sm"><SelectValue placeholder="Select..." /></SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="Yes">Yes</SelectItem>
-                      <SelectItem value="No">No</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
-              </div>
 
-              <Separator />
+                {/* Dealer Setup - Scan */}
+                <div className="space-y-3">
+                  <h4 className="text-xs font-medium text-muted-foreground">Dealer Setup - Scan</h4>
+                  <div className="grid grid-cols-2 gap-3">
+                    <div>
+                      <Label className="text-xs">Dealer Setup Scan</Label>
+                      <Select value={formData.dealerSetupScan} onValueChange={(v) => updateField('dealerSetupScan', v)}>
+                        <SelectTrigger className="h-8 text-sm"><SelectValue placeholder="Select..." /></SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="Yes">Yes</SelectItem>
+                          <SelectItem value="No">No</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
+                    <div>
+                      <Label className="text-xs">Windows Computers</Label>
+                      <Input 
+                        type="number" 
+                        min="0"
+                        value={formData.scanWindowsComputers} 
+                        onChange={(e) => updateField('scanWindowsComputers', e.target.value)} 
+                        className="h-8 text-sm" 
+                        placeholder="0" 
+                      />
+                    </div>
+                  </div>
+                  <div className="grid grid-cols-2 gap-3">
+                    <div>
+                      <Label className="text-xs">Mac Computers</Label>
+                      <Input 
+                        type="number" 
+                        min="0"
+                        value={formData.scanMacComputers} 
+                        onChange={(e) => updateField('scanMacComputers', e.target.value)} 
+                        className="h-8 text-sm" 
+                        placeholder="0" 
+                      />
+                    </div>
+                    <div>
+                      <Label className="text-xs">Email Assigned to Copier</Label>
+                      <Input value={formData.emailAssigned} onChange={(e) => updateField('emailAssigned', e.target.value)} className="h-8 text-sm" />
+                    </div>
+                  </div>
+                  <div>
+                    <Label className="text-xs">Password</Label>
+                    <Input value={formData.emailPassword} onChange={(e) => updateField('emailPassword', e.target.value)} className="h-8 text-sm" />
+                  </div>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
 
-              {/* Dealer Setup - Scan */}
-              <div className="space-y-3">
-                <h4 className="text-xs font-medium text-muted-foreground">Dealer Setup - Scan</h4>
-                <div className="grid grid-cols-2 gap-3">
-                  <div>
-                    <Label className="text-xs">Dealer Setup Scan</Label>
-                    <Select value={formData.dealerSetupScan} onValueChange={(v) => updateField('dealerSetupScan', v)}>
-                      <SelectTrigger className="h-8 text-sm"><SelectValue placeholder="Select..." /></SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="Yes">Yes</SelectItem>
-                        <SelectItem value="No">No</SelectItem>
-                      </SelectContent>
-                    </Select>
-                  </div>
-                  <div>
-                    <Label className="text-xs">Windows Computers</Label>
-                    <Input 
-                      type="number" 
-                      min="0"
-                      value={formData.scanWindowsComputers} 
-                      onChange={(e) => updateField('scanWindowsComputers', e.target.value)} 
-                      className="h-8 text-sm" 
-                      placeholder="0" 
-                    />
+          {/* Additional Contacts */}
+          <Card>
+            <CardHeader className="py-3">
+              <CardTitle className="text-sm">Additional Contacts</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="grid grid-cols-2 gap-6">
+                <div className="space-y-2">
+                  <Label className="text-xs font-medium">IT Contact</Label>
+                  <Input value={formData.itContactName} onChange={(e) => updateField('itContactName', e.target.value)} className="h-8 text-sm" placeholder="Name" />
+                  <div className="grid grid-cols-2 gap-2">
+                    <Input value={formData.itContactPhone} onChange={(e) => updateField('itContactPhone', e.target.value)} className="h-8 text-sm" placeholder="Phone" />
+                    <Input value={formData.itContactEmail} onChange={(e) => updateField('itContactEmail', e.target.value)} className="h-8 text-sm" placeholder="Email" />
                   </div>
                 </div>
-                <div className="grid grid-cols-2 gap-3">
-                  <div>
-                    <Label className="text-xs">Mac Computers</Label>
-                    <Input 
-                      type="number" 
-                      min="0"
-                      value={formData.scanMacComputers} 
-                      onChange={(e) => updateField('scanMacComputers', e.target.value)} 
-                      className="h-8 text-sm" 
-                      placeholder="0" 
-                    />
+                <div className="space-y-2">
+                  <Label className="text-xs font-medium">Meter Contact</Label>
+                  <Input value={formData.meterContactName} onChange={(e) => updateField('meterContactName', e.target.value)} className="h-8 text-sm" placeholder="Name" />
+                  <div className="grid grid-cols-2 gap-2">
+                    <Input value={formData.meterContactPhone} onChange={(e) => updateField('meterContactPhone', e.target.value)} className="h-8 text-sm" placeholder="Phone" />
+                    <Input value={formData.meterContactEmail} onChange={(e) => updateField('meterContactEmail', e.target.value)} className="h-8 text-sm" placeholder="Email" />
                   </div>
-                  <div>
-                    <Label className="text-xs">Email Assigned to Copier</Label>
-                    <Input value={formData.emailAssigned} onChange={(e) => updateField('emailAssigned', e.target.value)} className="h-8 text-sm" />
-                  </div>
-                </div>
-                <div>
-                  <Label className="text-xs">Password</Label>
-                  <Input value={formData.emailPassword} onChange={(e) => updateField('emailPassword', e.target.value)} className="h-8 text-sm" />
                 </div>
               </div>
-            </div>
-
-            <div className="space-y-3">
-              <h3 className="font-semibold text-sm">Additional Contacts</h3>
-              <div className="space-y-2">
-                <Label className="text-xs font-medium">IT Contact</Label>
-                <Input value={formData.itContactName} onChange={(e) => updateField('itContactName', e.target.value)} className="h-8 text-sm" placeholder="Name" />
-                <div className="grid grid-cols-2 gap-2">
-                  <Input value={formData.itContactPhone} onChange={(e) => updateField('itContactPhone', e.target.value)} className="h-8 text-sm" placeholder="Phone" />
-                  <Input value={formData.itContactEmail} onChange={(e) => updateField('itContactEmail', e.target.value)} className="h-8 text-sm" placeholder="Email" />
-                </div>
-              </div>
-              <div className="space-y-2">
-                <Label className="text-xs font-medium">Meter Contact</Label>
-                <Input value={formData.meterContactName} onChange={(e) => updateField('meterContactName', e.target.value)} className="h-8 text-sm" placeholder="Name" />
-                <div className="grid grid-cols-2 gap-2">
-                  <Input value={formData.meterContactPhone} onChange={(e) => updateField('meterContactPhone', e.target.value)} className="h-8 text-sm" placeholder="Phone" />
-                  <Input value={formData.meterContactEmail} onChange={(e) => updateField('meterContactEmail', e.target.value)} className="h-8 text-sm" placeholder="Email" />
-                </div>
-              </div>
-            </div>
-          </div>
+            </CardContent>
+          </Card>
 
           <Separator />
 
           {/* Equipment Removed */}
-          <div className="space-y-3">
-            <div className="flex items-center justify-between">
-              <h3 className="font-semibold text-sm">Equipment (Removed)</h3>
-              <div className="flex items-center gap-2">
-                <span className="text-xs text-muted-foreground">
-                  {formData.removedEquipment.length}/{MAX_REMOVED_EQUIPMENT}
-                </span>
-                <Button 
-                  type="button" 
-                  variant="outline" 
-                  size="sm" 
-                  onClick={addRemovedEquipment}
-                  disabled={formData.removedEquipment.length >= MAX_REMOVED_EQUIPMENT}
-                >
-                  <Plus className="h-4 w-4 mr-1" />
-                  Add
-                </Button>
-              </div>
-            </div>
-            {formData.removedEquipment.length === 0 ? (
-              <p className="text-xs text-muted-foreground italic">No removed equipment</p>
-            ) : (
-              <div className="space-y-2">
-                {formData.removedEquipment.map((item, index) => (
-                  <div key={item.id} className="grid grid-cols-7 gap-2 items-end">
-                    <div>
-                      <Label className="text-xs">Qty</Label>
-                      <Input type="number" value={item.qty} onChange={(e) => updateRemovedEquipment(index, 'qty', parseInt(e.target.value) || 1)} className="h-8 text-sm" />
-                    </div>
-                    <div>
-                      <Label className="text-xs">Item #</Label>
-                      <Input value={item.itemNumber} onChange={(e) => updateRemovedEquipment(index, 'itemNumber', e.target.value)} className="h-8 text-sm" />
-                    </div>
-                    <div className="col-span-2">
-                      <Label className="text-xs">Make/Model/Description</Label>
-                      <Input value={item.makeModelDescription} onChange={(e) => updateRemovedEquipment(index, 'makeModelDescription', e.target.value)} className="h-8 text-sm" />
-                    </div>
-                    <div>
-                      <Label className="text-xs">Serial</Label>
-                      <Input value={item.serial} onChange={(e) => updateRemovedEquipment(index, 'serial', e.target.value)} className="h-8 text-sm" />
-                    </div>
-                    <div>
-                      <Label className="text-xs">Meter (BW)</Label>
-                      <Input value={item.meterBW} onChange={(e) => updateRemovedEquipment(index, 'meterBW', e.target.value)} className="h-8 text-sm" />
-                    </div>
-                    <div className="flex gap-1">
-                      <div className="flex-1">
-                        <Label className="text-xs">Meter (COL)</Label>
-                        <Input value={item.meterColor} onChange={(e) => updateRemovedEquipment(index, 'meterColor', e.target.value)} className="h-8 text-sm" />
+          <Card>
+            <CardHeader className="py-3">
+              <CardTitle className="text-sm flex items-center justify-between">
+                <span>Equipment (Removed)</span>
+                <div className="flex items-center gap-2">
+                  <span className="text-xs text-muted-foreground">
+                    {formData.removedEquipment.length}/{MAX_REMOVED_EQUIPMENT}
+                  </span>
+                  <Button 
+                    type="button" 
+                    variant="outline" 
+                    size="sm" 
+                    onClick={addRemovedEquipment}
+                    disabled={formData.removedEquipment.length >= MAX_REMOVED_EQUIPMENT}
+                  >
+                    <Plus className="h-4 w-4 mr-1" />
+                    Add
+                  </Button>
+                </div>
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              {formData.removedEquipment.length === 0 ? (
+                <p className="text-xs text-muted-foreground italic">No removed equipment</p>
+              ) : (
+                <div className="space-y-2">
+                  {formData.removedEquipment.map((item, index) => (
+                    <div key={item.id} className="grid grid-cols-7 gap-2 items-end">
+                      <div>
+                        <Label className="text-xs">Qty</Label>
+                        <Input type="number" value={item.qty} onChange={(e) => updateRemovedEquipment(index, 'qty', parseInt(e.target.value) || 1)} className="h-8 text-sm" />
                       </div>
-                      <Button type="button" variant="ghost" size="icon" className="h-8 w-8 mt-5 text-destructive" onClick={() => removeRemovedEquipment(index)}>
-                        <Trash2 className="h-4 w-4" />
-                      </Button>
+                      <div>
+                        <Label className="text-xs">Item #</Label>
+                        <Input value={item.itemNumber} onChange={(e) => updateRemovedEquipment(index, 'itemNumber', e.target.value)} className="h-8 text-sm" />
+                      </div>
+                      <div className="col-span-2">
+                        <Label className="text-xs">Make/Model/Description</Label>
+                        <Input value={item.makeModelDescription} onChange={(e) => updateRemovedEquipment(index, 'makeModelDescription', e.target.value)} className="h-8 text-sm" />
+                      </div>
+                      <div>
+                        <Label className="text-xs">Serial</Label>
+                        <Input value={item.serial} onChange={(e) => updateRemovedEquipment(index, 'serial', e.target.value)} className="h-8 text-sm" />
+                      </div>
+                      <div>
+                        <Label className="text-xs">Meter (BW)</Label>
+                        <Input value={item.meterBW} onChange={(e) => updateRemovedEquipment(index, 'meterBW', e.target.value)} className="h-8 text-sm" />
+                      </div>
+                      <div className="flex gap-1">
+                        <div className="flex-1">
+                          <Label className="text-xs">Meter (COL)</Label>
+                          <Input value={item.meterColor} onChange={(e) => updateRemovedEquipment(index, 'meterColor', e.target.value)} className="h-8 text-sm" />
+                        </div>
+                        <Button type="button" variant="ghost" size="icon" className="h-8 w-8 mt-5 text-destructive" onClick={() => removeRemovedEquipment(index)}>
+                          <Trash2 className="h-4 w-4" />
+                        </Button>
+                      </div>
                     </div>
-                  </div>
-                ))}
-              </div>
-            )}
-          </div>
-
-          <Separator />
+                  ))}
+                </div>
+              )}
+            </CardContent>
+          </Card>
 
           {/* Removal Instructions */}
-          <div className="space-y-2">
-            <Label className="text-sm font-semibold">Removal Instructions</Label>
-            <Textarea
-              value={formData.removalInstructions}
-              onChange={(e) => updateField('removalInstructions', e.target.value)}
-              placeholder="Enter removal instructions..."
-              className="min-h-[80px]"
-            />
-          </div>
+          <Card>
+            <CardHeader className="py-3">
+              <CardTitle className="text-sm">Removal Instructions</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <Textarea
+                value={formData.removalInstructions}
+                onChange={(e) => updateField('removalInstructions', e.target.value)}
+                placeholder="Enter removal instructions..."
+                className="min-h-[80px]"
+              />
+            </CardContent>
+          </Card>
         </>
       )}
     </div>
