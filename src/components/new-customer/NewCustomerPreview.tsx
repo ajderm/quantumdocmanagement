@@ -21,227 +21,326 @@ export const NewCustomerPreview = forwardRef<HTMLDivElement, NewCustomerPreviewP
     const today = new Date().toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' });
     const termsText = termsAndConditions || DEFAULT_TERMS;
 
+    const businessTypeLabel = formData.businessType ? formData.businessType.replace('_', ' ').replace(/\b\w/g, l => l.toUpperCase()) : '';
+
     return (
       <div
         ref={ref}
-        className="bg-white text-black p-8"
+        className="bg-white text-black p-8 text-[10px] leading-tight"
         style={{
           width: '8.5in',
           minHeight: '11in',
           fontFamily: 'Arial, sans-serif',
-          fontSize: '10pt',
-          lineHeight: '1.4',
         }}
       >
         {/* Header */}
-        <div className="flex justify-between items-start mb-4 pb-3 border-b-2 border-black">
-          <div>
-            {dealerInfo?.logoUrl && (
-              <img src={dealerInfo.logoUrl} alt="Logo" className="h-12 mb-2" />
-            )}
-            <div className="font-bold text-lg">{dealerInfo?.companyName || 'Company Name'}</div>
-            <div className="text-xs">{dealerInfo?.address}</div>
-            <div className="text-xs">{dealerInfo?.phone}</div>
-          </div>
-          <div className="text-right">
-            <div className="font-bold text-xl">NEW CUSTOMER APPLICATION</div>
-            <div className="text-xs mt-1">{today}</div>
-          </div>
-        </div>
+        <table className="w-full border-collapse mb-4">
+          <tbody>
+            <tr>
+              <td className="align-top w-1/2">
+                {dealerInfo?.logoUrl && (
+                  <img src={dealerInfo.logoUrl} alt="Logo" className="h-10 mb-1" />
+                )}
+                <div className="font-bold text-[12px]">{dealerInfo?.companyName || 'Company Name'}</div>
+                <div className="text-[9px]">{dealerInfo?.address}</div>
+                <div className="text-[9px]">{dealerInfo?.phone}</div>
+              </td>
+              <td className="align-top text-right">
+                <div className="font-bold text-[14px]">NEW CUSTOMER APPLICATION</div>
+                <div className="text-[9px] mt-1">{today}</div>
+              </td>
+            </tr>
+          </tbody>
+        </table>
 
         {/* Customer Information */}
-        <div className="mb-4">
-          <div className="font-bold bg-gray-200 px-2 py-1 mb-2">CUSTOMER INFORMATION</div>
-          <div className="grid grid-cols-2 gap-x-4 gap-y-1 text-xs px-2">
-            <div><span className="font-semibold">Company Legal Name:</span> {formData.companyName}</div>
-            <div><span className="font-semibold">Trade Name (DBA):</span> {formData.tradeName}</div>
-            <div className="col-span-2"><span className="font-semibold">Description of Business:</span> {formData.businessDescription}</div>
-            <div><span className="font-semibold">Tax ID #:</span> {formData.taxId} ({formData.taxIdState})</div>
-            <div><span className="font-semibold">Business Type:</span> {formData.businessType?.replace('_', ' ')}</div>
-            <div><span className="font-semibold">Year Established:</span> {formData.yearEstablished}</div>
-            <div><span className="font-semibold">Years Owned:</span> {formData.yearsOwned}</div>
-            <div className="col-span-2"><span className="font-semibold">Credit Requested:</span> {formData.creditRequested}</div>
-          </div>
-        </div>
+        <table className="w-full border-collapse text-[9px] mb-3">
+          <thead>
+            <tr className="border-b-2 border-black">
+              <th colSpan={4} className="text-left py-1 pb-2 font-bold text-[10px]">CUSTOMER INFORMATION</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td className="py-1 pr-2 font-semibold w-[15%]">Company Legal Name:</td>
+              <td className="py-1 pr-4 w-[35%]">{formData.companyName}</td>
+              <td className="py-1 pr-2 font-semibold w-[15%]">Trade Name (DBA):</td>
+              <td className="py-1 w-[35%]">{formData.tradeName}</td>
+            </tr>
+            <tr>
+              <td className="py-1 pr-2 font-semibold">Description of Business:</td>
+              <td colSpan={3} className="py-1">{formData.businessDescription}</td>
+            </tr>
+            <tr>
+              <td className="py-1 pr-2 font-semibold">Tax ID #:</td>
+              <td className="py-1 pr-4">{formData.taxId} {formData.taxIdState ? `(${formData.taxIdState})` : ''}</td>
+              <td className="py-1 pr-2 font-semibold">Business Type:</td>
+              <td className="py-1">{businessTypeLabel}</td>
+            </tr>
+            <tr>
+              <td className="py-1 pr-2 font-semibold">Year Established:</td>
+              <td className="py-1 pr-4">{formData.yearEstablished}</td>
+              <td className="py-1 pr-2 font-semibold">Years Owned:</td>
+              <td className="py-1">{formData.yearsOwned}</td>
+            </tr>
+            <tr>
+              <td className="py-1 pr-2 font-semibold">Credit Requested:</td>
+              <td colSpan={3} className="py-1">{formData.creditRequested}</td>
+            </tr>
+          </tbody>
+        </table>
 
-        {/* Addresses */}
-        <div className="mb-4 grid grid-cols-3 gap-3">
-          <div>
-            <div className="font-bold bg-gray-200 px-2 py-1 mb-2 text-xs">HEADQUARTERS</div>
-            <div className="text-xs px-2 space-y-0.5">
-              <div>{formData.hqAddress}</div>
-              {formData.hqAddress2 && <div>{formData.hqAddress2}</div>}
-              <div>{formData.hqCity}, {formData.hqState} {formData.hqZip}</div>
-              <div>Phone: {formData.hqPhone}</div>
-              {formData.hqFax && <div>Fax: {formData.hqFax}</div>}
-              <div>Email: {formData.hqEmail}</div>
-            </div>
-          </div>
-          <div>
-            <div className="font-bold bg-gray-200 px-2 py-1 mb-2 text-xs">BRANCH OFFICE</div>
-            <div className="text-xs px-2 space-y-0.5">
+        {/* Addresses - Three Column Layout */}
+        <div className="grid grid-cols-3 gap-3 mb-3">
+          {/* Headquarters */}
+          <table className="w-full border-collapse text-[9px]">
+            <thead>
+              <tr className="border-b-2 border-black">
+                <th className="text-left py-1 pb-2 font-bold text-[10px]">HEADQUARTERS</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr><td className="py-0.5">{formData.hqAddress}</td></tr>
+              {formData.hqAddress2 && <tr><td className="py-0.5">{formData.hqAddress2}</td></tr>}
+              <tr><td className="py-0.5">{formData.hqCity}, {formData.hqState} {formData.hqZip}</td></tr>
+              <tr><td className="py-0.5">Phone: {formData.hqPhone}</td></tr>
+              {formData.hqFax && <tr><td className="py-0.5">Fax: {formData.hqFax}</td></tr>}
+              <tr><td className="py-0.5">Email: {formData.hqEmail}</td></tr>
+            </tbody>
+          </table>
+
+          {/* Branch */}
+          <table className="w-full border-collapse text-[9px]">
+            <thead>
+              <tr className="border-b-2 border-black">
+                <th className="text-left py-1 pb-2 font-bold text-[10px]">BRANCH OFFICE</th>
+              </tr>
+            </thead>
+            <tbody>
               {formData.branchSameAsHq ? (
-                <div className="italic">Same as Headquarters</div>
+                <tr><td className="py-0.5 italic">Same as Headquarters</td></tr>
               ) : (
                 <>
-                  <div>{formData.branchAddress}</div>
-                  {formData.branchAddress2 && <div>{formData.branchAddress2}</div>}
-                  <div>{formData.branchCity}, {formData.branchState} {formData.branchZip}</div>
-                  <div>Phone: {formData.branchPhone}</div>
-                  {formData.branchFax && <div>Fax: {formData.branchFax}</div>}
-                  <div>Email: {formData.branchEmail}</div>
+                  <tr><td className="py-0.5">{formData.branchAddress}</td></tr>
+                  {formData.branchAddress2 && <tr><td className="py-0.5">{formData.branchAddress2}</td></tr>}
+                  <tr><td className="py-0.5">{formData.branchCity}, {formData.branchState} {formData.branchZip}</td></tr>
+                  <tr><td className="py-0.5">Phone: {formData.branchPhone}</td></tr>
+                  {formData.branchFax && <tr><td className="py-0.5">Fax: {formData.branchFax}</td></tr>}
+                  <tr><td className="py-0.5">Email: {formData.branchEmail}</td></tr>
                 </>
               )}
-            </div>
-          </div>
-          <div>
-            <div className="font-bold bg-gray-200 px-2 py-1 mb-2 text-xs">BILLING OFFICE</div>
-            <div className="text-xs px-2 space-y-0.5">
+            </tbody>
+          </table>
+
+          {/* Billing */}
+          <table className="w-full border-collapse text-[9px]">
+            <thead>
+              <tr className="border-b-2 border-black">
+                <th className="text-left py-1 pb-2 font-bold text-[10px]">BILLING OFFICE</th>
+              </tr>
+            </thead>
+            <tbody>
               {formData.billingSameAsHq ? (
-                <div className="italic">Same as Headquarters</div>
+                <tr><td className="py-0.5 italic">Same as Headquarters</td></tr>
               ) : formData.billingSameAsBranch ? (
-                <div className="italic">Same as Branch</div>
+                <tr><td className="py-0.5 italic">Same as Branch</td></tr>
               ) : (
                 <>
-                  <div>{formData.billingAddress}</div>
-                  {formData.billingAddress2 && <div>{formData.billingAddress2}</div>}
-                  <div>{formData.billingCity}, {formData.billingState} {formData.billingZip}</div>
-                  <div>Phone: {formData.billingPhone}</div>
-                  {formData.billingFax && <div>Fax: {formData.billingFax}</div>}
-                  <div>Email: {formData.billingEmail}</div>
+                  <tr><td className="py-0.5">{formData.billingAddress}</td></tr>
+                  {formData.billingAddress2 && <tr><td className="py-0.5">{formData.billingAddress2}</td></tr>}
+                  <tr><td className="py-0.5">{formData.billingCity}, {formData.billingState} {formData.billingZip}</td></tr>
+                  <tr><td className="py-0.5">Phone: {formData.billingPhone}</td></tr>
+                  {formData.billingFax && <tr><td className="py-0.5">Fax: {formData.billingFax}</td></tr>}
+                  <tr><td className="py-0.5">Email: {formData.billingEmail}</td></tr>
                 </>
               )}
-            </div>
-          </div>
+            </tbody>
+          </table>
         </div>
 
         {/* Contacts */}
-        <div className="mb-4">
-          <div className="font-bold bg-gray-200 px-2 py-1 mb-2">CONTACTS</div>
-          <div className="grid grid-cols-3 gap-3 text-xs px-2">
-            <div>
-              <div className="font-semibold mb-1">Principal / Owner</div>
-              <div>{formData.principalName}</div>
-              <div>{formData.principalTitle}</div>
-              <div>{formData.principalPhone}</div>
-              <div>{formData.principalEmail}</div>
-            </div>
-            <div>
-              <div className="font-semibold mb-1">Equipment / Meter Contact</div>
-              <div>{formData.equipmentContactName}</div>
-              <div>{formData.equipmentContactTitle}</div>
-              <div>{formData.equipmentContactPhone}</div>
-              <div>{formData.equipmentContactEmail}</div>
-            </div>
-            <div>
-              <div className="font-semibold mb-1">Accounts Payable</div>
-              <div>{formData.apContactName}</div>
-              <div>{formData.apContactTitle}</div>
-              <div>{formData.apContactPhone}</div>
-              <div>{formData.apContactEmail}</div>
-            </div>
-          </div>
-        </div>
+        <table className="w-full border-collapse text-[9px] mb-3">
+          <thead>
+            <tr className="border-b-2 border-black">
+              <th className="text-left py-1 pb-2 font-bold text-[10px] w-1/3">PRINCIPAL / OWNER</th>
+              <th className="text-left py-1 pb-2 font-bold text-[10px] w-1/3">EQUIPMENT / METER CONTACT</th>
+              <th className="text-left py-1 pb-2 font-bold text-[10px] w-1/3">ACCOUNTS PAYABLE</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td className="py-0.5 align-top">
+                <div>{formData.principalName}</div>
+                <div>{formData.principalTitle}</div>
+                <div>{formData.principalPhone}</div>
+                <div>{formData.principalEmail}</div>
+              </td>
+              <td className="py-0.5 align-top">
+                <div>{formData.equipmentContactName}</div>
+                <div>{formData.equipmentContactTitle}</div>
+                <div>{formData.equipmentContactPhone}</div>
+                <div>{formData.equipmentContactEmail}</div>
+              </td>
+              <td className="py-0.5 align-top">
+                <div>{formData.apContactName}</div>
+                <div>{formData.apContactTitle}</div>
+                <div>{formData.apContactPhone}</div>
+                <div>{formData.apContactEmail}</div>
+              </td>
+            </tr>
+          </tbody>
+        </table>
 
         {/* Interests */}
-        <div className="mb-4">
-          <div className="font-bold bg-gray-200 px-2 py-1 mb-2">INTERESTS</div>
-          <div className="text-xs px-2 flex gap-4">
-            {formData.interestOfficeMachines && <span>☑ Office Machines</span>}
-            {formData.interestFurniture && <span>☑ Furniture</span>}
-            {formData.interestSupplies && <span>☑ Supplies</span>}
-            {formData.interestOther && <span>☑ Other: {formData.interestOther}</span>}
-          </div>
-        </div>
+        <table className="w-full border-collapse text-[9px] mb-3">
+          <thead>
+            <tr className="border-b-2 border-black">
+              <th className="text-left py-1 pb-2 font-bold text-[10px]">INTERESTS</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td className="py-1">
+                <span className="mr-4">{formData.interestOfficeMachines ? '☑' : '☐'} Office Machines</span>
+                <span className="mr-4">{formData.interestFurniture ? '☑' : '☐'} Furniture</span>
+                <span className="mr-4">{formData.interestSupplies ? '☑' : '☐'} Supplies</span>
+                {formData.interestOther && <span>☑ Other: {formData.interestOther}</span>}
+              </td>
+            </tr>
+          </tbody>
+        </table>
 
-        {/* References */}
-        <div className="mb-4 grid grid-cols-2 gap-4">
-          <div>
-            <div className="font-bold bg-gray-200 px-2 py-1 mb-2 text-xs">BANK REFERENCES</div>
-            {formData.bankReferences.map((ref, i) => (
-              <div key={ref.id} className="text-xs px-2 mb-2">
-                <div className="font-semibold">{i + 1}. {ref.bankName || '________________________'}</div>
-                <div>Address: {ref.address || '________________________'}</div>
-                <div>{ref.cityStZip || '________________________'}</div>
-                <div>Contact: {ref.contact || '________'} | Phone: {ref.phone || '________'}</div>
-                <div>Account #: {ref.accountNumber || '________________________'}</div>
-              </div>
-            ))}
-          </div>
-          <div>
-            <div className="font-bold bg-gray-200 px-2 py-1 mb-2 text-xs">BUSINESS REFERENCES</div>
-            {formData.businessReferences.map((ref, i) => (
-              <div key={ref.id} className="text-xs px-2 mb-2">
-                <div className="font-semibold">{i + 1}. {ref.company || '________________________'}</div>
-                <div>Contact: {ref.contact || '________'} | Title: {ref.title || '________'}</div>
-                <div>Phone: {ref.phone || '________'}</div>
-                <div>Email: {ref.email || '________________________'}</div>
-              </div>
-            ))}
-          </div>
+        {/* References - Two Column Layout */}
+        <div className="grid grid-cols-2 gap-4 mb-3">
+          {/* Bank References */}
+          <table className="w-full border-collapse text-[9px]">
+            <thead>
+              <tr className="border-b-2 border-black">
+                <th className="text-left py-1 pb-2 font-bold text-[10px]">BANK REFERENCES</th>
+              </tr>
+            </thead>
+            <tbody>
+              {formData.bankReferences.map((ref, i) => (
+                <tr key={ref.id}>
+                  <td className="py-1">
+                    <div className="font-semibold">{i + 1}. {ref.bankName || '________________________'}</div>
+                    <div>Address: {ref.address || '________________________'}</div>
+                    <div>{ref.cityStZip || '________________________'}</div>
+                    <div>Contact: {ref.contact || '________'} | Phone: {ref.phone || '________'}</div>
+                    <div>Account #: {ref.accountNumber || '________________________'}</div>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+
+          {/* Business References */}
+          <table className="w-full border-collapse text-[9px]">
+            <thead>
+              <tr className="border-b-2 border-black">
+                <th className="text-left py-1 pb-2 font-bold text-[10px]">BUSINESS REFERENCES</th>
+              </tr>
+            </thead>
+            <tbody>
+              {formData.businessReferences.map((ref, i) => (
+                <tr key={ref.id}>
+                  <td className="py-1">
+                    <div className="font-semibold">{i + 1}. {ref.company || '________________________'}</div>
+                    <div>Contact: {ref.contact || '________'} | Title: {ref.title || '________'}</div>
+                    <div>Phone: {ref.phone || '________'}</div>
+                    <div>Email: {ref.email || '________________________'}</div>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
         </div>
 
         {/* Invoicing & Payment */}
-        <div className="mb-4">
-          <div className="font-bold bg-gray-200 px-2 py-1 mb-2">INVOICING & PAYMENT</div>
-          <div className="text-xs px-2 grid grid-cols-2 gap-4">
-            <div>
-              <div><span className="font-semibold">Invoice Delivery:</span> {formData.invoiceDelivery}</div>
-              <div><span className="font-semibold">Invoice Email:</span> {formData.invoiceEmail}</div>
-              {formData.invoiceSecondaryEmail && <div><span className="font-semibold">Secondary Email:</span> {formData.invoiceSecondaryEmail}</div>}
-            </div>
-            <div>
-              <div className="font-semibold">Preferred Payment Method:</div>
-              <div className="flex gap-4 mt-1">
-                <span>{formData.paymentMethod === 'check' ? '☑' : '☐'} Check</span>
-                <span>{formData.paymentMethod === 'credit_card' ? '☑' : '☐'} Credit Card</span>
-                <span>{formData.paymentMethod === 'eft_ach' ? '☑' : '☐'} EFT/ACH</span>
-              </div>
-            </div>
-          </div>
-        </div>
+        <table className="w-full border-collapse text-[9px] mb-3">
+          <thead>
+            <tr className="border-b-2 border-black">
+              <th colSpan={2} className="text-left py-1 pb-2 font-bold text-[10px]">INVOICING & PAYMENT</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td className="py-1 w-1/2 align-top">
+                <div><span className="font-semibold">Invoice Delivery:</span> {formData.invoiceDelivery}</div>
+                <div><span className="font-semibold">Invoice Email:</span> {formData.invoiceEmail}</div>
+                {formData.invoiceSecondaryEmail && <div><span className="font-semibold">Secondary Email:</span> {formData.invoiceSecondaryEmail}</div>}
+              </td>
+              <td className="py-1 w-1/2 align-top">
+                <div className="font-semibold mb-1">Preferred Payment Method:</div>
+                <div>
+                  <span className="mr-4">{formData.paymentMethod === 'check' ? '☑' : '☐'} Check</span>
+                  <span className="mr-4">{formData.paymentMethod === 'credit_card' ? '☑' : '☐'} Credit Card</span>
+                  <span>{formData.paymentMethod === 'eft_ach' ? '☑' : '☐'} EFT/ACH</span>
+                </div>
+              </td>
+            </tr>
+          </tbody>
+        </table>
 
         {/* Terms & Conditions */}
-        <div className="mb-4">
-          <div className="font-bold bg-gray-200 px-2 py-1 mb-2">TERMS & CONDITIONS</div>
-          <div className="text-xs px-2 whitespace-pre-wrap">{termsText}</div>
-        </div>
+        <table className="w-full border-collapse text-[9px] mb-3">
+          <thead>
+            <tr className="border-b-2 border-black">
+              <th className="text-left py-1 pb-2 font-bold text-[10px]">TERMS & CONDITIONS</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td className="py-2 whitespace-pre-wrap">{termsText}</td>
+            </tr>
+          </tbody>
+        </table>
 
         {/* Acknowledgement & Authorization */}
-        <div className="mb-4">
-          <div className="font-bold bg-gray-200 px-2 py-1 mb-2">ACKNOWLEDGEMENT & AUTHORIZATION</div>
-          <div className="text-xs px-2">
-            I certify that all information provided in this application is true and complete to the best of my knowledge. 
-            I authorize {dealerInfo?.companyName ? dealerInfo.companyName : 'the company'} and its agents to verify the 
-            information provided herein and to obtain credit reports and make any credit inquiries deemed necessary in 
-            connection with this credit application or any update, renewal, or extension of credit. I understand that 
-            this application does not guarantee the extension of credit and that credit terms are subject to approval.
-          </div>
-        </div>
+        <table className="w-full border-collapse text-[9px] mb-4">
+          <thead>
+            <tr className="border-b-2 border-black">
+              <th className="text-left py-1 pb-2 font-bold text-[10px]">ACKNOWLEDGEMENT & AUTHORIZATION</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td className="py-2">
+                I certify that all information provided in this application is true and complete to the best of my knowledge. 
+                I authorize {dealerInfo?.companyName ? dealerInfo.companyName : 'the company'} and its agents to verify the 
+                information provided herein and to obtain credit reports and make any credit inquiries deemed necessary in 
+                connection with this credit application or any update, renewal, or extension of credit. I understand that 
+                this application does not guarantee the extension of credit and that credit terms are subject to approval.
+              </td>
+            </tr>
+          </tbody>
+        </table>
 
         {/* Signature Block */}
-        <div className="mt-6 pt-4 border-t-2 border-black">
-          <div className="grid grid-cols-2 gap-8 mt-4">
-            <div>
-              <div className="border-b border-black mb-1 h-8"></div>
-              <div className="text-xs">Authorized Signature</div>
-            </div>
-            <div>
-              <div className="border-b border-black mb-1 h-8"></div>
-              <div className="text-xs">Date</div>
-            </div>
-          </div>
-          <div className="grid grid-cols-2 gap-8 mt-4">
-            <div>
-              <div className="border-b border-black mb-1 h-8"></div>
-              <div className="text-xs">Print Name</div>
-            </div>
-            <div>
-              <div className="border-b border-black mb-1 h-8"></div>
-              <div className="text-xs">Title</div>
-            </div>
-          </div>
-        </div>
+        <table className="w-full border-collapse text-[9px] border-t-2 border-black pt-4">
+          <tbody>
+            <tr>
+              <td className="pt-6 pr-4 w-1/2">
+                <div className="border-b border-black h-6"></div>
+                <div className="pt-1">Authorized Signature</div>
+              </td>
+              <td className="pt-6 w-1/2">
+                <div className="border-b border-black h-6"></div>
+                <div className="pt-1">Date</div>
+              </td>
+            </tr>
+            <tr>
+              <td className="pt-4 pr-4">
+                <div className="border-b border-black h-6"></div>
+                <div className="pt-1">Print Name</div>
+              </td>
+              <td className="pt-4">
+                <div className="border-b border-black h-6"></div>
+                <div className="pt-1">Title</div>
+              </td>
+            </tr>
+          </tbody>
+        </table>
       </div>
     );
   }
