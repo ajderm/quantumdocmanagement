@@ -1,4 +1,5 @@
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.49.1';
+import { encryptToken, decryptToken } from '../_shared/crypto.ts';
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -38,12 +39,13 @@ function validateDealId(dealId: string): boolean {
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 async function refreshAccessToken(
   supabase: any,
-  token: HubSpotToken
+  token: HubSpotToken,
+  portalId: string
 ): Promise<string> {
   const clientId = Deno.env.get('HUBSPOT_CLIENT_ID');
   const clientSecret = Deno.env.get('HUBSPOT_CLIENT_SECRET');
 
-  console.log('Refreshing access token for portal:', token.portal_id);
+  console.log('Refreshing access token for portal:', portalId);
 
   const response = await fetch('https://api.hubapi.com/oauth/v1/token', {
     method: 'POST',
@@ -65,17 +67,25 @@ async function refreshAccessToken(
   const data = await response.json();
   const expiresAt = new Date(Date.now() + data.expires_in * 1000).toISOString();
 
-  // Update token in database
+  // Encrypt new tokens before storing
+  console.log('Encrypting refreshed tokens...');
+  const encryptedAccessToken = await encryptToken(data.access_token);
+  const encryptedRefreshToken = await encryptToken(data.refresh_token);
+
+  // Update token in database with encrypted values
   await supabase
     .from('hubspot_tokens')
     .update({
-      access_token: data.access_token,
-      refresh_token: data.refresh_token,
+      access_token: '', // Clear plaintext
+      refresh_token: '', // Clear plaintext
+      access_token_encrypted: encryptedAccessToken,
+      refresh_token_encrypted: encryptedRefreshToken,
+      tokens_encrypted: true,
       expires_at: expiresAt,
     })
-    .eq('portal_id', token.portal_id);
+    .eq('portal_id', portalId);
 
-  console.log('Token refreshed successfully');
+  console.log('Token refreshed and encrypted successfully');
   return data.access_token;
 }
 
@@ -97,11 +107,27 @@ async function getValidAccessToken(
     throw new Error('No token found for portal');
   }
 
-  console.log('Token found, expires at:', data.expires_at);
+  console.log('Token found, expires at:', data.expires_at, 'encrypted:', data.tokens_encrypted);
+
+  // Decrypt tokens if they are encrypted
+  let accessToken: string;
+  let refreshToken: string;
+
+  if (data.tokens_encrypted) {
+    console.log('Decrypting tokens...');
+    accessToken = await decryptToken(data.access_token_encrypted);
+    refreshToken = await decryptToken(data.refresh_token_encrypted);
+    console.log('Tokens decrypted successfully');
+  } else {
+    // Legacy plaintext tokens (during migration period)
+    console.log('Using legacy plaintext tokens');
+    accessToken = data.access_token;
+    refreshToken = data.refresh_token;
+  }
 
   const token: HubSpotToken = {
-    access_token: data.access_token,
-    refresh_token: data.refresh_token,
+    access_token: accessToken,
+    refresh_token: refreshToken,
     expires_at: data.expires_at,
     portal_id: data.portal_id,
   };
@@ -113,7 +139,7 @@ async function getValidAccessToken(
 
   if (expiresAt.getTime() - bufferMs < now.getTime()) {
     console.log('Token expired or expiring soon, refreshing...');
-    return await refreshAccessToken(supabase, token);
+    return await refreshAccessToken(supabase, token, portalId);
   }
 
   return token.access_token;

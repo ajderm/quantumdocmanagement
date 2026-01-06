@@ -309,29 +309,38 @@ export type Database = {
       hubspot_tokens: {
         Row: {
           access_token: string
+          access_token_encrypted: string | null
           created_at: string
           expires_at: string
           id: string
           portal_id: string
           refresh_token: string
+          refresh_token_encrypted: string | null
+          tokens_encrypted: boolean | null
           updated_at: string
         }
         Insert: {
           access_token: string
+          access_token_encrypted?: string | null
           created_at?: string
           expires_at: string
           id?: string
           portal_id: string
           refresh_token: string
+          refresh_token_encrypted?: string | null
+          tokens_encrypted?: boolean | null
           updated_at?: string
         }
         Update: {
           access_token?: string
+          access_token_encrypted?: string | null
           created_at?: string
           expires_at?: string
           id?: string
           portal_id?: string
           refresh_token?: string
+          refresh_token_encrypted?: string | null
+          tokens_encrypted?: boolean | null
           updated_at?: string
         }
         Relationships: []
