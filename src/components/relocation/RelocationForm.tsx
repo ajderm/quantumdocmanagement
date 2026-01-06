@@ -209,7 +209,7 @@ const RelocationForm: React.FC<RelocationFormProps> = ({ formData, onChange }) =
 
             {/* Right Column - Bill To */}
             <div className="space-y-4">
-              <div className="text-sm font-semibold text-muted-foreground mb-2">Bill To</div>
+              <div className="text-sm font-semibold text-muted-foreground">Bill To</div>
               <div>
                 <Label htmlFor="billToAddress">Address</Label>
                 <Input
