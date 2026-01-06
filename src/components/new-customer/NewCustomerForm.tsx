@@ -255,11 +255,12 @@ export function NewCustomerForm({
     onChange({ ...formData, businessReferences: newRefs });
   };
 
-  // Copy HQ to Branch when checkbox is checked
-  useEffect(() => {
-    if (formData.branchSameAsHq) {
+  // Handler for Branch Same as HQ toggle
+  const handleBranchSameAsHq = (checked: boolean) => {
+    if (checked) {
       onChange({
         ...formData,
+        branchSameAsHq: true,
         branchAddress: formData.hqAddress,
         branchAddress2: formData.hqAddress2,
         branchCity: formData.hqCity,
@@ -269,14 +270,18 @@ export function NewCustomerForm({
         branchFax: formData.hqFax,
         branchEmail: formData.hqEmail,
       });
+    } else {
+      onChange({ ...formData, branchSameAsHq: false });
     }
-  }, [formData.branchSameAsHq]);
+  };
 
-  // Copy HQ or Branch to Billing when checkbox is checked
-  useEffect(() => {
-    if (formData.billingSameAsHq) {
+  // Handler for Billing Same as HQ toggle
+  const handleBillingSameAsHq = (checked: boolean) => {
+    if (checked) {
       onChange({
         ...formData,
+        billingSameAsHq: true,
+        billingSameAsBranch: false,
         billingAddress: formData.hqAddress,
         billingAddress2: formData.hqAddress2,
         billingCity: formData.hqCity,
@@ -285,11 +290,19 @@ export function NewCustomerForm({
         billingPhone: formData.hqPhone,
         billingFax: formData.hqFax,
         billingEmail: formData.hqEmail,
-        billingSameAsBranch: false,
       });
-    } else if (formData.billingSameAsBranch) {
+    } else {
+      onChange({ ...formData, billingSameAsHq: false });
+    }
+  };
+
+  // Handler for Billing Same as Branch toggle
+  const handleBillingSameAsBranch = (checked: boolean) => {
+    if (checked) {
       onChange({
         ...formData,
+        billingSameAsBranch: true,
+        billingSameAsHq: false,
         billingAddress: formData.branchAddress,
         billingAddress2: formData.branchAddress2,
         billingCity: formData.branchCity,
@@ -298,10 +311,11 @@ export function NewCustomerForm({
         billingPhone: formData.branchPhone,
         billingFax: formData.branchFax,
         billingEmail: formData.branchEmail,
-        billingSameAsHq: false,
       });
+    } else {
+      onChange({ ...formData, billingSameAsBranch: false });
     }
-  }, [formData.billingSameAsHq, formData.billingSameAsBranch]);
+  };
 
   return (
     <div className="space-y-6">
@@ -417,7 +431,7 @@ export function NewCustomerForm({
             <CardTitle className="text-sm flex items-center justify-between">
               <span>Branch Office</span>
               <div className="flex items-center gap-2">
-                <Checkbox id="branchSameAsHq" checked={formData.branchSameAsHq} onCheckedChange={c => updateField('branchSameAsHq', !!c)} />
+                <Checkbox id="branchSameAsHq" checked={formData.branchSameAsHq} onCheckedChange={c => handleBranchSameAsHq(!!c)} />
                 <Label htmlFor="branchSameAsHq" className="text-xs font-normal">Same as HQ</Label>
               </div>
             </CardTitle>
@@ -444,9 +458,9 @@ export function NewCustomerForm({
             <CardTitle className="text-sm flex items-center justify-between">
               <span>Billing Office</span>
               <div className="flex items-center gap-2">
-                <Checkbox id="billingSameAsHq" checked={formData.billingSameAsHq} onCheckedChange={c => { updateField('billingSameAsHq', !!c); if (c) updateField('billingSameAsBranch', false); }} />
+                <Checkbox id="billingSameAsHq" checked={formData.billingSameAsHq} onCheckedChange={c => handleBillingSameAsHq(!!c)} />
                 <Label htmlFor="billingSameAsHq" className="text-xs font-normal">HQ</Label>
-                <Checkbox id="billingSameAsBranch" checked={formData.billingSameAsBranch} onCheckedChange={c => { updateField('billingSameAsBranch', !!c); if (c) updateField('billingSameAsHq', false); }} />
+                <Checkbox id="billingSameAsBranch" checked={formData.billingSameAsBranch} onCheckedChange={c => handleBillingSameAsBranch(!!c)} />
                 <Label htmlFor="billingSameAsBranch" className="text-xs font-normal">Branch</Label>
               </div>
             </CardTitle>
