@@ -11,7 +11,9 @@ import {
   CheckCircle2,
   AlertCircle,
   Clock,
-  Building2
+  Building2,
+  ExternalLink,
+  Cog
 } from 'lucide-react';
 import { useState, useEffect, useRef } from 'react';
 import { Link, useSearchParams } from 'react-router-dom';
@@ -191,6 +193,32 @@ export default function LeasingPartners() {
             Upload your rate sheet to configure leasing companies and rate factors
           </p>
         </div>
+
+        {/* Document Processor Section */}
+        <Card className="mb-6">
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <Cog className="h-5 w-5" />
+              Rate Sheet Processor
+            </CardTitle>
+            <CardDescription>
+              Use Quantum's Document Processor to convert multiple leasing companies' rate files into a single CSV ready for upload
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <Button 
+              variant="outline" 
+              className="w-full justify-between"
+              onClick={() => window.open('https://qbsdocumentprocessor.lovable.app/', '_blank')}
+            >
+              <span className="flex items-center gap-2">
+                <Cog className="h-4 w-4" />
+                Open Quantum Document Processor
+              </span>
+              <ExternalLink className="h-4 w-4" />
+            </Button>
+          </CardContent>
+        </Card>
 
         {/* Upload Section */}
         <Card className="mb-6">
