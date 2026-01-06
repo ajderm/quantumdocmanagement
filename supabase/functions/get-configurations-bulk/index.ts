@@ -89,6 +89,7 @@ Deno.serve(async (req) => {
       leaseReturnResult,
       interterritorialResult,
       newCustomerResult,
+      relocationResult,
     ] = await Promise.all([
       supabase
         .from('quote_configurations')
@@ -136,6 +137,12 @@ Deno.serve(async (req) => {
         .eq('portal_id', portalId)
         .eq('deal_id', dealId)
         .maybeSingle(),
+      supabase
+        .from('relocation_configurations')
+        .select('configuration')
+        .eq('portal_id', portalId)
+        .eq('deal_id', dealId)
+        .maybeSingle(),
     ]);
 
     // Build installation configs map
@@ -163,6 +170,7 @@ Deno.serve(async (req) => {
       leaseReturn: leaseReturnResult.data?.configuration || null,
       interterritorial: interterritorialResult.data?.configuration || null,
       newCustomer: newCustomerResult.data?.configuration || null,
+      relocation: relocationResult.data?.configuration || null,
     };
 
     return new Response(
