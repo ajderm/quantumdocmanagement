@@ -819,109 +819,113 @@ export function QuoteForm({ deal, company, lineItems, dealOwner, onFormChange, p
           <CardTitle className="text-sm">Buyout Information</CardTitle>
         </CardHeader>
         <CardContent>
-          <div className="grid grid-cols-5 gap-3">
-            <div>
-              <Label className="text-xs">Payments Remaining</Label>
-              <Input 
-                type="number"
-                min="0"
-                value={formData.paymentsRemaining || ''} 
-                onChange={e => updateField('paymentsRemaining', parseInt(e.target.value) || 0)} 
-                className="h-8 text-sm"
-                placeholder="0"
-              />
-            </div>
-            <div>
-              <Label className="text-xs">Current Payment</Label>
-              <div className="relative">
-                <span className="absolute left-2 top-1/2 -translate-y-1/2 text-muted-foreground text-sm">$</span>
+          <div className="grid grid-cols-2 gap-4">
+            <div className="grid grid-cols-2 gap-2">
+              <div>
+                <Label className="text-xs">Payments Remaining</Label>
                 <Input 
-                  type="text"
-                  value={paymentAmountText}
-                  onChange={e => {
-                    const val = e.target.value;
-                    if (val === '' || /^\d*\.?\d*$/.test(val)) {
-                      setPaymentAmountText(val);
-                      const num = parseFloat(val);
-                      if (!isNaN(num)) updateField('paymentAmount', num);
-                      else if (val === '') updateField('paymentAmount', 0);
-                    }
-                  }}
-                  className="h-8 text-sm pl-5"
-                  placeholder="0.00"
+                  type="number"
+                  min="0"
+                  value={formData.paymentsRemaining || ''} 
+                  onChange={e => updateField('paymentsRemaining', parseInt(e.target.value) || 0)} 
+                  className="h-8 text-sm"
+                  placeholder="0"
                 />
               </div>
-            </div>
-            <div>
-              <Label className="text-xs">Early Term. Fee</Label>
-              <div className="relative">
-                <span className="absolute left-2 top-1/2 -translate-y-1/2 text-muted-foreground text-sm">$</span>
-                <Input 
-                  type="text"
-                  value={earlyTerminationFeeText}
-                  onChange={e => {
-                    const val = e.target.value;
-                    if (val === '' || /^\d*\.?\d*$/.test(val)) {
-                      setEarlyTerminationFeeText(val);
-                      const num = parseFloat(val);
-                      if (!isNaN(num)) updateField('earlyTerminationFee', num);
-                      else if (val === '') updateField('earlyTerminationFee', 0);
-                    }
-                  }}
-                  className="h-8 text-sm pl-5"
-                  placeholder="0.00"
-                />
-              </div>
-            </div>
-            <div>
-              <Label className="text-xs">Return Shipping</Label>
-              <div className="relative">
-                <span className="absolute left-2 top-1/2 -translate-y-1/2 text-muted-foreground text-sm">$</span>
-                <Input 
-                  type="text"
-                  value={returnShippingText}
-                  onChange={e => {
-                    const val = e.target.value;
-                    if (val === '' || /^\d*\.?\d*$/.test(val)) {
-                      setReturnShippingText(val);
-                      const num = parseFloat(val);
-                      if (!isNaN(num)) updateField('returnShipping', num);
-                      else if (val === '') updateField('returnShipping', 0);
-                    }
-                  }}
-                  className="h-8 text-sm pl-5"
-                  placeholder="0.00"
-                />
-              </div>
-            </div>
-            <div className="col-span-5 mt-4 p-3 bg-muted/50 rounded-lg">
-              <div className="flex justify-between items-center">
-                <div className="flex items-center gap-2">
-                  <span className="text-sm font-medium">Total Buyout</span>
-                  {formData.totalBuyoutManuallySet && (
-                    <button 
-                      type="button" 
-                      onClick={() => updateField('totalBuyoutManuallySet', false)}
-                      className="text-xs text-muted-foreground hover:text-foreground underline"
-                    >
-                      Reset to calculated
-                    </button>
-                  )}
-                </div>
-                <div className="relative w-32">
+              <div>
+                <Label className="text-xs">Current Payment</Label>
+                <div className="relative">
                   <span className="absolute left-2 top-1/2 -translate-y-1/2 text-muted-foreground text-sm">$</span>
                   <Input 
-                    type="number"
-                    step="0.01"
-                    value={formData.totalBuyoutManuallySet && formData.totalBuyoutOverride !== undefined ? formData.totalBuyoutOverride : totalBuyout}
+                    type="text"
+                    value={paymentAmountText}
                     onChange={e => {
-                      const val = parseFloat(e.target.value) || 0;
-                      updateField('totalBuyoutOverride', val);
-                      updateField('totalBuyoutManuallySet', true);
+                      const val = e.target.value;
+                      if (val === '' || /^\d*\.?\d*$/.test(val)) {
+                        setPaymentAmountText(val);
+                        const num = parseFloat(val);
+                        if (!isNaN(num)) updateField('paymentAmount', num);
+                        else if (val === '') updateField('paymentAmount', 0);
+                      }
                     }}
-                    className="h-8 text-sm pl-5 font-medium"
+                    className="h-8 text-sm pl-5"
+                    placeholder="0.00"
                   />
                 </div>
+              </div>
+            </div>
+            <div className="grid grid-cols-2 gap-2">
+              <div>
+                <Label className="text-xs">Early Term. Fee</Label>
+                <div className="relative">
+                  <span className="absolute left-2 top-1/2 -translate-y-1/2 text-muted-foreground text-sm">$</span>
+                  <Input 
+                    type="text"
+                    value={earlyTerminationFeeText}
+                    onChange={e => {
+                      const val = e.target.value;
+                      if (val === '' || /^\d*\.?\d*$/.test(val)) {
+                        setEarlyTerminationFeeText(val);
+                        const num = parseFloat(val);
+                        if (!isNaN(num)) updateField('earlyTerminationFee', num);
+                        else if (val === '') updateField('earlyTerminationFee', 0);
+                      }
+                    }}
+                    className="h-8 text-sm pl-5"
+                    placeholder="0.00"
+                  />
+                </div>
+              </div>
+              <div>
+                <Label className="text-xs">Return Shipping</Label>
+                <div className="relative">
+                  <span className="absolute left-2 top-1/2 -translate-y-1/2 text-muted-foreground text-sm">$</span>
+                  <Input 
+                    type="text"
+                    value={returnShippingText}
+                    onChange={e => {
+                      const val = e.target.value;
+                      if (val === '' || /^\d*\.?\d*$/.test(val)) {
+                        setReturnShippingText(val);
+                        const num = parseFloat(val);
+                        if (!isNaN(num)) updateField('returnShipping', num);
+                        else if (val === '') updateField('returnShipping', 0);
+                      }
+                    }}
+                    className="h-8 text-sm pl-5"
+                    placeholder="0.00"
+                  />
+                </div>
+              </div>
+            </div>
+          </div>
+          <div className="mt-4 p-3 bg-muted/50 rounded-lg">
+            <div className="flex justify-between items-center">
+              <div className="flex items-center gap-2">
+                <span className="text-sm font-medium">Total Buyout</span>
+                {formData.totalBuyoutManuallySet && (
+                  <button 
+                    type="button" 
+                    onClick={() => updateField('totalBuyoutManuallySet', false)}
+                    className="text-xs text-muted-foreground hover:text-foreground underline"
+                  >
+                    Reset to calculated
+                  </button>
+                )}
+              </div>
+              <div className="relative w-32">
+                <span className="absolute left-2 top-1/2 -translate-y-1/2 text-muted-foreground text-sm">$</span>
+                <Input 
+                  type="number"
+                  step="0.01"
+                  value={formData.totalBuyoutManuallySet && formData.totalBuyoutOverride !== undefined ? formData.totalBuyoutOverride : totalBuyout}
+                  onChange={e => {
+                    const val = parseFloat(e.target.value) || 0;
+                    updateField('totalBuyoutOverride', val);
+                    updateField('totalBuyoutManuallySet', true);
+                  }}
+                  className="h-8 text-sm pl-5 font-medium"
+                />
               </div>
             </div>
           </div>
