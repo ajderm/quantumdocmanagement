@@ -1,5 +1,6 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+import { encryptToken } from "../_shared/crypto.ts";
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -90,6 +91,12 @@ serve(async (req) => {
     // Calculate token expiration time
     const expiresAt = new Date(Date.now() + (tokenData.expires_in * 1000));
 
+    // Encrypt tokens before storing
+    console.log('Encrypting tokens before storage...');
+    const encryptedAccessToken = await encryptToken(tokenData.access_token);
+    const encryptedRefreshToken = await encryptToken(tokenData.refresh_token);
+    console.log('Tokens encrypted successfully');
+
     // Store tokens in Supabase
     const supabase = createClient(supabaseUrl!, supabaseServiceKey!);
 
@@ -97,8 +104,11 @@ serve(async (req) => {
       .from('hubspot_tokens')
       .upsert({
         portal_id: portalId,
-        access_token: tokenData.access_token,
-        refresh_token: tokenData.refresh_token,
+        access_token: '', // Clear plaintext column
+        refresh_token: '', // Clear plaintext column
+        access_token_encrypted: encryptedAccessToken,
+        refresh_token_encrypted: encryptedRefreshToken,
+        tokens_encrypted: true,
         expires_at: expiresAt.toISOString(),
         updated_at: new Date().toISOString(),
       }, {
@@ -113,7 +123,7 @@ serve(async (req) => {
       });
     }
 
-    console.log('Tokens stored successfully for portal:', portalId);
+    console.log('Encrypted tokens stored successfully for portal:', portalId);
 
     // Redirect back to HubSpot's Connected Apps page after successful install
     // This is the proper flow for HubSpot marketplace apps
