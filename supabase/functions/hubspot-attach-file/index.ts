@@ -36,11 +36,8 @@ async function refreshAccessToken(supabase: any, portalId: string, refreshToken:
   await supabase
     .from('hubspot_tokens')
     .update({
-      access_token: '', // Clear plaintext
-      refresh_token: '', // Clear plaintext
-      access_token_encrypted: encryptedAccessToken,
-      refresh_token_encrypted: encryptedRefreshToken,
-      tokens_encrypted: true,
+      access_token: encryptedAccessToken,
+      refresh_token: encryptedRefreshToken,
       expires_at: expiresAt,
       updated_at: new Date().toISOString(),
     })
@@ -61,23 +58,11 @@ async function getValidAccessToken(supabase: any, portalId: string): Promise<str
     throw new Error('No HubSpot token found for portal');
   }
 
-  console.log('Token found, encrypted:', tokenData.tokens_encrypted);
-
-  // Decrypt tokens if they are encrypted
-  let accessToken: string;
-  let refreshToken: string;
-
-  if (tokenData.tokens_encrypted) {
-    console.log('Decrypting tokens...');
-    accessToken = await decryptToken(tokenData.access_token_encrypted);
-    refreshToken = await decryptToken(tokenData.refresh_token_encrypted);
-    console.log('Tokens decrypted successfully');
-  } else {
-    // Legacy plaintext tokens (during migration period)
-    console.log('Using legacy plaintext tokens');
-    accessToken = tokenData.access_token;
-    refreshToken = tokenData.refresh_token;
-  }
+  // Tokens are stored encrypted-at-rest (ciphertext in access_token/refresh_token)
+  console.log('Decrypting tokens...');
+  const accessToken = await decryptToken(tokenData.access_token);
+  const refreshToken = await decryptToken(tokenData.refresh_token);
+  console.log('Tokens decrypted successfully');
 
   const expiresAt = new Date(tokenData.expires_at);
   const now = new Date();
