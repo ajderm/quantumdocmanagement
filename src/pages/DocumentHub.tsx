@@ -47,6 +47,8 @@ import { InterterritorialForm, InterterritorialFormData } from '@/components/int
 import { InterterritorialPreview } from '@/components/interterritorial/InterterritorialPreview';
 import { NewCustomerForm, NewCustomerFormData } from '@/components/new-customer/NewCustomerForm';
 import { NewCustomerPreview } from '@/components/new-customer/NewCustomerPreview';
+import RelocationForm, { RelocationFormData, getDefaultRelocationFormData } from '@/components/relocation/RelocationForm';
+import RelocationPreview from '@/components/relocation/RelocationPreview';
 
 const documentTypes = [
   { code: 'quote', name: 'Quote', icon: FileText },
@@ -182,6 +184,18 @@ function DocumentHubContent() {
   const newCustomerAutoSaveTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   const newCustomerFormDataRef = useRef<NewCustomerFormData | null>(null);
 
+  // Relocation state
+  const [relocationFormData, setRelocationFormData] = useState<RelocationFormData | null>(null);
+  const [relocationSavedConfig, setRelocationSavedConfig] = useState<RelocationFormData | null>(null);
+  const [relocationGenerating, setRelocationGenerating] = useState(false);
+  const [relocationSaving, setRelocationSaving] = useState(false);
+  const [showRelocationPreview, setShowRelocationPreview] = useState(false);
+  const [relocationHasUnsavedChanges, setRelocationHasUnsavedChanges] = useState(false);
+  const [relocationLastSavedData, setRelocationLastSavedData] = useState<string | null>(null);
+  const relocationPreviewRef = useRef<HTMLDivElement>(null);
+  const relocationAutoSaveTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const relocationFormDataRef = useRef<RelocationFormData | null>(null);
+
   // Dealer info and settings
   const [dealerInfo, setDealerInfo] = useState<DealerInfo | null>(null);
   const [dealerSettings, setDealerSettings] = useState<DealerSettings>({});
@@ -226,6 +240,11 @@ function DocumentHubContent() {
   useEffect(() => {
     newCustomerFormDataRef.current = newCustomerFormData;
   }, [newCustomerFormData]);
+
+  // Keep relocationFormDataRef in sync
+  useEffect(() => {
+    relocationFormDataRef.current = relocationFormData;
+  }, [relocationFormData]);
 
   // Fetch dealer info when portalId is available
   useEffect(() => {
@@ -346,6 +365,12 @@ function DocumentHubContent() {
           if (configs.newCustomer) {
             console.log('Loaded saved new customer configuration');
             setNewCustomerSavedConfig(configs.newCustomer as NewCustomerFormData);
+          }
+          
+          // Set relocation config
+          if (configs.relocation) {
+            console.log('Loaded saved relocation configuration');
+            setRelocationSavedConfig(configs.relocation as RelocationFormData);
           }
         }
       } catch (err) {
@@ -749,9 +774,69 @@ function DocumentHubContent() {
   };
 
   const handleNewCustomerPreview = () => setShowNewCustomerPreview(true);
+
+  // Relocation auto-save
+  const performRelocationAutoSave = useCallback(async (dataToSave: RelocationFormData) => {
+    const currentPortalId = portalId || localStorage.getItem('hs_portal_id');
+    const dealId = deal?.hsObjectId;
+    if (!currentPortalId || !dealId || !dataToSave) return;
+    const dataString = JSON.stringify(dataToSave);
+    if (dataString === relocationLastSavedData) return;
+    try {
+      const { error: saveError } = await supabase.functions.invoke('save-configuration', {
+        body: { portalId: currentPortalId, dealId, configType: 'relocation', configuration: dataToSave }
+      });
+      if (!saveError) {
+        setRelocationLastSavedData(dataString);
+        setRelocationHasUnsavedChanges(false);
+        console.log('Auto-saved relocation configuration');
+      }
+    } catch (err) { console.error('Relocation auto-save error:', err); }
+  }, [portalId, deal?.hsObjectId, relocationLastSavedData]);
+
+  const handleRelocationFormChange = useCallback((data: RelocationFormData) => {
+    setRelocationFormData(data);
+    setRelocationHasUnsavedChanges(true);
+    if (relocationAutoSaveTimeoutRef.current) clearTimeout(relocationAutoSaveTimeoutRef.current);
+    relocationAutoSaveTimeoutRef.current = setTimeout(() => performRelocationAutoSave(data), AUTO_SAVE_DELAY);
+  }, [performRelocationAutoSave]);
+
+  const handleRelocationSave = async () => {
+    if (!relocationFormData) { toast.error('No data to save'); return; }
+    const currentPortalId = portalId || localStorage.getItem('hs_portal_id');
+    const dealId = deal?.hsObjectId;
+    if (!currentPortalId || !dealId) { toast.error('Missing portal or deal information'); return; }
+    setRelocationSaving(true);
+    try {
+      const { error: saveError } = await supabase.functions.invoke('save-configuration', {
+        body: { portalId: currentPortalId, dealId, configType: 'relocation', configuration: relocationFormData }
+      });
+      if (saveError) { console.error('Save error:', saveError); toast.error('Failed to save'); return; }
+      setRelocationSavedConfig(relocationFormData);
+      setRelocationLastSavedData(JSON.stringify(relocationFormData));
+      setRelocationHasUnsavedChanges(false);
+      toast.success('Relocation request saved');
+    } catch (err) { console.error('Save error:', err); toast.error('Failed to save'); }
+    finally { setRelocationSaving(false); }
+  };
+
+  const handleRelocationGeneratePDF = async () => {
+    if (!relocationPreviewRef.current || !relocationFormData) { toast.error('Please fill in the form first'); return; }
+    setRelocationGenerating(true);
+    try {
+      const pdf = await generateMultiPagePDF(relocationPreviewRef.current);
+      const sanitizedCompanyName = (relocationFormData.companyName || 'Draft').replace(/[^a-zA-Z0-9\s]/g, '').replace(/\s+/g, '_');
+      pdf.save(`Relocation_${sanitizedCompanyName}_${new Date().toISOString().split('T')[0]}.pdf`);
+      toast.success('PDF generated');
+    } catch (err) { console.error('PDF error:', err); toast.error('Failed to generate PDF'); }
+    finally { setRelocationGenerating(false); }
+  };
+
+  const handleRelocationPreview = () => setShowRelocationPreview(true);
+
   useEffect(() => {
     const handleBeforeUnload = (e: BeforeUnloadEvent) => {
-      if ((hasUnsavedChanges && formDataRef.current) || (installationHasUnsavedChanges && installationFormDataRef.current) || (serviceAgreementHasUnsavedChanges && serviceAgreementFormDataRef.current) || (fmvLeaseHasUnsavedChanges && fmvLeaseFormDataRef.current) || (leaseFundingHasUnsavedChanges && leaseFundingFormDataRef.current) || (leaseReturnHasUnsavedChanges && leaseReturnFormDataRef.current) || (interterritorialHasUnsavedChanges && interterritorialFormDataRef.current)) {
+      if ((hasUnsavedChanges && formDataRef.current) || (installationHasUnsavedChanges && installationFormDataRef.current) || (serviceAgreementHasUnsavedChanges && serviceAgreementFormDataRef.current) || (fmvLeaseHasUnsavedChanges && fmvLeaseFormDataRef.current) || (leaseFundingHasUnsavedChanges && leaseFundingFormDataRef.current) || (leaseReturnHasUnsavedChanges && leaseReturnFormDataRef.current) || (interterritorialHasUnsavedChanges && interterritorialFormDataRef.current) || (relocationHasUnsavedChanges && relocationFormDataRef.current)) {
         e.preventDefault();
         e.returnValue = '';
       }
@@ -779,6 +864,9 @@ function DocumentHubContent() {
         }
         if (interterritorialHasUnsavedChanges && interterritorialFormDataRef.current) {
           performInterterritorialAutoSave(interterritorialFormDataRef.current);
+        }
+        if (relocationHasUnsavedChanges && relocationFormDataRef.current) {
+          performRelocationAutoSave(relocationFormDataRef.current);
         }
       }
     };
@@ -811,8 +899,11 @@ function DocumentHubContent() {
       if (interterritorialAutoSaveTimeoutRef.current) {
         clearTimeout(interterritorialAutoSaveTimeoutRef.current);
       }
+      if (relocationAutoSaveTimeoutRef.current) {
+        clearTimeout(relocationAutoSaveTimeoutRef.current);
+      }
     };
-  }, [hasUnsavedChanges, installationHasUnsavedChanges, serviceAgreementHasUnsavedChanges, fmvLeaseHasUnsavedChanges, leaseFundingHasUnsavedChanges, leaseReturnHasUnsavedChanges, interterritorialHasUnsavedChanges, performAutoSave, performInstallationAutoSave, performServiceAgreementAutoSave, performFMVLeaseAutoSave, performLeaseFundingAutoSave, performLeaseReturnAutoSave, performInterterritorialAutoSave]);
+  }, [hasUnsavedChanges, installationHasUnsavedChanges, serviceAgreementHasUnsavedChanges, fmvLeaseHasUnsavedChanges, leaseFundingHasUnsavedChanges, leaseReturnHasUnsavedChanges, interterritorialHasUnsavedChanges, relocationHasUnsavedChanges, performAutoSave, performInstallationAutoSave, performServiceAgreementAutoSave, performFMVLeaseAutoSave, performLeaseFundingAutoSave, performLeaseReturnAutoSave, performInterterritorialAutoSave, performRelocationAutoSave]);
 
   // Recover from localStorage backup if exists (with tenant scoping)
   useEffect(() => {
@@ -2468,8 +2559,72 @@ function DocumentHubContent() {
             </Card>
           </TabsContent>
 
+          {/* Relocation Tab Content */}
+          <TabsContent value="relocation" className="mt-0">
+            <Card>
+              <CardHeader className="pb-3">
+                <CardTitle className="text-lg flex items-center gap-2">
+                  <Truck className="h-5 w-5" />
+                  Relocation Request
+                </CardTitle>
+                <CardDescription>Request equipment relocation to a new location</CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <RelocationForm
+                  formData={relocationFormData || (() => {
+                    const defaultData = getDefaultRelocationFormData();
+                    // Pre-populate from company, deal owner, and service agreement if available
+                    if (company?.name) defaultData.companyName = company.name;
+                    if (dealOwner) defaultData.submittedBy = `${dealOwner.firstName || ''} ${dealOwner.lastName || ''}`.trim();
+                    // Pre-populate current location from service agreement shipTo
+                    if (serviceAgreementFormData) {
+                      defaultData.currentCompanyName = serviceAgreementFormData.shipToCompany || '';
+                      defaultData.currentAddress = serviceAgreementFormData.shipToAddress || '';
+                      defaultData.currentCity = serviceAgreementFormData.shipToCity || '';
+                      defaultData.currentState = serviceAgreementFormData.shipToState || '';
+                      defaultData.currentZip = serviceAgreementFormData.shipToZip || '';
+                      defaultData.currentContact = serviceAgreementFormData.shipToAttn || '';
+                      defaultData.currentPhone = serviceAgreementFormData.shipToPhone || '';
+                      defaultData.currentEmail = serviceAgreementFormData.shipToEmail || '';
+                      // Bill To from service agreement
+                      defaultData.billToAddress = serviceAgreementFormData.billToAddress || '';
+                      defaultData.billToCityStZip = `${serviceAgreementFormData.billToCity || ''}, ${serviceAgreementFormData.billToState || ''} ${serviceAgreementFormData.billToZip || ''}`.trim();
+                      defaultData.billToPhone = serviceAgreementFormData.billToPhone || '';
+                      defaultData.billToEmail = serviceAgreementFormData.billToEmail || '';
+                    }
+                    // Pre-populate equipment from line items
+                    if (lineItems && lineItems.length > 0) {
+                      defaultData.equipmentItems = lineItems.slice(0, 20).map(item => ({
+                        id: item.hsObjectId || crypto.randomUUID(),
+                        makeModel: item.name || '',
+                        serialNumber: item.properties?.serial_number || '',
+                        equipmentId: item.properties?.equipment_id || '',
+                        networkPrint: false,
+                        scan: false,
+                        notes: '',
+                      }));
+                    }
+                    return defaultData;
+                  })()}
+                  onChange={handleRelocationFormChange}
+                />
+                <div className="flex gap-2 pt-4 border-t">
+                  <Button variant="outline" onClick={handleRelocationSave} disabled={relocationSaving}>
+                    {relocationSaving ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <Save className="h-4 w-4 mr-2" />}
+                    {relocationSaving ? 'Saving...' : 'Save'}
+                  </Button>
+                  <Button className="flex-1" onClick={handleRelocationGeneratePDF} disabled={relocationGenerating}>
+                    {relocationGenerating ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <Download className="h-4 w-4 mr-2" />}
+                    {relocationGenerating ? 'Generating...' : 'Generate PDF'}
+                  </Button>
+                  <Button variant="outline" onClick={handleRelocationPreview}><Eye className="h-4 w-4 mr-2" />Preview</Button>
+                </div>
+              </CardContent>
+            </Card>
+          </TabsContent>
+
           {/* Placeholder for remaining tabs */}
-          {documentTypes.slice(8).map((doc) => (
+          {documentTypes.slice(9).map((doc) => (
             <TabsContent key={doc.code} value={doc.code} className="mt-0">
               <Card>
                 <CardContent className="py-12 text-center">
@@ -2819,6 +2974,56 @@ function DocumentHubContent() {
                       logoUrl: dealerInfo.logoUrl,
                     } : undefined}
                     termsAndConditions={documentTerms.new_customer}
+                  />
+                </div>
+              )}
+            </div>
+          </ScrollArea>
+        </DialogContent>
+      </Dialog>
+
+      {/* Hidden preview for Relocation PDF generation */}
+      <div className="hidden">
+        {relocationFormData && (
+          <RelocationPreview
+            ref={relocationPreviewRef}
+            formData={relocationFormData}
+            dealerInfo={dealerInfo ? {
+              name: dealerInfo.companyName,
+              address: dealerInfo.address.split(',')[0] || '',
+              city: '',
+              state: '',
+              zip: '',
+              phone: dealerInfo.phone,
+              website: dealerInfo.website,
+              logoUrl: dealerInfo.logoUrl,
+            } : undefined}
+          />
+        )}
+      </div>
+
+      {/* Relocation Preview Dialog */}
+      <Dialog open={showRelocationPreview} onOpenChange={setShowRelocationPreview}>
+        <DialogContent className="max-w-4xl max-h-[90vh] p-0">
+          <DialogHeader className="p-4 pb-0">
+            <DialogTitle>Relocation Request Preview</DialogTitle>
+          </DialogHeader>
+          <ScrollArea className="max-h-[calc(90vh-80px)]">
+            <div className="p-4 flex justify-center">
+              {relocationFormData && (
+                <div className="shadow-lg border">
+                  <RelocationPreview
+                    formData={relocationFormData}
+                    dealerInfo={dealerInfo ? {
+                      name: dealerInfo.companyName,
+                      address: dealerInfo.address.split(',')[0] || '',
+                      city: '',
+                      state: '',
+                      zip: '',
+                      phone: dealerInfo.phone,
+                      website: dealerInfo.website,
+                      logoUrl: dealerInfo.logoUrl,
+                    } : undefined}
                   />
                 </div>
               )}
