@@ -1,4 +1,5 @@
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
+import { validatePortalId, createErrorResponse } from '../_shared/validation.ts';
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -14,19 +15,17 @@ Deno.serve(async (req) => {
   try {
     const url = new URL(req.url);
 
-    let portalId = url.searchParams.get('portalId');
+    let portalId: string | null = url.searchParams.get('portalId');
     if (!portalId) {
-      const body = await req.json().catch(() => ({} as any));
-      portalId = body.portalId || body.portal_id;
+      const body = await req.json().catch(() => ({} as Record<string, unknown>));
+      portalId = (body.portalId || body.portal_id) as string | null;
     }
 
     console.log('Fetching dealer account for portal:', portalId);
 
-    if (!portalId) {
-      return new Response(JSON.stringify({ error: 'Portal ID is required' }), {
-        status: 400,
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-      });
+    // Validate portal ID format
+    if (!validatePortalId(portalId)) {
+      return createErrorResponse('Invalid portal ID format', 400, corsHeaders);
     }
 
     // Use service role to bypass RLS
@@ -61,7 +60,7 @@ Deno.serve(async (req) => {
 
     // Fetch document-specific terms if dealer account exists
     let documentTerms: Record<string, string> = {};
-    let dealerSettings: Record<string, any> = {};
+    let dealerSettings: Record<string, unknown> = {};
     
     if (data?.id) {
       // Fetch document terms

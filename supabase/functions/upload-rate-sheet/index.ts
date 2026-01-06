@@ -1,4 +1,5 @@
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+import { validatePortalId, createErrorResponse } from "../_shared/validation.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -52,7 +53,7 @@ Deno.serve(async (req: Request) => {
     // Parse form data
     const formData = await req.formData();
     const file = formData.get("file") as File;
-    const portalId = formData.get("portalId") as string;
+    const portalId = formData.get("portalId") as string | null;
 
     if (!file) {
       console.error("No file provided");
@@ -62,12 +63,9 @@ Deno.serve(async (req: Request) => {
       );
     }
 
-    if (!portalId) {
-      console.error("No portalId provided");
-      return new Response(
-        JSON.stringify({ error: "Portal ID is required" }),
-        { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-      );
+    // Validate portal ID format
+    if (!validatePortalId(portalId)) {
+      return createErrorResponse("Invalid portal ID format", 400, corsHeaders);
     }
 
     console.log(`Processing rate sheet upload for portal: ${portalId}, file: ${file.name}`);

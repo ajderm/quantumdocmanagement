@@ -1,4 +1,5 @@
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+import { validatePortalId, createErrorResponse } from "../_shared/validation.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -18,11 +19,9 @@ Deno.serve(async (req: Request) => {
 
     const { portalId } = await req.json();
 
-    if (!portalId) {
-      return new Response(
-        JSON.stringify({ error: "Portal ID is required" }),
-        { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-      );
+    // Validate portal ID format
+    if (!validatePortalId(portalId)) {
+      return createErrorResponse("Invalid portal ID format", 400, corsHeaders);
     }
 
     console.log(`Fetching rate factors for portal: ${portalId}`);
