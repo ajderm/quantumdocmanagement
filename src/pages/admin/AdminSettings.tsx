@@ -296,7 +296,7 @@ export default function AdminSettings() {
               <FileText className="h-4 w-4 text-primary-foreground" />
             </div>
             <div>
-              <h1 className="text-sm font-semibold">DocGen Admin</h1>
+              <h1 className="text-sm font-semibold">Document Settings</h1>
               <span className="text-xs text-muted-foreground">Settings & Configuration</span>
             </div>
           </div>
@@ -343,7 +343,7 @@ export default function AdminSettings() {
                     Form Visibility
                   </CardTitle>
                   <CardDescription>
-                    Select which document types are available in the Document Hub for this organization
+                    Select which document types are available in the Document App for this organization
                   </CardDescription>
                 </CardHeader>
                 <CardContent>

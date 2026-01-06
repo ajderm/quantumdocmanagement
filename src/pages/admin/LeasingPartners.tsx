@@ -168,7 +168,7 @@ export default function LeasingPartners() {
               <FileText className="h-4 w-4 text-primary-foreground" />
             </div>
             <div>
-              <h1 className="text-sm font-semibold">DocGen Admin</h1>
+              <h1 className="text-sm font-semibold">Document Settings</h1>
               <span className="text-xs text-muted-foreground">Leasing Rate Sheet</span>
             </div>
           </div>
