@@ -104,11 +104,9 @@ serve(async (req) => {
       .from('hubspot_tokens')
       .upsert({
         portal_id: portalId,
-        access_token: '', // Clear plaintext column
-        refresh_token: '', // Clear plaintext column
-        access_token_encrypted: encryptedAccessToken,
-        refresh_token_encrypted: encryptedRefreshToken,
-        tokens_encrypted: true,
+        // Store ciphertext (AES-256-GCM base64 payload)
+        access_token: encryptedAccessToken,
+        refresh_token: encryptedRefreshToken,
         expires_at: expiresAt.toISOString(),
         updated_at: new Date().toISOString(),
       }, {
