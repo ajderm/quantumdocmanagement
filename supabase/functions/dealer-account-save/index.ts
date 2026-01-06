@@ -1,4 +1,5 @@
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
+import { validatePortalId, createErrorResponse } from '../_shared/validation.ts';
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -12,22 +13,25 @@ Deno.serve(async (req) => {
   }
 
   try {
-    const body = await req.json().catch(() => ({} as any));
-    const portalId: string | null = body.portalId || body.portal_id || null;
-    const accountData = body.accountData;
-    const documentTerms: Record<string, string> | undefined = body.documentTerms;
-    const dealerSettings: Record<string, any> | undefined = body.dealerSettings;
+    const body = await req.json().catch(() => ({} as Record<string, unknown>));
+    const portalId = (body.portalId || body.portal_id) as string | null;
+    const accountData = body.accountData as Record<string, unknown> | undefined;
+    const documentTerms = body.documentTerms as Record<string, string> | undefined;
+    const dealerSettings = body.dealerSettings as Record<string, unknown> | undefined;
 
     console.log('Saving dealer account for portal:', portalId);
 
-    if (!portalId) {
-      return new Response(JSON.stringify({ error: 'Portal ID is required' }), {
-        status: 400,
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-      });
+    // Validate portal ID format
+    if (!validatePortalId(portalId)) {
+      return createErrorResponse('Invalid portal ID format', 400, corsHeaders);
     }
 
-    if (!accountData?.company_name?.trim()) {
+    if (!accountData || typeof accountData !== 'object') {
+      return createErrorResponse('Account data is required', 400, corsHeaders);
+    }
+
+    const companyName = accountData.company_name as string | undefined;
+    if (!companyName?.trim()) {
       return new Response(JSON.stringify({ error: 'Company name is required' }), {
         status: 400,
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
@@ -67,21 +71,21 @@ Deno.serve(async (req) => {
 
     const dataToSave = {
       hubspot_portal_id: portalId,
-      company_name: accountData.company_name,
-      address_line1: accountData.address_line1 || null,
-      address_line2: accountData.address_line2 || null,
-      city: accountData.city || null,
-      state: accountData.state || null,
-      zip_code: accountData.zip_code || null,
-      phone: accountData.phone || null,
-      website: accountData.website || null,
-      email: accountData.email || null,
-      terms_and_conditions: accountData.terms_and_conditions || null,
-      logo_url: accountData.logo_url || null,
+      company_name: companyName,
+      address_line1: (accountData.address_line1 as string) || null,
+      address_line2: (accountData.address_line2 as string) || null,
+      city: (accountData.city as string) || null,
+      state: (accountData.state as string) || null,
+      zip_code: (accountData.zip_code as string) || null,
+      phone: (accountData.phone as string) || null,
+      website: (accountData.website as string) || null,
+      email: (accountData.email as string) || null,
+      terms_and_conditions: (accountData.terms_and_conditions as string) || null,
+      logo_url: (accountData.logo_url as string) || null,
       updated_at: new Date().toISOString(),
     };
 
-    let result;
+    let result: { id: string };
     if (existing) {
       console.log('Updating existing dealer account:', existing.id);
       const { data, error } = await supabase

@@ -714,25 +714,37 @@ function DocumentHubContent() {
     };
   }, [hasUnsavedChanges, installationHasUnsavedChanges, serviceAgreementHasUnsavedChanges, fmvLeaseHasUnsavedChanges, leaseFundingHasUnsavedChanges, leaseReturnHasUnsavedChanges, interterritorialHasUnsavedChanges, performAutoSave, performInstallationAutoSave, performServiceAgreementAutoSave, performFMVLeaseAutoSave, performLeaseFundingAutoSave, performLeaseReturnAutoSave, performInterterritorialAutoSave]);
 
-  // Recover from localStorage backup if exists
+  // Recover from localStorage backup if exists (with tenant scoping)
   useEffect(() => {
+    const currentPortalId = portalId || localStorage.getItem('hs_portal_id');
     const dealId = deal?.hsObjectId;
-    if (!dealId) return;
+    if (!currentPortalId || !dealId) return;
 
-    const backup = localStorage.getItem(`quote_backup_${dealId}`);
-    if (backup && !savedConfig) {
+    // Use portal-scoped backup key to prevent cross-tenant data leakage
+    const backupKey = `quote_backup_${currentPortalId}_${dealId}`;
+    const backup = localStorage.getItem(backupKey);
+    
+    // Also check for legacy backup key and migrate if found
+    const legacyBackupKey = `quote_backup_${dealId}`;
+    const legacyBackup = localStorage.getItem(legacyBackupKey);
+    
+    const backupData = backup || legacyBackup;
+    
+    if (backupData && !savedConfig) {
       try {
-        const parsed = JSON.parse(backup);
+        const parsed = JSON.parse(backupData);
         if (parsed.configuration) {
           console.log('Recovered backup configuration');
           setSavedConfig(parsed.configuration as QuoteFormData);
-          localStorage.removeItem(`quote_backup_${dealId}`);
         }
       } catch {
-        localStorage.removeItem(`quote_backup_${dealId}`);
+        // Ignore parse errors
       }
+      // Clean up both keys
+      localStorage.removeItem(backupKey);
+      localStorage.removeItem(legacyBackupKey);
     }
-  }, [deal?.hsObjectId, savedConfig]);
+  }, [portalId, deal?.hsObjectId, savedConfig]);
 
   const handleSave = async () => {
     if (!formData) {
@@ -769,6 +781,8 @@ function DocumentHubContent() {
       setSavedConfig(formData);
       setLastSavedData(JSON.stringify(formData));
       setHasUnsavedChanges(false);
+      // Clear both portal-scoped and legacy backup keys
+      localStorage.removeItem(`quote_backup_${currentPortalId}_${dealId}`);
       localStorage.removeItem(`quote_backup_${dealId}`);
 
       if (formData.buyoutFinancingAmount > 0) {
