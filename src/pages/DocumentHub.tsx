@@ -49,6 +49,8 @@ import { NewCustomerForm, NewCustomerFormData } from '@/components/new-customer/
 import { NewCustomerPreview } from '@/components/new-customer/NewCustomerPreview';
 import RelocationForm, { RelocationFormData, getDefaultRelocationFormData } from '@/components/relocation/RelocationForm';
 import RelocationPreview from '@/components/relocation/RelocationPreview';
+import { RemovalForm, RemovalFormData, getDefaultRemovalFormData } from '@/components/removal/RemovalForm';
+import { RemovalPreview } from '@/components/removal/RemovalPreview';
 
 const documentTypes = [
   { code: 'quote', name: 'Quote', icon: FileText },
@@ -196,6 +198,18 @@ function DocumentHubContent() {
   const relocationAutoSaveTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   const relocationFormDataRef = useRef<RelocationFormData | null>(null);
 
+  // Removal state
+  const [removalFormData, setRemovalFormData] = useState<RemovalFormData | null>(null);
+  const [removalSavedConfig, setRemovalSavedConfig] = useState<RemovalFormData | null>(null);
+  const [removalGenerating, setRemovalGenerating] = useState(false);
+  const [removalSaving, setRemovalSaving] = useState(false);
+  const [showRemovalPreview, setShowRemovalPreview] = useState(false);
+  const [removalHasUnsavedChanges, setRemovalHasUnsavedChanges] = useState(false);
+  const [removalLastSavedData, setRemovalLastSavedData] = useState<string | null>(null);
+  const removalPreviewRef = useRef<HTMLDivElement>(null);
+  const removalAutoSaveTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const removalFormDataRef = useRef<RemovalFormData | null>(null);
+
   // Dealer info and settings
   const [dealerInfo, setDealerInfo] = useState<DealerInfo | null>(null);
   const [dealerSettings, setDealerSettings] = useState<DealerSettings>({});
@@ -245,6 +259,11 @@ function DocumentHubContent() {
   useEffect(() => {
     relocationFormDataRef.current = relocationFormData;
   }, [relocationFormData]);
+
+  // Keep removalFormDataRef in sync
+  useEffect(() => {
+    removalFormDataRef.current = removalFormData;
+  }, [removalFormData]);
 
   // Initialize relocation form data when HubSpot data loads
   useEffect(() => {
@@ -447,6 +466,14 @@ function DocumentHubContent() {
             const savedRelocation = configs.relocation as RelocationFormData;
             setRelocationSavedConfig(savedRelocation);
             setRelocationFormData(savedRelocation);
+          }
+          
+          // Set removal config
+          if (configs.removal) {
+            console.log('Loaded saved removal configuration');
+            const savedRemoval = configs.removal as RemovalFormData;
+            setRemovalSavedConfig(savedRemoval);
+            setRemovalFormData(savedRemoval);
           }
         }
       } catch (err) {
@@ -910,9 +937,68 @@ function DocumentHubContent() {
 
   const handleRelocationPreview = () => setShowRelocationPreview(true);
 
+  // Removal auto-save
+  const performRemovalAutoSave = useCallback(async (dataToSave: RemovalFormData) => {
+    const currentPortalId = portalId || localStorage.getItem('hs_portal_id');
+    const dealId = deal?.hsObjectId;
+    if (!currentPortalId || !dealId || !dataToSave) return;
+    const dataString = JSON.stringify(dataToSave);
+    if (dataString === removalLastSavedData) return;
+    try {
+      const { error: saveError } = await supabase.functions.invoke('save-configuration', {
+        body: { portalId: currentPortalId, dealId, configType: 'removal', configuration: dataToSave }
+      });
+      if (!saveError) {
+        setRemovalLastSavedData(dataString);
+        setRemovalHasUnsavedChanges(false);
+        console.log('Auto-saved removal configuration');
+      }
+    } catch (err) { console.error('Removal auto-save error:', err); }
+  }, [portalId, deal?.hsObjectId, removalLastSavedData]);
+
+  const handleRemovalFormChange = useCallback((data: RemovalFormData) => {
+    setRemovalFormData(data);
+    setRemovalHasUnsavedChanges(true);
+    if (removalAutoSaveTimeoutRef.current) clearTimeout(removalAutoSaveTimeoutRef.current);
+    removalAutoSaveTimeoutRef.current = setTimeout(() => performRemovalAutoSave(data), AUTO_SAVE_DELAY);
+  }, [performRemovalAutoSave]);
+
+  const handleRemovalSave = async () => {
+    if (!removalFormData) { toast.error('No data to save'); return; }
+    const currentPortalId = portalId || localStorage.getItem('hs_portal_id');
+    const dealId = deal?.hsObjectId;
+    if (!currentPortalId || !dealId) { toast.error('Missing portal or deal information'); return; }
+    setRemovalSaving(true);
+    try {
+      const { error: saveError } = await supabase.functions.invoke('save-configuration', {
+        body: { portalId: currentPortalId, dealId, configType: 'removal', configuration: removalFormData }
+      });
+      if (saveError) { console.error('Save error:', saveError); toast.error('Failed to save'); return; }
+      setRemovalSavedConfig(removalFormData);
+      setRemovalLastSavedData(JSON.stringify(removalFormData));
+      setRemovalHasUnsavedChanges(false);
+      toast.success('Removal form saved');
+    } catch (err) { console.error('Save error:', err); toast.error('Failed to save'); }
+    finally { setRemovalSaving(false); }
+  };
+
+  const handleRemovalGeneratePDF = async () => {
+    if (!removalPreviewRef.current || !removalFormData) { toast.error('Please fill in the form first'); return; }
+    setRemovalGenerating(true);
+    try {
+      const pdf = await generateMultiPagePDF(removalPreviewRef.current);
+      const sanitizedCompanyName = (removalFormData.shipToCustomer || 'Draft').replace(/[^a-zA-Z0-9\s]/g, '').replace(/\s+/g, '_');
+      pdf.save(`Removal_${sanitizedCompanyName}_${new Date().toISOString().split('T')[0]}.pdf`);
+      toast.success('PDF generated');
+    } catch (err) { console.error('PDF error:', err); toast.error('Failed to generate PDF'); }
+    finally { setRemovalGenerating(false); }
+  };
+
+  const handleRemovalPreview = () => setShowRemovalPreview(true);
+
   useEffect(() => {
     const handleBeforeUnload = (e: BeforeUnloadEvent) => {
-      if ((hasUnsavedChanges && formDataRef.current) || (installationHasUnsavedChanges && installationFormDataRef.current) || (serviceAgreementHasUnsavedChanges && serviceAgreementFormDataRef.current) || (fmvLeaseHasUnsavedChanges && fmvLeaseFormDataRef.current) || (leaseFundingHasUnsavedChanges && leaseFundingFormDataRef.current) || (leaseReturnHasUnsavedChanges && leaseReturnFormDataRef.current) || (interterritorialHasUnsavedChanges && interterritorialFormDataRef.current) || (relocationHasUnsavedChanges && relocationFormDataRef.current)) {
+      if ((hasUnsavedChanges && formDataRef.current) || (installationHasUnsavedChanges && installationFormDataRef.current) || (serviceAgreementHasUnsavedChanges && serviceAgreementFormDataRef.current) || (fmvLeaseHasUnsavedChanges && fmvLeaseFormDataRef.current) || (leaseFundingHasUnsavedChanges && leaseFundingFormDataRef.current) || (leaseReturnHasUnsavedChanges && leaseReturnFormDataRef.current) || (interterritorialHasUnsavedChanges && interterritorialFormDataRef.current) || (relocationHasUnsavedChanges && relocationFormDataRef.current) || (removalHasUnsavedChanges && removalFormDataRef.current)) {
         e.preventDefault();
         e.returnValue = '';
       }
@@ -943,6 +1029,9 @@ function DocumentHubContent() {
         }
         if (relocationHasUnsavedChanges && relocationFormDataRef.current) {
           performRelocationAutoSave(relocationFormDataRef.current);
+        }
+        if (removalHasUnsavedChanges && removalFormDataRef.current) {
+          performRemovalAutoSave(removalFormDataRef.current);
         }
       }
     };
@@ -978,8 +1067,11 @@ function DocumentHubContent() {
       if (relocationAutoSaveTimeoutRef.current) {
         clearTimeout(relocationAutoSaveTimeoutRef.current);
       }
+      if (removalAutoSaveTimeoutRef.current) {
+        clearTimeout(removalAutoSaveTimeoutRef.current);
+      }
     };
-  }, [hasUnsavedChanges, installationHasUnsavedChanges, serviceAgreementHasUnsavedChanges, fmvLeaseHasUnsavedChanges, leaseFundingHasUnsavedChanges, leaseReturnHasUnsavedChanges, interterritorialHasUnsavedChanges, relocationHasUnsavedChanges, performAutoSave, performInstallationAutoSave, performServiceAgreementAutoSave, performFMVLeaseAutoSave, performLeaseFundingAutoSave, performLeaseReturnAutoSave, performInterterritorialAutoSave, performRelocationAutoSave]);
+  }, [hasUnsavedChanges, installationHasUnsavedChanges, serviceAgreementHasUnsavedChanges, fmvLeaseHasUnsavedChanges, leaseFundingHasUnsavedChanges, leaseReturnHasUnsavedChanges, interterritorialHasUnsavedChanges, relocationHasUnsavedChanges, removalHasUnsavedChanges, performAutoSave, performInstallationAutoSave, performServiceAgreementAutoSave, performFMVLeaseAutoSave, performLeaseFundingAutoSave, performLeaseReturnAutoSave, performInterterritorialAutoSave, performRelocationAutoSave, performRemovalAutoSave]);
 
   // Recover from localStorage backup if exists (with tenant scoping)
   useEffect(() => {
@@ -2672,8 +2764,42 @@ function DocumentHubContent() {
             </Card>
           </TabsContent>
 
+          {/* Removal Tab Content */}
+          <TabsContent value="equipment_removal" className="mt-0">
+            <Card>
+              <CardHeader className="pb-3">
+                <CardTitle className="text-lg flex items-center gap-2">
+                  <Trash2 className="h-5 w-5" />
+                  Equipment Removal
+                </CardTitle>
+                <CardDescription>Create an equipment removal receipt for equipment being picked up</CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <RemovalForm
+                  company={company}
+                  labeledContacts={labeledContacts}
+                  dealOwner={dealOwner}
+                  lineItems={lineItems}
+                  onFormChange={handleRemovalFormChange}
+                  savedConfig={removalSavedConfig}
+                />
+                <div className="flex gap-2 pt-4 border-t">
+                  <Button variant="outline" onClick={handleRemovalSave} disabled={removalSaving}>
+                    {removalSaving ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <Save className="h-4 w-4 mr-2" />}
+                    {removalSaving ? 'Saving...' : 'Save'}
+                  </Button>
+                  <Button className="flex-1" onClick={handleRemovalGeneratePDF} disabled={removalGenerating}>
+                    {removalGenerating ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <Download className="h-4 w-4 mr-2" />}
+                    {removalGenerating ? 'Generating...' : 'Generate PDF'}
+                  </Button>
+                  <Button variant="outline" onClick={handleRemovalPreview}><Eye className="h-4 w-4 mr-2" />Preview</Button>
+                </div>
+              </CardContent>
+            </Card>
+          </TabsContent>
+
           {/* Placeholder for remaining tabs */}
-          {documentTypes.slice(9).map((doc) => (
+          {documentTypes.slice(10).map((doc) => (
             <TabsContent key={doc.code} value={doc.code} className="mt-0">
               <Card>
                 <CardContent className="py-12 text-center">
@@ -3072,6 +3198,50 @@ function DocumentHubContent() {
                       phone: dealerInfo.phone,
                       website: dealerInfo.website,
                       logoUrl: dealerInfo.logoUrl,
+                    } : undefined}
+                  />
+                </div>
+              )}
+            </div>
+          </ScrollArea>
+        </DialogContent>
+      </Dialog>
+
+      {/* Hidden preview for Removal PDF generation */}
+      <div className="hidden">
+        {removalFormData && (
+          <RemovalPreview
+            ref={removalPreviewRef}
+            formData={removalFormData}
+            dealerInfo={dealerInfo ? {
+              company_name: dealerInfo.companyName,
+              address_line1: dealerInfo.address,
+              phone: dealerInfo.phone,
+              website: dealerInfo.website,
+              logo_url: dealerInfo.logoUrl,
+            } : undefined}
+          />
+        )}
+      </div>
+
+      {/* Removal Preview Dialog */}
+      <Dialog open={showRemovalPreview} onOpenChange={setShowRemovalPreview}>
+        <DialogContent className="max-w-4xl max-h-[90vh] p-0">
+          <DialogHeader className="p-4 pb-0">
+            <DialogTitle>Equipment Removal Preview</DialogTitle>
+          </DialogHeader>
+          <ScrollArea className="max-h-[calc(90vh-80px)]">
+            <div className="p-4 flex justify-center">
+              {removalFormData && (
+                <div className="shadow-lg border">
+                  <RemovalPreview
+                    formData={removalFormData}
+                    dealerInfo={dealerInfo ? {
+                      company_name: dealerInfo.companyName,
+                      address_line1: dealerInfo.address,
+                      phone: dealerInfo.phone,
+                      website: dealerInfo.website,
+                      logo_url: dealerInfo.logoUrl,
                     } : undefined}
                   />
                 </div>
