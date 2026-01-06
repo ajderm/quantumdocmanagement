@@ -8,7 +8,7 @@ const corsHeaders = {
 interface GetConfigRequest {
   portalId: string;
   dealId: string;
-  configType: 'quote' | 'installation' | 'service_agreement' | 'fmv_lease' | 'lease_funding' | 'lease_return' | 'interterritorial';
+  configType: 'quote' | 'installation' | 'service_agreement' | 'fmv_lease' | 'lease_funding' | 'lease_return' | 'interterritorial' | 'new_customer';
   lineItemId?: string;
 }
 
@@ -30,6 +30,7 @@ const tableMap: Record<string, string> = {
   'lease_funding': 'lease_funding_configurations',
   'lease_return': 'lease_return_configurations',
   'interterritorial': 'interterritorial_configurations',
+  'new_customer': 'new_customer_configurations',
 };
 
 Deno.serve(async (req) => {

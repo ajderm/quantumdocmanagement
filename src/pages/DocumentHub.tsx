@@ -45,6 +45,8 @@ import { LeaseReturnForm, LeaseReturnFormData } from '@/components/lease-return/
 import { LeaseReturnPreview } from '@/components/lease-return/LeaseReturnPreview';
 import { InterterritorialForm, InterterritorialFormData } from '@/components/interterritorial/InterterritorialForm';
 import { InterterritorialPreview } from '@/components/interterritorial/InterterritorialPreview';
+import { NewCustomerForm, NewCustomerFormData } from '@/components/new-customer/NewCustomerForm';
+import { NewCustomerPreview } from '@/components/new-customer/NewCustomerPreview';
 
 const documentTypes = [
   { code: 'quote', name: 'Quote', icon: FileText },
@@ -167,6 +169,18 @@ function DocumentHubContent() {
   const interterritorialAutoSaveTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   const interterritorialFormDataRef = useRef<InterterritorialFormData | null>(null);
 
+  // New Customer state
+  const [newCustomerFormData, setNewCustomerFormData] = useState<NewCustomerFormData | null>(null);
+  const [newCustomerSavedConfig, setNewCustomerSavedConfig] = useState<NewCustomerFormData | null>(null);
+  const [newCustomerGenerating, setNewCustomerGenerating] = useState(false);
+  const [newCustomerSaving, setNewCustomerSaving] = useState(false);
+  const [showNewCustomerPreview, setShowNewCustomerPreview] = useState(false);
+  const [newCustomerHasUnsavedChanges, setNewCustomerHasUnsavedChanges] = useState(false);
+  const [newCustomerLastSavedData, setNewCustomerLastSavedData] = useState<string | null>(null);
+  const newCustomerPreviewRef = useRef<HTMLDivElement>(null);
+  const newCustomerAutoSaveTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const newCustomerFormDataRef = useRef<NewCustomerFormData | null>(null);
+
   // Dealer info and settings
   const [dealerInfo, setDealerInfo] = useState<DealerInfo | null>(null);
   const [dealerSettings, setDealerSettings] = useState<DealerSettings>({});
@@ -206,6 +220,11 @@ function DocumentHubContent() {
   useEffect(() => {
     interterritorialFormDataRef.current = interterritorialFormData;
   }, [interterritorialFormData]);
+
+  // Keep newCustomerFormDataRef in sync
+  useEffect(() => {
+    newCustomerFormDataRef.current = newCustomerFormData;
+  }, [newCustomerFormData]);
 
   // Fetch dealer info when portalId is available
   useEffect(() => {
@@ -320,6 +339,12 @@ function DocumentHubContent() {
           if (configs.interterritorial) {
             console.log('Loaded saved interterritorial configuration');
             setInterterritorialSavedConfig(configs.interterritorial as InterterritorialFormData);
+          }
+          
+          // Set new customer config
+          if (configs.newCustomer) {
+            console.log('Loaded saved new customer configuration');
+            setNewCustomerSavedConfig(configs.newCustomer as NewCustomerFormData);
           }
         }
       } catch (err) {
@@ -648,7 +673,81 @@ function DocumentHubContent() {
     }, AUTO_SAVE_DELAY);
   }, [performInterterritorialAutoSave]);
 
-  // Auto-save on tab/window close
+  // Auto-save for New Customer
+  const performNewCustomerAutoSave = useCallback(async (dataToSave: NewCustomerFormData) => {
+    const currentPortalId = portalId || localStorage.getItem('hs_portal_id');
+    const dealId = deal?.hsObjectId;
+    if (!currentPortalId || !dealId || !dataToSave) return;
+    const dataString = JSON.stringify(dataToSave);
+    if (dataString === newCustomerLastSavedData) return;
+    try {
+      const { error: saveError } = await supabase.functions.invoke('save-configuration', {
+        body: { portalId: currentPortalId, dealId, configType: 'new_customer', configuration: dataToSave }
+      });
+      if (!saveError) {
+        setNewCustomerLastSavedData(dataString);
+        setNewCustomerHasUnsavedChanges(false);
+        console.log('Auto-saved new customer configuration');
+      }
+    } catch (err) { console.error('New customer auto-save error:', err); }
+  }, [portalId, deal?.hsObjectId, newCustomerLastSavedData]);
+
+  const handleNewCustomerFormChange = useCallback((data: NewCustomerFormData) => {
+    setNewCustomerFormData(data);
+    setNewCustomerHasUnsavedChanges(true);
+    if (newCustomerAutoSaveTimeoutRef.current) clearTimeout(newCustomerAutoSaveTimeoutRef.current);
+    newCustomerAutoSaveTimeoutRef.current = setTimeout(() => performNewCustomerAutoSave(data), AUTO_SAVE_DELAY);
+  }, [performNewCustomerAutoSave]);
+
+  const handleNewCustomerClearAll = useCallback(() => {
+    const emptyForm: NewCustomerFormData = {
+      companyName: '', tradeName: '', businessDescription: '', taxId: '', taxIdState: '', yearEstablished: '', yearsOwned: '', creditRequested: '', businessType: '',
+      hqAddress: '', hqAddress2: '', hqCity: '', hqState: '', hqZip: '', hqPhone: '', hqFax: '', hqEmail: '',
+      branchSameAsHq: false, branchAddress: '', branchAddress2: '', branchCity: '', branchState: '', branchZip: '', branchPhone: '', branchFax: '', branchEmail: '',
+      billingSameAsHq: false, billingSameAsBranch: false, billingAddress: '', billingAddress2: '', billingCity: '', billingState: '', billingZip: '', billingPhone: '', billingFax: '', billingEmail: '',
+      principalName: '', principalTitle: '', principalPhone: '', principalEmail: '',
+      equipmentContactName: '', equipmentContactTitle: '', equipmentContactPhone: '', equipmentContactEmail: '',
+      apContactName: '', apContactTitle: '', apContactPhone: '', apContactEmail: '',
+      interestOfficeMachines: false, interestFurniture: false, interestSupplies: false, interestOther: '',
+      bankReferences: [{ id: 'bank-1', bankName: '', address: '', cityStZip: '', contact: '', phone: '', accountNumber: '' }, { id: 'bank-2', bankName: '', address: '', cityStZip: '', contact: '', phone: '', accountNumber: '' }],
+      businessReferences: [{ id: 'biz-1', company: '', contact: '', title: '', phone: '', email: '' }, { id: 'biz-2', company: '', contact: '', title: '', phone: '', email: '' }],
+      invoiceDelivery: 'email', invoiceEmail: '', invoiceSecondaryEmail: '', paymentMethod: '',
+    };
+    setNewCustomerFormData(emptyForm);
+  }, []);
+
+  const handleNewCustomerSave = async () => {
+    if (!newCustomerFormData) { toast.error('No data to save'); return; }
+    const currentPortalId = portalId || localStorage.getItem('hs_portal_id');
+    const dealId = deal?.hsObjectId;
+    if (!currentPortalId || !dealId) { toast.error('Missing portal or deal information'); return; }
+    setNewCustomerSaving(true);
+    try {
+      const { error: saveError } = await supabase.functions.invoke('save-configuration', {
+        body: { portalId: currentPortalId, dealId, configType: 'new_customer', configuration: newCustomerFormData }
+      });
+      if (saveError) { console.error('Save error:', saveError); toast.error('Failed to save'); return; }
+      setNewCustomerSavedConfig(newCustomerFormData);
+      setNewCustomerLastSavedData(JSON.stringify(newCustomerFormData));
+      setNewCustomerHasUnsavedChanges(false);
+      toast.success('New customer application saved');
+    } catch (err) { console.error('Save error:', err); toast.error('Failed to save'); }
+    finally { setNewCustomerSaving(false); }
+  };
+
+  const handleNewCustomerGeneratePDF = async () => {
+    if (!newCustomerPreviewRef.current || !newCustomerFormData) { toast.error('Please fill in the form first'); return; }
+    setNewCustomerGenerating(true);
+    try {
+      const pdf = await generateMultiPagePDF(newCustomerPreviewRef.current);
+      const sanitizedCompanyName = (newCustomerFormData.companyName || 'Draft').replace(/[^a-zA-Z0-9\s]/g, '').replace(/\s+/g, '_');
+      pdf.save(`NewCustomer_${sanitizedCompanyName}_${new Date().toISOString().split('T')[0]}.pdf`);
+      toast.success('PDF generated');
+    } catch (err) { console.error('PDF error:', err); toast.error('Failed to generate PDF'); }
+    finally { setNewCustomerGenerating(false); }
+  };
+
+  const handleNewCustomerPreview = () => setShowNewCustomerPreview(true);
   useEffect(() => {
     const handleBeforeUnload = (e: BeforeUnloadEvent) => {
       if ((hasUnsavedChanges && formDataRef.current) || (installationHasUnsavedChanges && installationFormDataRef.current) || (serviceAgreementHasUnsavedChanges && serviceAgreementFormDataRef.current) || (fmvLeaseHasUnsavedChanges && fmvLeaseFormDataRef.current) || (leaseFundingHasUnsavedChanges && leaseFundingFormDataRef.current) || (leaseReturnHasUnsavedChanges && leaseReturnFormDataRef.current) || (interterritorialHasUnsavedChanges && interterritorialFormDataRef.current)) {
@@ -2331,16 +2430,49 @@ function DocumentHubContent() {
             </Card>
           </TabsContent>
 
-          {/* Placeholder for other tabs */}
-          {documentTypes.slice(7).map((doc) => (
+          {/* New Customer Tab Content */}
+          <TabsContent value="new_customer" className="mt-0">
+            <Card>
+              <CardHeader className="pb-3">
+                <CardTitle className="text-lg flex items-center gap-2">
+                  <UserPlus className="h-5 w-5" />
+                  New Customer Application
+                </CardTitle>
+                <CardDescription>Create a new customer application form for credit/account setup</CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <NewCustomerForm
+                  formData={newCustomerFormData || { companyName: '', tradeName: '', businessDescription: '', taxId: '', taxIdState: '', yearEstablished: '', yearsOwned: '', creditRequested: '', businessType: '', hqAddress: '', hqAddress2: '', hqCity: '', hqState: '', hqZip: '', hqPhone: '', hqFax: '', hqEmail: '', branchSameAsHq: false, branchAddress: '', branchAddress2: '', branchCity: '', branchState: '', branchZip: '', branchPhone: '', branchFax: '', branchEmail: '', billingSameAsHq: false, billingSameAsBranch: false, billingAddress: '', billingAddress2: '', billingCity: '', billingState: '', billingZip: '', billingPhone: '', billingFax: '', billingEmail: '', principalName: '', principalTitle: '', principalPhone: '', principalEmail: '', equipmentContactName: '', equipmentContactTitle: '', equipmentContactPhone: '', equipmentContactEmail: '', apContactName: '', apContactTitle: '', apContactPhone: '', apContactEmail: '', interestOfficeMachines: false, interestFurniture: false, interestSupplies: false, interestOther: '', bankReferences: [], businessReferences: [], invoiceDelivery: 'email', invoiceEmail: '', invoiceSecondaryEmail: '', paymentMethod: '' }}
+                  onChange={handleNewCustomerFormChange}
+                  company={company}
+                  dealOwner={dealOwner}
+                  labeledContacts={labeledContacts || undefined}
+                  savedConfig={newCustomerSavedConfig}
+                  onClearAll={handleNewCustomerClearAll}
+                />
+                <div className="flex gap-2 pt-4 border-t">
+                  <Button variant="outline" onClick={handleNewCustomerSave} disabled={newCustomerSaving}>
+                    {newCustomerSaving ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <Save className="h-4 w-4 mr-2" />}
+                    {newCustomerSaving ? 'Saving...' : 'Save'}
+                  </Button>
+                  <Button className="flex-1" onClick={handleNewCustomerGeneratePDF} disabled={newCustomerGenerating}>
+                    {newCustomerGenerating ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <Download className="h-4 w-4 mr-2" />}
+                    {newCustomerGenerating ? 'Generating...' : 'Generate PDF'}
+                  </Button>
+                  <Button variant="outline" onClick={handleNewCustomerPreview}><Eye className="h-4 w-4 mr-2" />Preview</Button>
+                </div>
+              </CardContent>
+            </Card>
+          </TabsContent>
+
+          {/* Placeholder for remaining tabs */}
+          {documentTypes.slice(8).map((doc) => (
             <TabsContent key={doc.code} value={doc.code} className="mt-0">
               <Card>
                 <CardContent className="py-12 text-center">
                   <doc.icon className="h-12 w-12 mx-auto text-muted-foreground/30 mb-4" />
                   <h3 className="font-medium text-foreground mb-2">{doc.name}</h3>
-                  <p className="text-sm text-muted-foreground">
-                    This document type will be implemented next
-                  </p>
+                  <p className="text-sm text-muted-foreground">This document type will be implemented next</p>
                 </CardContent>
               </Card>
             </TabsContent>

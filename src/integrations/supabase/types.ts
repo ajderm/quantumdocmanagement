@@ -620,6 +620,33 @@ export type Database = {
           },
         ]
       }
+      new_customer_configurations: {
+        Row: {
+          configuration: Json
+          created_at: string
+          deal_id: string
+          id: string
+          portal_id: string
+          updated_at: string
+        }
+        Insert: {
+          configuration?: Json
+          created_at?: string
+          deal_id: string
+          id?: string
+          portal_id: string
+          updated_at?: string
+        }
+        Update: {
+          configuration?: Json
+          created_at?: string
+          deal_id?: string
+          id?: string
+          portal_id?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       profiles: {
         Row: {
           created_at: string

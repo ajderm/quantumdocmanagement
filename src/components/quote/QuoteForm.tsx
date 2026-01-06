@@ -48,6 +48,9 @@ export interface QuoteFormData {
   calculatedPayments: Record<number, number>;
   // Manual payment overrides per term (null = use calculated)
   paymentOverrides: Record<number, number | null>;
+  // Total buyout override
+  totalBuyoutManuallySet?: boolean;
+  totalBuyoutOverride?: number;
 }
 
 interface QuoteFormProps { deal: any; company: any; contacts: any[]; lineItems: any[]; dealOwner: any; onFormChange: (data: QuoteFormData) => void; portalId?: string; savedConfig?: QuoteFormData; }
@@ -891,16 +894,34 @@ export function QuoteForm({ deal, company, lineItems, dealOwner, onFormChange, p
                 />
               </div>
             </div>
-            <div>
-              <Label className="text-xs">Total Buyout</Label>
-              <div className="relative">
-                <span className="absolute left-2 top-1/2 -translate-y-1/2 text-muted-foreground text-sm">$</span>
-                <Input 
-                  type="text" 
-                  value={formatCurrency(totalBuyout)} 
-                  readOnly
-                  className="h-8 text-sm pl-5 bg-muted/50 font-medium" 
-                />
+            <div className="col-span-5 mt-4 p-3 bg-muted/50 rounded-lg">
+              <div className="flex justify-between items-center">
+                <div className="flex items-center gap-2">
+                  <span className="text-sm font-medium">Total Buyout</span>
+                  {formData.totalBuyoutManuallySet && (
+                    <button 
+                      type="button" 
+                      onClick={() => updateField('totalBuyoutManuallySet', false)}
+                      className="text-xs text-muted-foreground hover:text-foreground underline"
+                    >
+                      Reset to calculated
+                    </button>
+                  )}
+                </div>
+                <div className="relative w-32">
+                  <span className="absolute left-2 top-1/2 -translate-y-1/2 text-muted-foreground text-sm">$</span>
+                  <Input 
+                    type="number"
+                    step="0.01"
+                    value={formData.totalBuyoutManuallySet && formData.totalBuyoutOverride !== undefined ? formData.totalBuyoutOverride : totalBuyout}
+                    onChange={e => {
+                      const val = parseFloat(e.target.value) || 0;
+                      updateField('totalBuyoutOverride', val);
+                      updateField('totalBuyoutManuallySet', true);
+                    }}
+                    className="h-8 text-sm pl-5 font-medium"
+                  />
+                </div>
               </div>
             </div>
           </div>
