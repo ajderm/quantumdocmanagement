@@ -281,6 +281,11 @@ function DocumentHubContent() {
     removalFormDataRef.current = removalFormData;
   }, [removalFormData]);
 
+  // Keep loiFormDataRef in sync
+  useEffect(() => {
+    loiFormDataRef.current = loiFormData;
+  }, [loiFormData]);
+
   // Initialize relocation form data when HubSpot data loads
   useEffect(() => {
     if (loading) return;
@@ -769,6 +774,63 @@ function DocumentHubContent() {
     }
   }, [performLeaseFundingAutoSave]);
 
+  // Auto-save for LOI
+  const performLoiAutoSave = useCallback(async (dataToSave: LoiFormData) => {
+    const currentPortalId = portalId || localStorage.getItem('hs_portal_id');
+    const dealId = deal?.hsObjectId;
+
+    if (!currentPortalId || !dealId || !dataToSave) return;
+
+    const dataString = JSON.stringify(dataToSave);
+    if (dataString === loiLastSavedData) return;
+
+    try {
+      const { error: saveError } = await supabase.functions.invoke('save-configuration', {
+        body: {
+          portalId: currentPortalId,
+          dealId,
+          configType: 'loi',
+          configuration: dataToSave
+        }
+      });
+
+      if (!saveError) {
+        setLoiLastSavedData(dataString);
+        setLoiHasUnsavedChanges(false);
+        console.log('Auto-saved LOI configuration');
+      }
+    } catch (err) {
+      console.error('LOI auto-save error:', err);
+    }
+  }, [portalId, deal?.hsObjectId, loiLastSavedData]);
+
+  // Handle LOI form change
+  const handleLoiFormChange = useCallback((data: LoiFormData) => {
+    setLoiFormData(data);
+    setLoiHasUnsavedChanges(true);
+
+    const currentPortalId = portalId || localStorage.getItem('hs_portal_id');
+    const dealId = deal?.hsObjectId;
+    if (currentPortalId && dealId) {
+      try {
+        localStorage.setItem(
+          `loi_backup_${currentPortalId}_${dealId}`,
+          JSON.stringify({ configuration: data, updatedAt: new Date().toISOString() })
+        );
+      } catch {
+        // ignore
+      }
+    }
+
+    if (loiAutoSaveTimeoutRef.current) {
+      clearTimeout(loiAutoSaveTimeoutRef.current);
+    }
+
+    loiAutoSaveTimeoutRef.current = setTimeout(() => {
+      performLoiAutoSave(data);
+    }, AUTO_SAVE_DELAY);
+  }, [performLoiAutoSave, portalId, deal?.hsObjectId]);
+
   // Auto-save for Lease Return
   const performLeaseReturnAutoSave = useCallback(async (dataToSave: LeaseReturnFormData) => {
     const currentPortalId = portalId || localStorage.getItem('hs_portal_id');
@@ -1119,9 +1181,65 @@ function DocumentHubContent() {
 
   const handleRemovalPreview = () => setShowRemovalPreview(true);
 
+  // LOI handlers
+  const handleLoiSave = async () => {
+    if (!loiFormData) { toast.error('No data to save'); return; }
+    const currentPortalId = portalId || localStorage.getItem('hs_portal_id');
+    const dealId = deal?.hsObjectId;
+    if (!currentPortalId || !dealId) { toast.error('Missing portal or deal information'); return; }
+    setLoiSaving(true);
+    try {
+      const { error: saveError } = await supabase.functions.invoke('save-configuration', {
+        body: { portalId: currentPortalId, dealId, configType: 'loi', configuration: loiFormData }
+      });
+      if (saveError) { console.error('Save error:', saveError); toast.error('Failed to save'); return; }
+      setLoiSavedConfig(loiFormData);
+      setLoiLastSavedData(JSON.stringify(loiFormData));
+      setLoiHasUnsavedChanges(false);
+      toast.success('Letter of Intent saved');
+    } catch (err) { console.error('Save error:', err); toast.error('Failed to save'); }
+    finally { setLoiSaving(false); }
+  };
+
+  const handleLoiGeneratePDF = async () => {
+    if (!loiPreviewRef.current || !loiFormData) { toast.error('Please fill in the form first'); return; }
+    setLoiGenerating(true);
+    try {
+      const pdf = await generateMultiPagePDF(loiPreviewRef.current);
+      const sanitizedCompanyName = (loiFormData.lesseeName || 'Draft').replace(/[^a-zA-Z0-9\s]/g, '').replace(/\s+/g, '_');
+      const fileName = `LOI_${sanitizedCompanyName}_${new Date().toISOString().split('T')[0]}.pdf`;
+      pdf.save(fileName);
+
+      const currentPortalId = portalId || localStorage.getItem('hs_portal_id');
+      const currentDealId = deal?.hsObjectId;
+
+      if (currentPortalId && currentDealId) {
+        try {
+          const pdfBase64 = pdf.output('datauristring').split(',')[1];
+          const { data, error: attachError } = await supabase.functions.invoke('hubspot-attach-file', {
+            body: { portalId: currentPortalId, dealId: currentDealId, fileName, fileBase64: pdfBase64 }
+          });
+          if (attachError || data?.error) {
+            toast.success('PDF downloaded! (Could not attach to deal)');
+          } else {
+            toast.success('PDF downloaded and attached to deal!');
+          }
+        } catch (attachErr) {
+          console.error('Failed to attach to HubSpot:', attachErr);
+          toast.success('PDF downloaded! (Could not attach to deal)');
+        }
+      } else {
+        toast.success('LOI PDF downloaded successfully!');
+      }
+    } catch (err) { console.error('PDF error:', err); toast.error('Failed to generate PDF'); }
+    finally { setLoiGenerating(false); }
+  };
+
+  const handleLoiPreview = () => setShowLoiPreview(true);
+
   useEffect(() => {
     const handleBeforeUnload = (e: BeforeUnloadEvent) => {
-      if ((hasUnsavedChanges && formDataRef.current) || (installationHasUnsavedChanges && installationFormDataRef.current) || (serviceAgreementHasUnsavedChanges && serviceAgreementFormDataRef.current) || (fmvLeaseHasUnsavedChanges && fmvLeaseFormDataRef.current) || (leaseFundingHasUnsavedChanges && leaseFundingFormDataRef.current) || (leaseReturnHasUnsavedChanges && leaseReturnFormDataRef.current) || (interterritorialHasUnsavedChanges && interterritorialFormDataRef.current) || (relocationHasUnsavedChanges && relocationFormDataRef.current) || (removalHasUnsavedChanges && removalFormDataRef.current)) {
+      if ((hasUnsavedChanges && formDataRef.current) || (installationHasUnsavedChanges && installationFormDataRef.current) || (serviceAgreementHasUnsavedChanges && serviceAgreementFormDataRef.current) || (fmvLeaseHasUnsavedChanges && fmvLeaseFormDataRef.current) || (leaseFundingHasUnsavedChanges && leaseFundingFormDataRef.current) || (loiHasUnsavedChanges && loiFormDataRef.current) || (leaseReturnHasUnsavedChanges && leaseReturnFormDataRef.current) || (interterritorialHasUnsavedChanges && interterritorialFormDataRef.current) || (relocationHasUnsavedChanges && relocationFormDataRef.current) || (removalHasUnsavedChanges && removalFormDataRef.current)) {
         e.preventDefault();
         e.returnValue = '';
       }
@@ -1143,6 +1261,9 @@ function DocumentHubContent() {
         }
         if (leaseFundingHasUnsavedChanges && leaseFundingFormDataRef.current) {
           performLeaseFundingAutoSave(leaseFundingFormDataRef.current);
+        }
+        if (loiHasUnsavedChanges && loiFormDataRef.current) {
+          performLoiAutoSave(loiFormDataRef.current);
         }
         if (leaseReturnHasUnsavedChanges && leaseReturnFormDataRef.current) {
           performLeaseReturnAutoSave(leaseReturnFormDataRef.current);
@@ -1181,6 +1302,9 @@ function DocumentHubContent() {
       if (leaseFundingAutoSaveTimeoutRef.current) {
         clearTimeout(leaseFundingAutoSaveTimeoutRef.current);
       }
+      if (loiAutoSaveTimeoutRef.current) {
+        clearTimeout(loiAutoSaveTimeoutRef.current);
+      }
       if (leaseReturnAutoSaveTimeoutRef.current) {
         clearTimeout(leaseReturnAutoSaveTimeoutRef.current);
       }
@@ -1194,7 +1318,7 @@ function DocumentHubContent() {
         clearTimeout(removalAutoSaveTimeoutRef.current);
       }
     };
-  }, [hasUnsavedChanges, installationHasUnsavedChanges, serviceAgreementHasUnsavedChanges, fmvLeaseHasUnsavedChanges, leaseFundingHasUnsavedChanges, leaseReturnHasUnsavedChanges, interterritorialHasUnsavedChanges, relocationHasUnsavedChanges, removalHasUnsavedChanges, performAutoSave, performInstallationAutoSave, performServiceAgreementAutoSave, performFMVLeaseAutoSave, performLeaseFundingAutoSave, performLeaseReturnAutoSave, performInterterritorialAutoSave, performRelocationAutoSave, performRemovalAutoSave]);
+  }, [hasUnsavedChanges, installationHasUnsavedChanges, serviceAgreementHasUnsavedChanges, fmvLeaseHasUnsavedChanges, leaseFundingHasUnsavedChanges, loiHasUnsavedChanges, leaseReturnHasUnsavedChanges, interterritorialHasUnsavedChanges, relocationHasUnsavedChanges, removalHasUnsavedChanges, performAutoSave, performInstallationAutoSave, performServiceAgreementAutoSave, performFMVLeaseAutoSave, performLeaseFundingAutoSave, performLoiAutoSave, performLeaseReturnAutoSave, performInterterritorialAutoSave, performRelocationAutoSave, performRemovalAutoSave]);
 
   // Recover from localStorage backups (portal+deal scoped; prevents cross-tenant leakage)
   useEffect(() => {
@@ -1238,6 +1362,14 @@ function DocumentHubContent() {
       localStorage.removeItem(`fmv_lease_backup_${currentPortalId}_${dealId}`);
     }
 
+    const loiBackup = readBackup<LoiFormData>(`loi_backup_${currentPortalId}_${dealId}`);
+    if (loiBackup && !loiSavedConfig) {
+      setLoiSavedConfig(loiBackup);
+      if (!loiFormDataRef.current) setLoiFormData(loiBackup);
+      setLoiHasUnsavedChanges(true);
+      localStorage.removeItem(`loi_backup_${currentPortalId}_${dealId}`);
+    }
+
     const leaseReturnBackup = readBackup<LeaseReturnFormData>(`lease_return_backup_${currentPortalId}_${dealId}`);
     if (leaseReturnBackup && !leaseReturnSavedConfig) {
       setLeaseReturnSavedConfig(leaseReturnBackup);
@@ -1277,7 +1409,7 @@ function DocumentHubContent() {
       setRemovalHasUnsavedChanges(true);
       localStorage.removeItem(`removal_backup_${currentPortalId}_${dealId}`);
     }
-  }, [portalId, deal?.hsObjectId, savedConfig, serviceAgreementSavedConfig, fmvLeaseSavedConfig, leaseReturnSavedConfig, interterritorialSavedConfig, newCustomerSavedConfig, relocationSavedConfig, removalSavedConfig]);
+  }, [portalId, deal?.hsObjectId, savedConfig, serviceAgreementSavedConfig, fmvLeaseSavedConfig, loiSavedConfig, leaseReturnSavedConfig, interterritorialSavedConfig, newCustomerSavedConfig, relocationSavedConfig, removalSavedConfig]);
 
   const handleSave = async () => {
     if (!formData) {
@@ -2708,6 +2840,66 @@ function DocumentHubContent() {
             </Card>
           </TabsContent>
 
+          {/* Letter of Intent Tab Content */}
+          <TabsContent value="loi" className="mt-0">
+            <Card>
+              <CardHeader className="pb-3">
+                <CardTitle className="text-lg flex items-center gap-2">
+                  <FileSignature className="h-5 w-5" />
+                  Letter of Intent
+                </CardTitle>
+                <CardDescription>
+                  Create a non-binding letter of intent for lease terms with a leasing company
+                </CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <LoiForm
+                  company={company}
+                  lineItems={lineItems || []}
+                  dealOwner={dealOwner}
+                  fmvLeaseFormData={fmvLeaseFormData ? {
+                    companyLegalName: fmvLeaseFormData.companyLegalName,
+                    billingAddress: fmvLeaseFormData.billingAddress,
+                    billingCity: fmvLeaseFormData.billingCity,
+                    billingState: fmvLeaseFormData.billingState,
+                    billingZip: fmvLeaseFormData.billingZip,
+                    phone: fmvLeaseFormData.phone,
+                    termInMonths: fmvLeaseFormData.termInMonths,
+                    paymentAmount: fmvLeaseFormData.paymentAmount,
+                  } : null}
+                  labeledContacts={labeledContacts || null}
+                  portalId={portalId || localStorage.getItem('hs_portal_id') || undefined}
+                  onFormChange={handleLoiFormChange}
+                  savedConfig={loiSavedConfig || undefined}
+                />
+
+                {/* Actions */}
+                <div className="flex gap-2 pt-4 border-t">
+                  <Button variant="outline" onClick={handleLoiSave} disabled={loiSaving}>
+                    {loiSaving ? (
+                      <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                    ) : (
+                      <Save className="h-4 w-4 mr-2" />
+                    )}
+                    {loiSaving ? 'Saving...' : 'Save'}
+                  </Button>
+                  <Button className="flex-1" onClick={handleLoiGeneratePDF} disabled={loiGenerating}>
+                    {loiGenerating ? (
+                      <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                    ) : (
+                      <Download className="h-4 w-4 mr-2" />
+                    )}
+                    {loiGenerating ? 'Generating...' : 'Generate PDF'}
+                  </Button>
+                  <Button variant="outline" onClick={handleLoiPreview}>
+                    <Eye className="h-4 w-4 mr-2" />
+                    Preview
+                  </Button>
+                </div>
+              </CardContent>
+            </Card>
+          </TabsContent>
+
           {/* Lease Return Tab Content */}
           <TabsContent value="lease_return" className="mt-0">
             <Card>
@@ -3197,6 +3389,51 @@ function DocumentHubContent() {
           </ScrollArea>
         </DialogContent>
       </Dialog>
+
+      {/* Hidden preview for LOI PDF generation */}
+      <div className="hidden">
+        {loiFormData && (
+          <LoiPreview
+            ref={loiPreviewRef}
+            formData={loiFormData}
+            dealerInfo={dealerInfo ? {
+              company_name: dealerInfo.companyName,
+              address_line1: dealerInfo.address,
+              phone: dealerInfo.phone,
+              website: dealerInfo.website,
+              logo_url: dealerInfo.logoUrl,
+            } : undefined}
+          />
+        )}
+      </div>
+
+      {/* LOI Preview Dialog */}
+      <Dialog open={showLoiPreview} onOpenChange={setShowLoiPreview}>
+        <DialogContent className="max-w-4xl max-h-[90vh] p-0">
+          <DialogHeader className="p-4 pb-0">
+            <DialogTitle>Letter of Intent Preview</DialogTitle>
+          </DialogHeader>
+          <ScrollArea className="max-h-[calc(90vh-80px)]">
+            <div className="p-4 flex justify-center">
+              {loiFormData && (
+                <div className="shadow-lg border">
+                  <LoiPreview
+                    formData={loiFormData}
+                    dealerInfo={dealerInfo ? {
+                      company_name: dealerInfo.companyName,
+                      address_line1: dealerInfo.address,
+                      phone: dealerInfo.phone,
+                      website: dealerInfo.website,
+                      logo_url: dealerInfo.logoUrl,
+                    } : undefined}
+                  />
+                </div>
+              )}
+            </div>
+          </ScrollArea>
+        </DialogContent>
+      </Dialog>
+
       {/* Hidden preview for Lease Return PDF generation */}
       <div className="hidden">
         {leaseReturnFormData && (
