@@ -21,307 +21,435 @@ interface LoiPreviewProps {
 
 export const LoiPreview = forwardRef<HTMLDivElement, LoiPreviewProps>(
   ({ formData, dealerInfo }, ref) => {
-    const formatCurrency = (value: string | number): string => {
-      const num = typeof value === "string" ? parseFloat(value.replace(/[^0-9.]/g, "")) : value;
-      if (isNaN(num)) return "-";
-      return new Intl.NumberFormat("en-US", {
-        style: "currency",
-        currency: "USD",
-        minimumFractionDigits: 2,
-        maximumFractionDigits: 2,
-      }).format(num);
-    };
-
     const formatDate = (date: Date | string | null): string => {
-      if (!date) return "-";
+      if (!date) return "";
       const d = typeof date === "string" ? new Date(date) : date;
-      if (isNaN(d.getTime())) return "-";
-      return format(d, "MM/dd/yyyy");
+      if (isNaN(d.getTime())) return "";
+      return format(d, "M/d/yy");
     };
 
-    const calculateTotalEquipmentCost = (): number => {
-      return formData.equipmentItems.reduce((sum, item) => {
-        return sum + (parseFloat(item.totalCost) || 0);
-      }, 0);
-    };
-
-    const getLesseeFullAddress = (): string => {
-      const parts = [
-        formData.lesseeAddress,
-        formData.lesseeCity,
-        formData.lesseeState,
-        formData.lesseeZip,
+    // Build dealer full address for the letter body
+    const getDealerAddress = (): string[] => {
+      const lines: string[] = [];
+      if (dealerInfo?.company_name) lines.push(dealerInfo.company_name);
+      if (dealerInfo?.address_line1) lines.push(dealerInfo.address_line1);
+      if (dealerInfo?.address_line2) lines.push(dealerInfo.address_line2);
+      const cityStateZip = [
+        dealerInfo?.city,
+        dealerInfo?.state,
+        dealerInfo?.zip_code,
       ].filter(Boolean);
-      if (parts.length === 0) return "-";
-      return `${formData.lesseeAddress || ""}, ${formData.lesseeCity || ""}, ${formData.lesseeState || ""} ${formData.lesseeZip || ""}`.replace(/^,\s*/, "").replace(/,\s*,/g, ",");
+      if (cityStateZip.length > 0) {
+        lines.push(`${dealerInfo?.city || ""}, ${dealerInfo?.state || ""} ${dealerInfo?.zip_code || ""}`.trim());
+      }
+      return lines;
     };
+
+    const dealerAddressLines = getDealerAddress();
 
     return (
       <div
         ref={ref}
-        className="bg-white text-black p-8 min-h-[11in] w-[8.5in] text-[11px] leading-tight"
-        style={{ fontFamily: "Arial, sans-serif" }}
+        className="bg-white text-black p-6 min-h-[11in] w-[8.5in]"
+        style={{ fontFamily: "Arial, sans-serif", fontSize: "11px" }}
       >
-        {/* Header */}
-        <div className="flex justify-between items-start mb-6">
-          {/* Left: Dealer Info */}
-          <div className="flex items-start gap-4">
-            {dealerInfo?.logo_url && (
-              <img
-                src={dealerInfo.logo_url}
-                alt="Company Logo"
-                className="h-12 object-contain"
-                crossOrigin="anonymous"
-              />
-            )}
-            <div>
-              <p className="font-bold text-[10px]">
-                {dealerInfo?.company_name || "Company Name"}
-              </p>
-              <p className="text-[9px]">
-                {dealerInfo?.address_line1}
-                {dealerInfo?.address_line2 && <>, {dealerInfo.address_line2}</>}
-              </p>
-              <p className="text-[9px]">
-                {[dealerInfo?.city, dealerInfo?.state, dealerInfo?.zip_code]
-                  .filter(Boolean)
-                  .join(", ")}
-              </p>
-              {dealerInfo?.phone && (
-                <p className="text-[9px]">Phone: {dealerInfo.phone}</p>
-              )}
-              {dealerInfo?.website && (
-                <p className="text-[9px]">{dealerInfo.website}</p>
-              )}
-            </div>
-          </div>
-
-          {/* Right: Document Title */}
-          <div className="text-right">
-            <h1 className="text-base font-bold mb-1">LETTER OF INTENT</h1>
-            {formData.loiNumber && (
-              <p className="text-[9px]">LOI #: {formData.loiNumber}</p>
-            )}
-            <p className="text-[9px]">Date: {formatDate(formData.date)}</p>
-            <p className="text-[9px]">Valid Until: {formatDate(formData.expirationDate)}</p>
-          </div>
+        {/* Red Header Banner */}
+        <div
+          className="text-center py-3 mb-4"
+          style={{ backgroundColor: "#DC2626" }}
+        >
+          <h1
+            className="text-white font-bold"
+            style={{ fontSize: "24px", margin: 0 }}
+          >
+            Letter of Intent
+          </h1>
         </div>
 
-        {/* Opening */}
-        <div className="mb-4">
-          <p className="text-[9px] mb-3">
-            Dear {formData.lessorContact || "[Lessor Contact]"},
-          </p>
-          <p className="text-[9px] leading-relaxed">
-            This Letter of Intent sets forth the terms under which{" "}
-            <strong>{formData.lesseeName || "[Lessee Name]"}</strong> ("Lessee") 
-            intends to enter into an equipment lease agreement with{" "}
-            <strong>{formData.lessorName || "[Lessor Name]"}</strong> ("Lessor") 
-            for the equipment described below. This is a non-binding letter of intent 
-            subject to the execution of definitive lease documentation.
-          </p>
-        </div>
-
-        {/* Lessee Information Table */}
-        <div className="mb-4">
-          <table className="w-full border-collapse text-[9px]">
-            <thead>
-              <tr className="border-b-2 border-black">
-                <th colSpan={2} className="text-left py-1 pb-2 font-bold">
-                  LESSEE INFORMATION
-                </th>
-              </tr>
-            </thead>
+        {/* Date Row - Right Aligned */}
+        <div className="flex justify-end mb-4">
+          <table style={{ borderCollapse: "collapse" }}>
             <tbody>
-              <tr className="border-b border-gray-300">
-                <td className="py-1 w-28 font-semibold">Company Name</td>
-                <td className="py-1">{formData.lesseeName || "-"}</td>
-              </tr>
-              <tr className="border-b border-gray-300">
-                <td className="py-1 font-semibold">Address</td>
-                <td className="py-1">{getLesseeFullAddress()}</td>
-              </tr>
-              <tr className="border-b border-gray-300">
-                <td className="py-1 font-semibold">Contact</td>
-                <td className="py-1">
-                  {formData.lesseeContact || "-"}
-                  {formData.lesseePhone && ` | ${formData.lesseePhone}`}
-                  {formData.lesseeEmail && ` | ${formData.lesseeEmail}`}
+              <tr>
+                <td className="font-bold pr-2" style={{ fontSize: "11px" }}>
+                  Date
+                </td>
+                <td
+                  style={{
+                    fontSize: "11px",
+                    backgroundColor: "#FFFF00",
+                    padding: "2px 8px",
+                    minWidth: "80px",
+                  }}
+                >
+                  {formatDate(formData.date)}
                 </td>
               </tr>
             </tbody>
           </table>
         </div>
 
-        {/* Equipment Table */}
-        <div className="mb-4">
-          <table className="w-full border-collapse text-[9px]">
-            <thead>
-              <tr className="border-b-2 border-black">
-                <th className="text-left py-1 pb-2 font-bold">EQUIPMENT DESCRIPTION</th>
-                <th className="text-center py-1 pb-2 font-bold w-16">QTY</th>
-                <th className="text-right py-1 pb-2 font-bold w-24">UNIT COST</th>
-                <th className="text-right py-1 pb-2 font-bold w-24">TOTAL</th>
-              </tr>
-            </thead>
-            <tbody>
-              {formData.equipmentItems
-                .filter((item) => item.description || item.quantity || item.unitCost)
-                .map((item, index) => (
-                  <tr key={index} className="border-b border-gray-300">
-                    <td className="py-1">{item.description || "-"}</td>
-                    <td className="py-1 text-center">{item.quantity || "-"}</td>
-                    <td className="py-1 text-right">{formatCurrency(item.unitCost)}</td>
-                    <td className="py-1 text-right">{formatCurrency(item.totalCost)}</td>
-                  </tr>
-                ))}
-              <tr className="border-t-2 border-black">
-                <td colSpan={3} className="py-1 text-right font-bold">
-                  TOTAL EQUIPMENT COST:
-                </td>
-                <td className="py-1 text-right font-bold">
-                  {formatCurrency(calculateTotalEquipmentCost())}
-                </td>
-              </tr>
-            </tbody>
-          </table>
+        {/* Two Column Layout - Lease Company Info & Customer Info */}
+        <div className="flex gap-4 mb-6">
+          {/* Left Column - Lease Company Information */}
+          <div className="flex-1">
+            <table className="w-full" style={{ borderCollapse: "collapse" }}>
+              <thead>
+                <tr>
+                  <th
+                    colSpan={2}
+                    style={{
+                      backgroundColor: "#000000",
+                      color: "#FFFFFF",
+                      padding: "4px 8px",
+                      textAlign: "left",
+                      fontSize: "11px",
+                      fontWeight: "bold",
+                    }}
+                  >
+                    Lease Company Information
+                  </th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr style={{ borderBottom: "1px solid #ccc" }}>
+                  <td style={{ padding: "4px 8px", fontSize: "11px", width: "55%" }}>
+                    Lease Expiration Date:
+                  </td>
+                  <td
+                    style={{
+                      padding: "4px 8px",
+                      fontSize: "11px",
+                      backgroundColor: "#FFFF00",
+                    }}
+                  >
+                    {formatDate(formData.leaseExpirationDate)}
+                  </td>
+                </tr>
+                <tr style={{ borderBottom: "1px solid #ccc" }}>
+                  <td style={{ padding: "4px 8px", fontSize: "11px" }}>
+                    60 Day Letter Due:
+                  </td>
+                  <td
+                    style={{
+                      padding: "4px 8px",
+                      fontSize: "11px",
+                      backgroundColor: "#FFFF00",
+                    }}
+                  >
+                    {formatDate(formData.sixtyDayLetterDue)}
+                  </td>
+                </tr>
+                <tr style={{ borderBottom: "1px solid #ccc" }}>
+                  <td style={{ padding: "4px 8px", fontSize: "11px" }}>
+                    Lease Number:
+                  </td>
+                  <td
+                    style={{
+                      padding: "4px 8px",
+                      fontSize: "11px",
+                      backgroundColor: "#FFFF00",
+                    }}
+                  >
+                    {formData.leaseNumber}
+                  </td>
+                </tr>
+                <tr style={{ borderBottom: "1px solid #ccc" }}>
+                  <td style={{ padding: "4px 8px", fontSize: "11px" }}>
+                    Lease Vendor:
+                  </td>
+                  <td
+                    style={{
+                      padding: "4px 8px",
+                      fontSize: "11px",
+                      backgroundColor: "#FFFF00",
+                    }}
+                  >
+                    {formData.leaseVendor}
+                  </td>
+                </tr>
+                <tr style={{ borderBottom: "1px solid #ccc" }}>
+                  <td style={{ padding: "4px 8px", fontSize: "11px" }}>
+                    Lease Address:
+                  </td>
+                  <td
+                    style={{
+                      padding: "4px 8px",
+                      fontSize: "11px",
+                      backgroundColor: "#FFFF00",
+                    }}
+                  >
+                    {formData.leaseAddress}
+                  </td>
+                </tr>
+                <tr style={{ borderBottom: "1px solid #ccc" }}>
+                  <td style={{ padding: "4px 8px", fontSize: "11px" }}>
+                    Lease City, State:
+                  </td>
+                  <td
+                    style={{
+                      padding: "4px 8px",
+                      fontSize: "11px",
+                      backgroundColor: "#FFFF00",
+                    }}
+                  >
+                    {formData.leaseCityState}
+                  </td>
+                </tr>
+                <tr style={{ borderBottom: "1px solid #ccc" }}>
+                  <td style={{ padding: "4px 8px", fontSize: "11px" }}>
+                    Lease Zip:
+                  </td>
+                  <td
+                    style={{
+                      padding: "4px 8px",
+                      fontSize: "11px",
+                      backgroundColor: "#FFFF00",
+                    }}
+                  >
+                    {formData.leaseZip}
+                  </td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+
+          {/* Right Column - Customer Information */}
+          <div className="flex-1">
+            <table className="w-full" style={{ borderCollapse: "collapse" }}>
+              <thead>
+                <tr>
+                  <th
+                    colSpan={2}
+                    style={{
+                      backgroundColor: "#000000",
+                      color: "#FFFFFF",
+                      padding: "4px 8px",
+                      textAlign: "left",
+                      fontSize: "11px",
+                      fontWeight: "bold",
+                    }}
+                  >
+                    Customer Information
+                  </th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr style={{ borderBottom: "1px solid #ccc" }}>
+                  <td style={{ padding: "4px 8px", fontSize: "11px", width: "35%" }}>
+                    Business:
+                  </td>
+                  <td
+                    style={{
+                      padding: "4px 8px",
+                      fontSize: "11px",
+                      backgroundColor: "#FFFF00",
+                    }}
+                  >
+                    {formData.businessName}
+                  </td>
+                </tr>
+                <tr style={{ borderBottom: "1px solid #ccc" }}>
+                  <td style={{ padding: "4px 8px", fontSize: "11px" }}>
+                    Address:
+                  </td>
+                  <td
+                    style={{
+                      padding: "4px 8px",
+                      fontSize: "11px",
+                      backgroundColor: "#FFFF00",
+                    }}
+                  >
+                    {formData.customerAddress}
+                  </td>
+                </tr>
+                <tr style={{ borderBottom: "1px solid #ccc" }}>
+                  <td style={{ padding: "4px 8px", fontSize: "11px" }}>
+                    City, State:
+                  </td>
+                  <td
+                    style={{
+                      padding: "4px 8px",
+                      fontSize: "11px",
+                      backgroundColor: "#FFFF00",
+                    }}
+                  >
+                    {formData.customerCityState}
+                  </td>
+                </tr>
+                <tr style={{ borderBottom: "1px solid #ccc" }}>
+                  <td style={{ padding: "4px 8px", fontSize: "11px" }}>
+                    Zip:
+                  </td>
+                  <td
+                    style={{
+                      padding: "4px 8px",
+                      fontSize: "11px",
+                      backgroundColor: "#FFFF00",
+                    }}
+                  >
+                    {formData.customerZip}
+                  </td>
+                </tr>
+                <tr style={{ borderBottom: "1px solid #ccc" }}>
+                  <td style={{ padding: "4px 8px", fontSize: "11px" }}>
+                    Contact:
+                  </td>
+                  <td
+                    style={{
+                      padding: "4px 8px",
+                      fontSize: "11px",
+                      backgroundColor: "#FFFF00",
+                    }}
+                  >
+                    {formData.customerContact}
+                  </td>
+                </tr>
+                <tr style={{ borderBottom: "1px solid #ccc" }}>
+                  <td style={{ padding: "4px 8px", fontSize: "11px" }}>
+                    Email:
+                  </td>
+                  <td
+                    style={{
+                      padding: "4px 8px",
+                      fontSize: "11px",
+                      backgroundColor: "#FFFF00",
+                    }}
+                  >
+                    {formData.customerEmail}
+                  </td>
+                </tr>
+                <tr style={{ borderBottom: "1px solid #ccc" }}>
+                  <td style={{ padding: "4px 8px", fontSize: "11px" }}>
+                    Phone:
+                  </td>
+                  <td
+                    style={{
+                      padding: "4px 8px",
+                      fontSize: "11px",
+                      backgroundColor: "#FFFF00",
+                    }}
+                  >
+                    {formData.customerPhone}
+                  </td>
+                </tr>
+                <tr style={{ borderBottom: "1px solid #ccc" }}>
+                  <td style={{ padding: "4px 8px", fontSize: "11px" }}>
+                    Asset Model:
+                  </td>
+                  <td
+                    style={{
+                      padding: "4px 8px",
+                      fontSize: "11px",
+                      backgroundColor: "#FFFF00",
+                    }}
+                  >
+                    {formData.assetModel}
+                  </td>
+                </tr>
+                <tr style={{ borderBottom: "1px solid #ccc" }}>
+                  <td style={{ padding: "4px 8px", fontSize: "11px" }}>
+                    Asset Serial:
+                  </td>
+                  <td
+                    style={{
+                      padding: "4px 8px",
+                      fontSize: "11px",
+                      backgroundColor: "#FFFF00",
+                    }}
+                  >
+                    {formData.assetSerial}
+                  </td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
         </div>
 
-        {/* Proposed Lease Terms Table */}
-        <div className="mb-4">
-          <table className="w-full border-collapse text-[9px]">
-            <thead>
-              <tr className="border-b-2 border-black">
-                <th colSpan={2} className="text-left py-1 pb-2 font-bold">
-                  PROPOSED LEASE TERMS
-                </th>
-              </tr>
-            </thead>
-            <tbody>
-              <tr className="border-b border-gray-300">
-                <td className="py-1 w-32 font-semibold">Lease Type</td>
-                <td className="py-1">{formData.leaseType || "-"}</td>
-              </tr>
-              <tr className="border-b border-gray-300">
-                <td className="py-1 font-semibold">Term Length</td>
-                <td className="py-1">
-                  {formData.termMonths ? `${formData.termMonths} Months` : "-"}
-                </td>
-              </tr>
-              <tr className="border-b border-gray-300">
-                <td className="py-1 font-semibold">Monthly Payment</td>
-                <td className="py-1">{formatCurrency(formData.monthlyPayment)}</td>
-              </tr>
-              <tr className="border-b border-gray-300">
-                <td className="py-1 font-semibold">Advance Payments</td>
-                <td className="py-1">
-                  {formData.advancePayments
-                    ? `${formData.advancePayments} month${formData.advancePayments !== "1" ? "s" : ""}`
-                    : "-"}
-                </td>
-              </tr>
-              <tr className="border-b border-gray-300">
-                <td className="py-1 font-semibold">Purchase Option</td>
-                <td className="py-1">{formData.purchaseOption || "-"}</td>
-              </tr>
-            </tbody>
-          </table>
+        {/* Dealer Address Block - Highlighted */}
+        <div className="mb-6">
+          {dealerAddressLines.map((line, index) => (
+            <p
+              key={index}
+              style={{
+                fontSize: "11px",
+                margin: 0,
+                padding: "1px 0",
+                backgroundColor: index === dealerAddressLines.length - 1 ? "#FFFF00" : "transparent",
+                display: "inline-block",
+                width: "100%",
+              }}
+            >
+              {line}
+            </p>
+          ))}
         </div>
 
-        {/* Conditions */}
-        {formData.conditions && (
-          <div className="mb-4">
-            <p className="font-bold text-[9px] border-b-2 border-black pb-1 mb-2">
-              CONDITIONS
-            </p>
-            <p className="text-[9px] leading-relaxed whitespace-pre-wrap">
-              {formData.conditions}
-            </p>
-          </div>
-        )}
+        {/* Letter Body */}
+        <div className="mb-4">
+          <p style={{ fontSize: "11px", marginBottom: "12px" }}>
+            To whom it may concern:
+          </p>
 
-        {/* Special Instructions */}
-        {formData.specialInstructions && (
-          <div className="mb-4">
-            <p className="font-bold text-[9px] border-b-2 border-black pb-1 mb-2">
-              SPECIAL INSTRUCTIONS
-            </p>
-            <p className="text-[9px] leading-relaxed whitespace-pre-wrap">
-              {formData.specialInstructions}
-            </p>
-          </div>
-        )}
+          <p style={{ fontSize: "11px", marginBottom: "12px" }}>
+            Please consider this an official request to terminate contract #{" "}
+            <span
+              style={{
+                borderBottom: "1px solid #000",
+                display: "inline-block",
+                minWidth: "100px",
+                textAlign: "center",
+              }}
+            >
+              {formData.contractNumber || "\u00A0"}
+            </span>
+            .
+          </p>
 
-        {/* Disclaimer */}
-        <div className="mb-6 p-2 border border-gray-400 bg-gray-50">
-          <p className="text-[8px] leading-relaxed">
-            This Letter of Intent is non-binding and subject to the execution of a 
-            definitive lease agreement and all required documentation. This offer is 
-            contingent upon satisfactory credit approval. This Letter of Intent shall 
-            expire on {formatDate(formData.expirationDate)} unless extended in writing.
+          <p style={{ fontSize: "11px", marginBottom: "12px" }}>
+            All return instructions should be emailed to{" "}
+            <span
+              style={{
+                borderBottom: "1px solid #000",
+                display: "inline-block",
+                minWidth: "180px",
+                textAlign: "center",
+              }}
+            >
+              {formData.returnInstructionsEmail || "\u00A0"}
+            </span>
+            .
+          </p>
+
+          <p style={{ fontSize: "11px", marginBottom: "12px" }}>
+            Please confirm receipt of this notice.
+          </p>
+
+          <p style={{ fontSize: "11px", marginBottom: "24px" }}>
+            Thank you for your prompt attention to this matter.
+          </p>
+
+          <p style={{ fontSize: "11px", marginBottom: "48px" }}>
+            Sincerely,
           </p>
         </div>
 
-        {/* Signatures */}
-        <div className="mb-4">
-          <p className="font-bold text-[9px] border-b-2 border-black pb-1 mb-4">
-            AUTHORIZATION
+        {/* Signature Block */}
+        <div>
+          <div
+            style={{
+              borderBottom: "1px solid #000",
+              width: "200px",
+              height: "24px",
+              marginBottom: "8px",
+            }}
+          ></div>
+          <p style={{ fontSize: "11px", fontStyle: "italic", margin: "4px 0" }}>
+            {formData.signerName || "\u00A0"}
           </p>
-          <div className="grid grid-cols-2 gap-8">
-            {/* Lessee Signature */}
-            <div>
-              <p className="font-semibold text-[9px] mb-4">Lessee:</p>
-              <div className="border-b border-black mb-1 h-6"></div>
-              <p className="text-[9px]">Signature</p>
-              <div className="mt-3">
-                <p className="text-[9px]">
-                  {formData.lesseeSignerName || "________________________"}
-                </p>
-                <p className="text-[8px] text-gray-600">Printed Name</p>
-              </div>
-              <div className="mt-2">
-                <p className="text-[9px]">
-                  {formData.lesseeSignerTitle || "________________________"}
-                </p>
-                <p className="text-[8px] text-gray-600">Title</p>
-              </div>
-              <div className="mt-2">
-                <p className="text-[9px]">
-                  {formatDate(formData.lesseeSignatureDate) !== "-"
-                    ? formatDate(formData.lesseeSignatureDate)
-                    : "________________________"}
-                </p>
-                <p className="text-[8px] text-gray-600">Date</p>
-              </div>
-            </div>
-
-            {/* Dealer Signature */}
-            <div>
-              <p className="font-semibold text-[9px] mb-4">Dealer Representative:</p>
-              <div className="border-b border-black mb-1 h-6"></div>
-              <p className="text-[9px]">Signature</p>
-              <div className="mt-3">
-                <p className="text-[9px]">
-                  {formData.lessorSignerName || "________________________"}
-                </p>
-                <p className="text-[8px] text-gray-600">Printed Name</p>
-              </div>
-              <div className="mt-2">
-                <p className="text-[9px]">
-                  {formData.lessorSignerTitle || "________________________"}
-                </p>
-                <p className="text-[8px] text-gray-600">Title</p>
-              </div>
-              <div className="mt-2">
-                <p className="text-[9px]">
-                  {formatDate(formData.lessorSignatureDate) !== "-"
-                    ? formatDate(formData.lessorSignatureDate)
-                    : "________________________"}
-                </p>
-                <p className="text-[8px] text-gray-600">Date</p>
-              </div>
-            </div>
-          </div>
+          <p style={{ fontSize: "11px", fontStyle: "italic", margin: "4px 0" }}>
+            {formData.signerTitle || "\u00A0"}
+          </p>
         </div>
       </div>
     );

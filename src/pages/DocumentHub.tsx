@@ -1206,7 +1206,7 @@ function DocumentHubContent() {
     setLoiGenerating(true);
     try {
       const pdf = await generateMultiPagePDF(loiPreviewRef.current);
-      const sanitizedCompanyName = (loiFormData.lesseeName || 'Draft').replace(/[^a-zA-Z0-9\s]/g, '').replace(/\s+/g, '_');
+      const sanitizedCompanyName = (loiFormData.businessName || 'Draft').replace(/[^a-zA-Z0-9\s]/g, '').replace(/\s+/g, '_');
       const fileName = `LOI_${sanitizedCompanyName}_${new Date().toISOString().split('T')[0]}.pdf`;
       pdf.save(fileName);
 
