@@ -1,13 +1,6 @@
 import { useState, useEffect, useRef } from "react";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
 import { Calendar } from "@/components/ui/calendar";
 import {
   Popover,
@@ -18,7 +11,6 @@ import { Button } from "@/components/ui/button";
 import { CalendarIcon } from "lucide-react";
 import { format, subDays } from "date-fns";
 import { cn } from "@/lib/utils";
-import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 
 export interface LoiFormData {
@@ -129,8 +121,6 @@ export function LoiForm({
   savedConfig,
 }: LoiFormProps) {
   const hasInitializedRef = useRef(false);
-  const [leasingCompanies, setLeasingCompanies] = useState<string[]>([]);
-  const [loadingCompanies, setLoadingCompanies] = useState(false);
 
   const createInitialFormData = (): LoiFormData => {
     const today = new Date();
@@ -176,35 +166,6 @@ export function LoiForm({
   };
 
   const [formData, setFormData] = useState<LoiFormData>(() => createInitialFormData());
-
-  // Fetch leasing companies for dropdown
-  useEffect(() => {
-    const fetchLeasingCompanies = async () => {
-      if (!portalId) return;
-
-      setLoadingCompanies(true);
-      try {
-        const { data, error } = await supabase.functions.invoke("get-rate-factors", {
-          body: { portalId },
-        });
-
-        if (error) {
-          console.error("Error fetching leasing companies:", error);
-          return;
-        }
-
-        if (data?.leasingCompanies) {
-          setLeasingCompanies(data.leasingCompanies);
-        }
-      } catch (err) {
-        console.error("Failed to fetch leasing companies:", err);
-      } finally {
-        setLoadingCompanies(false);
-      }
-    };
-
-    fetchLeasingCompanies();
-  }, [portalId]);
 
   // Initialize from saved config or create new
   useEffect(() => {
@@ -357,26 +318,12 @@ export function LoiForm({
             </div>
             <div className="space-y-2">
               <Label htmlFor="leaseVendor">Lease Vendor</Label>
-              <Select value={formData.leaseVendor} onValueChange={(value) => updateField("leaseVendor", value)}>
-                <SelectTrigger>
-                  <SelectValue placeholder={loadingCompanies ? "Loading..." : "Select vendor"} />
-                </SelectTrigger>
-                <SelectContent>
-                  {leasingCompanies.map((company) => (
-                    <SelectItem key={company} value={company}>
-                      {company}
-                    </SelectItem>
-                  ))}
-                  <SelectItem value="__other__">Other (enter manually)</SelectItem>
-                </SelectContent>
-              </Select>
-              {formData.leaseVendor === "__other__" && (
-                <Input
-                  className="mt-2"
-                  placeholder="Enter vendor name"
-                  onChange={(e) => updateField("leaseVendor", e.target.value)}
-                />
-              )}
+              <Input
+                id="leaseVendor"
+                value={formData.leaseVendor}
+                onChange={(e) => updateField("leaseVendor", e.target.value)}
+                placeholder="Enter lease vendor name"
+              />
             </div>
           </div>
 

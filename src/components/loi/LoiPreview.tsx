@@ -28,187 +28,93 @@ export const LoiPreview = forwardRef<HTMLDivElement, LoiPreviewProps>(
       return format(d, "M/d/yy");
     };
 
-    // Build dealer full address for the letter body
-    const getDealerAddress = (): string[] => {
-      const lines: string[] = [];
-      if (dealerInfo?.company_name) lines.push(dealerInfo.company_name);
-      if (dealerInfo?.address_line1) lines.push(dealerInfo.address_line1);
-      if (dealerInfo?.address_line2) lines.push(dealerInfo.address_line2);
-      const cityStateZip = [
-        dealerInfo?.city,
-        dealerInfo?.state,
-        dealerInfo?.zip_code,
-      ].filter(Boolean);
-      if (cityStateZip.length > 0) {
-        lines.push(`${dealerInfo?.city || ""}, ${dealerInfo?.state || ""} ${dealerInfo?.zip_code || ""}`.trim());
-      }
-      return lines;
-    };
-
-    const dealerAddressLines = getDealerAddress();
-
     return (
       <div
         ref={ref}
-        className="bg-white text-black p-6 min-h-[11in] w-[8.5in]"
-        style={{ fontFamily: "Arial, sans-serif", fontSize: "11px" }}
+        className="bg-white text-black p-8 min-h-[11in] w-[8.5in] text-[11px] leading-tight"
+        style={{ fontFamily: "Arial, sans-serif" }}
       >
-        {/* Red Header Banner */}
-        <div
-          className="text-center py-3 mb-4"
-          style={{ backgroundColor: "#DC2626" }}
-        >
-          <h1
-            className="text-white font-bold"
-            style={{ fontSize: "24px", margin: 0 }}
-          >
-            Letter of Intent
-          </h1>
-        </div>
+        {/* Header - Dealer Info Left, Title Right */}
+        <div className="flex justify-between items-start mb-6">
+          {/* Left: Dealer Info */}
+          <div className="flex items-start gap-4">
+            {dealerInfo?.logo_url && (
+              <img
+                src={dealerInfo.logo_url}
+                alt="Company Logo"
+                className="h-12 object-contain"
+                crossOrigin="anonymous"
+              />
+            )}
+            <div>
+              <p className="font-bold text-[10px]">
+                {dealerInfo?.company_name || "Company Name"}
+              </p>
+              <p className="text-[9px]">
+                {dealerInfo?.address_line1}
+                {dealerInfo?.address_line2 && <>, {dealerInfo.address_line2}</>}
+              </p>
+              <p className="text-[9px]">
+                {[dealerInfo?.city, dealerInfo?.state, dealerInfo?.zip_code]
+                  .filter(Boolean)
+                  .join(", ")}
+              </p>
+              {dealerInfo?.phone && (
+                <p className="text-[9px]">Phone: {dealerInfo.phone}</p>
+              )}
+              {dealerInfo?.website && (
+                <p className="text-[9px]">{dealerInfo.website}</p>
+              )}
+            </div>
+          </div>
 
-        {/* Date Row - Right Aligned */}
-        <div className="flex justify-end mb-4">
-          <table style={{ borderCollapse: "collapse" }}>
-            <tbody>
-              <tr>
-                <td className="font-bold pr-2" style={{ fontSize: "11px" }}>
-                  Date
-                </td>
-                <td
-                  style={{
-                    fontSize: "11px",
-                    backgroundColor: "#FFFF00",
-                    padding: "2px 8px",
-                    minWidth: "80px",
-                  }}
-                >
-                  {formatDate(formData.date)}
-                </td>
-              </tr>
-            </tbody>
-          </table>
+          {/* Right: Document Title and Date */}
+          <div className="text-right">
+            <h1 className="text-base font-bold mb-2">Letter of Intent</h1>
+            <p className="text-[9px]">Date: {formatDate(formData.date)}</p>
+          </div>
         </div>
 
         {/* Two Column Layout - Lease Company Info & Customer Info */}
-        <div className="flex gap-4 mb-6">
+        <div className="flex gap-6 mb-6">
           {/* Left Column - Lease Company Information */}
           <div className="flex-1">
-            <table className="w-full" style={{ borderCollapse: "collapse" }}>
+            <table className="w-full border-collapse text-[9px]">
               <thead>
-                <tr>
-                  <th
-                    colSpan={2}
-                    style={{
-                      backgroundColor: "#000000",
-                      color: "#FFFFFF",
-                      padding: "4px 8px",
-                      textAlign: "left",
-                      fontSize: "11px",
-                      fontWeight: "bold",
-                    }}
-                  >
-                    Lease Company Information
+                <tr className="border-b-2 border-black">
+                  <th colSpan={2} className="text-left py-1 pb-2 font-bold text-[10px]">
+                    LEASE COMPANY INFORMATION
                   </th>
                 </tr>
               </thead>
               <tbody>
-                <tr style={{ borderBottom: "1px solid #ccc" }}>
-                  <td style={{ padding: "4px 8px", fontSize: "11px", width: "55%" }}>
-                    Lease Expiration Date:
-                  </td>
-                  <td
-                    style={{
-                      padding: "4px 8px",
-                      fontSize: "11px",
-                      backgroundColor: "#FFFF00",
-                    }}
-                  >
-                    {formatDate(formData.leaseExpirationDate)}
-                  </td>
+                <tr className="border-b border-gray-300">
+                  <td className="py-1 font-semibold w-40">Lease Expiration Date:</td>
+                  <td className="py-1">{formatDate(formData.leaseExpirationDate)}</td>
                 </tr>
-                <tr style={{ borderBottom: "1px solid #ccc" }}>
-                  <td style={{ padding: "4px 8px", fontSize: "11px" }}>
-                    60 Day Letter Due:
-                  </td>
-                  <td
-                    style={{
-                      padding: "4px 8px",
-                      fontSize: "11px",
-                      backgroundColor: "#FFFF00",
-                    }}
-                  >
-                    {formatDate(formData.sixtyDayLetterDue)}
-                  </td>
+                <tr className="border-b border-gray-300">
+                  <td className="py-1 font-semibold">60 Day Letter Due:</td>
+                  <td className="py-1">{formatDate(formData.sixtyDayLetterDue)}</td>
                 </tr>
-                <tr style={{ borderBottom: "1px solid #ccc" }}>
-                  <td style={{ padding: "4px 8px", fontSize: "11px" }}>
-                    Lease Number:
-                  </td>
-                  <td
-                    style={{
-                      padding: "4px 8px",
-                      fontSize: "11px",
-                      backgroundColor: "#FFFF00",
-                    }}
-                  >
-                    {formData.leaseNumber}
-                  </td>
+                <tr className="border-b border-gray-300">
+                  <td className="py-1 font-semibold">Lease Number:</td>
+                  <td className="py-1">{formData.leaseNumber}</td>
                 </tr>
-                <tr style={{ borderBottom: "1px solid #ccc" }}>
-                  <td style={{ padding: "4px 8px", fontSize: "11px" }}>
-                    Lease Vendor:
-                  </td>
-                  <td
-                    style={{
-                      padding: "4px 8px",
-                      fontSize: "11px",
-                      backgroundColor: "#FFFF00",
-                    }}
-                  >
-                    {formData.leaseVendor}
-                  </td>
+                <tr className="border-b border-gray-300">
+                  <td className="py-1 font-semibold">Lease Vendor:</td>
+                  <td className="py-1">{formData.leaseVendor}</td>
                 </tr>
-                <tr style={{ borderBottom: "1px solid #ccc" }}>
-                  <td style={{ padding: "4px 8px", fontSize: "11px" }}>
-                    Lease Address:
-                  </td>
-                  <td
-                    style={{
-                      padding: "4px 8px",
-                      fontSize: "11px",
-                      backgroundColor: "#FFFF00",
-                    }}
-                  >
-                    {formData.leaseAddress}
-                  </td>
+                <tr className="border-b border-gray-300">
+                  <td className="py-1 font-semibold">Address:</td>
+                  <td className="py-1">{formData.leaseAddress}</td>
                 </tr>
-                <tr style={{ borderBottom: "1px solid #ccc" }}>
-                  <td style={{ padding: "4px 8px", fontSize: "11px" }}>
-                    Lease City, State:
-                  </td>
-                  <td
-                    style={{
-                      padding: "4px 8px",
-                      fontSize: "11px",
-                      backgroundColor: "#FFFF00",
-                    }}
-                  >
-                    {formData.leaseCityState}
-                  </td>
+                <tr className="border-b border-gray-300">
+                  <td className="py-1 font-semibold">City, State:</td>
+                  <td className="py-1">{formData.leaseCityState}</td>
                 </tr>
-                <tr style={{ borderBottom: "1px solid #ccc" }}>
-                  <td style={{ padding: "4px 8px", fontSize: "11px" }}>
-                    Lease Zip:
-                  </td>
-                  <td
-                    style={{
-                      padding: "4px 8px",
-                      fontSize: "11px",
-                      backgroundColor: "#FFFF00",
-                    }}
-                  >
-                    {formData.leaseZip}
-                  </td>
+                <tr className="border-b border-gray-300">
+                  <td className="py-1 font-semibold">Zip:</td>
+                  <td className="py-1">{formData.leaseZip}</td>
                 </tr>
               </tbody>
             </table>
@@ -216,173 +122,54 @@ export const LoiPreview = forwardRef<HTMLDivElement, LoiPreviewProps>(
 
           {/* Right Column - Customer Information */}
           <div className="flex-1">
-            <table className="w-full" style={{ borderCollapse: "collapse" }}>
+            <table className="w-full border-collapse text-[9px]">
               <thead>
-                <tr>
-                  <th
-                    colSpan={2}
-                    style={{
-                      backgroundColor: "#000000",
-                      color: "#FFFFFF",
-                      padding: "4px 8px",
-                      textAlign: "left",
-                      fontSize: "11px",
-                      fontWeight: "bold",
-                    }}
-                  >
-                    Customer Information
+                <tr className="border-b-2 border-black">
+                  <th colSpan={2} className="text-left py-1 pb-2 font-bold text-[10px]">
+                    CUSTOMER INFORMATION
                   </th>
                 </tr>
               </thead>
               <tbody>
-                <tr style={{ borderBottom: "1px solid #ccc" }}>
-                  <td style={{ padding: "4px 8px", fontSize: "11px", width: "35%" }}>
-                    Business:
-                  </td>
-                  <td
-                    style={{
-                      padding: "4px 8px",
-                      fontSize: "11px",
-                      backgroundColor: "#FFFF00",
-                    }}
-                  >
-                    {formData.businessName}
-                  </td>
+                <tr className="border-b border-gray-300">
+                  <td className="py-1 font-semibold w-24">Business:</td>
+                  <td className="py-1">{formData.businessName}</td>
                 </tr>
-                <tr style={{ borderBottom: "1px solid #ccc" }}>
-                  <td style={{ padding: "4px 8px", fontSize: "11px" }}>
-                    Address:
-                  </td>
-                  <td
-                    style={{
-                      padding: "4px 8px",
-                      fontSize: "11px",
-                      backgroundColor: "#FFFF00",
-                    }}
-                  >
-                    {formData.customerAddress}
-                  </td>
+                <tr className="border-b border-gray-300">
+                  <td className="py-1 font-semibold">Address:</td>
+                  <td className="py-1">{formData.customerAddress}</td>
                 </tr>
-                <tr style={{ borderBottom: "1px solid #ccc" }}>
-                  <td style={{ padding: "4px 8px", fontSize: "11px" }}>
-                    City, State:
-                  </td>
-                  <td
-                    style={{
-                      padding: "4px 8px",
-                      fontSize: "11px",
-                      backgroundColor: "#FFFF00",
-                    }}
-                  >
-                    {formData.customerCityState}
-                  </td>
+                <tr className="border-b border-gray-300">
+                  <td className="py-1 font-semibold">City, State:</td>
+                  <td className="py-1">{formData.customerCityState}</td>
                 </tr>
-                <tr style={{ borderBottom: "1px solid #ccc" }}>
-                  <td style={{ padding: "4px 8px", fontSize: "11px" }}>
-                    Zip:
-                  </td>
-                  <td
-                    style={{
-                      padding: "4px 8px",
-                      fontSize: "11px",
-                      backgroundColor: "#FFFF00",
-                    }}
-                  >
-                    {formData.customerZip}
-                  </td>
+                <tr className="border-b border-gray-300">
+                  <td className="py-1 font-semibold">Zip:</td>
+                  <td className="py-1">{formData.customerZip}</td>
                 </tr>
-                <tr style={{ borderBottom: "1px solid #ccc" }}>
-                  <td style={{ padding: "4px 8px", fontSize: "11px" }}>
-                    Contact:
-                  </td>
-                  <td
-                    style={{
-                      padding: "4px 8px",
-                      fontSize: "11px",
-                      backgroundColor: "#FFFF00",
-                    }}
-                  >
-                    {formData.customerContact}
-                  </td>
+                <tr className="border-b border-gray-300">
+                  <td className="py-1 font-semibold">Contact:</td>
+                  <td className="py-1">{formData.customerContact}</td>
                 </tr>
-                <tr style={{ borderBottom: "1px solid #ccc" }}>
-                  <td style={{ padding: "4px 8px", fontSize: "11px" }}>
-                    Email:
-                  </td>
-                  <td
-                    style={{
-                      padding: "4px 8px",
-                      fontSize: "11px",
-                      backgroundColor: "#FFFF00",
-                    }}
-                  >
-                    {formData.customerEmail}
-                  </td>
+                <tr className="border-b border-gray-300">
+                  <td className="py-1 font-semibold">Email:</td>
+                  <td className="py-1">{formData.customerEmail}</td>
                 </tr>
-                <tr style={{ borderBottom: "1px solid #ccc" }}>
-                  <td style={{ padding: "4px 8px", fontSize: "11px" }}>
-                    Phone:
-                  </td>
-                  <td
-                    style={{
-                      padding: "4px 8px",
-                      fontSize: "11px",
-                      backgroundColor: "#FFFF00",
-                    }}
-                  >
-                    {formData.customerPhone}
-                  </td>
+                <tr className="border-b border-gray-300">
+                  <td className="py-1 font-semibold">Phone:</td>
+                  <td className="py-1">{formData.customerPhone}</td>
                 </tr>
-                <tr style={{ borderBottom: "1px solid #ccc" }}>
-                  <td style={{ padding: "4px 8px", fontSize: "11px" }}>
-                    Asset Model:
-                  </td>
-                  <td
-                    style={{
-                      padding: "4px 8px",
-                      fontSize: "11px",
-                      backgroundColor: "#FFFF00",
-                    }}
-                  >
-                    {formData.assetModel}
-                  </td>
+                <tr className="border-b border-gray-300">
+                  <td className="py-1 font-semibold">Asset Model:</td>
+                  <td className="py-1">{formData.assetModel}</td>
                 </tr>
-                <tr style={{ borderBottom: "1px solid #ccc" }}>
-                  <td style={{ padding: "4px 8px", fontSize: "11px" }}>
-                    Asset Serial:
-                  </td>
-                  <td
-                    style={{
-                      padding: "4px 8px",
-                      fontSize: "11px",
-                      backgroundColor: "#FFFF00",
-                    }}
-                  >
-                    {formData.assetSerial}
-                  </td>
+                <tr className="border-b border-gray-300">
+                  <td className="py-1 font-semibold">Asset Serial:</td>
+                  <td className="py-1">{formData.assetSerial}</td>
                 </tr>
               </tbody>
             </table>
           </div>
-        </div>
-
-        {/* Dealer Address Block - Highlighted */}
-        <div className="mb-6">
-          {dealerAddressLines.map((line, index) => (
-            <p
-              key={index}
-              style={{
-                fontSize: "11px",
-                margin: 0,
-                padding: "1px 0",
-                backgroundColor: index === dealerAddressLines.length - 1 ? "#FFFF00" : "transparent",
-                display: "inline-block",
-                width: "100%",
-              }}
-            >
-              {line}
-            </p>
-          ))}
         </div>
 
         {/* Letter Body */}
