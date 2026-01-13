@@ -86,6 +86,7 @@ Deno.serve(async (req) => {
       serviceAgreementResult,
       fmvLeaseResult,
       leaseFundingResult,
+      loiResult,
       leaseReturnResult,
       interterritorialResult,
       newCustomerResult,
@@ -120,6 +121,12 @@ Deno.serve(async (req) => {
         .select('line_item_id, configuration')
         .eq('portal_id', portalId)
         .eq('deal_id', dealId),
+      supabase
+        .from('loi_configurations')
+        .select('configuration')
+        .eq('portal_id', portalId)
+        .eq('deal_id', dealId)
+        .maybeSingle(),
       supabase
         .from('lease_return_configurations')
         .select('configuration')
@@ -174,6 +181,7 @@ Deno.serve(async (req) => {
       serviceAgreement: serviceAgreementResult.data?.configuration || null,
       fmvLease: fmvLeaseResult.data?.configuration || null,
       leaseFunding: leaseFundingConfigs,
+      loi: loiResult.data?.configuration || null,
       leaseReturn: leaseReturnResult.data?.configuration || null,
       interterritorial: interterritorialResult.data?.configuration || null,
       newCustomer: newCustomerResult.data?.configuration || null,

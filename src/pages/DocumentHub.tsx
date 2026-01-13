@@ -29,7 +29,8 @@ import {
   UserCircle,
   Download,
   Eye,
-  Save
+  Save,
+  FileSignature
 } from 'lucide-react';
 import { QuoteForm, QuoteFormData } from '@/components/quote/QuoteForm';
 import { QuotePreview } from '@/components/quote/QuotePreview';
@@ -43,6 +44,8 @@ import { LeaseFundingForm, LeaseFundingFormData } from '@/components/lease-fundi
 import { LeaseFundingPreview } from '@/components/lease-funding/LeaseFundingPreview';
 import { LeaseReturnForm, LeaseReturnFormData } from '@/components/lease-return/LeaseReturnForm';
 import { LeaseReturnPreview } from '@/components/lease-return/LeaseReturnPreview';
+import { LoiForm, LoiFormData } from '@/components/loi/LoiForm';
+import { LoiPreview } from '@/components/loi/LoiPreview';
 import { InterterritorialForm, InterterritorialFormData } from '@/components/interterritorial/InterterritorialForm';
 import { InterterritorialPreview } from '@/components/interterritorial/InterterritorialPreview';
 import { NewCustomerForm, NewCustomerFormData } from '@/components/new-customer/NewCustomerForm';
@@ -58,6 +61,7 @@ const documentTypes = [
   { code: 'service_agreement', name: 'Service Agreement', icon: FileCheck },
   { code: 'fmv_lease', name: 'FMV Lease', icon: FileSpreadsheet },
   { code: 'lease_funding', name: 'Lease Funding', icon: Receipt },
+  { code: 'loi', name: 'Letter of Intent', icon: FileSignature },
   { code: 'lease_return', name: 'Lease Return', icon: MailOpen },
   { code: 'interterritorial', name: 'Interterritorial', icon: MapPin },
   { code: 'new_customer', name: 'New Customer', icon: UserPlus },
@@ -149,6 +153,18 @@ function DocumentHubContent() {
   const leaseFundingPreviewRef = useRef<HTMLDivElement>(null);
   const leaseFundingAutoSaveTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   const leaseFundingFormDataRef = useRef<LeaseFundingFormData | null>(null);
+
+  // LOI state
+  const [loiFormData, setLoiFormData] = useState<LoiFormData | null>(null);
+  const [loiSavedConfig, setLoiSavedConfig] = useState<LoiFormData | null>(null);
+  const [loiGenerating, setLoiGenerating] = useState(false);
+  const [loiSaving, setLoiSaving] = useState(false);
+  const [showLoiPreview, setShowLoiPreview] = useState(false);
+  const [loiHasUnsavedChanges, setLoiHasUnsavedChanges] = useState(false);
+  const [loiLastSavedData, setLoiLastSavedData] = useState<string | null>(null);
+  const loiPreviewRef = useRef<HTMLDivElement>(null);
+  const loiAutoSaveTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const loiFormDataRef = useRef<LoiFormData | null>(null);
 
   // Lease Return state
   const [leaseReturnFormData, setLeaseReturnFormData] = useState<LeaseReturnFormData | null>(null);

@@ -620,6 +620,33 @@ export type Database = {
           },
         ]
       }
+      loi_configurations: {
+        Row: {
+          configuration: Json | null
+          created_at: string | null
+          deal_id: string
+          id: string
+          portal_id: string
+          updated_at: string | null
+        }
+        Insert: {
+          configuration?: Json | null
+          created_at?: string | null
+          deal_id: string
+          id?: string
+          portal_id: string
+          updated_at?: string | null
+        }
+        Update: {
+          configuration?: Json | null
+          created_at?: string | null
+          deal_id?: string
+          id?: string
+          portal_id?: string
+          updated_at?: string | null
+        }
+        Relationships: []
+      }
       new_customer_configurations: {
         Row: {
           configuration: Json
