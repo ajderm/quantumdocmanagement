@@ -29,6 +29,7 @@ const ALL_FORM_TYPES = [
   { code: 'service_agreement', name: 'Service Agreement' },
   { code: 'fmv_lease', name: 'FMV Lease' },
   { code: 'lease_funding', name: 'Lease Funding' },
+  { code: 'loi', name: 'Letter of Intent' },
   { code: 'lease_return', name: 'Lease Return' },
   { code: 'interterritorial', name: 'Interterritorial' },
   { code: 'new_customer', name: 'New Customer Application' },
