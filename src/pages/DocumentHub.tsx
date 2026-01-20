@@ -3396,13 +3396,6 @@ function DocumentHubContent() {
           <LoiPreview
             ref={loiPreviewRef}
             formData={loiFormData}
-            dealerInfo={dealerInfo ? {
-              company_name: dealerInfo.companyName,
-              address_line1: dealerInfo.address,
-              phone: dealerInfo.phone,
-              website: dealerInfo.website,
-              logo_url: dealerInfo.logoUrl,
-            } : undefined}
           />
         )}
       </div>
@@ -3419,13 +3412,6 @@ function DocumentHubContent() {
                 <div className="shadow-lg border">
                   <LoiPreview
                     formData={loiFormData}
-                    dealerInfo={dealerInfo ? {
-                      company_name: dealerInfo.companyName,
-                      address_line1: dealerInfo.address,
-                      phone: dealerInfo.phone,
-                      website: dealerInfo.website,
-                      logo_url: dealerInfo.logoUrl,
-                    } : undefined}
                   />
                 </div>
               )}

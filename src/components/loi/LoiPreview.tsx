@@ -2,25 +2,12 @@ import { forwardRef } from "react";
 import { format } from "date-fns";
 import { LoiFormData } from "./LoiForm";
 
-interface DealerInfo {
-  company_name?: string;
-  address_line1?: string;
-  address_line2?: string;
-  city?: string;
-  state?: string;
-  zip_code?: string;
-  phone?: string;
-  website?: string;
-  logo_url?: string;
-}
-
 interface LoiPreviewProps {
   formData: LoiFormData;
-  dealerInfo?: DealerInfo;
 }
 
 export const LoiPreview = forwardRef<HTMLDivElement, LoiPreviewProps>(
-  ({ formData, dealerInfo }, ref) => {
+  ({ formData }, ref) => {
     const formatDate = (date: Date | string | null): string => {
       if (!date) return "";
       const d = typeof date === "string" ? new Date(date) : date;
@@ -28,42 +15,67 @@ export const LoiPreview = forwardRef<HTMLDivElement, LoiPreviewProps>(
       return format(d, "M/d/yy");
     };
 
+    // Build customer header address string
+    const buildCustomerHeaderAddress = () => {
+      const parts: string[] = [];
+      if (formData.customerHeaderAddress) parts.push(formData.customerHeaderAddress);
+      if (formData.customerHeaderAddress2) parts.push(formData.customerHeaderAddress2);
+      return parts.join(", ");
+    };
+
+    const buildCustomerHeaderCityStateZip = () => {
+      const cityState = [formData.customerHeaderCity, formData.customerHeaderState]
+        .filter(Boolean)
+        .join(", ");
+      if (cityState && formData.customerHeaderZip) {
+        return `${cityState} ${formData.customerHeaderZip}`;
+      }
+      return cityState || formData.customerHeaderZip || "";
+    };
+
+    // Filter to only filled equipment rows
+    const filledEquipment = (formData.equipment || []).filter(
+      (item) => item.model || item.serial
+    );
+
+    // Determine if we should show addendum reference
+    const showAddendumReference = formData.hasAdditionalEquipment || filledEquipment.length > 2;
+    const equipmentToDisplay = showAddendumReference 
+      ? filledEquipment.slice(0, 2) 
+      : filledEquipment;
+
     return (
       <div
         ref={ref}
         className="bg-white text-black p-8 min-h-[11in] w-[8.5in] text-[11px] leading-tight"
         style={{ fontFamily: "Arial, sans-serif" }}
       >
-        {/* Header - Dealer Info Left, Title Right */}
+        {/* Header - Customer Company Info Left, Title Right */}
         <div className="flex justify-between items-start mb-6">
-          {/* Left: Dealer Info */}
+          {/* Left: Customer Company Info */}
           <div className="flex items-start gap-4">
-            {dealerInfo?.logo_url && (
+            {formData.customerLogoUrl && (
               <img
-                src={dealerInfo.logo_url}
+                src={formData.customerLogoUrl}
                 alt="Company Logo"
                 className="h-12 object-contain"
-                crossOrigin="anonymous"
               />
             )}
             <div>
               <p className="font-bold text-[10px]">
-                {dealerInfo?.company_name || "Company Name"}
+                {formData.customerCompanyName || "Company Name"}
               </p>
-              <p className="text-[9px]">
-                {dealerInfo?.address_line1}
-                {dealerInfo?.address_line2 && <>, {dealerInfo.address_line2}</>}
-              </p>
-              <p className="text-[9px]">
-                {[dealerInfo?.city, dealerInfo?.state, dealerInfo?.zip_code]
-                  .filter(Boolean)
-                  .join(", ")}
-              </p>
-              {dealerInfo?.phone && (
-                <p className="text-[9px]">Phone: {dealerInfo.phone}</p>
+              {buildCustomerHeaderAddress() && (
+                <p className="text-[9px]">{buildCustomerHeaderAddress()}</p>
               )}
-              {dealerInfo?.website && (
-                <p className="text-[9px]">{dealerInfo.website}</p>
+              {buildCustomerHeaderCityStateZip() && (
+                <p className="text-[9px]">{buildCustomerHeaderCityStateZip()}</p>
+              )}
+              {formData.customerHeaderPhone && (
+                <p className="text-[9px]">Phone: {formData.customerHeaderPhone}</p>
+              )}
+              {formData.customerHeaderWebsite && (
+                <p className="text-[9px]">{formData.customerHeaderWebsite}</p>
               )}
             </div>
           </div>
@@ -159,18 +171,42 @@ export const LoiPreview = forwardRef<HTMLDivElement, LoiPreviewProps>(
                   <td className="py-1 font-semibold">Phone:</td>
                   <td className="py-1">{formData.customerPhone}</td>
                 </tr>
-                <tr className="border-b border-gray-300">
-                  <td className="py-1 font-semibold">Asset Model:</td>
-                  <td className="py-1">{formData.assetModel}</td>
-                </tr>
-                <tr className="border-b border-gray-300">
-                  <td className="py-1 font-semibold">Asset Serial:</td>
-                  <td className="py-1">{formData.assetSerial}</td>
-                </tr>
               </tbody>
             </table>
           </div>
         </div>
+
+        {/* Equipment Being Returned */}
+        {filledEquipment.length > 0 && (
+          <div className="mb-6">
+            <table className="w-full border-collapse text-[9px]">
+              <thead>
+                <tr className="border-b-2 border-black">
+                  <th colSpan={2} className="text-left py-1 pb-2 font-bold text-[10px]">
+                    EQUIPMENT BEING RETURNED
+                  </th>
+                </tr>
+                <tr className="border-b border-gray-300">
+                  <th className="text-left py-1 font-semibold w-1/2">Model</th>
+                  <th className="text-left py-1 font-semibold w-1/2">Serial Number</th>
+                </tr>
+              </thead>
+              <tbody>
+                {equipmentToDisplay.map((item, index) => (
+                  <tr key={index} className="border-b border-gray-300">
+                    <td className="py-1">{item.model}</td>
+                    <td className="py-1">{item.serial}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+            {showAddendumReference && (
+              <p className="text-[9px] italic mt-2">
+                * For additional equipment being returned, please reference the attached documentation/addendum.
+              </p>
+            )}
+          </div>
+        )}
 
         {/* Letter Body */}
         <div className="mb-4">
