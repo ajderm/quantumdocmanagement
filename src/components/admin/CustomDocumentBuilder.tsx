@@ -8,13 +8,15 @@ import { Switch } from '@/components/ui/switch';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Separator } from '@/components/ui/separator';
+import { ScrollArea } from '@/components/ui/scroll-area';
 import { 
   Loader2, Plus, Trash2, GripVertical, Save, 
-  FileText, ArrowUp, ArrowDown, Edit2, X, ChevronDown, ChevronUp
+  FileText, ArrowUp, ArrowDown, Edit2, X, ChevronDown, ChevronUp, Eye, EyeOff, Copy
 } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import { IconSelector } from './IconSelector';
+import { CustomDocumentPreview } from '@/components/custom-document/CustomDocumentPreview';
 import { 
   CustomDocument, 
   DocumentSchema, 
@@ -61,6 +63,7 @@ export function CustomDocumentBuilder({ portalId }: CustomDocumentBuilderProps) 
   const [editingDocument, setEditingDocument] = useState<Partial<CustomDocument> | null>(null);
   const [isEditorOpen, setIsEditorOpen] = useState(false);
   const [expandedSection, setExpandedSection] = useState<string | null>(null);
+  const [showPreview, setShowPreview] = useState(false);
 
   // Load documents and HubSpot properties
   const loadData = useCallback(async () => {
@@ -151,6 +154,40 @@ export function CustomDocumentBuilder({ portalId }: CustomDocumentBuilderProps) 
     } catch (error) {
       console.error('Error toggling document:', error);
       toast.error('Failed to update document');
+    }
+  };
+
+  const handleDuplicate = async (doc: CustomDocument) => {
+    if (documents.length >= 10) {
+      toast.error('Maximum of 10 custom documents allowed');
+      return;
+    }
+
+    try {
+      const { data, error } = await supabase.functions.invoke('custom-document-save', {
+        body: { 
+          portalId, 
+          action: 'create',
+          document: {
+            name: `${doc.name} (Copy)`,
+            icon: doc.icon,
+            description: doc.description,
+            schema: doc.schema,
+            terms_and_conditions: doc.terms_and_conditions,
+            is_active: false, // Start inactive
+            sort_order: (documents.length + 1) * 10,
+          },
+        },
+      });
+
+      if (error) throw error;
+      if (data?.document) {
+        setDocuments(prev => [...prev, data.document]);
+        toast.success('Document duplicated successfully');
+      }
+    } catch (error) {
+      console.error('Error duplicating document:', error);
+      toast.error('Failed to duplicate document');
     }
   };
 
@@ -415,6 +452,9 @@ export function CustomDocumentBuilder({ portalId }: CustomDocumentBuilderProps) 
                     <Button variant="ghost" size="icon" onClick={() => handleEdit(doc)}>
                       <Edit2 className="h-4 w-4" />
                     </Button>
+                    <Button variant="ghost" size="icon" onClick={() => handleDuplicate(doc)} title="Duplicate">
+                      <Copy className="h-4 w-4" />
+                    </Button>
                     <Button variant="ghost" size="icon" onClick={() => handleDelete(doc.id)}>
                       <Trash2 className="h-4 w-4 text-destructive" />
                     </Button>
@@ -433,19 +473,34 @@ export function CustomDocumentBuilder({ portalId }: CustomDocumentBuilderProps) 
       </Card>
 
       {/* Document Editor Dialog */}
-      <Dialog open={isEditorOpen} onOpenChange={setIsEditorOpen}>
-        <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
+      <Dialog open={isEditorOpen} onOpenChange={(open) => { setIsEditorOpen(open); setShowPreview(false); }}>
+        <DialogContent className="max-w-6xl max-h-[90vh] overflow-hidden flex flex-col">
           <DialogHeader>
-            <DialogTitle>
-              {editingDocument?.id ? 'Edit Document' : 'Create New Document'}
-            </DialogTitle>
-            <DialogDescription>
-              Configure your custom document template
-            </DialogDescription>
+            <div className="flex items-center justify-between">
+              <div>
+                <DialogTitle>
+                  {editingDocument?.id ? 'Edit Document' : 'Create New Document'}
+                </DialogTitle>
+                <DialogDescription>
+                  Configure your custom document template
+                </DialogDescription>
+              </div>
+              <Button 
+                variant="outline" 
+                size="sm"
+                onClick={() => setShowPreview(!showPreview)}
+              >
+                {showPreview ? <EyeOff className="h-4 w-4 mr-1" /> : <Eye className="h-4 w-4 mr-1" />}
+                {showPreview ? 'Hide Preview' : 'Show Preview'}
+              </Button>
+            </div>
           </DialogHeader>
 
           {editingDocument && (
-            <div className="space-y-6">
+            <div className={`flex-1 overflow-hidden ${showPreview ? 'grid grid-cols-2 gap-4' : ''}`}>
+              {/* Editor Panel */}
+              <ScrollArea className="h-[calc(90vh-180px)] pr-4">
+                <div className="space-y-6 pb-4">
               {/* Basic Info */}
               <div className="grid grid-cols-2 gap-4">
                 <div className="space-y-2">
@@ -562,6 +617,24 @@ export function CustomDocumentBuilder({ portalId }: CustomDocumentBuilderProps) 
                   rows={4}
                 />
               </div>
+                </div>
+              </ScrollArea>
+
+              {/* Preview Panel */}
+              {showPreview && (
+                <ScrollArea className="h-[calc(90vh-180px)] border rounded-lg bg-muted/30">
+                  <div className="p-4">
+                    <div className="text-xs text-muted-foreground mb-2 uppercase font-medium">Live Preview</div>
+                    <div className="transform scale-[0.6] origin-top-left w-[166%]">
+                      <CustomDocumentPreview
+                        document={editingDocument as CustomDocument}
+                        formData={{}}
+                        dealerInfo={null}
+                      />
+                    </div>
+                  </div>
+                </ScrollArea>
+              )}
             </div>
           )}
 

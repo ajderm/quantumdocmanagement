@@ -94,7 +94,7 @@ interface DocumentTerms {
 const AUTO_SAVE_DELAY = 3000;
 
 function DocumentHubContent() {
-  const { deal, company, contacts, lineItems, dealOwner, labeledContacts, loading, error, portalId } = useHubSpot();
+  const { deal, company, contacts, lineItems, dealOwner, labeledContacts, properties, loading, error, portalId } = useHubSpot();
   
   // Quote state
   const [generating, setGenerating] = useState(false);
@@ -3366,6 +3366,7 @@ function DocumentHubContent() {
                     dealOwner={dealOwner}
                     lineItems={lineItems}
                     labeledContacts={labeledContacts}
+                    properties={properties || undefined}
                   />
                   <div className="flex gap-2 pt-4 border-t">
                     <Button variant="outline" onClick={() => handleCustomDocSave(customDoc.id)} disabled={customDocSaving[customDoc.id]}>

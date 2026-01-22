@@ -6,6 +6,70 @@ const corsHeaders = {
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 };
 
+// Schema validation function
+function validateSchema(schema: any): { valid: boolean; errors: string[] } {
+  const errors: string[] = [];
+  
+  if (!schema || typeof schema !== 'object') {
+    errors.push('Schema must be an object');
+    return { valid: false, errors };
+  }
+  
+  if (!Array.isArray(schema.sections)) {
+    errors.push('Schema must have a sections array');
+    return { valid: false, errors };
+  }
+  
+  const validSectionTypes = ['header', 'fields', 'table', 'signature', 'terms'];
+  const validFieldTypes = ['text', 'textarea', 'date', 'dropdown', 'checkbox', 'signature'];
+  const seenIds = new Set<string>();
+  
+  for (const section of schema.sections) {
+    if (!section.id || typeof section.id !== 'string') {
+      errors.push('Each section must have a string id');
+      continue;
+    }
+    
+    if (seenIds.has(section.id)) {
+      errors.push(`Duplicate section id: ${section.id}`);
+    }
+    seenIds.add(section.id);
+    
+    if (!section.type || !validSectionTypes.includes(section.type)) {
+      errors.push(`Invalid section type: ${section.type}. Must be one of: ${validSectionTypes.join(', ')}`);
+    }
+    
+    if (section.type === 'fields' && section.fields) {
+      if (!Array.isArray(section.fields)) {
+        errors.push(`Fields in section ${section.id} must be an array`);
+      } else {
+        for (const field of section.fields) {
+          if (!field.id || !field.label) {
+            errors.push(`Field in section ${section.id} missing id or label`);
+          }
+          if (field.type && !validFieldTypes.includes(field.type)) {
+            errors.push(`Invalid field type in section ${section.id}: ${field.type}`);
+          }
+        }
+      }
+    }
+    
+    if (section.type === 'table' && section.columns) {
+      if (!Array.isArray(section.columns)) {
+        errors.push(`Columns in section ${section.id} must be an array`);
+      } else {
+        for (const col of section.columns) {
+          if (!col.id || !col.label) {
+            errors.push(`Column in section ${section.id} missing id or label`);
+          }
+        }
+      }
+    }
+  }
+  
+  return { valid: errors.length === 0, errors };
+}
+
 Deno.serve(async (req) => {
   if (req.method === 'OPTIONS') {
     return new Response(null, { headers: corsHeaders });
@@ -59,6 +123,20 @@ Deno.serve(async (req) => {
         // Generate unique code
         const code = `custom_doc_${Date.now()}`;
 
+        // Validate schema before creating
+        if (document.schema) {
+          const schemaValidation = validateSchema(document.schema);
+          if (!schemaValidation.valid) {
+            return new Response(JSON.stringify({ 
+              error: 'Invalid schema', 
+              details: schemaValidation.errors 
+            }), {
+              status: 400,
+              headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+            });
+          }
+        }
+
         const { data, error } = await supabase
           .from('custom_documents')
           .insert({
@@ -85,6 +163,20 @@ Deno.serve(async (req) => {
       case 'update': {
         if (!documentId) {
           return createErrorResponse('Document ID required for update', 400, corsHeaders);
+        }
+
+        // Validate schema before updating
+        if (document.schema) {
+          const schemaValidation = validateSchema(document.schema);
+          if (!schemaValidation.valid) {
+            return new Response(JSON.stringify({ 
+              error: 'Invalid schema', 
+              details: schemaValidation.errors 
+            }), {
+              status: 400,
+              headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+            });
+          }
         }
 
         const { data, error } = await supabase

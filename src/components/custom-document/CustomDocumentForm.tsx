@@ -21,6 +21,12 @@ interface LabeledContacts {
   itContact: LabeledContact | null;
 }
 
+interface RawProperties {
+  company: Record<string, any>;
+  deal: Record<string, any>;
+  owner: Record<string, any>;
+}
+
 interface CustomDocumentFormProps {
   document: CustomDocument;
   formData: Record<string, any>;
@@ -30,6 +36,7 @@ interface CustomDocumentFormProps {
   dealOwner?: any;
   lineItems?: any[];
   labeledContacts?: LabeledContacts | null;
+  properties?: RawProperties;
 }
 
 export function CustomDocumentForm({
@@ -41,6 +48,7 @@ export function CustomDocumentForm({
   dealOwner,
   lineItems = [],
   labeledContacts,
+  properties,
 }: CustomDocumentFormProps) {
   // Resolve value from existing document fields
   const resolveExistingField = useCallback((key: string): string => {
@@ -95,8 +103,24 @@ export function CustomDocumentForm({
     return mappings[key]?.() || '';
   }, [company, deal, dealOwner, labeledContacts]);
 
-  // Resolve value from HubSpot field mapping
+  // Resolve value from HubSpot field mapping - uses raw properties first, then structured data
   const resolveHubSpotField = useCallback((object: string, property: string): string => {
+    // First try raw properties (from field mappings)
+    if (properties) {
+      switch (object) {
+        case 'company':
+          if (properties.company?.[property]) return String(properties.company[property]);
+          break;
+        case 'deal':
+          if (properties.deal?.[property]) return String(properties.deal[property]);
+          break;
+        case 'owner':
+          if (properties.owner?.[property]) return String(properties.owner[property]);
+          break;
+      }
+    }
+    
+    // Fallback to structured data
     switch (object) {
       case 'company':
         return company?.properties?.[property] || company?.[property] || '';
@@ -109,7 +133,7 @@ export function CustomDocumentForm({
       default:
         return '';
     }
-  }, [company, deal, dealOwner, labeledContacts]);
+  }, [company, deal, dealOwner, labeledContacts, properties]);
 
   // Pre-populate fields on mount
   useEffect(() => {

@@ -282,10 +282,64 @@ Deno.serve(async (req) => {
     const accessToken = await getValidAccessToken(supabase, portalId);
     console.log('Access token obtained');
 
-    // Fetch deal with properties including hs_object_id
+    // Load field mappings from database
+    let fieldMappings: Record<string, any[]> = { global: [] };
+    const { data: dealerAccount } = await supabase
+      .from('dealer_accounts')
+      .select('id')
+      .eq('hubspot_portal_id', portalId)
+      .maybeSingle();
+
+    if (dealerAccount) {
+      const { data: mappingsData } = await supabase
+        .from('hubspot_field_mappings')
+        .select('*')
+        .eq('dealer_account_id', dealerAccount.id);
+      
+      if (mappingsData) {
+        for (const m of mappingsData) {
+          const key = m.document_type || 'global';
+          if (!fieldMappings[key]) fieldMappings[key] = [];
+          fieldMappings[key].push(m);
+        }
+      }
+    }
+
+    // Build dynamic property lists from mappings
+    const companyPropsNeeded = new Set(['name', 'address', 'address2', 'city', 'state', 'zip', 'phone', 'domain', 'customer_number',
+      'street_address__del_', 'street_address_line_2__del_', 'city__del_', 'state__del_', 'postal_code__del_', 'zip__del_', 'zip_code__del_',
+      'street_address__ap_', 'street_address_line_2__ap_', 'city__ap_', 'state__ap_', 'zip_code__ap_']);
+    const contactPropsNeeded = new Set(['firstname', 'lastname', 'email', 'phone', 'jobtitle']);
+    const dealPropsNeeded = new Set(['dealname', 'amount', 'dealstage', 'closedate', 'hubspot_owner_id', 'hs_object_id']);
+    const lineItemPropsNeeded = new Set(['name', 'description', 'quantity', 'price', 'hs_sku', 'hs_product_type', 'hs_recurring_billing_period', 'hs_cost_of_goods_sold']);
+
+    // Add properties from field mappings
+    for (const mappings of Object.values(fieldMappings)) {
+      for (const mapping of mappings) {
+        switch (mapping.hubspot_object) {
+          case 'company':
+            companyPropsNeeded.add(mapping.hubspot_property);
+            break;
+          case 'contact':
+            contactPropsNeeded.add(mapping.hubspot_property);
+            break;
+          case 'deal':
+            dealPropsNeeded.add(mapping.hubspot_property);
+            break;
+          case 'line_item':
+            lineItemPropsNeeded.add(mapping.hubspot_property);
+            break;
+        }
+      }
+    }
+
+    console.log('Dynamic properties - deal:', Array.from(dealPropsNeeded).length, 'company:', Array.from(companyPropsNeeded).length);
+
+    // Fetch deal with dynamic properties
+    const dealPropsString = Array.from(dealPropsNeeded).join(',');
     const dealResponse = await hubspotRequest(
       accessToken,
-      `/crm/v3/objects/deals/${dealId}?properties=dealname,amount,dealstage,closedate,hubspot_owner_id,hs_object_id`
+      `/crm/v3/objects/deals/${dealId}?properties=${dealPropsString}`
     );
 
     console.log('Deal fetched:', dealResponse.id);
@@ -335,17 +389,12 @@ Deno.serve(async (req) => {
       if (companyAssociations.results?.length > 0) {
         const companyId = companyAssociations.results[0].id;
         // Fetch company with all address fields including delivery (Ship To) and AP (Bill To) addresses
-        const companyProperties = [
-          'name', 'address', 'address2', 'city', 'state', 'zip', 'phone', 'domain', 'customer_number',
-          // Ship To (Delivery) Address fields - include both potential zip field names
-          'street_address__del_', 'street_address_line_2__del_', 'city__del_', 'state__del_', 'postal_code__del_', 'zip__del_', 'zip_code__del_',
-          // Bill To (AP) Address fields (2 underscores, matching delivery pattern)
-          'street_address__ap_', 'street_address_line_2__ap_', 'city__ap_', 'state__ap_', 'zip_code__ap_'
-        ].join(',');
+        // Use dynamic company properties list
+        const companyPropsString = Array.from(companyPropsNeeded).join(',');
         
         const companyResponse = await hubspotRequest(
           accessToken,
-          `/crm/v3/objects/companies/${companyId}?properties=${companyProperties}`
+          `/crm/v3/objects/companies/${companyId}?properties=${companyPropsString}`
         );
         
         // Debug: Log raw company properties to identify correct AP address field names
@@ -416,10 +465,12 @@ Deno.serve(async (req) => {
       );
       
       if (contactAssociations.results?.length > 0) {
+        // Use dynamic contact properties list
+        const contactPropsString = Array.from(contactPropsNeeded).join(',');
         const contactPromises = contactAssociations.results.slice(0, 5).map(async (assoc: any) => {
           const contactResponse = await hubspotRequest(
             accessToken,
-            `/crm/v3/objects/contacts/${assoc.id}?properties=firstname,lastname,email,phone,jobtitle`
+            `/crm/v3/objects/contacts/${assoc.id}?properties=${contactPropsString}`
           );
           return {
             contactId: contactResponse.id,
@@ -428,6 +479,7 @@ Deno.serve(async (req) => {
             email: contactResponse.properties.email,
             phone: contactResponse.properties.phone,
             title: contactResponse.properties.jobtitle,
+            properties: contactResponse.properties, // Include raw properties
           };
         });
         contacts = await Promise.all(contactPromises);
@@ -446,21 +498,24 @@ Deno.serve(async (req) => {
       );
       
       if (lineItemAssociations.results?.length > 0) {
+        // Use dynamic line item properties list
+        const lineItemPropsString = Array.from(lineItemPropsNeeded).join(',');
         const lineItemPromises = lineItemAssociations.results.map(async (assoc: any) => {
           const lineItemResponse = await hubspotRequest(
             accessToken,
-            `/crm/v3/objects/line_items/${assoc.id}?properties=name,description,quantity,price,hs_sku,hs_product_type,hs_recurring_billing_period,hs_cost_of_goods_sold`
+            `/crm/v3/objects/line_items/${assoc.id}?properties=${lineItemPropsString}`
           );
           return {
             id: lineItemResponse.id,
             name: lineItemResponse.properties.name,
-            model: lineItemResponse.properties.hs_sku || lineItemResponse.properties.name, // Use SKU as model
+            model: lineItemResponse.properties.hs_sku || lineItemResponse.properties.name,
             description: lineItemResponse.properties.description,
             quantity: parseFloat(lineItemResponse.properties.quantity) || 1,
             price: parseFloat(lineItemResponse.properties.price) || 0,
             sku: lineItemResponse.properties.hs_sku,
             category: lineItemResponse.properties.hs_product_type,
             cost: parseFloat(lineItemResponse.properties.hs_cost_of_goods_sold) || 0,
+            properties: lineItemResponse.properties, // Include raw properties
           };
         });
         lineItems = await Promise.all(lineItemPromises);
@@ -470,6 +525,13 @@ Deno.serve(async (req) => {
       console.error('Failed to fetch line items:', e);
     }
 
+    // Build raw properties object for custom field resolution
+    const rawProperties = {
+      company: company ? { ...company, ...(dealResponse?.properties || {}) } : {},
+      deal: dealResponse?.properties || {},
+      owner: dealOwner || {},
+    };
+
     const responseData = {
       deal,
       dealOwner,
@@ -477,6 +539,9 @@ Deno.serve(async (req) => {
       contacts,
       lineItems,
       labeledContacts,
+      // Include raw properties for custom document field resolution
+      properties: rawProperties,
+      fieldMappings,
     };
 
     console.log('Returning data successfully');
