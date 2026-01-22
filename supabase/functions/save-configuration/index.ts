@@ -8,8 +8,9 @@ const corsHeaders = {
 interface SaveConfigRequest {
   portalId: string;
   dealId: string;
-  configType: 'quote' | 'installation' | 'service_agreement' | 'fmv_lease' | 'lease_funding' | 'loi' | 'lease_return' | 'interterritorial' | 'new_customer' | 'relocation' | 'removal';
+  configType: 'quote' | 'installation' | 'service_agreement' | 'fmv_lease' | 'lease_funding' | 'loi' | 'lease_return' | 'interterritorial' | 'new_customer' | 'relocation' | 'removal' | 'custom_document';
   lineItemId?: string;
+  customDocumentId?: string;
   configuration: Record<string, unknown>;
 }
 
@@ -35,6 +36,7 @@ const tableMap: Record<string, string> = {
   'new_customer': 'new_customer_configurations',
   'relocation': 'relocation_configurations',
   'removal': 'removal_configurations',
+  'custom_document': 'custom_document_configurations',
 };
 
 Deno.serve(async (req) => {
@@ -44,7 +46,7 @@ Deno.serve(async (req) => {
   }
 
   try {
-    const { portalId, dealId, configType, lineItemId, configuration }: SaveConfigRequest = await req.json();
+    const { portalId, dealId, configType, lineItemId, customDocumentId, configuration }: SaveConfigRequest = await req.json();
 
     // Validate required fields
     if (!portalId || !dealId || !configType || !configuration) {
@@ -126,10 +128,17 @@ Deno.serve(async (req) => {
       dataToSave.line_item_id = lineItemId;
     }
 
+    // For custom document configs, include custom_document_id
+    if (configType === 'custom_document' && customDocumentId) {
+      dataToSave.custom_document_id = customDocumentId;
+    }
+
     // Determine conflict columns based on config type
     let onConflict: string;
     if (configType === 'installation' || configType === 'lease_funding') {
       onConflict = 'portal_id,deal_id,line_item_id';
+    } else if (configType === 'custom_document') {
+      onConflict = 'portal_id,deal_id,custom_document_id';
     } else {
       onConflict = 'portal_id,deal_id';
     }

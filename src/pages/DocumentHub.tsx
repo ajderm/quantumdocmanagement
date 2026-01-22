@@ -54,6 +54,8 @@ import RelocationForm, { RelocationFormData, getDefaultRelocationFormData } from
 import RelocationPreview from '@/components/relocation/RelocationPreview';
 import { RemovalForm, RemovalFormData, getDefaultRemovalFormData } from '@/components/removal/RemovalForm';
 import { RemovalPreview } from '@/components/removal/RemovalPreview';
+import { CustomDocumentForm, CustomDocumentPreview, DynamicIcon } from '@/components/custom-document';
+import type { CustomDocument } from '@/components/admin/types';
 
 const documentTypes = [
   { code: 'quote', name: 'Quote', icon: FileText },
@@ -231,6 +233,15 @@ function DocumentHubContent() {
   const [dealerSettings, setDealerSettings] = useState<DealerSettings>({});
   const [documentTerms, setDocumentTerms] = useState<DocumentTerms>({});
 
+  // Custom Documents state
+  const [customDocuments, setCustomDocuments] = useState<CustomDocument[]>([]);
+  const [customDocFormData, setCustomDocFormData] = useState<Record<string, Record<string, any>>>({});
+  const [customDocSavedConfig, setCustomDocSavedConfig] = useState<Record<string, Record<string, any>>>({});
+  const [customDocGenerating, setCustomDocGenerating] = useState<Record<string, boolean>>({});
+  const [customDocSaving, setCustomDocSaving] = useState<Record<string, boolean>>({});
+  const [showCustomDocPreview, setShowCustomDocPreview] = useState<Record<string, boolean>>({});
+  const customDocPreviewRefs = useRef<Record<string, HTMLDivElement | null>>({});
+
   // Keep formDataRef in sync with formData
   useEffect(() => {
     formDataRef.current = formData;
@@ -404,6 +415,11 @@ function DocumentHubContent() {
         if (data?.dealerSettings) {
           setDealerSettings(data.dealerSettings);
         }
+
+        // Store custom documents
+        if (data?.customDocuments) {
+          setCustomDocuments(data.customDocuments.filter((doc: CustomDocument) => doc.is_active));
+        }
       } catch (err) {
         console.error('Failed to fetch dealer info:', err);
       }
@@ -495,6 +511,13 @@ function DocumentHubContent() {
             const savedRemoval = configs.removal as RemovalFormData;
             setRemovalSavedConfig(savedRemoval);
             setRemovalFormData(savedRemoval);
+          }
+
+          // Set custom document configs (keyed by custom_document_id)
+          if (configs.customDocuments && Object.keys(configs.customDocuments).length > 0) {
+            console.log('Loaded saved custom document configurations');
+            setCustomDocSavedConfig(configs.customDocuments as Record<string, Record<string, any>>);
+            setCustomDocFormData(configs.customDocuments as Record<string, Record<string, any>>);
           }
         }
       } catch (err) {
@@ -2330,6 +2353,151 @@ function DocumentHubContent() {
     return leaseFundingSavedConfig[leaseFundingFormData.selectedLineItemId];
   };
 
+  // Custom Document handlers
+  const handleCustomDocFormChange = useCallback((docId: string, data: Record<string, any>) => {
+    setCustomDocFormData(prev => ({ ...prev, [docId]: data }));
+  }, []);
+
+  const handleCustomDocSave = useCallback(async (docId: string) => {
+    const currentPortalId = portalId || localStorage.getItem('hs_portal_id');
+    const dealId = deal?.hsObjectId;
+    const formDataToSave = customDocFormData[docId];
+
+    if (!currentPortalId || !dealId || !formDataToSave) {
+      toast.error('Missing required data for save');
+      return;
+    }
+
+    setCustomDocSaving(prev => ({ ...prev, [docId]: true }));
+    try {
+      const { error: saveError } = await supabase.functions.invoke('save-configuration', {
+        body: {
+          portalId: currentPortalId,
+          dealId,
+          configType: 'custom_document',
+          customDocumentId: docId,
+          configuration: formDataToSave
+        }
+      });
+
+      if (saveError) {
+        console.error('Save error:', saveError);
+        toast.error('Failed to save custom document');
+        return;
+      }
+
+      setCustomDocSavedConfig(prev => ({ ...prev, [docId]: formDataToSave }));
+      toast.success('Custom document saved');
+    } catch (err) {
+      console.error('Save error:', err);
+      toast.error('Failed to save custom document');
+    } finally {
+      setCustomDocSaving(prev => ({ ...prev, [docId]: false }));
+    }
+  }, [portalId, deal?.hsObjectId, customDocFormData]);
+
+  const handleCustomDocGeneratePDF = useCallback(async (docId: string) => {
+    const previewRef = customDocPreviewRefs.current[docId];
+    const doc = customDocuments.find(d => d.id === docId);
+    
+    if (!previewRef || !doc) {
+      toast.error('Please configure the document first');
+      return;
+    }
+
+    setCustomDocGenerating(prev => ({ ...prev, [docId]: true }));
+    try {
+      const canvas = await html2canvas(previewRef, {
+        scale: 2,
+        useCORS: true,
+        logging: false,
+        allowTaint: true,
+      });
+
+      const pageWidthIn = 8.5;
+      const pageHeightIn = 11;
+      const imgWidth = canvas.width;
+      const imgHeight = canvas.height;
+      const aspectRatio = imgWidth / imgHeight;
+      const pdfWidth = pageWidthIn;
+      const pdfHeight = pdfWidth / aspectRatio;
+
+      const pdf = new jsPDF({
+        orientation: 'portrait',
+        unit: 'in',
+        format: [pageWidthIn, pageHeightIn],
+      });
+
+      if (pdfHeight <= pageHeightIn) {
+        const imgData = canvas.toDataURL('image/jpeg', 0.85);
+        pdf.addImage(imgData, 'JPEG', 0, 0, pdfWidth, pdfHeight);
+      } else {
+        const totalPages = Math.ceil(pdfHeight / pageHeightIn);
+        const pixelsPerPage = canvas.height / totalPages;
+
+        for (let page = 0; page < totalPages; page++) {
+          if (page > 0) pdf.addPage();
+
+          const pageCanvas = document.createElement('canvas');
+          pageCanvas.width = canvas.width;
+          pageCanvas.height = pixelsPerPage;
+
+          const ctx = pageCanvas.getContext('2d');
+          if (ctx) {
+            ctx.drawImage(canvas, 0, page * pixelsPerPage, canvas.width, pixelsPerPage, 0, 0, canvas.width, pixelsPerPage);
+          }
+
+          const pageImgData = pageCanvas.toDataURL('image/jpeg', 0.85);
+          pdf.addImage(pageImgData, 'JPEG', 0, 0, pageWidthIn, pageHeightIn);
+        }
+      }
+
+      const sanitizedName = doc.name.replace(/[^a-zA-Z0-9\s]/g, '').replace(/\s+/g, '_');
+      const now = new Date();
+      const dateStr = now.toISOString().split('T')[0];
+      const fileName = `${sanitizedName}_${dateStr}.pdf`;
+      
+      pdf.save(fileName);
+
+      const currentPortalId = portalId || localStorage.getItem('hs_portal_id');
+      const currentDealId = deal?.hsObjectId;
+
+      if (currentPortalId && currentDealId) {
+        try {
+          const pdfBase64 = pdf.output('datauristring').split(',')[1];
+          const { error: attachError } = await supabase.functions.invoke('hubspot-attach-file', {
+            body: {
+              portalId: currentPortalId,
+              dealId: currentDealId,
+              fileName,
+              fileBase64: pdfBase64
+            }
+          });
+
+          if (attachError) {
+            toast.success('PDF downloaded! (Could not attach to deal)');
+          } else {
+            toast.success('PDF downloaded and attached to deal!');
+          }
+        } catch (attachErr) {
+          console.error('Failed to attach to HubSpot:', attachErr);
+          toast.success('PDF downloaded! (Could not attach to deal)');
+        }
+      } else {
+        toast.success('PDF downloaded successfully!');
+      }
+    } catch (err) {
+      console.error('PDF generation error:', err);
+      toast.error('Failed to generate PDF');
+    } finally {
+      setCustomDocGenerating(prev => ({ ...prev, [docId]: false }));
+    }
+  }, [customDocuments, portalId, deal?.hsObjectId]);
+
+  const handleCustomDocPreview = useCallback((docId: string) => {
+    setShowCustomDocPreview(prev => ({ ...prev, [docId]: true }));
+  }, []);
+
   if (loading) {
     return (
       <div className="flex items-center justify-center min-h-screen bg-background">
@@ -2456,6 +2624,17 @@ function DocumentHubContent() {
                 </TabsTrigger>
               );
             })}
+            {/* Custom Document Tabs */}
+            {customDocuments.map((customDoc) => (
+              <TabsTrigger
+                key={customDoc.code}
+                value={customDoc.code}
+                className="data-[state=active]:bg-primary data-[state=active]:text-primary-foreground px-3 py-1.5 text-xs"
+              >
+                <DynamicIcon name={customDoc.icon} className="h-3.5 w-3.5 mr-1.5" />
+                {customDoc.name}
+              </TabsTrigger>
+            ))}
           </TabsList>
 
           {/* Quote Tab Content */}
@@ -3164,14 +3343,43 @@ function DocumentHubContent() {
             </Card>
           </TabsContent>
 
-          {/* Placeholder for remaining tabs */}
-          {documentTypes.slice(10).map((doc) => (
-            <TabsContent key={doc.code} value={doc.code} className="mt-0">
+          {/* Custom Document Tabs Content */}
+          {customDocuments.map((customDoc) => (
+            <TabsContent key={customDoc.code} value={customDoc.code} className="mt-0">
               <Card>
-                <CardContent className="py-12 text-center">
-                  <doc.icon className="h-12 w-12 mx-auto text-muted-foreground/30 mb-4" />
-                  <h3 className="font-medium text-foreground mb-2">{doc.name}</h3>
-                  <p className="text-sm text-muted-foreground">This document type will be implemented next</p>
+                <CardHeader className="pb-3">
+                  <CardTitle className="text-lg flex items-center gap-2">
+                    <DynamicIcon name={customDoc.icon} className="h-5 w-5" />
+                    {customDoc.name}
+                  </CardTitle>
+                  {customDoc.description && (
+                    <CardDescription>{customDoc.description}</CardDescription>
+                  )}
+                </CardHeader>
+                <CardContent className="space-y-4">
+                  <CustomDocumentForm
+                    document={customDoc}
+                    formData={customDocFormData[customDoc.id] || {}}
+                    onChange={(data) => handleCustomDocFormChange(customDoc.id, data)}
+                    company={company}
+                    deal={deal}
+                    dealOwner={dealOwner}
+                    lineItems={lineItems}
+                    labeledContacts={labeledContacts}
+                  />
+                  <div className="flex gap-2 pt-4 border-t">
+                    <Button variant="outline" onClick={() => handleCustomDocSave(customDoc.id)} disabled={customDocSaving[customDoc.id]}>
+                      {customDocSaving[customDoc.id] ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <Save className="h-4 w-4 mr-2" />}
+                      {customDocSaving[customDoc.id] ? 'Saving...' : 'Save'}
+                    </Button>
+                    <Button className="flex-1" onClick={() => handleCustomDocGeneratePDF(customDoc.id)} disabled={customDocGenerating[customDoc.id]}>
+                      {customDocGenerating[customDoc.id] ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <Download className="h-4 w-4 mr-2" />}
+                      {customDocGenerating[customDoc.id] ? 'Generating...' : 'Generate PDF'}
+                    </Button>
+                    <Button variant="outline" onClick={() => handleCustomDocPreview(customDoc.id)}>
+                      <Eye className="h-4 w-4 mr-2" />Preview
+                    </Button>
+                  </div>
                 </CardContent>
               </Card>
             </TabsContent>
@@ -3647,6 +3855,56 @@ function DocumentHubContent() {
           </ScrollArea>
         </DialogContent>
       </Dialog>
+
+      {/* Custom Document TabsContent, Previews and Dialogs */}
+      {customDocuments.map((customDoc) => (
+        <div key={customDoc.id}>
+          {/* Hidden preview for PDF generation */}
+          <div className="hidden">
+            <CustomDocumentPreview
+              ref={(el) => { customDocPreviewRefs.current[customDoc.id] = el; }}
+              document={customDoc}
+              formData={customDocFormData[customDoc.id] || {}}
+              dealerInfo={dealerInfo ? {
+                companyName: dealerInfo.companyName,
+                address: dealerInfo.address,
+                phone: dealerInfo.phone,
+                website: dealerInfo.website,
+                logoUrl: dealerInfo.logoUrl,
+              } : undefined}
+            />
+          </div>
+
+          {/* Preview Dialog */}
+          <Dialog 
+            open={showCustomDocPreview[customDoc.id] || false} 
+            onOpenChange={(open) => setShowCustomDocPreview(prev => ({ ...prev, [customDoc.id]: open }))}
+          >
+            <DialogContent className="max-w-4xl max-h-[90vh] p-0">
+              <DialogHeader className="p-4 pb-0">
+                <DialogTitle>{customDoc.name} Preview</DialogTitle>
+              </DialogHeader>
+              <ScrollArea className="max-h-[calc(90vh-80px)]">
+                <div className="p-4 flex justify-center">
+                  <div className="shadow-lg border">
+                    <CustomDocumentPreview
+                      document={customDoc}
+                      formData={customDocFormData[customDoc.id] || {}}
+                      dealerInfo={dealerInfo ? {
+                        companyName: dealerInfo.companyName,
+                        address: dealerInfo.address,
+                        phone: dealerInfo.phone,
+                        website: dealerInfo.website,
+                        logoUrl: dealerInfo.logoUrl,
+                      } : undefined}
+                    />
+                  </div>
+                </div>
+              </ScrollArea>
+            </DialogContent>
+          </Dialog>
+        </div>
+      ))}
     </div>
   );
 }
