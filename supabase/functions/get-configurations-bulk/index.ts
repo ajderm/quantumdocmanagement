@@ -92,6 +92,7 @@ Deno.serve(async (req) => {
       newCustomerResult,
       relocationResult,
       removalResult,
+      customDocResult,
     ] = await Promise.all([
       supabase
         .from('quote_configurations')
@@ -157,6 +158,11 @@ Deno.serve(async (req) => {
         .eq('portal_id', portalId)
         .eq('deal_id', dealId)
         .maybeSingle(),
+      supabase
+        .from('custom_document_configurations')
+        .select('custom_document_id, configuration')
+        .eq('portal_id', portalId)
+        .eq('deal_id', dealId),
     ]);
 
     // Build installation configs map
@@ -175,6 +181,14 @@ Deno.serve(async (req) => {
       });
     }
 
+    // Build custom document configs map
+    const customDocConfigs: Record<string, unknown> = {};
+    if (customDocResult.data) {
+      customDocResult.data.forEach((row: { custom_document_id: string; configuration: unknown }) => {
+        customDocConfigs[row.custom_document_id] = row.configuration;
+      });
+    }
+
     const response = {
       quote: quoteResult.data?.configuration || null,
       installation: installationConfigs,
@@ -187,6 +201,7 @@ Deno.serve(async (req) => {
       newCustomer: newCustomerResult.data?.configuration || null,
       relocation: relocationResult.data?.configuration || null,
       removal: removalResult.data?.configuration || null,
+      customDocuments: customDocConfigs,
     };
 
     return new Response(
