@@ -5,12 +5,14 @@ import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Separator } from '@/components/ui/separator';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Building2, Upload, Save, Loader2, CreditCard, FileText, ArrowLeft, Plus, X, Settings2 } from 'lucide-react';
+import { Building2, Upload, Save, Loader2, CreditCard, FileText, ArrowLeft, Plus, X, Settings2, Link2, FilePlus } from 'lucide-react';
 import { useState, useEffect, useRef } from 'react';
 import { Link, useSearchParams } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import { Badge } from '@/components/ui/badge';
+import { FieldMappingEditor } from '@/components/admin/FieldMappingEditor';
+import { CustomDocumentBuilder } from '@/components/admin/CustomDocumentBuilder';
 
 const DOCUMENT_TYPES = [
   { code: 'quote', name: 'Quote' },
@@ -325,6 +327,14 @@ export default function AdminSettings() {
             <TabsTrigger value="company">
               <Building2 className="h-4 w-4 mr-2" />
               Company
+            </TabsTrigger>
+            <TabsTrigger value="field-mappings">
+              <Link2 className="h-4 w-4 mr-2" />
+              Field Mappings
+            </TabsTrigger>
+            <TabsTrigger value="custom-documents">
+              <FilePlus className="h-4 w-4 mr-2" />
+              Custom Documents
             </TabsTrigger>
             <TabsTrigger value="leasing" asChild>
               <Link to={`/admin/leasing?portalId=${portalId || ''}`}>
@@ -645,6 +655,14 @@ export default function AdminSettings() {
                 </Button>
               </div>
             </div>
+          </TabsContent>
+
+          <TabsContent value="field-mappings">
+            {portalId && <FieldMappingEditor portalId={portalId} />}
+          </TabsContent>
+
+          <TabsContent value="custom-documents">
+            {portalId && <CustomDocumentBuilder portalId={portalId} />}
           </TabsContent>
         </Tabs>
       </div>

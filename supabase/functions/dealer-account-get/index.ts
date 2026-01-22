@@ -61,6 +61,8 @@ Deno.serve(async (req) => {
     // Fetch document-specific terms if dealer account exists
     let documentTerms: Record<string, string> = {};
     let dealerSettings: Record<string, unknown> = {};
+    let customDocuments: unknown[] = [];
+    let fieldMappings: Record<string, unknown[]> = { global: [] };
     
     if (data?.id) {
       // Fetch document terms
@@ -87,11 +89,49 @@ Deno.serve(async (req) => {
           dealerSettings[item.setting_key] = item.setting_value;
         });
       }
+
+      // Fetch custom documents
+      const { data: customDocsData, error: customDocsError } = await supabase
+        .from('custom_documents')
+        .select('*')
+        .eq('dealer_account_id', data.id)
+        .order('sort_order', { ascending: true });
+
+      if (!customDocsError && customDocsData) {
+        customDocuments = customDocsData;
+      }
+
+      // Fetch field mappings
+      const { data: mappingsData, error: mappingsError } = await supabase
+        .from('hubspot_field_mappings')
+        .select('*')
+        .eq('dealer_account_id', data.id)
+        .order('field_key');
+
+      if (!mappingsError && mappingsData) {
+        fieldMappings = { global: [] };
+        for (const mapping of mappingsData) {
+          const key = mapping.document_type || 'global';
+          if (!fieldMappings[key]) fieldMappings[key] = [];
+          fieldMappings[key].push({
+            field_key: mapping.field_key,
+            hubspot_object: mapping.hubspot_object,
+            hubspot_property: mapping.hubspot_property,
+            association_label: mapping.association_label,
+          });
+        }
+      }
     }
 
     console.log('Dealer account found:', data ? data.id : 'none');
 
-    return new Response(JSON.stringify({ dealer: data, documentTerms, dealerSettings }), {
+    return new Response(JSON.stringify({ 
+      dealer: data, 
+      documentTerms, 
+      dealerSettings,
+      customDocuments,
+      fieldMappings,
+    }), {
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
     });
   } catch (error: unknown) {

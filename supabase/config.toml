@@ -35,3 +35,12 @@ verify_jwt = false
 
 [functions.migrate-hubspot-tokens]
 verify_jwt = false
+
+[functions.hubspot-get-properties]
+verify_jwt = false
+
+[functions.custom-document-save]
+verify_jwt = false
+
+[functions.field-mappings-save]
+verify_jwt = false

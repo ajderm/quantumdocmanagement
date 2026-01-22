@@ -14,6 +14,97 @@ export type Database = {
   }
   public: {
     Tables: {
+      custom_document_configurations: {
+        Row: {
+          configuration: Json
+          created_at: string
+          custom_document_id: string
+          deal_id: string
+          id: string
+          portal_id: string
+          updated_at: string
+        }
+        Insert: {
+          configuration?: Json
+          created_at?: string
+          custom_document_id: string
+          deal_id: string
+          id?: string
+          portal_id: string
+          updated_at?: string
+        }
+        Update: {
+          configuration?: Json
+          created_at?: string
+          custom_document_id?: string
+          deal_id?: string
+          id?: string
+          portal_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "custom_document_configurations_custom_document_id_fkey"
+            columns: ["custom_document_id"]
+            isOneToOne: false
+            referencedRelation: "custom_documents"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      custom_documents: {
+        Row: {
+          code: string
+          created_at: string
+          dealer_account_id: string
+          description: string | null
+          icon: string
+          id: string
+          is_active: boolean | null
+          name: string
+          schema: Json
+          sort_order: number | null
+          terms_and_conditions: string | null
+          updated_at: string
+        }
+        Insert: {
+          code: string
+          created_at?: string
+          dealer_account_id: string
+          description?: string | null
+          icon?: string
+          id?: string
+          is_active?: boolean | null
+          name: string
+          schema?: Json
+          sort_order?: number | null
+          terms_and_conditions?: string | null
+          updated_at?: string
+        }
+        Update: {
+          code?: string
+          created_at?: string
+          dealer_account_id?: string
+          description?: string | null
+          icon?: string
+          id?: string
+          is_active?: boolean | null
+          name?: string
+          schema?: Json
+          sort_order?: number | null
+          terms_and_conditions?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "custom_documents_dealer_account_id_fkey"
+            columns: ["dealer_account_id"]
+            isOneToOne: false
+            referencedRelation: "dealer_accounts"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       dealer_accounts: {
         Row: {
           address_line1: string | null
@@ -302,6 +393,50 @@ export type Database = {
             columns: ["document_type_id"]
             isOneToOne: false
             referencedRelation: "document_types"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      hubspot_field_mappings: {
+        Row: {
+          association_label: string | null
+          created_at: string
+          dealer_account_id: string
+          document_type: string | null
+          field_key: string
+          hubspot_object: string
+          hubspot_property: string
+          id: string
+          updated_at: string
+        }
+        Insert: {
+          association_label?: string | null
+          created_at?: string
+          dealer_account_id: string
+          document_type?: string | null
+          field_key: string
+          hubspot_object: string
+          hubspot_property: string
+          id?: string
+          updated_at?: string
+        }
+        Update: {
+          association_label?: string | null
+          created_at?: string
+          dealer_account_id?: string
+          document_type?: string | null
+          field_key?: string
+          hubspot_object?: string
+          hubspot_property?: string
+          id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "hubspot_field_mappings_dealer_account_id_fkey"
+            columns: ["dealer_account_id"]
+            isOneToOne: false
+            referencedRelation: "dealer_accounts"
             referencedColumns: ["id"]
           },
         ]
