@@ -1,5 +1,6 @@
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
 import { validatePortalId, createErrorResponse } from '../_shared/validation.ts';
+import { decryptToken, encryptToken } from '../_shared/crypto.ts';
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -21,29 +22,6 @@ interface HubSpotToken {
   expires_at: string;
 }
 
-// Decrypt token using the same method as hubspot-get-deal
-async function decryptToken(encryptedToken: string, key: CryptoKey): Promise<string> {
-  const [ivHex, cipherHex] = encryptedToken.split(':');
-  const iv = new Uint8Array(ivHex.match(/.{2}/g)!.map(byte => parseInt(byte, 16)));
-  const ciphertext = new Uint8Array(cipherHex.match(/.{2}/g)!.map(byte => parseInt(byte, 16)));
-  
-  const decrypted = await crypto.subtle.decrypt(
-    { name: 'AES-GCM', iv },
-    key,
-    ciphertext
-  );
-  
-  return new TextDecoder().decode(decrypted);
-}
-
-async function getEncryptionKey(): Promise<CryptoKey> {
-  const keyHex = Deno.env.get('HUBSPOT_TOKEN_ENCRYPTION_KEY');
-  if (!keyHex) throw new Error('Encryption key not configured');
-  
-  const keyBytes = new Uint8Array(keyHex.match(/.{2}/g)!.map(byte => parseInt(byte, 16)));
-  return crypto.subtle.importKey('raw', keyBytes, 'AES-GCM', false, ['decrypt']);
-}
-
 async function refreshAccessToken(
   supabase: any,
   token: HubSpotToken,
@@ -56,8 +34,7 @@ async function refreshAccessToken(
     throw new Error('HubSpot OAuth credentials not configured');
   }
 
-  const key = await getEncryptionKey();
-  const decryptedRefreshToken = await decryptToken(token.refresh_token, key);
+  const decryptedRefreshToken = await decryptToken(token.refresh_token);
 
   const response = await fetch('https://api.hubapi.com/oauth/v1/token', {
     method: 'POST',
@@ -78,21 +55,7 @@ async function refreshAccessToken(
 
   const data = await response.json();
 
-  // Encrypt new tokens
-  const keyForEncrypt = await getEncryptionKey();
-  const encryptToken = async (plaintext: string): Promise<string> => {
-    const iv = crypto.getRandomValues(new Uint8Array(12));
-    const encoded = new TextEncoder().encode(plaintext);
-    const ciphertext = await crypto.subtle.encrypt(
-      { name: 'AES-GCM', iv },
-      keyForEncrypt,
-      encoded
-    );
-    const ivHex = Array.from(iv).map(b => b.toString(16).padStart(2, '0')).join('');
-    const cipherHex = Array.from(new Uint8Array(ciphertext)).map(b => b.toString(16).padStart(2, '0')).join('');
-    return `${ivHex}:${cipherHex}`;
-  };
-
+  // Encrypt new tokens using shared utility
   const encryptedAccess = await encryptToken(data.access_token);
   const encryptedRefresh = await encryptToken(data.refresh_token);
 
@@ -133,8 +96,7 @@ async function getValidAccessToken(
     return refreshAccessToken(supabase, token as HubSpotToken, portalId);
   }
 
-  const key = await getEncryptionKey();
-  return decryptToken(token.access_token, key);
+  return decryptToken(token.access_token);
 }
 
 async function fetchHubSpotProperties(accessToken: string, objectType: string): Promise<HubSpotProperty[]> {
