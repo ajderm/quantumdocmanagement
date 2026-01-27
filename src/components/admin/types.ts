@@ -25,6 +25,7 @@ export interface FieldMapping {
   hubspot_object: string;
   hubspot_property: string;
   association_label?: string;
+  association_path?: string; // 'company_contact' = contact via company association
 }
 
 export interface FieldMappingsGrouped {
