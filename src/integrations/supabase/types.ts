@@ -400,6 +400,7 @@ export type Database = {
       hubspot_field_mappings: {
         Row: {
           association_label: string | null
+          association_path: string | null
           created_at: string
           dealer_account_id: string
           document_type: string | null
@@ -411,6 +412,7 @@ export type Database = {
         }
         Insert: {
           association_label?: string | null
+          association_path?: string | null
           created_at?: string
           dealer_account_id: string
           document_type?: string | null
@@ -422,6 +424,7 @@ export type Database = {
         }
         Update: {
           association_label?: string | null
+          association_path?: string | null
           created_at?: string
           dealer_account_id?: string
           document_type?: string | null

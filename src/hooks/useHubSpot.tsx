@@ -14,6 +14,9 @@ interface LabeledContacts {
   itContact: LabeledContact | null;
 }
 
+// Company contacts keyed by association label
+type CompanyContacts = Record<string, LabeledContact>;
+
 interface RawProperties {
   company: Record<string, any>;
   deal: Record<string, any>;
@@ -29,6 +32,7 @@ type HubSpotContextType = {
   lineItems: any[];
   dealOwner: any;
   labeledContacts: LabeledContacts | null;
+  companyContacts: CompanyContacts | null;
   properties: RawProperties | null;
   loading: boolean;
   isEmbedded: boolean;
@@ -66,6 +70,7 @@ export function HubSpotProvider({ children }: { children: ReactNode }) {
   const [lineItems, setLineItems] = useState<any[]>([]);
   const [dealOwner, setDealOwner] = useState<any>(null);
   const [labeledContacts, setLabeledContacts] = useState<LabeledContacts | null>(null);
+  const [companyContacts, setCompanyContacts] = useState<CompanyContacts | null>(null);
   const [properties, setProperties] = useState<RawProperties | null>(null);
 
   const [loading, setLoading] = useState(true);
@@ -111,6 +116,7 @@ export function HubSpotProvider({ children }: { children: ReactNode }) {
         if (data?.lineItems) setLineItems(data.lineItems);
         if (data?.dealOwner) setDealOwner(data.dealOwner);
         if (data?.labeledContacts) setLabeledContacts(data.labeledContacts);
+        if (data?.companyContacts) setCompanyContacts(data.companyContacts);
         if (data?.properties) setProperties(data.properties);
 
         setError(null);
@@ -144,6 +150,7 @@ export function HubSpotProvider({ children }: { children: ReactNode }) {
         lineItems,
         dealOwner,
         labeledContacts,
+        companyContacts,
         properties,
         loading,
         isEmbedded,

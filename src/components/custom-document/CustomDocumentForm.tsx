@@ -13,6 +13,7 @@ interface LabeledContact {
   lastName: string;
   email: string;
   phone: string;
+  properties?: Record<string, any>;
 }
 
 interface LabeledContacts {
@@ -21,10 +22,20 @@ interface LabeledContacts {
   itContact: LabeledContact | null;
 }
 
+// Company contacts keyed by association label
+type CompanyContacts = Record<string, LabeledContact>;
+
 interface RawProperties {
   company: Record<string, any>;
   deal: Record<string, any>;
   owner: Record<string, any>;
+}
+
+interface FieldMappingConfig {
+  hubspot_object: string;
+  hubspot_property: string;
+  association_label?: string;
+  association_path?: string;
 }
 
 interface CustomDocumentFormProps {
@@ -36,7 +47,9 @@ interface CustomDocumentFormProps {
   dealOwner?: any;
   lineItems?: any[];
   labeledContacts?: LabeledContacts | null;
+  companyContacts?: CompanyContacts | null;
   properties?: RawProperties;
+  fieldMappings?: Record<string, FieldMappingConfig[]>;
 }
 
 export function CustomDocumentForm({
@@ -48,7 +61,9 @@ export function CustomDocumentForm({
   dealOwner,
   lineItems = [],
   labeledContacts,
+  companyContacts,
   properties,
+  fieldMappings,
 }: CustomDocumentFormProps) {
   // Resolve value from existing document fields
   const resolveExistingField = useCallback((key: string): string => {
@@ -104,7 +119,27 @@ export function CustomDocumentForm({
   }, [company, deal, dealOwner, labeledContacts]);
 
   // Resolve value from HubSpot field mapping - uses raw properties first, then structured data
-  const resolveHubSpotField = useCallback((object: string, property: string): string => {
+  // Now supports association_path for company-contact resolution
+  const resolveHubSpotField = useCallback((
+    object: string, 
+    property: string,
+    associationPath?: string,
+    associationLabel?: string
+  ): string => {
+    // Handle company-contact path (contact associated with company, not deal)
+    if (object === 'contact' && associationPath === 'company_contact' && associationLabel) {
+      const contact = companyContacts?.[associationLabel];
+      if (contact) {
+        // Check properties first, then direct field (firstName, lastName, email, phone)
+        const propValue = contact.properties?.[property];
+        if (propValue) return String(propValue);
+        // Fallback to direct contact fields
+        const directFields = { firstName: contact.firstName, lastName: contact.lastName, email: contact.email, phone: contact.phone };
+        return directFields[property as keyof typeof directFields] || '';
+      }
+      return '';
+    }
+
     // First try raw properties (from field mappings)
     if (properties) {
       switch (object) {
@@ -123,23 +158,29 @@ export function CustomDocumentForm({
     // Fallback to structured data
     switch (object) {
       case 'company':
-        return company?.properties?.[property] || company?.[property] || '';
+        return String(company?.properties?.[property] || company?.[property] || '');
       case 'deal':
-        return deal?.properties?.[property] || deal?.[property] || '';
-      case 'contact':
-        return labeledContacts?.shippingContact?.[property as keyof LabeledContact] || '';
+        return String(deal?.properties?.[property] || deal?.[property] || '');
+      case 'contact': {
+        const sc = labeledContacts?.shippingContact;
+        const directFields = { firstName: sc?.firstName, lastName: sc?.lastName, email: sc?.email, phone: sc?.phone };
+        return directFields[property as keyof typeof directFields] || '';
+      }
       case 'owner':
-        return dealOwner?.[property] || '';
+        return String(dealOwner?.[property] || '');
       default:
         return '';
     }
-  }, [company, deal, dealOwner, labeledContacts, properties]);
+  }, [company, deal, dealOwner, labeledContacts, companyContacts, properties]);
 
   // Pre-populate fields on mount
   useEffect(() => {
     const sections = document.schema?.sections || [];
     const initialData: Record<string, any> = { ...formData };
     let hasChanges = false;
+
+    // Get field mappings for this document type (check document-specific, then global)
+    const docMappings = fieldMappings?.[document.code] || fieldMappings?.global || [];
 
     sections.forEach((section) => {
       if (section.type === 'fields' && section.fields) {
@@ -151,7 +192,16 @@ export function CustomDocumentForm({
             if (field.mapping.source === 'existing' && field.mapping.existingFieldKey) {
               value = resolveExistingField(field.mapping.existingFieldKey);
             } else if (field.mapping.source === 'hubspot' && field.mapping.object && field.mapping.property) {
-              value = resolveHubSpotField(field.mapping.object, field.mapping.property);
+              // Check if there's a field mapping with association_path
+              const fieldMapping = docMappings.find(
+                m => m.hubspot_object === field.mapping.object && m.hubspot_property === field.mapping.property
+              );
+              value = resolveHubSpotField(
+                field.mapping.object, 
+                field.mapping.property,
+                fieldMapping?.association_path,
+                fieldMapping?.association_label
+              );
             }
             
             if (value) {
@@ -166,7 +216,7 @@ export function CustomDocumentForm({
     if (hasChanges) {
       onChange(initialData);
     }
-  }, [document.schema, resolveExistingField, resolveHubSpotField]);
+  }, [document.schema, document.code, fieldMappings, resolveExistingField, resolveHubSpotField]);
 
   const updateField = (fieldId: string, value: any) => {
     onChange({ ...formData, [fieldId]: value });

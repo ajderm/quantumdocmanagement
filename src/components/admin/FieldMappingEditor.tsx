@@ -108,7 +108,8 @@ export function FieldMappingEditor({ portalId }: FieldMappingEditorProps) {
     fieldKey: string,
     hubspotObject: string,
     hubspotProperty: string,
-    associationLabel?: string
+    associationLabel?: string,
+    associationPath?: string
   ) => {
     const scope = isPerDocument ? selectedDocumentType : 'global';
     
@@ -121,6 +122,7 @@ export function FieldMappingEditor({ portalId }: FieldMappingEditorProps) {
         hubspot_object: hubspotObject,
         hubspot_property: hubspotProperty,
         association_label: associationLabel,
+        association_path: associationPath,
       };
 
       if (existingIndex >= 0) {
@@ -294,7 +296,7 @@ interface FieldMappingRowProps {
   fieldLabel: string;
   mapping?: FieldMapping;
   hubspotProperties: HubSpotPropertiesResponse | null;
-  onUpdate: (fieldKey: string, object: string, property: string, label?: string) => void;
+  onUpdate: (fieldKey: string, object: string, property: string, label?: string, path?: string) => void;
   onRemove: (fieldKey: string) => void;
 }
 
@@ -309,27 +311,45 @@ function FieldMappingRow({
   const [selectedObject, setSelectedObject] = useState(mapping?.hubspot_object || '');
   const [selectedProperty, setSelectedProperty] = useState(mapping?.hubspot_property || '');
   const [selectedLabel, setSelectedLabel] = useState(mapping?.association_label || '');
+  const [selectedPath, setSelectedPath] = useState(mapping?.association_path || '');
 
   const objectOptions = hubspotProperties?.objects || {};
   const selectedObjectData = objectOptions[selectedObject];
-  const showAssociationLabel = selectedObject === 'contact';
+  
+  // Show association path dropdown only for contact object
+  const showAssociationPath = selectedObject === 'contact';
+  // Show association label when "Via Company" path is selected (required to identify which contact)
+  const showAssociationLabel = selectedObject === 'contact' && selectedPath === 'company_contact';
 
   const handleObjectChange = (value: string) => {
     setSelectedObject(value);
     setSelectedProperty('');
     setSelectedLabel('');
+    setSelectedPath('');
+  };
+
+  const handlePathChange = (value: string) => {
+    const effectiveValue = value === '__direct__' ? '' : value;
+    setSelectedPath(effectiveValue);
+    // Clear label when switching to direct
+    if (!effectiveValue) {
+      setSelectedLabel('');
+    }
+    if (selectedProperty) {
+      onUpdate(fieldKey, selectedObject, selectedProperty, effectiveValue ? selectedLabel : undefined, effectiveValue || undefined);
+    }
   };
 
   const handlePropertyChange = (value: string) => {
     setSelectedProperty(value);
-    onUpdate(fieldKey, selectedObject, value, showAssociationLabel ? selectedLabel : undefined);
+    onUpdate(fieldKey, selectedObject, value, showAssociationLabel ? selectedLabel : undefined, selectedPath || undefined);
   };
 
   const handleLabelChange = (value: string) => {
     const effectiveValue = value === '__none__' ? '' : value;
     setSelectedLabel(effectiveValue);
     if (selectedProperty) {
-      onUpdate(fieldKey, selectedObject, selectedProperty, effectiveValue || undefined);
+      onUpdate(fieldKey, selectedObject, selectedProperty, effectiveValue || undefined, selectedPath || undefined);
     }
   };
 
@@ -337,19 +357,21 @@ function FieldMappingRow({
     setSelectedObject('');
     setSelectedProperty('');
     setSelectedLabel('');
+    setSelectedPath('');
     onRemove(fieldKey);
   };
 
   return (
     <div className="grid grid-cols-12 gap-2 items-center p-2 rounded border bg-card">
-      <div className="col-span-3">
+      <div className="col-span-2">
         <span className="text-sm font-medium">{fieldLabel}</span>
       </div>
       
-      <div className="col-span-3">
+      {/* Object Dropdown */}
+      <div className="col-span-2">
         <Select value={selectedObject} onValueChange={handleObjectChange}>
           <SelectTrigger className="h-8 text-xs">
-            <SelectValue placeholder="Select object..." />
+            <SelectValue placeholder="Object..." />
           </SelectTrigger>
           <SelectContent>
             {Object.entries(objectOptions)
@@ -363,14 +385,32 @@ function FieldMappingRow({
         </Select>
       </div>
 
-      <div className="col-span-3">
+      {/* Association Path Dropdown (only for Contact) */}
+      {showAssociationPath ? (
+        <div className="col-span-2">
+          <Select value={selectedPath || '__direct__'} onValueChange={handlePathChange}>
+            <SelectTrigger className="h-8 text-xs">
+              <SelectValue placeholder="Path..." />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="__direct__">Direct (Deal)</SelectItem>
+              <SelectItem value="company_contact">Via Company</SelectItem>
+            </SelectContent>
+          </Select>
+        </div>
+      ) : (
+        <div className="col-span-2" />
+      )}
+
+      {/* Property Dropdown */}
+      <div className="col-span-2">
         <Select 
           value={selectedProperty} 
           onValueChange={handlePropertyChange}
           disabled={!selectedObject}
         >
           <SelectTrigger className="h-8 text-xs">
-            <SelectValue placeholder="Select property..." />
+            <SelectValue placeholder="Property..." />
           </SelectTrigger>
           <SelectContent className="max-h-64">
             {(selectedObjectData?.properties || [])
@@ -384,14 +424,15 @@ function FieldMappingRow({
         </Select>
       </div>
 
+      {/* Association Label Dropdown (required when Via Company) */}
       {showAssociationLabel ? (
         <div className="col-span-2">
-          <Select value={selectedLabel} onValueChange={handleLabelChange}>
+          <Select value={selectedLabel || '__none__'} onValueChange={handleLabelChange}>
             <SelectTrigger className="h-8 text-xs">
-              <SelectValue placeholder="Label..." />
+              <SelectValue placeholder="Label (required)..." />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value="__none__">No label</SelectItem>
+              <SelectItem value="__none__">Select label...</SelectItem>
               {(hubspotProperties?.associationLabels || [])
                 .filter((label) => label && label.id && label.label)
                 .map((label) => (
@@ -406,7 +447,7 @@ function FieldMappingRow({
         <div className="col-span-2" />
       )}
 
-      <div className="col-span-1 flex justify-end">
+      <div className="col-span-2 flex justify-end">
         {(selectedObject || selectedProperty) && (
           <Button variant="ghost" size="sm" onClick={handleClear} className="h-7 px-2 text-xs">
             Clear

@@ -11,6 +11,7 @@ interface FieldMapping {
   hubspot_object: string;
   hubspot_property: string;
   association_label?: string;
+  association_path?: string; // 'company_contact' = contact via company association
   document_type?: string; // null for global
 }
 
@@ -78,6 +79,7 @@ Deno.serve(async (req) => {
             hubspot_object: m.hubspot_object,
             hubspot_property: m.hubspot_property,
             association_label: m.association_label || null,
+            association_path: m.association_path || null,
           }));
 
           const { error } = await supabase
@@ -112,6 +114,7 @@ Deno.serve(async (req) => {
             hubspot_object: mapping.hubspot_object,
             hubspot_property: mapping.hubspot_property,
             association_label: mapping.association_label,
+            association_path: mapping.association_path,
           });
         }
 
