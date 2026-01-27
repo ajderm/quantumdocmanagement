@@ -326,9 +326,10 @@ function FieldMappingRow({
   };
 
   const handleLabelChange = (value: string) => {
-    setSelectedLabel(value);
+    const effectiveValue = value === '__none__' ? '' : value;
+    setSelectedLabel(effectiveValue);
     if (selectedProperty) {
-      onUpdate(fieldKey, selectedObject, selectedProperty, value);
+      onUpdate(fieldKey, selectedObject, selectedProperty, effectiveValue || undefined);
     }
   };
 
@@ -351,11 +352,13 @@ function FieldMappingRow({
             <SelectValue placeholder="Select object..." />
           </SelectTrigger>
           <SelectContent>
-            {Object.entries(objectOptions).map(([key, obj]) => (
-              <SelectItem key={key} value={key}>
-                {obj.label}
-              </SelectItem>
-            ))}
+            {Object.entries(objectOptions)
+              .filter(([_, obj]) => obj && obj.label)
+              .map(([key, obj]) => (
+                <SelectItem key={key} value={key}>
+                  {obj.label}
+                </SelectItem>
+              ))}
           </SelectContent>
         </Select>
       </div>
@@ -370,11 +373,13 @@ function FieldMappingRow({
             <SelectValue placeholder="Select property..." />
           </SelectTrigger>
           <SelectContent className="max-h-64">
-            {selectedObjectData?.properties.map((prop) => (
-              <SelectItem key={prop.name} value={prop.name}>
-                {prop.label}
-              </SelectItem>
-            ))}
+            {(selectedObjectData?.properties || [])
+              .filter((prop) => prop && prop.name && prop.label)
+              .map((prop) => (
+                <SelectItem key={prop.name} value={prop.name}>
+                  {prop.label}
+                </SelectItem>
+              ))}
           </SelectContent>
         </Select>
       </div>
@@ -386,12 +391,14 @@ function FieldMappingRow({
               <SelectValue placeholder="Label..." />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value="">No label</SelectItem>
-              {hubspotProperties?.associationLabels.map((label) => (
-                <SelectItem key={label.id} value={label.id}>
-                  {label.label}
-                </SelectItem>
-              ))}
+              <SelectItem value="__none__">No label</SelectItem>
+              {(hubspotProperties?.associationLabels || [])
+                .filter((label) => label && label.id && label.label)
+                .map((label) => (
+                  <SelectItem key={label.id} value={label.id}>
+                    {label.label}
+                  </SelectItem>
+                ))}
             </SelectContent>
           </Select>
         </div>
