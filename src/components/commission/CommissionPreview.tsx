@@ -113,6 +113,8 @@ export const CommissionPreview = forwardRef<HTMLDivElement, CommissionPreviewPro
                     <th className="text-left py-0.5 font-bold">Billed</th>
                     <th className="text-right py-0.5 font-bold w-16">Rep Cost</th>
                     <th className="text-left py-0.5 font-bold w-20 pl-2">Condition</th>
+                    <th className="text-left py-0.5 font-bold w-20 pl-2">Dealer Source</th>
+                    <th className="text-left py-0.5 font-bold pl-2">Special Pricing</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -120,12 +122,16 @@ export const CommissionPreview = forwardRef<HTMLDivElement, CommissionPreviewPro
                     <td className="py-0.5 font-semibold">Total Billed Revenue</td>
                     <td className="py-0.5 text-right">${fmt(totalRepCost)}</td>
                     <td></td>
+                    <td></td>
+                    <td></td>
                   </tr>
                   {formData.lineItems.map((item, i) => (
                     <tr key={item.id || i} style={{ borderBottom: `1px solid ${lineColor}` }}>
                       <td className="py-0.5 pl-2">{item.description} <span style={{ color: '#6b7280' }}>${fmt(item.billed)}</span></td>
                       <td className="py-0.5 text-right"></td>
                       <td className="py-0.5 pl-2">{item.condition}</td>
+                      <td className="py-0.5 pl-2">{item.dealerSource}</td>
+                      <td className="py-0.5 pl-2">{item.specialPricing}</td>
                     </tr>
                   ))}
                   {/* Cost breakdown rows */}
@@ -136,11 +142,15 @@ export const CommissionPreview = forwardRef<HTMLDivElement, CommissionPreviewPro
                         {row.ma ? "MA" : `$${fmt(row.repCost)}`}
                       </td>
                       <td></td>
+                      <td></td>
+                      <td></td>
                     </tr>
                   ))}
                   <tr className="font-bold" style={{ borderTop: `2px solid ${borderColor}` }}>
                     <td className="py-0.5">Totals  ${fmt(totalsBilled)}</td>
                     <td className="py-0.5 text-right">${fmt(totalsRepCost)}</td>
+                    <td></td>
+                    <td></td>
                     <td></td>
                   </tr>
                 </tbody>
