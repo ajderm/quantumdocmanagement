@@ -1,72 +1,71 @@
 
 
-# Fix: Condition Field Still Showing Product Type
+# Commission Form Updates: Dealer Source + Special Pricing
 
-## Root Cause Analysis
+## 1. Add "Dealer Source" Column to Equipment Table
 
-After thorough investigation, the code changes from the previous update ARE correctly in place:
-- The edge function requests the `condition` property from HubSpot (confirmed in live logs)
-- `CommissionForm.tsx` reads `item.properties?.condition`
+**What**: Pull the `dealer` property from HubSpot line items and display it as a "Dealer Source" column in the Commission equipment table.
 
-However, **two issues** remain:
+**Changes needed**:
 
-1. **Stale saved configuration**: When you previously saved/previewed this deal, the old code cached line items with `hs_product_type` values ("Hardware") in the `condition` field. The saved config overrides fresh HubSpot data (line 189-190 of CommissionForm), so you keep seeing the old cached values.
+### Backend (Edge Function)
+- Add `'dealer'` to the `lineItemPropsNeeded` set in `hubspot-get-deal/index.ts`
+- Add `dealer` as a top-level field on the returned line item object (same pattern as `condition`)
 
-2. **Missing top-level field**: The edge function returns `category` (from `hs_product_type`) as a top-level line item field but does NOT return `condition` as a top-level field. It's only accessible via `item.properties.condition`. For consistency and reliability, `condition` should be a first-class field on the returned line item object.
+### Form
+- Add `dealerSource: string` to `CommissionLineItem` interface
+- Map from `item.dealer || item.properties?.dealer || ""`
+- Apply the same fresh-data-merge pattern (when savedConfig exists, re-populate from HubSpot)
+- Add column in the Equipment Items grid
 
-## Changes
+### Preview
+- Add "Dealer Source" column in the ITEM table
 
-### File 1: `supabase/functions/hubspot-get-deal/index.ts`
+## 2. Add "Special Pricing / Credits" Field Per Line Item
 
-Add `condition` as a top-level field on the line item response object (alongside `category`):
+**What**: A free-text input per line item where reps can note special pricing, promo discounts, DIR credits, or nonprofit credits.
 
+### Form
+- Add `specialPricing: string` to `CommissionLineItem` interface
+- Add a text input below or beside each line item row
+- Default to empty string
+
+### Preview
+- Show the special pricing note next to each line item (only if populated)
+
+## Files to Modify
+
+| File | Changes |
+|------|---------|
+| `supabase/functions/hubspot-get-deal/index.ts` | Add `'dealer'` to `lineItemPropsNeeded`, add `dealer` as top-level field |
+| `src/components/commission/CommissionForm.tsx` | Add `dealerSource` and `specialPricing` to `CommissionLineItem`, map from HubSpot, add columns to form grid |
+| `src/components/commission/CommissionPreview.tsx` | Add "Dealer Source" and "Special Pricing" columns to ITEM table |
+
+## Technical Details
+
+### CommissionLineItem interface update
 ```typescript
-return {
-  id: lineItemResponse.id,
-  name: lineItemResponse.properties.name,
-  // ...existing fields...
-  category: lineItemResponse.properties.hs_product_type,
-  condition: lineItemResponse.properties.condition || '',  // ADD THIS
-  properties: lineItemResponse.properties,
-};
-```
-
-### File 2: `src/components/commission/CommissionForm.tsx`
-
-Two changes:
-
-**A.** Update condition mapping to use both the new top-level field AND `properties.condition`, to be robust:
-
-```typescript
-condition: item.condition || item.properties?.condition || "",
-```
-
-**B.** When a savedConfig exists, still re-populate line item conditions from fresh HubSpot data. This ensures stale cached values don't persist. After loading savedConfig, merge fresh line item conditions:
-
-```typescript
-if (savedConfig) {
-  const merged = { ...getDefaultCommissionFormData(), ...savedConfig };
-  // Re-apply fresh HubSpot condition values to line items
-  if (lineItems?.length && merged.lineItems?.length) {
-    merged.lineItems = merged.lineItems.map((savedItem, idx) => {
-      const freshItem = lineItems[idx];
-      if (freshItem) {
-        return {
-          ...savedItem,
-          condition: freshItem.condition || freshItem.properties?.condition || savedItem.condition || "",
-        };
-      }
-      return savedItem;
-    });
-  }
-  setFormData(merged);
+export interface CommissionLineItem {
+  id: string;
+  quantity: number;
+  description: string;
+  billed: number;
+  repCost: number;
+  condition: string;
+  dealerSource: string;      // NEW - from HubSpot 'dealer' property
+  specialPricing: string;    // NEW - free-text for pricing notes
 }
 ```
 
-## Summary
+### Edge function line item addition
+```typescript
+dealer: lineItemResponse.properties.dealer || '',
+```
 
-| Change | Purpose |
-|--------|---------|
-| Add `condition` to edge function line item response | Make condition a first-class field, not buried in `properties` |
-| Update form to read `item.condition` | Use the new top-level field with fallback |
-| Merge fresh conditions into savedConfig | Prevent stale cached product type values from overriding |
+### Form grid layout change
+The Equipment Items grid will expand from 4 columns to 6:
+- Description | Billed | Rep Cost | Condition | Dealer Source | Special Pricing/Credits
+
+### Fresh-data merge for dealerSource
+Same pattern as `condition` -- when savedConfig exists, re-populate `dealerSource` from fresh HubSpot data to prevent stale values.
+
