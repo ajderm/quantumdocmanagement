@@ -88,6 +88,12 @@ interface DealerSettings {
   meter_methods?: string[];
   cca_value?: string;
   enabled_forms?: string[];
+  document_styles?: {
+    fontFamily?: string;
+    fontColor?: string;
+    tableBorderColor?: string;
+    tableLineColor?: string;
+  };
 }
 
 interface DocumentTerms {
@@ -3540,7 +3546,7 @@ function DocumentHubContent() {
       {/* Hidden preview for Quote PDF generation */}
       <div className="hidden">
         {formData && (
-          <QuotePreview ref={previewRef} formData={formData} dealerInfo={dealerInfo || undefined} />
+          <QuotePreview ref={previewRef} formData={formData} dealerInfo={dealerInfo || undefined} documentStyles={dealerSettings.document_styles} />
         )}
       </div>
 
@@ -3559,6 +3565,7 @@ function DocumentHubContent() {
             } : undefined}
             removalReceiptTerms={documentTerms.installation_removal_receipt}
             deliveryAcceptanceTerms={documentTerms.installation_delivery_acceptance}
+            documentStyles={dealerSettings.document_styles}
           />
         )}
       </div>
@@ -3573,7 +3580,7 @@ function DocumentHubContent() {
             <div className="p-4 flex justify-center">
               {formData && (
                 <div className="shadow-lg border">
-                  <QuotePreview formData={formData} dealerInfo={dealerInfo || undefined} />
+                  <QuotePreview formData={formData} dealerInfo={dealerInfo || undefined} documentStyles={dealerSettings.document_styles} />
                 </div>
               )}
             </div>
@@ -3602,6 +3609,7 @@ function DocumentHubContent() {
                     } : undefined}
                     removalReceiptTerms={documentTerms.installation_removal_receipt}
                     deliveryAcceptanceTerms={documentTerms.installation_delivery_acceptance}
+                    documentStyles={dealerSettings.document_styles}
                   />
                 </div>
               )}
@@ -3625,6 +3633,7 @@ function DocumentHubContent() {
             } : undefined}
             lineItems={lineItems}
             termsAndConditions={documentTerms.service_agreement}
+            documentStyles={dealerSettings.document_styles}
           />
         )}
       </div>
@@ -3650,6 +3659,7 @@ function DocumentHubContent() {
                     } : undefined}
                     lineItems={lineItems}
                     termsAndConditions={documentTerms.service_agreement}
+                    documentStyles={dealerSettings.document_styles}
                   />
                 </div>
               )}

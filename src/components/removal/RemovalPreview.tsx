@@ -16,10 +16,11 @@ interface DealerInfo {
 interface RemovalPreviewProps {
   formData: RemovalFormData;
   dealerInfo?: DealerInfo;
+  documentStyles?: { fontFamily?: string; fontColor?: string; tableBorderColor?: string; tableLineColor?: string; };
 }
 
 export const RemovalPreview = forwardRef<HTMLDivElement, RemovalPreviewProps>(
-  ({ formData, dealerInfo }, ref) => {
+  ({ formData, dealerInfo, documentStyles }, ref) => {
     // Filter equipment to only show rows with content
     const filledEquipment = formData.equipmentItems.filter(
       (item) => item.qty || item.itemNumber || item.makeModelDescription || item.serialNumber
@@ -47,8 +48,8 @@ export const RemovalPreview = forwardRef<HTMLDivElement, RemovalPreviewProps>(
     return (
       <div
         ref={ref}
-        className="bg-white text-black p-6 min-h-[11in] w-[8.5in] text-[10px] leading-tight"
-        style={{ fontFamily: "Arial, sans-serif" }}
+        className="bg-white p-6 min-h-[11in] w-[8.5in] text-[10px] leading-tight"
+        style={{ fontFamily: documentStyles?.fontFamily || "Arial, sans-serif", color: documentStyles?.fontColor || "#000000" }}
       >
         {/* Header */}
         <div className="flex justify-between items-start mb-4">

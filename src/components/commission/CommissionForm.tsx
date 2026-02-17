@@ -54,6 +54,11 @@ export interface CommissionFormData {
   commissionPercentage: number;
   connectedAmount: number;
   connectedCommission: number;
+
+  // Signatures
+  salesRepSignature: string;
+  salesManagerSignature: string;
+  presidentSignature: string;
 }
 
 interface CommissionFormProps {
@@ -103,6 +108,9 @@ export function getDefaultCommissionFormData(): CommissionFormData {
     commissionPercentage: 40,
     connectedAmount: 0,
     connectedCommission: 0,
+    salesRepSignature: "",
+    salesManagerSignature: "",
+    presidentSignature: "",
   };
 }
 
@@ -150,8 +158,14 @@ export function CommissionForm({ deal, company, lineItems, dealOwner, portalId, 
   useEffect(() => {
     if (hasInitializedRef.current) return;
 
+    const closeDate = deal?.properties?.closedate || deal?.closedate;
+    const formattedCloseDate = closeDate
+      ? new Date(closeDate).toISOString().split("T")[0]
+      : new Date().toISOString().split("T")[0];
+
     const hubspotData: Partial<CommissionFormData> = {
       salesRepresentative: dealOwner ? `${dealOwner.firstName || ""} ${dealOwner.lastName || ""}`.trim() : "",
+      soldOnDate: formattedCloseDate,
       customer: company?.name || "",
       orderNumber: deal?.hsObjectId || "",
       address: company?.apAddress || company?.address || "",
@@ -167,7 +181,7 @@ export function CommissionForm({ deal, company, lineItems, dealOwner, portalId, 
         description: `${item.quantity || 1} - ${item.name || item.description || ""}`,
         billed: item.price || 0,
         repCost: item.cost || 0,
-        condition: item.properties?.condition || item.properties?.hs_product_type || "",
+        condition: item.properties?.condition || "",
       })),
       approvalAmount: parseFloat(deal?.amount) || 0,
     };
@@ -457,6 +471,27 @@ export function CommissionForm({ deal, company, lineItems, dealOwner, portalId, 
           <div className="mt-3 pt-2 border-t text-sm font-bold flex justify-between">
             <span>Total Commission</span>
             <span>${formatCurrency(totalCommission)}</span>
+          </div>
+        </CardContent>
+      </Card>
+
+      {/* Signatures */}
+      <Card>
+        <CardHeader className="pb-2">
+          <CardTitle className="text-sm">Signatures</CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-3">
+          <div>
+            <Label className="text-xs">Sales Rep Name</Label>
+            <Input className="h-8 text-sm" value={formData.salesRepSignature} onChange={e => updateField("salesRepSignature", e.target.value)} />
+          </div>
+          <div>
+            <Label className="text-xs">Sales Manager Name</Label>
+            <Input className="h-8 text-sm" value={formData.salesManagerSignature} onChange={e => updateField("salesManagerSignature", e.target.value)} />
+          </div>
+          <div>
+            <Label className="text-xs">President Name</Label>
+            <Input className="h-8 text-sm" value={formData.presidentSignature} onChange={e => updateField("presidentSignature", e.target.value)} />
           </div>
         </CardContent>
       </Card>

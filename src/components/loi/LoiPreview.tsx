@@ -4,10 +4,11 @@ import { LoiFormData } from "./LoiForm";
 
 interface LoiPreviewProps {
   formData: LoiFormData;
+  documentStyles?: { fontFamily?: string; fontColor?: string; tableBorderColor?: string; tableLineColor?: string; };
 }
 
 export const LoiPreview = forwardRef<HTMLDivElement, LoiPreviewProps>(
-  ({ formData }, ref) => {
+  ({ formData, documentStyles }, ref) => {
     const formatDate = (date: Date | string | null): string => {
       if (!date) return "";
       const d = typeof date === "string" ? new Date(date) : date;
@@ -47,8 +48,8 @@ export const LoiPreview = forwardRef<HTMLDivElement, LoiPreviewProps>(
     return (
       <div
         ref={ref}
-        className="bg-white text-black p-8 min-h-[11in] w-[8.5in] text-[11px] leading-tight"
-        style={{ fontFamily: "Arial, sans-serif" }}
+        className="bg-white p-8 min-h-[11in] w-[8.5in] text-[11px] leading-tight"
+        style={{ fontFamily: documentStyles?.fontFamily || "Arial, sans-serif", color: documentStyles?.fontColor || "#000000" }}
       >
         {/* Header - Customer Company Info Left, Title Right */}
         <div className="flex justify-between items-start mb-6">

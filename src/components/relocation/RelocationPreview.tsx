@@ -16,9 +16,10 @@ interface DealerInfo {
 interface RelocationPreviewProps {
   formData: RelocationFormData;
   dealerInfo?: DealerInfo;
+  documentStyles?: { fontFamily?: string; fontColor?: string; tableBorderColor?: string; tableLineColor?: string; };
 }
 
-const RelocationPreview = forwardRef<HTMLDivElement, RelocationPreviewProps>(({ formData, dealerInfo }, ref) => {
+const RelocationPreview = forwardRef<HTMLDivElement, RelocationPreviewProps>(({ formData, dealerInfo, documentStyles }, ref) => {
   const formatDate = (dateStr: string) => {
     if (!dateStr) return '';
     try {
@@ -31,8 +32,8 @@ const RelocationPreview = forwardRef<HTMLDivElement, RelocationPreviewProps>(({ 
   return (
     <div
       ref={ref}
-      className="bg-white text-black p-6 text-[10px] leading-tight"
-      style={{ width: '8.5in', minHeight: '11in', fontFamily: 'Arial, sans-serif' }}
+      className="bg-white p-6 text-[10px] leading-tight"
+      style={{ width: '8.5in', minHeight: '11in', fontFamily: documentStyles?.fontFamily || 'Arial, sans-serif', color: documentStyles?.fontColor || '#000000' }}
     >
       {/* Header */}
       <div className="flex justify-between items-start mb-4">

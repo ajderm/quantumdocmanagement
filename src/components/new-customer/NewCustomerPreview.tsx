@@ -10,6 +10,7 @@ interface NewCustomerPreviewProps {
     logoUrl?: string;
   };
   termsAndConditions?: string;
+  documentStyles?: { fontFamily?: string; fontColor?: string; tableBorderColor?: string; tableLineColor?: string; };
 }
 
 const DEFAULT_TERMS = `TERMS OF SALE: Net 30 Days. A service charge of 1.5% per month (18% per annum) will be applied to all past due balances. In the event collection efforts are required, buyer agrees to pay all costs of collection including reasonable attorney fees.
@@ -17,7 +18,7 @@ const DEFAULT_TERMS = `TERMS OF SALE: Net 30 Days. A service charge of 1.5% per 
 CREDIT AUTHORIZATION: The undersigned authorizes the company to make whatever credit inquiries it deems necessary in connection with this credit application or any update, renewal, or extension of credit. The undersigned certifies that the information provided is true and complete and is given to induce credit to be extended.`;
 
 export const NewCustomerPreview = forwardRef<HTMLDivElement, NewCustomerPreviewProps>(
-  ({ formData, dealerInfo, termsAndConditions }, ref) => {
+  ({ formData, dealerInfo, termsAndConditions, documentStyles }, ref) => {
     const today = new Date().toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' });
     const termsText = termsAndConditions || DEFAULT_TERMS;
 
@@ -26,11 +27,12 @@ export const NewCustomerPreview = forwardRef<HTMLDivElement, NewCustomerPreviewP
     return (
       <div
         ref={ref}
-        className="bg-white text-black p-8 text-[10px] leading-tight"
+        className="bg-white p-8 text-[10px] leading-tight"
         style={{
           width: '8.5in',
           minHeight: '11in',
-          fontFamily: 'Arial, sans-serif',
+          fontFamily: documentStyles?.fontFamily || 'Arial, sans-serif',
+          color: documentStyles?.fontColor || '#000000',
         }}
       >
         {/* Header */}
