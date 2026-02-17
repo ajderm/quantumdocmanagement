@@ -10,6 +10,7 @@ import { ScrollArea } from '@/components/ui/scroll-area';
 import { toast } from 'sonner';
 import html2canvas from 'html2canvas';
 import jsPDF from 'jspdf';
+import { PDFDocument } from 'pdf-lib';
 import { 
   FileText, 
   ClipboardList, 
@@ -94,6 +95,8 @@ interface DealerSettings {
     tableBorderColor?: string;
     tableLineColor?: string;
   };
+  proposal_template_url?: string;
+  proposal_template_name?: string;
 }
 
 interface DocumentTerms {
@@ -1783,22 +1786,66 @@ function DocumentHubContent() {
 
     setGenerating(true);
     try {
-      const pdf = await generateMultiPagePDF(previewRef.current);
+      const quotePdf = await generateMultiPagePDF(previewRef.current);
       
       const sanitizedCompanyName = (formData.companyName || 'Draft').replace(/[^a-zA-Z0-9\s]/g, '').replace(/\s+/g, '_');
       const now = new Date();
       const dateStr = now.toISOString().split('T')[0];
       const timeStr = now.toTimeString().slice(0, 5).replace(':', '-');
       const fileName = `Quote_${sanitizedCompanyName}_${dateStr}_${timeStr}.pdf`;
-      
-      pdf.save(fileName);
+
+      let finalPdfBytes: ArrayBuffer;
+      const proposalUrl = dealerSettings.proposal_template_url;
+
+      if (proposalUrl) {
+        try {
+          // Fetch proposal PDF and merge with quote
+          const proposalResponse = await fetch(proposalUrl);
+          if (!proposalResponse.ok) throw new Error('Failed to fetch proposal template');
+          const proposalBytes = await proposalResponse.arrayBuffer();
+          const proposalPdfDoc = await PDFDocument.load(proposalBytes);
+          const quotePdfBytes = quotePdf.output('arraybuffer');
+          const quotePdfDoc = await PDFDocument.load(quotePdfBytes);
+          
+          const mergedPdf = await PDFDocument.create();
+          // Copy proposal pages first
+          const proposalPages = await mergedPdf.copyPages(proposalPdfDoc, proposalPdfDoc.getPageIndices());
+          proposalPages.forEach(p => mergedPdf.addPage(p));
+          // Then quote pages
+          const quotePages = await mergedPdf.copyPages(quotePdfDoc, quotePdfDoc.getPageIndices());
+          quotePages.forEach(p => mergedPdf.addPage(p));
+          
+          finalPdfBytes = await mergedPdf.save() as unknown as ArrayBuffer;
+        } catch (mergeErr) {
+          console.error('Failed to merge proposal PDF, using quote only:', mergeErr);
+          toast.error('Could not merge proposal template, generating quote only');
+          finalPdfBytes = quotePdf.output('arraybuffer');
+        }
+      } else {
+        finalPdfBytes = quotePdf.output('arraybuffer');
+      }
+
+      // Download the final PDF
+      const blob = new Blob([finalPdfBytes], { type: 'application/pdf' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = fileName;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
 
       const currentPortalId = portalId || localStorage.getItem('hs_portal_id');
       const currentDealId = deal?.hsObjectId;
 
       if (currentPortalId && currentDealId) {
         try {
-          const pdfBase64 = pdf.output('datauristring').split(',')[1];
+          // Convert to base64 for HubSpot attachment
+          const uint8Array = new Uint8Array(finalPdfBytes);
+          let binary = '';
+          uint8Array.forEach(byte => binary += String.fromCharCode(byte));
+          const pdfBase64 = btoa(binary);
           
           const { data, error: attachError } = await supabase.functions.invoke('hubspot-attach-file', {
             body: {
@@ -3574,7 +3621,12 @@ function DocumentHubContent() {
       <Dialog open={showPreview} onOpenChange={setShowPreview}>
         <DialogContent className="max-w-4xl max-h-[90vh] p-0">
           <DialogHeader className="p-4 pb-0">
-            <DialogTitle>Quote Preview</DialogTitle>
+            <DialogTitle className="flex items-center gap-2">
+              Quote Preview
+              {dealerSettings.proposal_template_url && (
+                <Badge variant="secondary" className="text-xs">Proposal will be prepended in PDF</Badge>
+              )}
+            </DialogTitle>
           </DialogHeader>
           <ScrollArea className="max-h-[calc(90vh-80px)]">
             <div className="p-4 flex justify-center">
