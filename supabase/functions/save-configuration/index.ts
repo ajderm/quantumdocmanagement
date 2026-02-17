@@ -8,7 +8,7 @@ const corsHeaders = {
 interface SaveConfigRequest {
   portalId: string;
   dealId: string;
-  configType: 'quote' | 'installation' | 'service_agreement' | 'fmv_lease' | 'lease_funding' | 'loi' | 'lease_return' | 'interterritorial' | 'new_customer' | 'relocation' | 'removal' | 'custom_document';
+  configType: 'quote' | 'installation' | 'service_agreement' | 'fmv_lease' | 'lease_funding' | 'loi' | 'lease_return' | 'interterritorial' | 'new_customer' | 'relocation' | 'removal' | 'commission' | 'custom_document';
   lineItemId?: string;
   customDocumentId?: string;
   configuration: Record<string, unknown>;
@@ -36,6 +36,7 @@ const tableMap: Record<string, string> = {
   'new_customer': 'new_customer_configurations',
   'relocation': 'relocation_configurations',
   'removal': 'removal_configurations',
+  'commission': 'commission_configurations',
   'custom_document': 'custom_document_configurations',
 };
 
