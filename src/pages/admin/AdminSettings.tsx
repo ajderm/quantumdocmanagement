@@ -56,7 +56,7 @@ export default function AdminSettings() {
   const [uploadingLogo, setUploadingLogo] = useState(false);
   const [activeTermsTab, setActiveTermsTab] = useState('quote');
   const fileInputRef = useRef<HTMLInputElement>(null);
-  
+  const proposalFileInputRef = useRef<HTMLInputElement>(null);
   // Installation settings
   const [meterMethods, setMeterMethods] = useState<string[]>([]);
   const [newMeterMethod, setNewMeterMethod] = useState('');
@@ -70,6 +70,11 @@ export default function AdminSettings() {
   const [docStyleFontColor, setDocStyleFontColor] = useState('#000000');
   const [docStyleTableBorderColor, setDocStyleTableBorderColor] = useState('#000000');
   const [docStyleTableLineColor, setDocStyleTableLineColor] = useState('#d1d5db');
+  
+  // Proposal template
+  const [proposalTemplateUrl, setProposalTemplateUrl] = useState<string | null>(null);
+  const [proposalFileName, setProposalFileName] = useState<string | null>(null);
+  const [uploadingProposal, setUploadingProposal] = useState(false);
   
   // Form state
   const [formData, setFormData] = useState({
@@ -156,6 +161,10 @@ export default function AdminSettings() {
             if (ds.tableBorderColor) setDocStyleTableBorderColor(ds.tableBorderColor);
             if (ds.tableLineColor) setDocStyleTableLineColor(ds.tableLineColor);
           }
+          if (settings.proposal_template_url) {
+            setProposalTemplateUrl(settings.proposal_template_url);
+            setProposalFileName(settings.proposal_template_name || 'proposal.pdf');
+          }
         }
       } catch (error) {
         console.error('Error loading dealer account:', error);
@@ -234,6 +243,52 @@ export default function AdminSettings() {
     setMeterMethods(prev => prev.filter(m => m !== method));
   };
 
+  const handleProposalUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (!file) return;
+
+    if (file.type !== 'application/pdf') {
+      toast.error('Please select a PDF file');
+      return;
+    }
+
+    if (file.size > 20 * 1024 * 1024) {
+      toast.error('File size must be less than 20MB');
+      return;
+    }
+
+    setUploadingProposal(true);
+    try {
+      const fileName = `${portalId || 'default'}-proposal-${Date.now()}.pdf`;
+      const filePath = `proposals/${fileName}`;
+
+      const { error: uploadError } = await supabase.storage
+        .from('company-assets')
+        .upload(filePath, file, { upsert: true });
+
+      if (uploadError) throw uploadError;
+
+      const { data: urlData } = supabase.storage
+        .from('company-assets')
+        .getPublicUrl(filePath);
+
+      setProposalTemplateUrl(urlData.publicUrl);
+      setProposalFileName(file.name);
+      toast.success('Proposal template uploaded');
+    } catch (error) {
+      console.error('Error uploading proposal:', error);
+      toast.error('Failed to upload proposal template');
+    } finally {
+      setUploadingProposal(false);
+    }
+  };
+
+  const handleRemoveProposal = () => {
+    setProposalTemplateUrl(null);
+    setProposalFileName(null);
+    toast.success('Proposal template removed');
+  };
+
   const handleSave = async () => {
     if (!portalId) {
       toast.error('Missing portal ID - please access this page from HubSpot');
@@ -272,6 +327,8 @@ export default function AdminSettings() {
           tableBorderColor: docStyleTableBorderColor,
           tableLineColor: docStyleTableLineColor,
         },
+        proposal_template_url: proposalTemplateUrl,
+        proposal_template_name: proposalFileName,
       };
 
       const { data: result, error: invokeError } = await supabase.functions.invoke('dealer-account-save', {
@@ -478,6 +535,72 @@ export default function AdminSettings() {
                       <div className="py-1" style={{ borderBottom: `1px solid ${docStyleTableLineColor}` }}>Another row of data</div>
                     </div>
                   </div>
+                </CardContent>
+              </Card>
+
+              {/* Proposal Template Card */}
+              <Card>
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2">
+                    <FileText className="h-5 w-5" />
+                    Proposal Template
+                  </CardTitle>
+                  <CardDescription>
+                    Upload a PDF proposal that will be prepended to Quote documents when generating PDFs
+                  </CardDescription>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                  <input
+                    type="file"
+                    ref={proposalFileInputRef}
+                    onChange={handleProposalUpload}
+                    accept="application/pdf"
+                    className="hidden"
+                  />
+                  {proposalTemplateUrl ? (
+                    <div className="flex items-center gap-3 p-3 rounded-md border bg-muted/50">
+                      <FileText className="h-5 w-5 text-muted-foreground flex-shrink-0" />
+                      <div className="flex-1 min-w-0">
+                        <p className="text-sm font-medium truncate">{proposalFileName || 'proposal.pdf'}</p>
+                        <p className="text-xs text-muted-foreground">Will be prepended to Quote PDFs</p>
+                      </div>
+                      <div className="flex gap-2">
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => proposalFileInputRef.current?.click()}
+                          disabled={uploadingProposal}
+                        >
+                          {uploadingProposal ? <Loader2 className="h-4 w-4 animate-spin" /> : 'Replace'}
+                        </Button>
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={handleRemoveProposal}
+                        >
+                          <X className="h-4 w-4" />
+                        </Button>
+                      </div>
+                    </div>
+                  ) : (
+                    <Button
+                      variant="outline"
+                      onClick={() => proposalFileInputRef.current?.click()}
+                      disabled={uploadingProposal}
+                    >
+                      {uploadingProposal ? (
+                        <>
+                          <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                          Uploading...
+                        </>
+                      ) : (
+                        <>
+                          <Upload className="h-4 w-4 mr-2" />
+                          Upload Proposal PDF
+                        </>
+                      )}
+                    </Button>
+                  )}
                 </CardContent>
               </Card>
 

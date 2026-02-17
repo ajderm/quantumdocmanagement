@@ -158,7 +158,7 @@ export function CommissionForm({ deal, company, lineItems, dealOwner, portalId, 
   useEffect(() => {
     if (hasInitializedRef.current) return;
 
-    const closeDate = deal?.properties?.closedate || deal?.closedate;
+    const closeDate = deal?.closeDate || deal?.properties?.closedate || deal?.closedate;
     const formattedCloseDate = closeDate
       ? new Date(closeDate).toISOString().split("T")[0]
       : new Date().toISOString().split("T")[0];
