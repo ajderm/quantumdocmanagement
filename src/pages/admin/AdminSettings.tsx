@@ -5,7 +5,7 @@ import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Separator } from '@/components/ui/separator';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Building2, Upload, Save, Loader2, CreditCard, FileText, ArrowLeft, Plus, X, Settings2, Link2, FilePlus } from 'lucide-react';
+import { Building2, Upload, Save, Loader2, CreditCard, FileText, ArrowLeft, Plus, X, Settings2, Link2, FilePlus, Palette } from 'lucide-react';
 import { useState, useEffect, useRef } from 'react';
 import { Link, useSearchParams } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
@@ -13,6 +13,7 @@ import { toast } from 'sonner';
 import { Badge } from '@/components/ui/badge';
 import { FieldMappingEditor } from '@/components/admin/FieldMappingEditor';
 import { CustomDocumentBuilder } from '@/components/admin/CustomDocumentBuilder';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 
 const DOCUMENT_TYPES = [
   { code: 'quote', name: 'Quote' },
@@ -63,6 +64,12 @@ export default function AdminSettings() {
   
   // Form visibility settings
   const [enabledForms, setEnabledForms] = useState<string[]>(ALL_FORM_TYPES.map(f => f.code));
+  
+  // Document styles
+  const [docStyleFontFamily, setDocStyleFontFamily] = useState('Arial, sans-serif');
+  const [docStyleFontColor, setDocStyleFontColor] = useState('#000000');
+  const [docStyleTableBorderColor, setDocStyleTableBorderColor] = useState('#000000');
+  const [docStyleTableLineColor, setDocStyleTableLineColor] = useState('#d1d5db');
   
   // Form state
   const [formData, setFormData] = useState({
@@ -141,6 +148,13 @@ export default function AdminSettings() {
           }
           if (settings.enabled_forms && Array.isArray(settings.enabled_forms)) {
             setEnabledForms(settings.enabled_forms);
+          }
+          if (settings.document_styles) {
+            const ds = settings.document_styles;
+            if (ds.fontFamily) setDocStyleFontFamily(ds.fontFamily);
+            if (ds.fontColor) setDocStyleFontColor(ds.fontColor);
+            if (ds.tableBorderColor) setDocStyleTableBorderColor(ds.tableBorderColor);
+            if (ds.tableLineColor) setDocStyleTableLineColor(ds.tableLineColor);
           }
         }
       } catch (error) {
@@ -252,6 +266,12 @@ export default function AdminSettings() {
         meter_methods: meterMethods,
         cca_value: ccaValue,
         enabled_forms: enabledForms,
+        document_styles: {
+          fontFamily: docStyleFontFamily,
+          fontColor: docStyleFontColor,
+          tableBorderColor: docStyleTableBorderColor,
+          tableLineColor: docStyleTableLineColor,
+        },
       };
 
       const { data: result, error: invokeError } = await supabase.functions.invoke('dealer-account-save', {
@@ -384,7 +404,83 @@ export default function AdminSettings() {
                 </CardContent>
               </Card>
 
-              {/* Company Info Card */}
+              {/* Document Styles Card */}
+              <Card>
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2">
+                    <Palette className="h-5 w-5" />
+                    Document Styles
+                  </CardTitle>
+                  <CardDescription>
+                    Customize the visual appearance of all output documents
+                  </CardDescription>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div className="space-y-2">
+                      <Label>Font Family</Label>
+                      <Select value={docStyleFontFamily} onValueChange={setDocStyleFontFamily}>
+                        <SelectTrigger>
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="Arial, sans-serif">Arial</SelectItem>
+                          <SelectItem value="Helvetica, sans-serif">Helvetica</SelectItem>
+                          <SelectItem value="'Times New Roman', serif">Times New Roman</SelectItem>
+                          <SelectItem value="Georgia, serif">Georgia</SelectItem>
+                          <SelectItem value="Verdana, sans-serif">Verdana</SelectItem>
+                          <SelectItem value="Calibri, sans-serif">Calibri</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
+                    <div className="space-y-2">
+                      <Label>Font Color</Label>
+                      <div className="flex items-center gap-2">
+                        <input
+                          type="color"
+                          value={docStyleFontColor}
+                          onChange={e => setDocStyleFontColor(e.target.value)}
+                          className="h-10 w-10 rounded border cursor-pointer"
+                        />
+                        <Input value={docStyleFontColor} onChange={e => setDocStyleFontColor(e.target.value)} className="flex-1" />
+                      </div>
+                    </div>
+                    <div className="space-y-2">
+                      <Label>Table Header Border Color</Label>
+                      <div className="flex items-center gap-2">
+                        <input
+                          type="color"
+                          value={docStyleTableBorderColor}
+                          onChange={e => setDocStyleTableBorderColor(e.target.value)}
+                          className="h-10 w-10 rounded border cursor-pointer"
+                        />
+                        <Input value={docStyleTableBorderColor} onChange={e => setDocStyleTableBorderColor(e.target.value)} className="flex-1" />
+                      </div>
+                    </div>
+                    <div className="space-y-2">
+                      <Label>Table Line Color</Label>
+                      <div className="flex items-center gap-2">
+                        <input
+                          type="color"
+                          value={docStyleTableLineColor}
+                          onChange={e => setDocStyleTableLineColor(e.target.value)}
+                          className="h-10 w-10 rounded border cursor-pointer"
+                        />
+                        <Input value={docStyleTableLineColor} onChange={e => setDocStyleTableLineColor(e.target.value)} className="flex-1" />
+                      </div>
+                    </div>
+                  </div>
+                  <div className="p-3 rounded-md border bg-muted/50">
+                    <p className="text-xs text-muted-foreground mb-2">Preview:</p>
+                    <div style={{ fontFamily: docStyleFontFamily, color: docStyleFontColor }} className="text-sm">
+                      <div className="font-bold pb-1 mb-1" style={{ borderBottom: `2px solid ${docStyleTableBorderColor}` }}>SECTION HEADER</div>
+                      <div className="py-1" style={{ borderBottom: `1px solid ${docStyleTableLineColor}` }}>Sample row content</div>
+                      <div className="py-1" style={{ borderBottom: `1px solid ${docStyleTableLineColor}` }}>Another row of data</div>
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+
               <Card>
                 <CardHeader>
                   <CardTitle className="flex items-center gap-2">

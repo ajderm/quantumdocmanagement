@@ -1,5 +1,6 @@
 import { forwardRef } from 'react';
 import type { InstallationFormData } from './InstallationForm';
+import type { DocumentStyles } from '@/components/commission/CommissionPreview';
 
 interface InstallationPreviewProps {
   formData: InstallationFormData;
@@ -12,10 +13,11 @@ interface InstallationPreviewProps {
   };
   removalReceiptTerms?: string;
   deliveryAcceptanceTerms?: string;
+  documentStyles?: DocumentStyles;
 }
 
 export const InstallationPreview = forwardRef<HTMLDivElement, InstallationPreviewProps>(
-  ({ formData, dealerInfo, removalReceiptTerms, deliveryAcceptanceTerms }, ref) => {
+  ({ formData, dealerInfo, removalReceiptTerms, deliveryAcceptanceTerms, documentStyles }, ref) => {
     const getEffectiveCustomerNumber = () => {
       return formData.customerNumberOverride || formData.customerNumber || '';
     };
@@ -23,8 +25,8 @@ export const InstallationPreview = forwardRef<HTMLDivElement, InstallationPrevie
     return (
       <div
         ref={ref}
-        className="bg-white text-black p-6 min-h-[11in] w-[8.5in] text-[10px] leading-tight"
-        style={{ fontFamily: 'Arial, sans-serif' }}
+        className="bg-white p-6 min-h-[11in] w-[8.5in] text-[10px] leading-tight"
+        style={{ fontFamily: documentStyles?.fontFamily || 'Arial, sans-serif', color: documentStyles?.fontColor || '#000000' }}
       >
         {/* Header */}
         <div className="flex justify-between items-start mb-4">

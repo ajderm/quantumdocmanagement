@@ -17,10 +17,11 @@ interface DealerInfo {
 interface LeaseReturnPreviewProps {
   formData: LeaseReturnFormData;
   dealerInfo?: DealerInfo;
+  documentStyles?: { fontFamily?: string; fontColor?: string; tableBorderColor?: string; tableLineColor?: string; };
 }
 
 export const LeaseReturnPreview = forwardRef<HTMLDivElement, LeaseReturnPreviewProps>(
-  ({ formData, dealerInfo }, ref) => {
+  ({ formData, dealerInfo, documentStyles }, ref) => {
     const formatCurrency = (value: string | number): string => {
       const num = typeof value === "string" ? parseFloat(value.replace(/[^0-9.]/g, "")) : value;
       if (isNaN(num)) return "$0.00";
@@ -45,8 +46,8 @@ export const LeaseReturnPreview = forwardRef<HTMLDivElement, LeaseReturnPreviewP
     return (
       <div
         ref={ref}
-        className="bg-white text-black p-8 min-h-[11in] w-[8.5in] text-[11px] leading-tight"
-        style={{ fontFamily: "Arial, sans-serif" }}
+        className="bg-white p-8 min-h-[11in] w-[8.5in] text-[11px] leading-tight"
+        style={{ fontFamily: documentStyles?.fontFamily || "Arial, sans-serif", color: documentStyles?.fontColor || "#000000" }}
       >
         {/* Header */}
         <div className="flex justify-between items-start mb-6">

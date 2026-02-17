@@ -19,6 +19,7 @@ interface FMVLeasePreviewProps {
   formData: FMVLeaseFormData;
   dealerInfo?: DealerInfo | null;
   termsAndConditions?: string;
+  documentStyles?: { fontFamily?: string; fontColor?: string; tableBorderColor?: string; tableLineColor?: string; };
 }
 
 const PAYMENT_FREQUENCY_LABELS: Record<string, string> = {
@@ -29,7 +30,7 @@ const PAYMENT_FREQUENCY_LABELS: Record<string, string> = {
 };
 
 export const FMVLeasePreview = forwardRef<HTMLDivElement, FMVLeasePreviewProps>(
-  ({ formData, dealerInfo, termsAndConditions }, ref) => {
+  ({ formData, dealerInfo, termsAndConditions, documentStyles }, ref) => {
     const formatCurrency = (value: string | number) => {
       const num = typeof value === "string" ? parseFloat(value) : value;
       if (isNaN(num)) return "-";
@@ -43,8 +44,8 @@ export const FMVLeasePreview = forwardRef<HTMLDivElement, FMVLeasePreviewProps>(
     return (
       <div
         ref={ref}
-        className="bg-white text-black p-8 min-h-[11in] w-[8.5in] text-[11px] leading-tight"
-        style={{ fontFamily: "Arial, sans-serif" }}
+        className="bg-white p-8 min-h-[11in] w-[8.5in] text-[11px] leading-tight"
+        style={{ fontFamily: documentStyles?.fontFamily || "Arial, sans-serif", color: documentStyles?.fontColor || "#000000" }}
       >
         {/* Header */}
         <div className="flex justify-between items-start mb-6">

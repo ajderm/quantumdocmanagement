@@ -9,15 +9,23 @@ interface DealerInfo {
   logoUrl?: string;
 }
 
+export interface DocumentStyles {
+  fontFamily?: string;
+  fontColor?: string;
+  tableBorderColor?: string;
+  tableLineColor?: string;
+}
+
 interface CommissionPreviewProps {
   formData: CommissionFormData;
   dealerInfo?: DealerInfo;
+  documentStyles?: DocumentStyles;
 }
 
 const fmt = (v: number) => v.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 
 export const CommissionPreview = forwardRef<HTMLDivElement, CommissionPreviewProps>(
-  ({ formData, dealerInfo }, ref) => {
+  ({ formData, dealerInfo, documentStyles }, ref) => {
     const totalBilled = formData.lineItems.reduce((s, i) => s + i.billed * i.quantity, 0);
     const totalRepCost = formData.lineItems.reduce((s, i) => s + i.repCost * i.quantity, 0);
 
@@ -41,11 +49,17 @@ export const CommissionPreview = forwardRef<HTMLDivElement, CommissionPreviewPro
     const equipmentAGP = netEquipRev - totalsRepCost;
     const totalCommission = equipmentAGP * (formData.commissionPercentage / 100) + formData.connectedCommission;
 
+    const borderColor = documentStyles?.tableBorderColor || '#000000';
+    const lineColor = documentStyles?.tableLineColor || '#d1d5db';
+
     return (
       <div
         ref={ref}
-        className="bg-white text-black p-6 min-h-[11in] w-[8.5in] text-[10px] leading-tight"
-        style={{ fontFamily: "Arial, sans-serif" }}
+        className="bg-white p-6 min-h-[11in] w-[8.5in] text-[10px] leading-tight"
+        style={{
+          fontFamily: documentStyles?.fontFamily || "Arial, sans-serif",
+          color: documentStyles?.fontColor || "#000000",
+        }}
       >
         {/* Header */}
         <div className="flex justify-between items-start mb-3">
@@ -65,7 +79,7 @@ export const CommissionPreview = forwardRef<HTMLDivElement, CommissionPreviewPro
 
         {/* Sale Info */}
         <div className="mb-3">
-          <div className="font-bold border-b-2 border-black pb-1 mb-2">SALE INFO</div>
+          <div className="font-bold pb-1 mb-2" style={{ borderBottom: `2px solid ${borderColor}` }}>SALE INFO</div>
           <div className="grid grid-cols-[140px_1fr] gap-y-0.5 text-[9px]">
             <span className="font-semibold">Sales Representative</span><span>{formData.salesRepresentative}</span>
             <span className="font-semibold">Sold On Date</span><span>{formData.soldOnDate}</span>
@@ -80,7 +94,7 @@ export const CommissionPreview = forwardRef<HTMLDivElement, CommissionPreviewPro
         {/* Customer/Sale Type */}
         {formData.transactionType && (
           <div className="mb-3">
-            <div className="font-bold border-b-2 border-black pb-1 mb-2">CUSTOMER/SALE TYPE</div>
+            <div className="font-bold pb-1 mb-2" style={{ borderBottom: `2px solid ${borderColor}` }}>CUSTOMER/SALE TYPE</div>
             <div className="text-[9px]">
               <span className="font-semibold">Transaction Type: </span>{formData.transactionType}
             </div>
@@ -89,34 +103,34 @@ export const CommissionPreview = forwardRef<HTMLDivElement, CommissionPreviewPro
 
         {/* Items & Lease Info side by side */}
         <div className="mb-3">
-          <div className="font-bold border-b-2 border-black pb-1 mb-2">ITEM</div>
+          <div className="font-bold pb-1 mb-2" style={{ borderBottom: `2px solid ${borderColor}` }}>ITEM</div>
           <div className="grid grid-cols-[1fr_200px] gap-4">
             {/* Left: Billed / Rep Cost / Condition table */}
             <div>
               <table className="w-full border-collapse text-[9px]">
                 <thead>
-                  <tr className="border-b border-black">
+                  <tr style={{ borderBottom: `1px solid ${borderColor}` }}>
                     <th className="text-left py-0.5 font-bold">Billed</th>
                     <th className="text-right py-0.5 font-bold w-16">Rep Cost</th>
                     <th className="text-left py-0.5 font-bold w-20 pl-2">Condition</th>
                   </tr>
                 </thead>
                 <tbody>
-                  <tr className="border-b border-gray-300">
+                  <tr style={{ borderBottom: `1px solid ${lineColor}` }}>
                     <td className="py-0.5 font-semibold">Total Billed Revenue</td>
                     <td className="py-0.5 text-right">${fmt(totalRepCost)}</td>
                     <td></td>
                   </tr>
                   {formData.lineItems.map((item, i) => (
-                    <tr key={item.id || i} className="border-b border-gray-200">
-                      <td className="py-0.5 pl-2">{item.description} <span className="text-gray-500">${fmt(item.billed)}</span></td>
+                    <tr key={item.id || i} style={{ borderBottom: `1px solid ${lineColor}` }}>
+                      <td className="py-0.5 pl-2">{item.description} <span style={{ color: '#6b7280' }}>${fmt(item.billed)}</span></td>
                       <td className="py-0.5 text-right"></td>
                       <td className="py-0.5 pl-2">{item.condition}</td>
                     </tr>
                   ))}
                   {/* Cost breakdown rows */}
                   {costRows.map((row) => (
-                    <tr key={row.label} className="border-b border-gray-200">
+                    <tr key={row.label} style={{ borderBottom: `1px solid ${lineColor}` }}>
                       <td className="py-0.5">{row.label}</td>
                       <td className="py-0.5 text-right">
                         {row.ma ? "MA" : `$${fmt(row.repCost)}`}
@@ -124,7 +138,7 @@ export const CommissionPreview = forwardRef<HTMLDivElement, CommissionPreviewPro
                       <td></td>
                     </tr>
                   ))}
-                  <tr className="border-t-2 border-black font-bold">
+                  <tr className="font-bold" style={{ borderTop: `2px solid ${borderColor}` }}>
                     <td className="py-0.5">Totals  ${fmt(totalsBilled)}</td>
                     <td className="py-0.5 text-right">${fmt(totalsRepCost)}</td>
                     <td></td>
@@ -135,7 +149,7 @@ export const CommissionPreview = forwardRef<HTMLDivElement, CommissionPreviewPro
 
             {/* Right: Lease Information */}
             <div className="text-[9px]">
-              <div className="font-bold border-b border-black pb-0.5 mb-1">Lease Information</div>
+              <div className="font-bold pb-0.5 mb-1" style={{ borderBottom: `1px solid ${borderColor}` }}>Lease Information</div>
               <div className="space-y-0.5">
                 <div className="flex justify-between"><span>Lease Company</span><span>{formData.leaseCompany}</span></div>
                 <div className="flex justify-between"><span>Term</span><span>{formData.leaseTerm || "-"}</span></div>
@@ -143,7 +157,7 @@ export const CommissionPreview = forwardRef<HTMLDivElement, CommissionPreviewPro
                 <div className="flex justify-between"><span>Approval Date</span><span>{formData.approvalDate}</span></div>
                 <div className="flex justify-between"><span>Rate Used</span><span>{formData.rateUsed || "-"}</span></div>
                 <div className="flex justify-between"><span>Lease Payment</span><span>${fmt(formData.leasePayment)}</span></div>
-                <div className="border-t border-gray-300 mt-1 pt-1">
+                <div className="mt-1 pt-1" style={{ borderTop: `1px solid ${lineColor}` }}>
                   <div className="font-semibold mb-0.5">Revenue</div>
                   <div className="flex justify-between"><span>Lease/Equip Rev</span><span>${fmt(leaseEquipRev)}</span></div>
                   <div className="flex justify-between"><span>Net Equip Rev</span><span>${fmt(netEquipRev)}</span></div>
@@ -155,8 +169,8 @@ export const CommissionPreview = forwardRef<HTMLDivElement, CommissionPreviewPro
         </div>
 
         {/* Commission */}
-        <div>
-          <div className="font-bold border-b-2 border-black pb-1 mb-2">COMMISSION</div>
+        <div className="mb-3">
+          <div className="font-bold pb-1 mb-2" style={{ borderBottom: `2px solid ${borderColor}` }}>COMMISSION</div>
           <table className="text-[9px]">
             <tbody>
               <tr>
@@ -169,13 +183,37 @@ export const CommissionPreview = forwardRef<HTMLDivElement, CommissionPreviewPro
                 <td className="text-right pr-8">${fmt(formData.connectedAmount)}</td>
                 <td className="text-right">${fmt(formData.connectedCommission)}</td>
               </tr>
-              <tr className="border-t-2 border-black font-bold">
+              <tr className="font-bold" style={{ borderTop: `2px solid ${borderColor}` }}>
                 <td className="py-0.5">Total Commission</td>
                 <td></td>
                 <td className="text-right">${fmt(totalCommission)}</td>
               </tr>
             </tbody>
           </table>
+        </div>
+
+        {/* Signatures */}
+        <div>
+          <div className="font-bold pb-1 mb-3" style={{ borderBottom: `2px solid ${borderColor}` }}>SIGNATURES</div>
+          <div className="space-y-4 text-[9px]">
+            {[
+              { label: "Sales Rep", name: formData.salesRepSignature },
+              { label: "Sales Manager", name: formData.salesManagerSignature },
+              { label: "President", name: formData.presidentSignature },
+            ].map(({ label, name }) => (
+              <div key={label} className="grid grid-cols-[1fr_150px] gap-4">
+                <div>
+                  {name && <p className="text-[9px] mb-0.5">{name}</p>}
+                  <div className="h-5 mb-0.5" style={{ borderBottom: `1px solid ${borderColor}` }}></div>
+                  <p className="text-[8px]">{label} Signature</p>
+                </div>
+                <div>
+                  <div className="h-5 mb-0.5" style={{ borderBottom: `1px solid ${borderColor}`, marginTop: name ? '14px' : '0' }}></div>
+                  <p className="text-[8px]">Date</p>
+                </div>
+              </div>
+            ))}
+          </div>
         </div>
       </div>
     );

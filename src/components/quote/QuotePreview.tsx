@@ -1,5 +1,6 @@
 import { forwardRef } from 'react';
 import type { QuoteFormData } from './QuoteForm';
+import type { DocumentStyles } from '@/components/commission/CommissionPreview';
 
 interface QuotePreviewProps {
   formData: QuoteFormData;
@@ -11,10 +12,11 @@ interface QuotePreviewProps {
     logoUrl?: string;
     termsAndConditions?: string;
   };
+  documentStyles?: DocumentStyles;
 }
 
 export const QuotePreview = forwardRef<HTMLDivElement, QuotePreviewProps>(
-  ({ formData, dealerInfo }, ref) => {
+  ({ formData, dealerInfo, documentStyles }, ref) => {
     // Use pre-calculated payments from formData, respecting overrides
     const getLeasePayment = (term: number): number => {
       const override = formData.paymentOverrides?.[term];
@@ -50,8 +52,8 @@ export const QuotePreview = forwardRef<HTMLDivElement, QuotePreviewProps>(
     return (
       <div 
         ref={ref}
-        className="bg-white text-black p-8 min-h-[11in] w-[8.5in] text-[11px] leading-tight"
-        style={{ fontFamily: 'Arial, sans-serif' }}
+        className="bg-white p-8 min-h-[11in] w-[8.5in] text-[11px] leading-tight"
+        style={{ fontFamily: documentStyles?.fontFamily || 'Arial, sans-serif', color: documentStyles?.fontColor || '#000000' }}
       >
         {/* Header */}
         <div className="flex justify-between items-start mb-6">

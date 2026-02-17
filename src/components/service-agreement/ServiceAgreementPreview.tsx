@@ -30,10 +30,11 @@ interface ServiceAgreementPreviewProps {
   dealerInfo?: DealerInfo | null;
   lineItems: LineItem[];
   termsAndConditions?: string;
+  documentStyles?: { fontFamily?: string; fontColor?: string; tableBorderColor?: string; tableLineColor?: string; };
 }
 
 export const ServiceAgreementPreview = forwardRef<HTMLDivElement, ServiceAgreementPreviewProps>(
-  ({ formData, dealerInfo, lineItems, termsAndConditions }, ref) => {
+  ({ formData, dealerInfo, lineItems, termsAndConditions, documentStyles }, ref) => {
     const hardwareLineItems = lineItems.filter(
       (item) => item.category?.toLowerCase() === 'hardware'
     );
@@ -51,8 +52,8 @@ export const ServiceAgreementPreview = forwardRef<HTMLDivElement, ServiceAgreeme
     return (
       <div
         ref={ref}
-        className="bg-white text-black p-8 min-h-[11in] w-[8.5in] text-[11px] leading-tight"
-        style={{ fontFamily: 'Arial, sans-serif' }}
+        className="bg-white p-8 min-h-[11in] w-[8.5in] text-[11px] leading-tight"
+        style={{ fontFamily: documentStyles?.fontFamily || 'Arial, sans-serif', color: documentStyles?.fontColor || '#000000' }}
       >
         {/* Header */}
         <div className="flex justify-between items-start mb-6">

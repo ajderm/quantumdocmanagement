@@ -12,10 +12,11 @@ interface InterterritorialPreviewProps {
     logoUrl?: string;
   };
   termsAndConditions?: string;
+  documentStyles?: { fontFamily?: string; fontColor?: string; tableBorderColor?: string; tableLineColor?: string; };
 }
 
 export const InterterritorialPreview = forwardRef<HTMLDivElement, InterterritorialPreviewProps>(
-  ({ formData, dealerInfo, termsAndConditions }, ref) => {
+  ({ formData, dealerInfo, termsAndConditions, documentStyles }, ref) => {
     const calculateTotalFee = () => {
       return formData.equipmentItems.reduce((sum, item) => sum + (item.fee || 0), 0);
     };
@@ -27,8 +28,8 @@ export const InterterritorialPreview = forwardRef<HTMLDivElement, Interterritori
     return (
       <div
         ref={ref}
-        className="bg-white text-black p-6 min-h-[11in] w-[8.5in] text-[11px] leading-tight"
-        style={{ fontFamily: 'Arial, sans-serif' }}
+        className="bg-white p-6 min-h-[11in] w-[8.5in] text-[11px] leading-tight"
+        style={{ fontFamily: documentStyles?.fontFamily || 'Arial, sans-serif', color: documentStyles?.fontColor || '#000000' }}
       >
         {/* Header */}
         <div className="flex justify-between items-start mb-4">

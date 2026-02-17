@@ -17,10 +17,11 @@ interface CustomDocumentPreviewProps {
   document: CustomDocument;
   formData: Record<string, any>;
   dealerInfo?: DealerInfo;
+  documentStyles?: { fontFamily?: string; fontColor?: string; tableBorderColor?: string; tableLineColor?: string; };
 }
 
 export const CustomDocumentPreview = forwardRef<HTMLDivElement, CustomDocumentPreviewProps>(
-  ({ document, formData, dealerInfo }, ref) => {
+  ({ document, formData, dealerInfo, documentStyles }, ref) => {
     const sections = document.schema?.sections || [];
 
     const formatDate = (date?: string | Date) => {
@@ -195,11 +196,12 @@ export const CustomDocumentPreview = forwardRef<HTMLDivElement, CustomDocumentPr
     return (
       <div
         ref={ref}
-        className="bg-white p-8 text-black"
+        className="bg-white p-8"
         style={{
           width: '8.5in',
           minHeight: '11in',
-          fontFamily: 'Arial, sans-serif',
+          fontFamily: documentStyles?.fontFamily || 'Arial, sans-serif',
+          color: documentStyles?.fontColor || '#000000',
         }}
       >
         {sections.map(renderSection)}
