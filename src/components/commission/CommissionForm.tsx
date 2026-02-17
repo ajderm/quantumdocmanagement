@@ -181,13 +181,27 @@ export function CommissionForm({ deal, company, lineItems, dealOwner, portalId, 
         description: `${item.quantity || 1} - ${item.name || item.description || ""}`,
         billed: item.price || 0,
         repCost: item.cost || 0,
-        condition: item.properties?.condition || "",
+        condition: item.condition || item.properties?.condition || "",
       })),
       approvalAmount: parseFloat(deal?.amount) || 0,
     };
 
     if (savedConfig) {
-      setFormData({ ...getDefaultCommissionFormData(), ...savedConfig });
+      const merged = { ...getDefaultCommissionFormData(), ...savedConfig };
+      // Re-apply fresh HubSpot condition values to prevent stale cached data
+      if (lineItems?.length && merged.lineItems?.length) {
+        merged.lineItems = merged.lineItems.map((savedItem: any, idx: number) => {
+          const freshItem = (lineItems as any[])[idx];
+          if (freshItem) {
+            return {
+              ...savedItem,
+              condition: freshItem.condition || freshItem.properties?.condition || savedItem.condition || "",
+            };
+          }
+          return savedItem;
+        });
+      }
+      setFormData(merged);
       // Restore text fields
       if (savedConfig.promoDiscounts) setPromoText(String(savedConfig.promoDiscounts));
       if (savedConfig.buyoutTradeUp) setBuyoutText(String(savedConfig.buyoutTradeUp));

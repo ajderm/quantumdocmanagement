@@ -567,6 +567,7 @@ Deno.serve(async (req) => {
             price: parseFloat(lineItemResponse.properties.price) || 0,
             sku: lineItemResponse.properties.hs_sku,
             category: lineItemResponse.properties.hs_product_type,
+            condition: lineItemResponse.properties.condition || '',
             cost: parseFloat(lineItemResponse.properties.hs_cost_of_goods_sold) || 0,
             properties: lineItemResponse.properties, // Include raw properties
           };
