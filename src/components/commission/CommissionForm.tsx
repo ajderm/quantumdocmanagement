@@ -3,6 +3,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { supabase } from "@/integrations/supabase/client";
 
 export interface CommissionLineItem {
   id: string;
@@ -61,6 +62,7 @@ interface CommissionFormProps {
   contacts: any[];
   lineItems: any[];
   dealOwner: any;
+  portalId: string | null;
   onFormChange: (data: CommissionFormData) => void;
   savedConfig: CommissionFormData | null;
 }
@@ -104,9 +106,11 @@ export function getDefaultCommissionFormData(): CommissionFormData {
   };
 }
 
-export function CommissionForm({ deal, company, lineItems, dealOwner, onFormChange, savedConfig }: CommissionFormProps) {
+export function CommissionForm({ deal, company, lineItems, dealOwner, portalId, onFormChange, savedConfig }: CommissionFormProps) {
   const hasInitializedRef = useRef(false);
   const [formData, setFormData] = useState<CommissionFormData>(getDefaultCommissionFormData());
+  const [leasingCompanies, setLeasingCompanies] = useState<string[]>([]);
+  const [loadingCompanies, setLoadingCompanies] = useState(false);
 
   // Local text states for currency inputs
   const [promoText, setPromoText] = useState("");
@@ -121,6 +125,27 @@ export function CommissionForm({ deal, company, lineItems, dealOwner, onFormChan
   const [connectedText, setConnectedText] = useState("");
   const [rateText, setRateText] = useState("");
 
+  // Fetch leasing companies from rate sheet
+  useEffect(() => {
+    const fetchLeasingCompanies = async () => {
+      if (!portalId) return;
+      setLoadingCompanies(true);
+      try {
+        const { data } = await supabase.functions.invoke('get-rate-factors', {
+          body: { portalId }
+        });
+        if (data?.leasingCompanies) {
+          setLeasingCompanies(data.leasingCompanies);
+        }
+      } catch (err) {
+        console.error('Failed to fetch leasing companies:', err);
+      } finally {
+        setLoadingCompanies(false);
+      }
+    };
+    fetchLeasingCompanies();
+  }, [portalId]);
+
   // Initialize from HubSpot data and/or saved config
   useEffect(() => {
     if (hasInitializedRef.current) return;
@@ -129,8 +154,13 @@ export function CommissionForm({ deal, company, lineItems, dealOwner, onFormChan
       salesRepresentative: dealOwner ? `${dealOwner.firstName || ""} ${dealOwner.lastName || ""}`.trim() : "",
       customer: company?.name || "",
       orderNumber: deal?.hsObjectId || "",
-      address: company?.address || "",
-      cityStateZip: [company?.city, company?.state, company?.zip].filter(Boolean).join(", "),
+      address: company?.apAddress || company?.address || "",
+      cityStateZip: [
+        company?.apCity || company?.city,
+        company?.apState || company?.state,
+        company?.apZip || company?.zip
+      ].filter(Boolean).join(", "),
+      county: company?.county || "",
       lineItems: (lineItems || []).map((item: any) => ({
         id: item.id || `li-${Date.now()}-${Math.random()}`,
         quantity: item.quantity || 1,
@@ -342,7 +372,20 @@ export function CommissionForm({ deal, company, lineItems, dealOwner, onFormChan
           <CardContent className="space-y-2">
             <div>
               <Label className="text-xs">Lease Company</Label>
-              <Input className="h-7 text-sm" value={formData.leaseCompany} onChange={e => updateField("leaseCompany", e.target.value)} />
+              {leasingCompanies.length > 0 ? (
+                <Select value={formData.leaseCompany} onValueChange={v => updateField("leaseCompany", v)}>
+                  <SelectTrigger className="h-7 text-sm">
+                    <SelectValue placeholder={loadingCompanies ? "Loading..." : "Select lease company"} />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {leasingCompanies.map(c => (
+                      <SelectItem key={c} value={c}>{c}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              ) : (
+                <Input className="h-7 text-sm" value={formData.leaseCompany} onChange={e => updateField("leaseCompany", e.target.value)} placeholder={loadingCompanies ? "Loading..." : "Enter lease company"} />
+              )}
             </div>
             <div className="grid grid-cols-2 gap-2">
               <div>

@@ -37,6 +37,7 @@ const ALL_FORM_TYPES = [
   { code: 'new_customer', name: 'New Customer Application' },
   { code: 'relocation', name: 'Relocation' },
   { code: 'equipment_removal', name: 'Equipment Removal' },
+  { code: 'commission', name: 'Commission' },
 ];
 
 export default function AdminSettings() {
