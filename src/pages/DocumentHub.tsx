@@ -3472,6 +3472,7 @@ function DocumentHubContent() {
                   contacts={contacts}
                   lineItems={lineItems}
                   dealOwner={dealOwner}
+                  portalId={portalId}
                   onFormChange={handleCommissionFormChange}
                   savedConfig={commissionSavedConfig}
                 />
