@@ -30,7 +30,8 @@ import {
   Download,
   Eye,
   Save,
-  FileSignature
+  FileSignature,
+  Calculator
 } from 'lucide-react';
 import { QuoteForm, QuoteFormData } from '@/components/quote/QuoteForm';
 import { QuotePreview } from '@/components/quote/QuotePreview';
@@ -54,6 +55,8 @@ import RelocationForm, { RelocationFormData, getDefaultRelocationFormData } from
 import RelocationPreview from '@/components/relocation/RelocationPreview';
 import { RemovalForm, RemovalFormData, getDefaultRemovalFormData } from '@/components/removal/RemovalForm';
 import { RemovalPreview } from '@/components/removal/RemovalPreview';
+import { CommissionForm, CommissionFormData, getDefaultCommissionFormData } from '@/components/commission/CommissionForm';
+import { CommissionPreview } from '@/components/commission/CommissionPreview';
 import { CustomDocumentForm, CustomDocumentPreview, DynamicIcon } from '@/components/custom-document';
 import type { CustomDocument } from '@/components/admin/types';
 
@@ -69,6 +72,7 @@ const documentTypes = [
   { code: 'new_customer', name: 'New Customer', icon: UserPlus },
   { code: 'relocation', name: 'Relocation', icon: Truck },
   { code: 'equipment_removal', name: 'Removal', icon: Trash2 },
+  { code: 'commission', name: 'Commission', icon: Calculator },
 ];
 
 interface DealerInfo {
@@ -228,6 +232,18 @@ function DocumentHubContent() {
   const removalAutoSaveTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   const removalFormDataRef = useRef<RemovalFormData | null>(null);
 
+  // Commission state
+  const [commissionFormData, setCommissionFormData] = useState<CommissionFormData | null>(null);
+  const [commissionSavedConfig, setCommissionSavedConfig] = useState<CommissionFormData | null>(null);
+  const [commissionGenerating, setCommissionGenerating] = useState(false);
+  const [commissionSaving, setCommissionSaving] = useState(false);
+  const [showCommissionPreview, setShowCommissionPreview] = useState(false);
+  const [commissionHasUnsavedChanges, setCommissionHasUnsavedChanges] = useState(false);
+  const [commissionLastSavedData, setCommissionLastSavedData] = useState<string | null>(null);
+  const commissionPreviewRef = useRef<HTMLDivElement>(null);
+  const commissionAutoSaveTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const commissionFormDataRef = useRef<CommissionFormData | null>(null);
+
   // Dealer info and settings
   const [dealerInfo, setDealerInfo] = useState<DealerInfo | null>(null);
   const [dealerSettings, setDealerSettings] = useState<DealerSettings>({});
@@ -291,6 +307,11 @@ function DocumentHubContent() {
   useEffect(() => {
     removalFormDataRef.current = removalFormData;
   }, [removalFormData]);
+
+  // Keep commissionFormDataRef in sync
+  useEffect(() => {
+    commissionFormDataRef.current = commissionFormData;
+  }, [commissionFormData]);
 
   // Keep loiFormDataRef in sync
   useEffect(() => {
@@ -511,6 +532,14 @@ function DocumentHubContent() {
             const savedRemoval = configs.removal as RemovalFormData;
             setRemovalSavedConfig(savedRemoval);
             setRemovalFormData(savedRemoval);
+          }
+
+          // Set commission config
+          if (configs.commission) {
+            console.log('Loaded saved commission configuration');
+            const savedCommission = configs.commission as CommissionFormData;
+            setCommissionSavedConfig(savedCommission);
+            setCommissionFormData(savedCommission);
           }
 
           // Set custom document configs (keyed by custom_document_id)
@@ -1204,6 +1233,75 @@ function DocumentHubContent() {
 
   const handleRemovalPreview = () => setShowRemovalPreview(true);
 
+  // Commission auto-save
+  const performCommissionAutoSave = useCallback(async (dataToSave: CommissionFormData) => {
+    const currentPortalId = portalId || localStorage.getItem('hs_portal_id');
+    const dealId = deal?.hsObjectId;
+    if (!currentPortalId || !dealId || !dataToSave) return;
+    const dataString = JSON.stringify(dataToSave);
+    if (dataString === commissionLastSavedData) return;
+    try {
+      const { error: saveError } = await supabase.functions.invoke('save-configuration', {
+        body: { portalId: currentPortalId, dealId, configType: 'commission', configuration: dataToSave }
+      });
+      if (!saveError) {
+        setCommissionLastSavedData(dataString);
+        setCommissionHasUnsavedChanges(false);
+        console.log('Auto-saved commission configuration');
+      }
+    } catch (err) { console.error('Commission auto-save error:', err); }
+  }, [portalId, deal?.hsObjectId, commissionLastSavedData]);
+
+  const handleCommissionFormChange = useCallback((data: CommissionFormData) => {
+    setCommissionFormData(data);
+    setCommissionHasUnsavedChanges(true);
+    const currentPortalId = portalId || localStorage.getItem('hs_portal_id');
+    const dealId = deal?.hsObjectId;
+    if (currentPortalId && dealId) {
+      try {
+        localStorage.setItem(
+          `commission_backup_${currentPortalId}_${dealId}`,
+          JSON.stringify({ configuration: data, updatedAt: new Date().toISOString() })
+        );
+      } catch { /* ignore */ }
+    }
+    if (commissionAutoSaveTimeoutRef.current) clearTimeout(commissionAutoSaveTimeoutRef.current);
+    commissionAutoSaveTimeoutRef.current = setTimeout(() => performCommissionAutoSave(data), AUTO_SAVE_DELAY);
+  }, [performCommissionAutoSave, portalId, deal?.hsObjectId]);
+
+  const handleCommissionSave = async () => {
+    if (!commissionFormData) { toast.error('No data to save'); return; }
+    const currentPortalId = portalId || localStorage.getItem('hs_portal_id');
+    const dealId = deal?.hsObjectId;
+    if (!currentPortalId || !dealId) { toast.error('Missing portal or deal information'); return; }
+    setCommissionSaving(true);
+    try {
+      const { error: saveError } = await supabase.functions.invoke('save-configuration', {
+        body: { portalId: currentPortalId, dealId, configType: 'commission', configuration: commissionFormData }
+      });
+      if (saveError) { console.error('Save error:', saveError); toast.error('Failed to save'); return; }
+      setCommissionSavedConfig(commissionFormData);
+      setCommissionLastSavedData(JSON.stringify(commissionFormData));
+      setCommissionHasUnsavedChanges(false);
+      toast.success('Commission worksheet saved');
+    } catch (err) { console.error('Save error:', err); toast.error('Failed to save'); }
+    finally { setCommissionSaving(false); }
+  };
+
+  const handleCommissionGeneratePDF = async () => {
+    if (!commissionPreviewRef.current || !commissionFormData) { toast.error('Please fill in the form first'); return; }
+    setCommissionGenerating(true);
+    try {
+      const pdf = await generateMultiPagePDF(commissionPreviewRef.current);
+      const sanitizedName = (commissionFormData.customer || 'Draft').replace(/[^a-zA-Z0-9\s]/g, '').replace(/\s+/g, '_');
+      pdf.save(`Commission_${sanitizedName}_${new Date().toISOString().split('T')[0]}.pdf`);
+      toast.success('PDF generated');
+    } catch (err) { console.error('PDF error:', err); toast.error('Failed to generate PDF'); }
+    finally { setCommissionGenerating(false); }
+  };
+
+  const handleCommissionPreview = () => setShowCommissionPreview(true);
+
   // LOI handlers
   const handleLoiSave = async () => {
     if (!loiFormData) { toast.error('No data to save'); return; }
@@ -1262,7 +1360,7 @@ function DocumentHubContent() {
 
   useEffect(() => {
     const handleBeforeUnload = (e: BeforeUnloadEvent) => {
-      if ((hasUnsavedChanges && formDataRef.current) || (installationHasUnsavedChanges && installationFormDataRef.current) || (serviceAgreementHasUnsavedChanges && serviceAgreementFormDataRef.current) || (fmvLeaseHasUnsavedChanges && fmvLeaseFormDataRef.current) || (leaseFundingHasUnsavedChanges && leaseFundingFormDataRef.current) || (loiHasUnsavedChanges && loiFormDataRef.current) || (leaseReturnHasUnsavedChanges && leaseReturnFormDataRef.current) || (interterritorialHasUnsavedChanges && interterritorialFormDataRef.current) || (relocationHasUnsavedChanges && relocationFormDataRef.current) || (removalHasUnsavedChanges && removalFormDataRef.current)) {
+      if ((hasUnsavedChanges && formDataRef.current) || (installationHasUnsavedChanges && installationFormDataRef.current) || (serviceAgreementHasUnsavedChanges && serviceAgreementFormDataRef.current) || (fmvLeaseHasUnsavedChanges && fmvLeaseFormDataRef.current) || (leaseFundingHasUnsavedChanges && leaseFundingFormDataRef.current) || (loiHasUnsavedChanges && loiFormDataRef.current) || (leaseReturnHasUnsavedChanges && leaseReturnFormDataRef.current) || (interterritorialHasUnsavedChanges && interterritorialFormDataRef.current) || (relocationHasUnsavedChanges && relocationFormDataRef.current) || (removalHasUnsavedChanges && removalFormDataRef.current) || (commissionHasUnsavedChanges && commissionFormDataRef.current)) {
         e.preventDefault();
         e.returnValue = '';
       }
@@ -1299,6 +1397,9 @@ function DocumentHubContent() {
         }
         if (removalHasUnsavedChanges && removalFormDataRef.current) {
           performRemovalAutoSave(removalFormDataRef.current);
+        }
+        if (commissionHasUnsavedChanges && commissionFormDataRef.current) {
+          performCommissionAutoSave(commissionFormDataRef.current);
         }
       }
     };
@@ -1340,8 +1441,11 @@ function DocumentHubContent() {
       if (removalAutoSaveTimeoutRef.current) {
         clearTimeout(removalAutoSaveTimeoutRef.current);
       }
+      if (commissionAutoSaveTimeoutRef.current) {
+        clearTimeout(commissionAutoSaveTimeoutRef.current);
+      }
     };
-  }, [hasUnsavedChanges, installationHasUnsavedChanges, serviceAgreementHasUnsavedChanges, fmvLeaseHasUnsavedChanges, leaseFundingHasUnsavedChanges, loiHasUnsavedChanges, leaseReturnHasUnsavedChanges, interterritorialHasUnsavedChanges, relocationHasUnsavedChanges, removalHasUnsavedChanges, performAutoSave, performInstallationAutoSave, performServiceAgreementAutoSave, performFMVLeaseAutoSave, performLeaseFundingAutoSave, performLoiAutoSave, performLeaseReturnAutoSave, performInterterritorialAutoSave, performRelocationAutoSave, performRemovalAutoSave]);
+  }, [hasUnsavedChanges, installationHasUnsavedChanges, serviceAgreementHasUnsavedChanges, fmvLeaseHasUnsavedChanges, leaseFundingHasUnsavedChanges, loiHasUnsavedChanges, leaseReturnHasUnsavedChanges, interterritorialHasUnsavedChanges, relocationHasUnsavedChanges, removalHasUnsavedChanges, commissionHasUnsavedChanges, performAutoSave, performInstallationAutoSave, performServiceAgreementAutoSave, performFMVLeaseAutoSave, performLeaseFundingAutoSave, performLoiAutoSave, performLeaseReturnAutoSave, performInterterritorialAutoSave, performRelocationAutoSave, performRemovalAutoSave, performCommissionAutoSave]);
 
   // Recover from localStorage backups (portal+deal scoped; prevents cross-tenant leakage)
   useEffect(() => {
@@ -1432,7 +1536,15 @@ function DocumentHubContent() {
       setRemovalHasUnsavedChanges(true);
       localStorage.removeItem(`removal_backup_${currentPortalId}_${dealId}`);
     }
-  }, [portalId, deal?.hsObjectId, savedConfig, serviceAgreementSavedConfig, fmvLeaseSavedConfig, loiSavedConfig, leaseReturnSavedConfig, interterritorialSavedConfig, newCustomerSavedConfig, relocationSavedConfig, removalSavedConfig]);
+
+    const commissionBackup = readBackup<CommissionFormData>(`commission_backup_${currentPortalId}_${dealId}`);
+    if (commissionBackup && !commissionSavedConfig) {
+      setCommissionSavedConfig(commissionBackup);
+      if (!commissionFormDataRef.current) setCommissionFormData(commissionBackup);
+      setCommissionHasUnsavedChanges(true);
+      localStorage.removeItem(`commission_backup_${currentPortalId}_${dealId}`);
+    }
+  }, [portalId, deal?.hsObjectId, savedConfig, serviceAgreementSavedConfig, fmvLeaseSavedConfig, loiSavedConfig, leaseReturnSavedConfig, interterritorialSavedConfig, newCustomerSavedConfig, relocationSavedConfig, removalSavedConfig, commissionSavedConfig]);
 
   const handleSave = async () => {
     if (!formData) {
@@ -3343,6 +3455,41 @@ function DocumentHubContent() {
             </Card>
           </TabsContent>
 
+          {/* Commission Tab Content */}
+          <TabsContent value="commission" className="mt-0">
+            <Card>
+              <CardHeader className="pb-3">
+                <CardTitle className="text-lg flex items-center gap-2">
+                  <Calculator className="h-5 w-5" />
+                  Commission Worksheet
+                </CardTitle>
+                <CardDescription>Calculate sales commissions for this deal</CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <CommissionForm
+                  deal={deal}
+                  company={company}
+                  contacts={contacts}
+                  lineItems={lineItems}
+                  dealOwner={dealOwner}
+                  onFormChange={handleCommissionFormChange}
+                  savedConfig={commissionSavedConfig}
+                />
+                <div className="flex gap-2 pt-4 border-t">
+                  <Button variant="outline" onClick={handleCommissionSave} disabled={commissionSaving}>
+                    {commissionSaving ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <Save className="h-4 w-4 mr-2" />}
+                    {commissionSaving ? 'Saving...' : 'Save'}
+                  </Button>
+                  <Button className="flex-1" onClick={handleCommissionGeneratePDF} disabled={commissionGenerating}>
+                    {commissionGenerating ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <Download className="h-4 w-4 mr-2" />}
+                    {commissionGenerating ? 'Generating...' : 'Generate PDF'}
+                  </Button>
+                  <Button variant="outline" onClick={handleCommissionPreview}><Eye className="h-4 w-4 mr-2" />Preview</Button>
+                </div>
+              </CardContent>
+            </Card>
+          </TabsContent>
+
           {/* Custom Document Tabs Content */}
           {customDocuments.map((customDoc) => (
             <TabsContent key={customDoc.code} value={customDoc.code} className="mt-0">
@@ -3849,6 +3996,50 @@ function DocumentHubContent() {
                       phone: dealerInfo.phone,
                       website: dealerInfo.website,
                       logo_url: dealerInfo.logoUrl,
+                    } : undefined}
+                  />
+                </div>
+              )}
+            </div>
+          </ScrollArea>
+        </DialogContent>
+      </Dialog>
+
+      {/* Hidden preview for Commission PDF generation */}
+      <div className="hidden">
+        {commissionFormData && (
+          <CommissionPreview
+            ref={commissionPreviewRef}
+            formData={commissionFormData}
+            dealerInfo={dealerInfo ? {
+              companyName: dealerInfo.companyName,
+              address: dealerInfo.address,
+              phone: dealerInfo.phone,
+              website: dealerInfo.website,
+              logoUrl: dealerInfo.logoUrl,
+            } : undefined}
+          />
+        )}
+      </div>
+
+      {/* Commission Preview Dialog */}
+      <Dialog open={showCommissionPreview} onOpenChange={setShowCommissionPreview}>
+        <DialogContent className="max-w-4xl max-h-[90vh] p-0">
+          <DialogHeader className="p-4 pb-0">
+            <DialogTitle>Commission Worksheet Preview</DialogTitle>
+          </DialogHeader>
+          <ScrollArea className="max-h-[calc(90vh-80px)]">
+            <div className="p-4 flex justify-center">
+              {commissionFormData && (
+                <div className="shadow-lg border">
+                  <CommissionPreview
+                    formData={commissionFormData}
+                    dealerInfo={dealerInfo ? {
+                      companyName: dealerInfo.companyName,
+                      address: dealerInfo.address,
+                      phone: dealerInfo.phone,
+                      website: dealerInfo.website,
+                      logoUrl: dealerInfo.logoUrl,
                     } : undefined}
                   />
                 </div>

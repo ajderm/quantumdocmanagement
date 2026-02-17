@@ -92,6 +92,7 @@ Deno.serve(async (req) => {
       newCustomerResult,
       relocationResult,
       removalResult,
+      commissionResult,
       customDocResult,
     ] = await Promise.all([
       supabase
@@ -159,6 +160,12 @@ Deno.serve(async (req) => {
         .eq('deal_id', dealId)
         .maybeSingle(),
       supabase
+        .from('commission_configurations')
+        .select('configuration')
+        .eq('portal_id', portalId)
+        .eq('deal_id', dealId)
+        .maybeSingle(),
+      supabase
         .from('custom_document_configurations')
         .select('custom_document_id, configuration')
         .eq('portal_id', portalId)
@@ -201,6 +208,7 @@ Deno.serve(async (req) => {
       newCustomer: newCustomerResult.data?.configuration || null,
       relocation: relocationResult.data?.configuration || null,
       removal: removalResult.data?.configuration || null,
+      commission: commissionResult.data?.configuration || null,
       customDocuments: customDocConfigs,
     };
 
