@@ -5,7 +5,7 @@ import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Separator } from '@/components/ui/separator';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Building2, Upload, Save, Loader2, CreditCard, FileText, ArrowLeft, Plus, X, Settings2, Link2, FilePlus, Palette } from 'lucide-react';
+import { Building2, Upload, Save, Loader2, CreditCard, FileText, ArrowLeft, Plus, X, Settings2, Link2, FilePlus, Palette, Users } from 'lucide-react';
 import { useState, useEffect, useRef } from 'react';
 import { Link, useSearchParams } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
@@ -75,6 +75,11 @@ export default function AdminSettings() {
   const [proposalTemplateUrl, setProposalTemplateUrl] = useState<string | null>(null);
   const [proposalFileName, setProposalFileName] = useState<string | null>(null);
   const [uploadingProposal, setUploadingProposal] = useState(false);
+
+  // Commission user settings
+  const [commissionUsers, setCommissionUsers] = useState<Array<{ hubspot_user_name: string; hubspot_user_id: string; commission_percentage: number }>>([]);
+  const [newCommissionUserName, setNewCommissionUserName] = useState('');
+  const [newCommissionPercentage, setNewCommissionPercentage] = useState('40');
   
   // Form state
   const [formData, setFormData] = useState({
@@ -165,6 +170,15 @@ export default function AdminSettings() {
             setProposalTemplateUrl(settings.proposal_template_url);
             setProposalFileName(settings.proposal_template_name || 'proposal.pdf');
           }
+        }
+
+        // Load commission user settings
+        if (result?.commissionUsers) {
+          setCommissionUsers(result.commissionUsers.map((u: any) => ({
+            hubspot_user_name: u.hubspot_user_name || '',
+            hubspot_user_id: u.hubspot_user_id || '',
+            commission_percentage: u.commission_percentage ?? 40,
+          })));
         }
       } catch (error) {
         console.error('Error loading dealer account:', error);
@@ -332,7 +346,7 @@ export default function AdminSettings() {
       };
 
       const { data: result, error: invokeError } = await supabase.functions.invoke('dealer-account-save', {
-        body: { portalId, accountData, documentTerms, dealerSettings },
+        body: { portalId, accountData, documentTerms, dealerSettings, commissionUsers },
       });
 
       if (invokeError) throw invokeError;
@@ -746,6 +760,94 @@ export default function AdminSettings() {
                         placeholder="www.company.com"
                       />
                     </div>
+                  </div>
+                </CardContent>
+              </Card>
+
+              {/* Commission Users Card */}
+              <Card>
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2">
+                    <Users className="h-5 w-5" />
+                    Commission User Settings
+                  </CardTitle>
+                  <CardDescription>
+                    Define commission percentages per sales rep. These will auto-populate in the Commission form.
+                  </CardDescription>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                  {commissionUsers.length > 0 && (
+                    <div className="space-y-2">
+                      {commissionUsers.map((user, idx) => (
+                        <div key={idx} className="flex items-center gap-3 p-2 rounded-md border">
+                          <span className="text-sm flex-1">{user.hubspot_user_name}</span>
+                          <div className="flex items-center gap-1">
+                            <Input
+                              className="w-20 h-8 text-sm text-right"
+                              value={user.commission_percentage}
+                              onChange={e => {
+                                const updated = [...commissionUsers];
+                                updated[idx] = { ...updated[idx], commission_percentage: parseFloat(e.target.value) || 0 };
+                                setCommissionUsers(updated);
+                              }}
+                            />
+                            <span className="text-sm text-muted-foreground">%</span>
+                          </div>
+                          <button
+                            type="button"
+                            onClick={() => setCommissionUsers(prev => prev.filter((_, i) => i !== idx))}
+                            className="text-muted-foreground hover:text-destructive"
+                          >
+                            <X className="h-4 w-4" />
+                          </button>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                  {commissionUsers.length === 0 && (
+                    <p className="text-xs text-muted-foreground italic">No commission users configured</p>
+                  )}
+                  <div className="flex gap-2">
+                    <Input
+                      value={newCommissionUserName}
+                      onChange={e => setNewCommissionUserName(e.target.value)}
+                      placeholder="User name (e.g., John Smith)"
+                      className="flex-1"
+                      onKeyDown={e => {
+                        if (e.key === 'Enter') {
+                          e.preventDefault();
+                          if (newCommissionUserName.trim()) {
+                            setCommissionUsers(prev => [...prev, {
+                              hubspot_user_name: newCommissionUserName.trim(),
+                              hubspot_user_id: '',
+                              commission_percentage: parseFloat(newCommissionPercentage) || 40,
+                            }]);
+                            setNewCommissionUserName('');
+                            setNewCommissionPercentage('40');
+                          }
+                        }
+                      }}
+                    />
+                    <Input
+                      className="w-20"
+                      value={newCommissionPercentage}
+                      onChange={e => setNewCommissionPercentage(e.target.value)}
+                      placeholder="%"
+                    />
+                    <Button type="button" variant="outline" size="sm" onClick={() => {
+                      if (newCommissionUserName.trim()) {
+                        setCommissionUsers(prev => [...prev, {
+                          hubspot_user_name: newCommissionUserName.trim(),
+                          hubspot_user_id: '',
+                          commission_percentage: parseFloat(newCommissionPercentage) || 40,
+                        }]);
+                        setNewCommissionUserName('');
+                        setNewCommissionPercentage('40');
+                      }
+                    }}>
+                      <Plus className="h-4 w-4 mr-1" />
+                      Add
+                    </Button>
                   </div>
                 </CardContent>
               </Card>

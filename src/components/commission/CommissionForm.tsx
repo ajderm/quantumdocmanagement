@@ -36,12 +36,12 @@ export interface CommissionFormData {
   promoDiscounts: number;
   buyoutTradeUp: number;
   shippingCosts: number;
-  setupDeliveryCosts: number;
+  setupCost: number;
+  deliveryCost: number;
   connectivity: number;
-  tonerCost: number;
-  tonerCostMA: boolean;
   itProfessionalServices: number;
-  leadFeeOrSplit: number;
+  leadFee: number;
+  splitPercentage: number;
   otherSalesFees: number;
 
   // Lease Information
@@ -72,6 +72,8 @@ interface CommissionFormProps {
   portalId: string | null;
   onFormChange: (data: CommissionFormData) => void;
   savedConfig: CommissionFormData | null;
+  quoteConfig?: any;
+  commissionUsers?: Array<{ hubspot_user_name: string; hubspot_user_id?: string; commission_percentage: number }>;
 }
 
 const formatCurrency = (value: number): string =>
@@ -93,13 +95,13 @@ export function getDefaultCommissionFormData(): CommissionFormData {
     lineItems: [],
     promoDiscounts: 0,
     buyoutTradeUp: 0,
-    shippingCosts: 0,
-    setupDeliveryCosts: 0,
+    shippingCosts: 170,
+    setupCost: 100,
+    deliveryCost: 100,
     connectivity: 0,
-    tonerCost: 0,
-    tonerCostMA: false,
     itProfessionalServices: 0,
-    leadFeeOrSplit: 0,
+    leadFee: 0,
+    splitPercentage: 0,
     otherSalesFees: 0,
     leaseCompany: "",
     leaseTerm: 0,
@@ -116,26 +118,28 @@ export function getDefaultCommissionFormData(): CommissionFormData {
   };
 }
 
-export function CommissionForm({ deal, company, lineItems, dealOwner, portalId, onFormChange, savedConfig }: CommissionFormProps) {
+export function CommissionForm({ deal, company, lineItems, dealOwner, portalId, onFormChange, savedConfig, quoteConfig, commissionUsers }: CommissionFormProps) {
   const hasInitializedRef = useRef(false);
   const [formData, setFormData] = useState<CommissionFormData>(getDefaultCommissionFormData());
   const [leasingCompanies, setLeasingCompanies] = useState<string[]>([]);
+  const [rateFactors, setRateFactors] = useState<Array<{ leasing_company: string; term_months: number; rate_factor: number }>>([]);
   const [loadingCompanies, setLoadingCompanies] = useState(false);
 
   // Local text states for currency inputs
   const [promoText, setPromoText] = useState("");
   const [buyoutText, setBuyoutText] = useState("");
-  const [shippingText, setShippingText] = useState("");
-  const [setupText, setSetupText] = useState("");
+  const [shippingText, setShippingText] = useState("170");
+  const [setupCostText, setSetupCostText] = useState("100");
+  const [deliveryCostText, setDeliveryCostText] = useState("100");
   const [connectivityText, setConnectivityText] = useState("");
-  const [tonerText, setTonerText] = useState("");
   const [itText, setItText] = useState("");
-  const [leadText, setLeadText] = useState("");
+  const [leadFeeText, setLeadFeeText] = useState("");
+  const [splitText, setSplitText] = useState("");
   const [otherText, setOtherText] = useState("");
   const [connectedText, setConnectedText] = useState("");
   const [rateText, setRateText] = useState("");
 
-  // Fetch leasing companies from rate sheet
+  // Fetch leasing companies and rate factors from rate sheet
   useEffect(() => {
     const fetchLeasingCompanies = async () => {
       if (!portalId) return;
@@ -147,6 +151,9 @@ export function CommissionForm({ deal, company, lineItems, dealOwner, portalId, 
         if (data?.leasingCompanies) {
           setLeasingCompanies(data.leasingCompanies);
         }
+        if (data?.rateFactors) {
+          setRateFactors(data.rateFactors);
+        }
       } catch (err) {
         console.error('Failed to fetch leasing companies:', err);
       } finally {
@@ -155,6 +162,31 @@ export function CommissionForm({ deal, company, lineItems, dealOwner, portalId, 
     };
     fetchLeasingCompanies();
   }, [portalId]);
+
+  // Available terms for selected leasing company
+  const availableTerms = formData.leaseCompany
+    ? [...new Set(rateFactors.filter(r => r.leasing_company === formData.leaseCompany).map(r => r.term_months))].sort((a, b) => a - b)
+    : [];
+
+  // Auto-populate rate when term changes
+  const autoPopulateRate = (company: string, term: number) => {
+    const match = rateFactors.find(r => r.leasing_company === company && r.term_months === term);
+    if (match) {
+      setFormData(prev => ({ ...prev, rateUsed: match.rate_factor }));
+      setRateText(String(match.rate_factor));
+    }
+  };
+
+  // Auto-populate commission % from commissionUsers when salesRepresentative changes
+  useEffect(() => {
+    if (!commissionUsers?.length || !formData.salesRepresentative) return;
+    const match = commissionUsers.find(u =>
+      u.hubspot_user_name.toLowerCase() === formData.salesRepresentative.toLowerCase()
+    );
+    if (match) {
+      setFormData(prev => ({ ...prev, commissionPercentage: match.commission_percentage }));
+    }
+  }, [formData.salesRepresentative, commissionUsers]);
 
   // Initialize from HubSpot data and/or saved config
   useEffect(() => {
@@ -190,9 +222,35 @@ export function CommissionForm({ deal, company, lineItems, dealOwner, portalId, 
       approvalAmount: parseFloat(deal?.amount) || 0,
     };
 
+    // Try to pre-populate buyout from quote config
+    let buyoutFromQuote = 0;
+    if (quoteConfig) {
+      if (quoteConfig.buyoutFinancingAmount) {
+        buyoutFromQuote = parseFloat(quoteConfig.buyoutFinancingAmount) || 0;
+      } else if (quoteConfig.paymentAmount && quoteConfig.paymentsRemaining) {
+        buyoutFromQuote = (parseFloat(quoteConfig.paymentAmount) || 0) * (parseFloat(quoteConfig.paymentsRemaining) || 0)
+          + (parseFloat(quoteConfig.earlyTerminationFee) || 0)
+          + (parseFloat(quoteConfig.returnShipping) || 0);
+      }
+    }
+
     if (savedConfig) {
       const merged = { ...getDefaultCommissionFormData(), ...savedConfig };
-      // Re-apply fresh HubSpot condition values to prevent stale cached data
+      
+      // Backward compatibility: migrate old fields
+      const sc = savedConfig as any;
+      if (sc.setupDeliveryCosts !== undefined && merged.setupCost === 100 && merged.deliveryCost === 100) {
+        const half = (sc.setupDeliveryCosts || 0) / 2;
+        merged.setupCost = half;
+        merged.deliveryCost = half;
+      }
+      if (sc.leadFeeOrSplit !== undefined && merged.leadFee === 0) {
+        merged.leadFee = sc.leadFeeOrSplit || 0;
+      }
+      // Ensure new fields have defaults if missing from old config
+      if (merged.splitPercentage === undefined) merged.splitPercentage = 0;
+
+      // Re-apply fresh HubSpot condition/dealer values
       if (lineItems?.length && merged.lineItems?.length) {
         merged.lineItems = merged.lineItems.map((savedItem: any, idx: number) => {
           const freshItem = (lineItems as any[])[idx];
@@ -206,25 +264,37 @@ export function CommissionForm({ deal, company, lineItems, dealOwner, portalId, 
           return savedItem;
         });
       }
+
+      // Pre-populate buyout from quote if not already set
+      if (buyoutFromQuote > 0 && !merged.buyoutTradeUp) {
+        merged.buyoutTradeUp = buyoutFromQuote;
+      }
+
       setFormData(merged);
       // Restore text fields
       if (savedConfig.promoDiscounts) setPromoText(String(savedConfig.promoDiscounts));
-      if (savedConfig.buyoutTradeUp) setBuyoutText(String(savedConfig.buyoutTradeUp));
-      if (savedConfig.shippingCosts) setShippingText(String(savedConfig.shippingCosts));
-      if (savedConfig.setupDeliveryCosts) setSetupText(String(savedConfig.setupDeliveryCosts));
-      if (savedConfig.connectivity) setConnectivityText(String(savedConfig.connectivity));
-      if (savedConfig.tonerCost) setTonerText(String(savedConfig.tonerCost));
-      if (savedConfig.itProfessionalServices) setItText(String(savedConfig.itProfessionalServices));
-      if (savedConfig.leadFeeOrSplit) setLeadText(String(savedConfig.leadFeeOrSplit));
-      if (savedConfig.otherSalesFees) setOtherText(String(savedConfig.otherSalesFees));
+      if (merged.buyoutTradeUp) setBuyoutText(String(merged.buyoutTradeUp));
+      if (merged.shippingCosts) setShippingText(String(merged.shippingCosts));
+      if (merged.setupCost) setSetupCostText(String(merged.setupCost));
+      if (merged.deliveryCost) setDeliveryCostText(String(merged.deliveryCost));
+      if (merged.connectivity) setConnectivityText(String(merged.connectivity));
+      if (merged.itProfessionalServices) setItText(String(merged.itProfessionalServices));
+      if (merged.leadFee) setLeadFeeText(String(merged.leadFee));
+      if (merged.splitPercentage) setSplitText(String(merged.splitPercentage));
+      if (merged.otherSalesFees) setOtherText(String(merged.otherSalesFees));
       if (savedConfig.connectedAmount) setConnectedText(String(savedConfig.connectedAmount));
       if (savedConfig.rateUsed) setRateText(String(savedConfig.rateUsed));
     } else {
-      setFormData(prev => ({ ...prev, ...hubspotData }));
+      const initData = { ...getDefaultCommissionFormData(), ...hubspotData };
+      if (buyoutFromQuote > 0) {
+        initData.buyoutTradeUp = buyoutFromQuote;
+        setBuyoutText(String(buyoutFromQuote));
+      }
+      setFormData(initData);
     }
 
     hasInitializedRef.current = true;
-  }, [deal, company, dealOwner, lineItems, savedConfig]);
+  }, [deal, company, dealOwner, lineItems, savedConfig, quoteConfig]);
 
   useEffect(() => {
     onFormChange(formData);
@@ -246,24 +316,20 @@ export function CommissionForm({ deal, company, lineItems, dealOwner, portalId, 
   const totalBilled = formData.lineItems.reduce((sum, item) => sum + (item.billed * item.quantity), 0);
   const totalRepCost = formData.lineItems.reduce((sum, item) => sum + (item.repCost * item.quantity), 0);
 
-  const totalBilledWithCosts = totalBilled +
-    formData.promoDiscounts + formData.buyoutTradeUp + formData.shippingCosts +
-    formData.setupDeliveryCosts + formData.connectivity +
-    (formData.tonerCostMA ? 0 : formData.tonerCost) +
-    formData.itProfessionalServices + formData.leadFeeOrSplit + formData.otherSalesFees;
-
   const totalRepCostWithCosts = totalRepCost +
-    formData.shippingCosts + formData.setupDeliveryCosts + formData.connectivity +
-    (formData.tonerCostMA ? 0 : formData.tonerCost) +
-    formData.itProfessionalServices + formData.leadFeeOrSplit + formData.otherSalesFees;
+    formData.shippingCosts + formData.setupCost + formData.deliveryCost +
+    formData.connectivity + formData.itProfessionalServices +
+    formData.leadFee + formData.otherSalesFees;
 
   // Lease calculations
   const leaseEquipRev = formData.approvalAmount || totalBilled;
   const netEquipRev = leaseEquipRev - formData.promoDiscounts;
   const equipmentAGP = netEquipRev - totalRepCostWithCosts;
 
-  // Commission
-  const totalCommission = equipmentAGP * (formData.commissionPercentage / 100) + formData.connectedCommission;
+  // Commission with split
+  const baseCommission = equipmentAGP * (formData.commissionPercentage / 100);
+  const splitMultiplier = formData.splitPercentage > 0 ? formData.splitPercentage / 100 : 1;
+  const totalCommission = (baseCommission * splitMultiplier) + formData.connectedCommission;
 
   return (
     <div className="space-y-4">
@@ -364,10 +430,11 @@ export function CommissionForm({ deal, company, lineItems, dealOwner, portalId, 
               { label: "Promo Discounts", field: "promoDiscounts" as const, text: promoText, setText: setPromoText },
               { label: "Buyout / TradeUp", field: "buyoutTradeUp" as const, text: buyoutText, setText: setBuyoutText },
               { label: "Shipping Costs", field: "shippingCosts" as const, text: shippingText, setText: setShippingText },
-              { label: "Setup / Delivery Costs", field: "setupDeliveryCosts" as const, text: setupText, setText: setSetupText },
+              { label: "Setup Cost", field: "setupCost" as const, text: setupCostText, setText: setSetupCostText },
+              { label: "Delivery Cost", field: "deliveryCost" as const, text: deliveryCostText, setText: setDeliveryCostText },
               { label: "Connectivity", field: "connectivity" as const, text: connectivityText, setText: setConnectivityText },
               { label: "IT Professional Services", field: "itProfessionalServices" as const, text: itText, setText: setItText },
-              { label: "Lead Fee or Split", field: "leadFeeOrSplit" as const, text: leadText, setText: setLeadText },
+              { label: "Lead Fee", field: "leadFee" as const, text: leadFeeText, setText: setLeadFeeText },
               { label: "Other Sales Fees", field: "otherSalesFees" as const, text: otherText, setText: setOtherText },
             ].map(({ label, field, text, setText }) => (
               <div key={field} className="flex items-center gap-2">
@@ -380,26 +447,16 @@ export function CommissionForm({ deal, company, lineItems, dealOwner, portalId, 
                 />
               </div>
             ))}
-            {/* Toner with MA toggle */}
+            {/* Split Percentage */}
             <div className="flex items-center gap-2">
-              <Label className="text-xs flex-1 min-w-[140px]">
-                Toner Cost
-                <label className="ml-2 inline-flex items-center gap-1 text-[10px]">
-                  <input type="checkbox" checked={formData.tonerCostMA} onChange={e => updateField("tonerCostMA", e.target.checked)} className="h-3 w-3" />
-                  MA
-                </label>
-              </Label>
+              <Label className="text-xs flex-1 min-w-[140px]">Split %</Label>
               <Input
                 className="h-7 text-sm text-right w-28"
-                disabled={formData.tonerCostMA}
-                value={formData.tonerCostMA ? "MA" : (tonerText || (formData.tonerCost ? formatCurrency(formData.tonerCost) : ""))}
-                onChange={e => { setTonerText(e.target.value); updateField("tonerCost", parseCurrency(e.target.value)); }}
-                onBlur={() => { if (formData.tonerCost) setTonerText(formatCurrency(formData.tonerCost)); }}
+                placeholder="0 = no split"
+                value={splitText || (formData.splitPercentage ? String(formData.splitPercentage) : "")}
+                onChange={e => { setSplitText(e.target.value); updateField("splitPercentage", parseFloat(e.target.value) || 0); }}
+                onBlur={() => { if (formData.splitPercentage) setSplitText(String(formData.splitPercentage)); }}
               />
-            </div>
-            <div className="flex items-center gap-2 pt-2 border-t font-bold text-xs">
-              <span className="flex-1">Totals</span>
-              <span className="w-28 text-right">${formatCurrency(totalBilledWithCosts)}</span>
             </div>
           </CardContent>
         </Card>
@@ -412,7 +469,13 @@ export function CommissionForm({ deal, company, lineItems, dealOwner, portalId, 
             <div>
               <Label className="text-xs">Lease Company</Label>
               {leasingCompanies.length > 0 ? (
-                <Select value={formData.leaseCompany} onValueChange={v => updateField("leaseCompany", v)}>
+                <Select value={formData.leaseCompany} onValueChange={v => {
+                  updateField("leaseCompany", v);
+                  // Reset term when company changes
+                  updateField("leaseTerm", 0);
+                  updateField("rateUsed", 0);
+                  setRateText("");
+                }}>
                   <SelectTrigger className="h-7 text-sm">
                     <SelectValue placeholder={loadingCompanies ? "Loading..." : "Select lease company"} />
                   </SelectTrigger>
@@ -429,7 +492,24 @@ export function CommissionForm({ deal, company, lineItems, dealOwner, portalId, 
             <div className="grid grid-cols-2 gap-2">
               <div>
                 <Label className="text-xs">Term (months)</Label>
-                <Input className="h-7 text-sm" type="number" value={formData.leaseTerm || ""} onChange={e => updateField("leaseTerm", parseInt(e.target.value) || 0)} />
+                {availableTerms.length > 0 ? (
+                  <Select value={formData.leaseTerm ? String(formData.leaseTerm) : ""} onValueChange={v => {
+                    const term = parseInt(v) || 0;
+                    updateField("leaseTerm", term);
+                    autoPopulateRate(formData.leaseCompany, term);
+                  }}>
+                    <SelectTrigger className="h-7 text-sm">
+                      <SelectValue placeholder="Select term" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {availableTerms.map(t => (
+                        <SelectItem key={t} value={String(t)}>{t}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                ) : (
+                  <Input className="h-7 text-sm" type="number" value={formData.leaseTerm || ""} onChange={e => updateField("leaseTerm", parseInt(e.target.value) || 0)} />
+                )}
               </div>
               <div>
                 <Label className="text-xs">Approval Amount</Label>
@@ -493,6 +573,11 @@ export function CommissionForm({ deal, company, lineItems, dealOwner, portalId, 
               />
             </div>
           </div>
+          {formData.splitPercentage > 0 && (
+            <div className="mt-2 text-xs text-muted-foreground">
+              Split {formData.splitPercentage}% applied: ${formatCurrency(baseCommission)} × {formData.splitPercentage}% = ${formatCurrency(baseCommission * (formData.splitPercentage / 100))}
+            </div>
+          )}
           <div className="mt-3 pt-2 border-t text-sm font-bold flex justify-between">
             <span>Total Commission</span>
             <span>${formatCurrency(totalCommission)}</span>

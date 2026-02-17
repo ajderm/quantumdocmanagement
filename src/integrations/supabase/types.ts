@@ -41,6 +41,44 @@ export type Database = {
         }
         Relationships: []
       }
+      commission_user_settings: {
+        Row: {
+          commission_percentage: number
+          created_at: string
+          dealer_account_id: string
+          hubspot_user_id: string | null
+          hubspot_user_name: string
+          id: string
+          updated_at: string
+        }
+        Insert: {
+          commission_percentage?: number
+          created_at?: string
+          dealer_account_id: string
+          hubspot_user_id?: string | null
+          hubspot_user_name: string
+          id?: string
+          updated_at?: string
+        }
+        Update: {
+          commission_percentage?: number
+          created_at?: string
+          dealer_account_id?: string
+          hubspot_user_id?: string | null
+          hubspot_user_name?: string
+          id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "commission_user_settings_dealer_account_id_fkey"
+            columns: ["dealer_account_id"]
+            isOneToOne: false
+            referencedRelation: "dealer_accounts"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       custom_document_configurations: {
         Row: {
           configuration: Json

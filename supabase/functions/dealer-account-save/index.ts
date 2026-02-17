@@ -18,6 +18,7 @@ Deno.serve(async (req) => {
     const accountData = body.accountData as Record<string, unknown> | undefined;
     const documentTerms = body.documentTerms as Record<string, string> | undefined;
     const dealerSettings = body.dealerSettings as Record<string, unknown> | undefined;
+    const commissionUsers = body.commissionUsers as Array<{ hubspot_user_name: string; hubspot_user_id?: string; commission_percentage: number }> | undefined;
 
     console.log('Saving dealer account for portal:', portalId);
 
@@ -153,6 +154,38 @@ Deno.serve(async (req) => {
           if (upsertError) {
             console.error('Error saving dealer setting', settingKey, ':', upsertError);
           }
+        }
+      }
+    }
+
+    // Save commission user settings if provided
+    if (commissionUsers && result?.id) {
+      console.log('Saving commission user settings for account:', result.id);
+      
+      // Delete existing entries and re-insert
+      const { error: deleteError } = await supabase
+        .from('commission_user_settings')
+        .delete()
+        .eq('dealer_account_id', result.id);
+
+      if (deleteError) {
+        console.error('Error deleting old commission users:', deleteError);
+      }
+
+      if (commissionUsers.length > 0) {
+        const rows = commissionUsers.map(u => ({
+          dealer_account_id: result.id,
+          hubspot_user_name: u.hubspot_user_name,
+          hubspot_user_id: u.hubspot_user_id || null,
+          commission_percentage: u.commission_percentage ?? 40,
+        }));
+
+        const { error: insertError } = await supabase
+          .from('commission_user_settings')
+          .insert(rows);
+
+        if (insertError) {
+          console.error('Error inserting commission users:', insertError);
         }
       }
     }

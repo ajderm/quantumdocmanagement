@@ -257,6 +257,7 @@ function DocumentHubContent() {
   const [dealerInfo, setDealerInfo] = useState<DealerInfo | null>(null);
   const [dealerSettings, setDealerSettings] = useState<DealerSettings>({});
   const [documentTerms, setDocumentTerms] = useState<DocumentTerms>({});
+  const [commissionUsers, setCommissionUsers] = useState<Array<{ hubspot_user_name: string; hubspot_user_id?: string; commission_percentage: number }>>([]);
 
   // Custom Documents state
   const [customDocuments, setCustomDocuments] = useState<CustomDocument[]>([]);
@@ -449,6 +450,11 @@ function DocumentHubContent() {
         // Store custom documents
         if (data?.customDocuments) {
           setCustomDocuments(data.customDocuments.filter((doc: CustomDocument) => doc.is_active));
+        }
+
+        // Store commission user settings
+        if (data?.commissionUsers) {
+          setCommissionUsers(data.commissionUsers);
         }
       } catch (err) {
         console.error('Failed to fetch dealer info:', err);
@@ -3528,6 +3534,8 @@ function DocumentHubContent() {
                   portalId={portalId}
                   onFormChange={handleCommissionFormChange}
                   savedConfig={commissionSavedConfig}
+                  quoteConfig={savedConfig}
+                  commissionUsers={commissionUsers}
                 />
                 <div className="flex gap-2 pt-4 border-t">
                   <Button variant="outline" onClick={handleCommissionSave} disabled={commissionSaving}>
