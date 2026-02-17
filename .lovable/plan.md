@@ -1,171 +1,147 @@
 
-# Add Company-Associated Contact Mapping Support
 
-## Problem Statement
-Currently, the field mapping system only supports:
-- Contacts directly associated with the Deal
-- Hardcoded labeled contacts from the Company (Shipping, AP, IT)
+# Fix Commission Form: Visibility, Data Mapping, and Lease Company Dropdown
 
-Users need to map fields to contact properties where the contact is:
-- Associated to the **Company** (not the Deal)
-- Identified by a custom **association label** (e.g., "Shipping Contact", "Billing Manager", etc.)
+## Issues Found
 
-## Solution Overview
-
-Introduce an "Association Path" concept to the field mapping system that allows specifying:
-1. **Source Object**: Where to find the associated record (e.g., `company`)
-2. **Target Object**: What type of record to fetch (e.g., `contact`)
-3. **Association Label**: Which labeled association to use (e.g., "Shipping Contact")
-4. **Property**: Which property to extract from the target record
-
-## Database Changes
-
-Add a new column to track the association path:
-
-```sql
-ALTER TABLE hubspot_field_mappings 
-ADD COLUMN association_path text;
+### 1. Commission Tab Not Showing in HubSpot
+The tab visibility is controlled by `dealerSettings.enabled_forms`. If an admin previously configured their enabled forms list before the Commission type existed, "commission" won't be in that array, hiding the tab. The filter logic is:
 ```
-
-The `association_path` will store values like:
-- `null` or empty = direct property access (current behavior)
-- `company_contact` = contact associated with the company
-
-Combined with the existing `association_label`, this enables:
-- `hubspot_object: 'contact'`
-- `hubspot_property: 'email'`
-- `association_path: 'company_contact'`
-- `association_label: 'Shipping Contact'`
-
-Meaning: "Get the `email` from the Contact labeled 'Shipping Contact' that is associated with the Company"
-
-## UI Changes
-
-### FieldMappingEditor Updates
-
-When a user selects "Contact" as the object type, show an additional dropdown:
-
-```text
-+-------------------+  +--------------------+  +------------------+  +-------------------+
-| Object: Contact   |  | Path: Via Company  |  | Property: Email  |  | Label: Shipping   |
-+-------------------+  +--------------------+  +------------------+  +-------------------+
+filter(doc => !enabled_forms || enabled_forms.length === 0 || enabled_forms.includes(doc.code))
 ```
+Since the admin's `enabled_forms` array doesn't include `"commission"`, it gets filtered out.
 
-**Association Path Options:**
-- "Direct (Deal Association)" - current behavior
-- "Via Company" - contact associated with the company
+**Fix:** Add "commission" to the Admin Settings form manager so admins can enable it, AND update the existing dealer settings to auto-include new form types. We should also ensure the admin settings UI lists "commission" as an available form.
 
-When "Via Company" is selected, the Association Label dropdown becomes **required** (otherwise we wouldn't know which contact to pick).
+### 2. Address Fields Using Wrong Company Properties
+Currently the form maps:
+- `address: company?.address` (generic/main address)
+- `cityStateZip: company?.city, company?.state, company?.zip`
 
-## Backend Changes
+Should use Bill To (AP) address:
+- `address: company?.apAddress`
+- `cityStateZip: company?.apCity, company?.apState, company?.apZip`
+- `county: company?.county` (if available)
 
-### hubspot-get-deal Function
+### 3. Lease Company Is a Plain Text Input
+Currently a text `<Input>`, should be a `<Select>` dropdown populated from the leasing companies defined in the rate sheet (same pattern used in QuoteForm and LeaseFundingForm, fetching from `get-rate-factors` edge function).
 
-Update to dynamically fetch company-associated contacts based on field mappings:
+### 4. Line Items (Confirmed Working)
+Already pulling from deal's associated line items with quantity, description, billed, repCost, and condition. No changes needed.
 
-1. **Collect required labels**: Scan all field mappings with `association_path = 'company_contact'` to get unique labels needed
+### 5. Sales Representative (Confirmed Working)
+Already pulling from `dealOwner.firstName + lastName`. No changes needed.
 
-2. **Expand fetchLabeledContacts**: Instead of hardcoded labels, pass the list of labels to fetch
+---
 
-3. **Return contacts by label**: Add a new `companyContacts` object to the response keyed by association label
+## Changes
 
+### File 1: `src/components/commission/CommissionForm.tsx`
+
+**A. Add `portalId` prop** (needed to fetch leasing companies):
 ```typescript
-// New response structure
-{
-  // ...existing fields...
-  companyContacts: {
-    'Shipping Contact': { firstName, lastName, email, phone, properties: {...} },
-    'Billing Manager': { firstName, lastName, email, phone, properties: {...} },
-  }
+interface CommissionFormProps {
+  deal: any;
+  company: any;
+  contacts: any[];
+  lineItems: any[];
+  dealOwner: any;
+  portalId: string | null;  // NEW
+  onFormChange: (data: CommissionFormData) => void;
+  savedConfig: CommissionFormData | null;
 }
 ```
 
-### CustomDocumentForm Field Resolution
-
-Update `resolveHubSpotField` to handle the association path:
-
+**B. Fix address mapping** in the initialization useEffect:
 ```typescript
-const resolveHubSpotField = (mapping: FieldMapping) => {
-  const { hubspot_object, hubspot_property, association_path, association_label } = mapping;
-  
-  if (hubspot_object === 'contact' && association_path === 'company_contact') {
-    // Get contact from company's labeled associations
-    const contact = companyContacts?.[association_label];
-    return contact?.properties?.[hubspot_property] || '';
-  }
-  
-  // ...existing direct property resolution...
-};
+// Before
+address: company?.address || "",
+cityStateZip: [company?.city, company?.state, company?.zip].filter(Boolean).join(", "),
+
+// After (Bill To / AP address)
+address: company?.apAddress || company?.address || "",
+cityStateZip: [
+  company?.apCity || company?.city,
+  company?.apState || company?.state,
+  company?.apZip || company?.zip
+].filter(Boolean).join(", "),
+county: company?.county || "",
 ```
 
-## Implementation Steps
+**C. Add leasing companies fetch** (same pattern as LeaseFundingForm):
+```typescript
+const [leasingCompanies, setLeasingCompanies] = useState<string[]>([]);
+const [loadingCompanies, setLoadingCompanies] = useState(false);
 
-### Step 1: Database Migration
-Add the `association_path` column to `hubspot_field_mappings`
-
-### Step 2: Update Field Mapping UI
-Modify `FieldMappingEditor.tsx`:
-- Add "Association Path" dropdown when Contact is selected
-- Make Association Label required when path is "Via Company"
-- Update save/load logic to include the new field
-
-### Step 3: Update Backend Edge Functions
-Modify `hubspot-get-deal/index.ts`:
-- Read association paths from field mappings
-- Dynamically determine which company-contact labels to fetch
-- Expand labeled contacts response to include all mapped labels
-
-Modify `field-mappings-save/index.ts`:
-- Handle the new `association_path` field
-
-### Step 4: Update Field Resolution
-Modify `CustomDocumentForm.tsx`:
-- Accept new `companyContacts` prop
-- Update resolution logic for company-associated contacts
-
-## Files to Modify
-
-| File | Changes |
-|------|---------|
-| Migration | Add `association_path` column |
-| `supabase/functions/field-mappings-save/index.ts` | Include `association_path` in save/load |
-| `supabase/functions/hubspot-get-deal/index.ts` | Dynamic label fetching, return `companyContacts` |
-| `src/components/admin/types.ts` | Add `association_path` to FieldMapping type |
-| `src/components/admin/FieldMappingEditor.tsx` | Add Association Path dropdown UI |
-| `src/hooks/useHubSpot.tsx` | Add `companyContacts` to context |
-| `src/components/custom-document/CustomDocumentForm.tsx` | Update field resolution |
-| `src/pages/DocumentHub.tsx` | Pass `companyContacts` to form |
-
-## Visual Flow
-
-```text
-Field Mapping Configuration:
-+------------------------------------------------------------------+
-| Ship To Contact Email                                             |
-|------------------------------------------------------------------|
-| Object: [Contact ▼]  Path: [Via Company ▼]                       |
-| Property: [Email ▼]  Label: [Shipping Contact ▼] (required)      |
-+------------------------------------------------------------------+
-
-Data Resolution at Runtime:
-Deal → Company → Company's Contact Associations 
-                    → Find contact with label "Shipping Contact"
-                        → Return email property
+useEffect(() => {
+  const fetchLeasingCompanies = async () => {
+    if (!portalId) return;
+    setLoadingCompanies(true);
+    try {
+      const { data } = await supabase.functions.invoke('get-rate-factors', {
+        body: { portalId }
+      });
+      if (data?.leasingCompanies) {
+        setLeasingCompanies(data.leasingCompanies);
+      }
+    } catch (err) {
+      console.error('Failed to fetch leasing companies:', err);
+    } finally {
+      setLoadingCompanies(false);
+    }
+  };
+  fetchLeasingCompanies();
+}, [portalId]);
 ```
 
-## Benefits
+**D. Replace Lease Company text input with Select dropdown:**
+```typescript
+// Before
+<Input value={formData.leaseCompany} onChange={...} />
 
-1. **Flexible**: Supports any custom association label defined in HubSpot
-2. **Extensible**: The `association_path` column allows future paths like `company_deal` or multi-hop associations
-3. **Backward Compatible**: Existing mappings with no `association_path` continue to work as before
-4. **Self-Documenting**: The UI clearly shows where the data comes from
+// After
+<Select value={formData.leaseCompany} onValueChange={v => updateField("leaseCompany", v)}>
+  <SelectTrigger>
+    <SelectValue placeholder={loadingCompanies ? "Loading..." : "Select"} />
+  </SelectTrigger>
+  <SelectContent>
+    {leasingCompanies.map(c => (
+      <SelectItem key={c} value={c}>{c}</SelectItem>
+    ))}
+  </SelectContent>
+</Select>
+```
+The user can still type a custom value if needed via a fallback text input shown when no companies are loaded.
 
-## Testing Checklist
+### File 2: `src/pages/DocumentHub.tsx`
 
-After implementation:
-1. Create a mapping for "Ship To Email" using Contact + Via Company + Shipping Contact label
-2. Save the mapping
-3. Open a deal that has a company with a "Shipping Contact" labeled contact
-4. Verify the email populates correctly on the document
-5. Test with missing labels (should gracefully return empty)
-6. Verify existing hardcoded shipping/AP/IT contacts still work
+**A. Pass `portalId` to CommissionForm:**
+```typescript
+<CommissionForm
+  deal={deal}
+  company={company}
+  contacts={contacts}
+  lineItems={lineItems}
+  dealOwner={dealOwner}
+  portalId={portalId}   // NEW
+  onFormChange={handleCommissionFormChange}
+  savedConfig={commissionSavedConfig}
+/>
+```
+
+### File 3: `src/pages/admin/AdminSettings.tsx`
+
+**A. Add "commission" to the list of available form types** so admins can enable/disable it from the settings panel. This ensures it appears in the enabled forms checklist.
+
+---
+
+## Summary
+
+| Issue | Fix |
+|-------|-----|
+| Tab not visible | Ensure "commission" is in the admin form list so it can be enabled |
+| Wrong address fields | Switch from generic address to Bill To (AP) address properties |
+| Lease Company plain input | Replace with Select dropdown fetching from rate sheet leasing companies |
+| Line items | Already working correctly |
+| Sales Rep | Already working correctly |
+| Manual override | All fields remain editable -- no change needed |
