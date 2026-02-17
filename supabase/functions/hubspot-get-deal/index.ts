@@ -348,7 +348,7 @@ Deno.serve(async (req) => {
       'street_address__ap_', 'street_address_line_2__ap_', 'city__ap_', 'state__ap_', 'zip_code__ap_']);
     const contactPropsNeeded = new Set(['firstname', 'lastname', 'email', 'phone', 'jobtitle']);
     const dealPropsNeeded = new Set(['dealname', 'amount', 'dealstage', 'closedate', 'hubspot_owner_id', 'hs_object_id']);
-    const lineItemPropsNeeded = new Set(['name', 'description', 'quantity', 'price', 'hs_sku', 'hs_product_type', 'hs_recurring_billing_period', 'hs_cost_of_goods_sold', 'condition']);
+    const lineItemPropsNeeded = new Set(['name', 'description', 'quantity', 'price', 'hs_sku', 'hs_product_type', 'hs_recurring_billing_period', 'hs_cost_of_goods_sold', 'condition', 'dealer']);
 
     // Add properties from field mappings
     for (const mappings of Object.values(fieldMappings)) {
@@ -568,6 +568,7 @@ Deno.serve(async (req) => {
             sku: lineItemResponse.properties.hs_sku,
             category: lineItemResponse.properties.hs_product_type,
             condition: lineItemResponse.properties.condition || '',
+            dealer: lineItemResponse.properties.dealer || '',
             cost: parseFloat(lineItemResponse.properties.hs_cost_of_goods_sold) || 0,
             properties: lineItemResponse.properties, // Include raw properties
           };

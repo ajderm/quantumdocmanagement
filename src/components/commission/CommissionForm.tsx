@@ -12,6 +12,8 @@ export interface CommissionLineItem {
   billed: number;
   repCost: number;
   condition: string;
+  dealerSource: string;
+  specialPricing: string;
 }
 
 export interface CommissionFormData {
@@ -182,6 +184,8 @@ export function CommissionForm({ deal, company, lineItems, dealOwner, portalId, 
         billed: item.price || 0,
         repCost: item.cost || 0,
         condition: item.condition || item.properties?.condition || "",
+        dealerSource: item.dealer || item.properties?.dealer || "",
+        specialPricing: "",
       })),
       approvalAmount: parseFloat(deal?.amount) || 0,
     };
@@ -196,6 +200,7 @@ export function CommissionForm({ deal, company, lineItems, dealOwner, portalId, 
             return {
               ...savedItem,
               condition: freshItem.condition || freshItem.properties?.condition || savedItem.condition || "",
+              dealerSource: freshItem.dealer || freshItem.properties?.dealer || savedItem.dealerSource || "",
             };
           }
           return savedItem;
@@ -318,24 +323,30 @@ export function CommissionForm({ deal, company, lineItems, dealOwner, portalId, 
         </CardHeader>
         <CardContent>
           <div className="space-y-2">
-            <div className="grid grid-cols-[1fr_100px_100px_100px] gap-2 text-xs font-medium text-muted-foreground px-1">
+            <div className="grid grid-cols-[1fr_80px_80px_80px_100px_1fr] gap-2 text-xs font-medium text-muted-foreground px-1">
               <span>Description</span>
               <span>Billed</span>
               <span>Rep Cost</span>
               <span>Condition</span>
+              <span>Dealer Source</span>
+              <span>Special Pricing / Credits</span>
             </div>
             {formData.lineItems.map((item, index) => (
-              <div key={item.id} className="grid grid-cols-[1fr_100px_100px_100px] gap-2">
+              <div key={item.id} className="grid grid-cols-[1fr_80px_80px_80px_100px_1fr] gap-2">
                 <Input className="h-8 text-sm" value={item.description} onChange={e => updateLineItem(index, "description", e.target.value)} />
                 <Input className="h-8 text-sm text-right" value={item.billed ? formatCurrency(item.billed) : ""} onChange={e => updateLineItem(index, "billed", parseCurrency(e.target.value))} />
                 <Input className="h-8 text-sm text-right" value={item.repCost ? formatCurrency(item.repCost) : ""} onChange={e => updateLineItem(index, "repCost", parseCurrency(e.target.value))} />
                 <Input className="h-8 text-sm" value={item.condition} onChange={e => updateLineItem(index, "condition", e.target.value)} />
+                <Input className="h-8 text-sm" value={item.dealerSource} onChange={e => updateLineItem(index, "dealerSource", e.target.value)} />
+                <Input className="h-8 text-sm" placeholder="DIR, nonprofit, promo..." value={item.specialPricing} onChange={e => updateLineItem(index, "specialPricing", e.target.value)} />
               </div>
             ))}
-            <div className="grid grid-cols-[1fr_100px_100px_100px] gap-2 text-xs font-bold px-1 pt-1 border-t">
+            <div className="grid grid-cols-[1fr_80px_80px_80px_100px_1fr] gap-2 text-xs font-bold px-1 pt-1 border-t">
               <span>Total Equipment</span>
               <span className="text-right">${formatCurrency(totalBilled)}</span>
               <span className="text-right">${formatCurrency(totalRepCost)}</span>
+              <span></span>
+              <span></span>
               <span></span>
             </div>
           </div>
