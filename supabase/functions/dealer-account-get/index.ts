@@ -63,6 +63,7 @@ Deno.serve(async (req) => {
     let dealerSettings: Record<string, unknown> = {};
     let customDocuments: unknown[] = [];
     let fieldMappings: Record<string, unknown[]> = { global: [] };
+    let commissionUsers: unknown[] = [];
     
     if (data?.id) {
       // Fetch document terms
@@ -121,6 +122,17 @@ Deno.serve(async (req) => {
           });
         }
       }
+
+      // Fetch commission user settings
+      const { data: commissionUsersData, error: commissionUsersError } = await supabase
+        .from('commission_user_settings')
+        .select('*')
+        .eq('dealer_account_id', data.id)
+        .order('hubspot_user_name');
+
+      if (!commissionUsersError && commissionUsersData) {
+        commissionUsers = commissionUsersData;
+      }
     }
 
     console.log('Dealer account found:', data ? data.id : 'none');
@@ -131,6 +143,7 @@ Deno.serve(async (req) => {
       dealerSettings,
       customDocuments,
       fieldMappings,
+      commissionUsers,
     }), {
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
     });

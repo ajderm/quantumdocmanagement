@@ -33,11 +33,11 @@ export const CommissionPreview = forwardRef<HTMLDivElement, CommissionPreviewPro
       { label: "Promo Discounts", billed: formData.promoDiscounts, repCost: 0 },
       { label: "Buyout/TradeUp", billed: formData.buyoutTradeUp, repCost: 0 },
       { label: "Shipping Costs", billed: formData.shippingCosts, repCost: formData.shippingCosts },
-      { label: "Setup/Delivery Costs", billed: formData.setupDeliveryCosts, repCost: formData.setupDeliveryCosts },
+      { label: "Setup Cost", billed: formData.setupCost, repCost: formData.setupCost },
+      { label: "Delivery Cost", billed: formData.deliveryCost, repCost: formData.deliveryCost },
       { label: "Connectivity", billed: formData.connectivity, repCost: formData.connectivity },
-      { label: "Toner Cost", billed: formData.tonerCostMA ? 0 : formData.tonerCost, repCost: formData.tonerCostMA ? 0 : formData.tonerCost, ma: formData.tonerCostMA },
       { label: "IT Professional Services", billed: formData.itProfessionalServices, repCost: formData.itProfessionalServices },
-      { label: "Lead Fee or Split", billed: formData.leadFeeOrSplit, repCost: formData.leadFeeOrSplit },
+      { label: "Lead Fee", billed: formData.leadFee, repCost: formData.leadFee },
       { label: "Other Sales Fees", billed: formData.otherSalesFees, repCost: formData.otherSalesFees },
     ];
 
@@ -47,7 +47,9 @@ export const CommissionPreview = forwardRef<HTMLDivElement, CommissionPreviewPro
     const leaseEquipRev = formData.approvalAmount || totalBilled;
     const netEquipRev = leaseEquipRev - formData.promoDiscounts;
     const equipmentAGP = netEquipRev - totalsRepCost;
-    const totalCommission = equipmentAGP * (formData.commissionPercentage / 100) + formData.connectedCommission;
+    const baseCommission = equipmentAGP * (formData.commissionPercentage / 100);
+    const splitMultiplier = formData.splitPercentage > 0 ? formData.splitPercentage / 100 : 1;
+    const totalCommission = (baseCommission * splitMultiplier) + formData.connectedCommission;
 
     const borderColor = documentStyles?.tableBorderColor || '#000000';
     const lineColor = documentStyles?.tableLineColor || '#d1d5db';
@@ -138,9 +140,7 @@ export const CommissionPreview = forwardRef<HTMLDivElement, CommissionPreviewPro
                   {costRows.map((row) => (
                     <tr key={row.label} style={{ borderBottom: `1px solid ${lineColor}` }}>
                       <td className="py-0.5">{row.label}</td>
-                      <td className="py-0.5 text-right">
-                        {row.ma ? "MA" : `$${fmt(row.repCost)}`}
-                      </td>
+                      <td className="py-0.5 text-right">${fmt(row.repCost)}</td>
                       <td></td>
                       <td></td>
                       <td></td>
@@ -188,6 +188,13 @@ export const CommissionPreview = forwardRef<HTMLDivElement, CommissionPreviewPro
                 <td className="pr-8"></td>
                 <td className="text-right">{formData.commissionPercentage}%</td>
               </tr>
+              {formData.splitPercentage > 0 && (
+                <tr>
+                  <td className="pr-8 py-0.5 font-semibold">Split</td>
+                  <td className="pr-8"></td>
+                  <td className="text-right">{formData.splitPercentage}%</td>
+                </tr>
+              )}
               <tr>
                 <td className="py-0.5 font-semibold">Connected</td>
                 <td className="text-right pr-8">${fmt(formData.connectedAmount)}</td>
