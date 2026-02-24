@@ -14,6 +14,7 @@ export interface CommissionLineItem {
   condition: string;
   dealerSource: string;
   specialPricing: string;
+  machineType: "Color" | "Mono";
 }
 
 export interface CommissionFormData {
@@ -33,7 +34,7 @@ export interface CommissionFormData {
   lineItems: CommissionLineItem[];
 
   // Cost Breakdown
-  promoDiscounts: number;
+  promoDiscounts: string;
   buyoutTradeUp: number;
   shippingCosts: number;
   setupCost: number;
@@ -42,6 +43,7 @@ export interface CommissionFormData {
   itProfessionalServices: number;
   leadFee: number;
   splitPercentage: number;
+  splitRepName: string;
   otherSalesFees: number;
 
   // Lease Information
@@ -93,15 +95,16 @@ export function getDefaultCommissionFormData(): CommissionFormData {
     county: "",
     transactionType: "",
     lineItems: [],
-    promoDiscounts: 0,
+    promoDiscounts: "",
     buyoutTradeUp: 0,
     shippingCosts: 170,
     setupCost: 100,
     deliveryCost: 100,
-    connectivity: 0,
+    connectivity: 100,
     itProfessionalServices: 0,
     leadFee: 0,
     splitPercentage: 0,
+    splitRepName: "",
     otherSalesFees: 0,
     leaseCompany: "",
     leaseTerm: 0,
@@ -126,12 +129,11 @@ export function CommissionForm({ deal, company, lineItems, dealOwner, portalId, 
   const [loadingCompanies, setLoadingCompanies] = useState(false);
 
   // Local text states for currency inputs
-  const [promoText, setPromoText] = useState("");
   const [buyoutText, setBuyoutText] = useState("");
   const [shippingText, setShippingText] = useState("170");
   const [setupCostText, setSetupCostText] = useState("100");
   const [deliveryCostText, setDeliveryCostText] = useState("100");
-  const [connectivityText, setConnectivityText] = useState("");
+  const [connectivityText, setConnectivityText] = useState("100");
   const [itText, setItText] = useState("");
   const [leadFeeText, setLeadFeeText] = useState("");
   const [splitText, setSplitText] = useState("");
@@ -218,6 +220,7 @@ export function CommissionForm({ deal, company, lineItems, dealOwner, portalId, 
         condition: item.condition || item.properties?.condition || item.properties?.hs_product_condition || "New",
         dealerSource: item.dealer || item.properties?.dealer || "",
         specialPricing: "",
+        machineType: item.machineType || item.properties?.color_mono || item.properties?.machine_type || "Color",
       })),
       approvalAmount: parseFloat(deal?.amount) || 0,
     };
@@ -249,6 +252,20 @@ export function CommissionForm({ deal, company, lineItems, dealOwner, portalId, 
       }
       // Ensure new fields have defaults if missing from old config
       if (merged.splitPercentage === undefined) merged.splitPercentage = 0;
+      if (merged.splitRepName === undefined) merged.splitRepName = "";
+      
+      // Backward compatibility: migrate promoDiscounts from number to string
+      if (typeof merged.promoDiscounts === 'number') {
+        merged.promoDiscounts = merged.promoDiscounts > 0 ? String(merged.promoDiscounts) : "";
+      }
+      
+      // Ensure machineType on line items
+      if (merged.lineItems) {
+        merged.lineItems = merged.lineItems.map((item: any) => ({
+          ...item,
+          machineType: item.machineType || "Color",
+        }));
+      }
 
       // Re-apply fresh HubSpot condition/dealer values
       if (lineItems?.length && merged.lineItems?.length) {
@@ -259,6 +276,7 @@ export function CommissionForm({ deal, company, lineItems, dealOwner, portalId, 
               ...savedItem,
               condition: freshItem.condition || freshItem.properties?.condition || freshItem.properties?.hs_product_condition || savedItem.condition || "New",
               dealerSource: freshItem.dealer || freshItem.properties?.dealer || savedItem.dealerSource || "",
+              machineType: savedItem.machineType || freshItem.machineType || freshItem.properties?.color_mono || freshItem.properties?.machine_type || "Color",
             };
           }
           return savedItem;
@@ -272,7 +290,6 @@ export function CommissionForm({ deal, company, lineItems, dealOwner, portalId, 
 
       setFormData(merged);
       // Restore text fields
-      if (savedConfig.promoDiscounts) setPromoText(String(savedConfig.promoDiscounts));
       if (merged.buyoutTradeUp) setBuyoutText(String(merged.buyoutTradeUp));
       if (merged.shippingCosts) setShippingText(String(merged.shippingCosts));
       if (merged.setupCost) setSetupCostText(String(merged.setupCost));
@@ -312,6 +329,31 @@ export function CommissionForm({ deal, company, lineItems, dealOwner, portalId, 
     });
   };
 
+  // Handle transaction type change
+  const handleTransactionTypeChange = (value: string) => {
+    updateField("transactionType", value);
+    if (value === "Purchase") {
+      // Clear lease fields when Purchase selected
+      setFormData(prev => ({
+        ...prev,
+        transactionType: value,
+        leaseCompany: "",
+        leaseTerm: 0,
+        rateUsed: 0,
+        leasePayment: 0,
+      }));
+      setRateText("");
+    } else if (value.startsWith("Lease -- ")) {
+      // Auto-populate lease company from selection
+      const companyName = value.replace("Lease -- ", "");
+      setFormData(prev => ({
+        ...prev,
+        transactionType: value,
+        leaseCompany: companyName,
+      }));
+    }
+  };
+
   // Computed values
   const totalBilled = formData.lineItems.reduce((sum, item) => sum + (item.billed * item.quantity), 0);
   const totalRepCost = formData.lineItems.reduce((sum, item) => sum + (item.repCost * item.quantity), 0);
@@ -321,15 +363,17 @@ export function CommissionForm({ deal, company, lineItems, dealOwner, portalId, 
     formData.connectivity + formData.itProfessionalServices +
     formData.leadFee + formData.otherSalesFees;
 
-  // Lease calculations
+  // Lease calculations -- promoDiscounts is now a text note, not subtracted
   const leaseEquipRev = formData.approvalAmount || totalBilled;
-  const netEquipRev = leaseEquipRev - formData.promoDiscounts;
+  const netEquipRev = leaseEquipRev;
   const equipmentAGP = netEquipRev - totalRepCostWithCosts;
 
   // Commission with split
   const baseCommission = equipmentAGP * (formData.commissionPercentage / 100);
   const splitMultiplier = formData.splitPercentage > 0 ? formData.splitPercentage / 100 : 1;
   const totalCommission = (baseCommission * splitMultiplier) + formData.connectedCommission;
+
+  const isPurchase = formData.transactionType === "Purchase";
 
   return (
     <div className="space-y-4">
@@ -376,7 +420,17 @@ export function CommissionForm({ deal, company, lineItems, dealOwner, portalId, 
             </div>
             <div>
               <Label className="text-xs">Transaction Type</Label>
-              <Input className="h-8 text-sm" value={formData.transactionType} onChange={e => updateField("transactionType", e.target.value)} />
+              <Select value={formData.transactionType} onValueChange={handleTransactionTypeChange}>
+                <SelectTrigger className="h-8 text-sm">
+                  <SelectValue placeholder="Select transaction type" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="Purchase">Purchase</SelectItem>
+                  {leasingCompanies.map(c => (
+                    <SelectItem key={c} value={`Lease -- ${c}`}>Lease -- {c}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
             </div>
           </div>
         </CardContent>
@@ -389,28 +443,39 @@ export function CommissionForm({ deal, company, lineItems, dealOwner, portalId, 
         </CardHeader>
         <CardContent>
           <div className="space-y-2">
-            <div className="grid grid-cols-[1fr_80px_80px_80px_100px_1fr] gap-2 text-xs font-medium text-muted-foreground px-1">
+            <div className="grid grid-cols-[1fr_80px_80px_80px_80px_100px_1fr] gap-2 text-xs font-medium text-muted-foreground px-1">
               <span>Description</span>
               <span>Billed</span>
               <span>Rep Cost</span>
+              <span>Type</span>
               <span>Condition</span>
               <span>Dealer Source</span>
               <span>Special Pricing / Credits</span>
             </div>
             {formData.lineItems.map((item, index) => (
-              <div key={item.id} className="grid grid-cols-[1fr_80px_80px_80px_100px_1fr] gap-2">
+              <div key={item.id} className="grid grid-cols-[1fr_80px_80px_80px_80px_100px_1fr] gap-2">
                 <Input className="h-8 text-sm" value={item.description} onChange={e => updateLineItem(index, "description", e.target.value)} />
                 <Input className="h-8 text-sm text-right" value={item.billed ? formatCurrency(item.billed) : ""} onChange={e => updateLineItem(index, "billed", parseCurrency(e.target.value))} />
                 <Input className="h-8 text-sm text-right" value={item.repCost ? formatCurrency(item.repCost) : ""} onChange={e => updateLineItem(index, "repCost", parseCurrency(e.target.value))} />
+                <Select value={item.machineType || "Color"} onValueChange={v => updateLineItem(index, "machineType", v)}>
+                  <SelectTrigger className="h-8 text-xs">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="Color">Color</SelectItem>
+                    <SelectItem value="Mono">Mono</SelectItem>
+                  </SelectContent>
+                </Select>
                 <Input className="h-8 text-sm" value={item.condition} onChange={e => updateLineItem(index, "condition", e.target.value)} />
                 <Input className="h-8 text-sm" value={item.dealerSource} onChange={e => updateLineItem(index, "dealerSource", e.target.value)} />
                 <Input className="h-8 text-sm" placeholder="DIR, nonprofit, promo..." value={item.specialPricing} onChange={e => updateLineItem(index, "specialPricing", e.target.value)} />
               </div>
             ))}
-            <div className="grid grid-cols-[1fr_80px_80px_80px_100px_1fr] gap-2 text-xs font-bold px-1 pt-1 border-t">
+            <div className="grid grid-cols-[1fr_80px_80px_80px_80px_100px_1fr] gap-2 text-xs font-bold px-1 pt-1 border-t">
               <span>Total Equipment</span>
               <span className="text-right">${formatCurrency(totalBilled)}</span>
               <span className="text-right">${formatCurrency(totalRepCost)}</span>
+              <span></span>
               <span></span>
               <span></span>
               <span></span>
@@ -426,8 +491,17 @@ export function CommissionForm({ deal, company, lineItems, dealOwner, portalId, 
             <CardTitle className="text-sm">Additional Costs</CardTitle>
           </CardHeader>
           <CardContent className="space-y-2">
+            {/* Promo/Discount as text field */}
+            <div className="flex items-center gap-2">
+              <Label className="text-xs flex-1 min-w-[140px]">Promo / Discount Notes</Label>
+              <Input
+                className="h-7 text-sm w-28"
+                placeholder="e.g., DIR deal"
+                value={formData.promoDiscounts}
+                onChange={e => updateField("promoDiscounts", e.target.value)}
+              />
+            </div>
             {[
-              { label: "Promo Discounts", field: "promoDiscounts" as const, text: promoText, setText: setPromoText },
               { label: "Buyout / TradeUp", field: "buyoutTradeUp" as const, text: buyoutText, setText: setBuyoutText },
               { label: "Shipping Costs", field: "shippingCosts" as const, text: shippingText, setText: setShippingText },
               { label: "Setup Cost", field: "setupCost" as const, text: setupCostText, setText: setSetupCostText },
@@ -458,10 +532,26 @@ export function CommissionForm({ deal, company, lineItems, dealOwner, portalId, 
                 onBlur={() => { if (formData.splitPercentage) setSplitText(String(formData.splitPercentage)); }}
               />
             </div>
+            {/* Split Rep Selector -- shown when split % > 0 */}
+            {formData.splitPercentage > 0 && commissionUsers && commissionUsers.length > 0 && (
+              <div className="flex items-center gap-2">
+                <Label className="text-xs flex-1 min-w-[140px]">Split With</Label>
+                <Select value={formData.splitRepName || ""} onValueChange={v => updateField("splitRepName", v)}>
+                  <SelectTrigger className="h-7 text-sm w-28">
+                    <SelectValue placeholder="Select rep" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {commissionUsers.map(u => (
+                      <SelectItem key={u.hubspot_user_name} value={u.hubspot_user_name}>{u.hubspot_user_name}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+            )}
           </CardContent>
         </Card>
 
-        <Card>
+        <Card className={isPurchase ? "opacity-50" : ""}>
           <CardHeader className="pb-2">
             <CardTitle className="text-sm">Lease Information</CardTitle>
           </CardHeader>
@@ -471,7 +561,6 @@ export function CommissionForm({ deal, company, lineItems, dealOwner, portalId, 
               {leasingCompanies.length > 0 ? (
                 <Select value={formData.leaseCompany} onValueChange={v => {
                   updateField("leaseCompany", v);
-                  // Reset term when company changes
                   updateField("leaseTerm", 0);
                   updateField("rateUsed", 0);
                   setRateText("");
@@ -575,7 +664,7 @@ export function CommissionForm({ deal, company, lineItems, dealOwner, portalId, 
           </div>
           {formData.splitPercentage > 0 && (
             <div className="mt-2 text-xs text-muted-foreground">
-              Split {formData.splitPercentage}% applied: ${formatCurrency(baseCommission)} × {formData.splitPercentage}% = ${formatCurrency(baseCommission * (formData.splitPercentage / 100))}
+              Split {formData.splitPercentage}%{formData.splitRepName ? ` with ${formData.splitRepName}` : ''}: ${formatCurrency(baseCommission)} × {formData.splitPercentage}% = ${formatCurrency(baseCommission * (formData.splitPercentage / 100))}
             </div>
           )}
           <div className="mt-3 pt-2 border-t text-sm font-bold flex justify-between">
