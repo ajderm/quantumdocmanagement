@@ -30,7 +30,6 @@ export const CommissionPreview = forwardRef<HTMLDivElement, CommissionPreviewPro
     const totalRepCost = formData.lineItems.reduce((s, i) => s + i.repCost * i.quantity, 0);
 
     const costRows = [
-      { label: "Promo Discounts", billed: formData.promoDiscounts, repCost: 0 },
       { label: "Buyout/TradeUp", billed: formData.buyoutTradeUp, repCost: 0 },
       { label: "Shipping Costs", billed: formData.shippingCosts, repCost: formData.shippingCosts },
       { label: "Setup Cost", billed: formData.setupCost, repCost: formData.setupCost },
@@ -45,7 +44,7 @@ export const CommissionPreview = forwardRef<HTMLDivElement, CommissionPreviewPro
     const totalsRepCost = totalRepCost + costRows.reduce((s, r) => s + r.repCost, 0);
 
     const leaseEquipRev = formData.approvalAmount || totalBilled;
-    const netEquipRev = leaseEquipRev - formData.promoDiscounts;
+    const netEquipRev = leaseEquipRev;
     const equipmentAGP = netEquipRev - totalsRepCost;
     const baseCommission = equipmentAGP * (formData.commissionPercentage / 100);
     const splitMultiplier = formData.splitPercentage > 0 ? formData.splitPercentage / 100 : 1;
@@ -94,11 +93,16 @@ export const CommissionPreview = forwardRef<HTMLDivElement, CommissionPreviewPro
         </div>
 
         {/* Customer/Sale Type */}
-        {formData.transactionType && (
+        {(formData.transactionType || formData.promoDiscounts) && (
           <div className="mb-3">
             <div className="font-bold pb-1 mb-2" style={{ borderBottom: `2px solid ${borderColor}` }}>CUSTOMER/SALE TYPE</div>
-            <div className="text-[9px]">
-              <span className="font-semibold">Transaction Type: </span>{formData.transactionType}
+            <div className="text-[9px] space-y-0.5">
+              {formData.transactionType && (
+                <div><span className="font-semibold">Transaction Type: </span>{formData.transactionType}</div>
+              )}
+              {formData.promoDiscounts && (
+                <div><span className="font-semibold">Promo / Discount: </span>{formData.promoDiscounts}</div>
+              )}
             </div>
           </div>
         )}
@@ -191,7 +195,7 @@ export const CommissionPreview = forwardRef<HTMLDivElement, CommissionPreviewPro
               {formData.splitPercentage > 0 && (
                 <tr>
                   <td className="pr-8 py-0.5 font-semibold">Split</td>
-                  <td className="pr-8"></td>
+                  <td className="pr-8">{formData.splitRepName ? `with ${formData.splitRepName}` : ''}</td>
                   <td className="text-right">{formData.splitPercentage}%</td>
                 </tr>
               )}

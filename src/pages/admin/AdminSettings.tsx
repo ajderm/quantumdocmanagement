@@ -5,7 +5,7 @@ import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Separator } from '@/components/ui/separator';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Building2, Upload, Save, Loader2, CreditCard, FileText, ArrowLeft, Plus, X, Settings2, Link2, FilePlus, Palette, Users } from 'lucide-react';
+import { Building2, Upload, Save, Loader2, CreditCard, FileText, ArrowLeft, Plus, X, Settings2, Link2, FilePlus, Palette, Users, Download } from 'lucide-react';
 import { useState, useEffect, useRef } from 'react';
 import { Link, useSearchParams } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
@@ -80,6 +80,7 @@ export default function AdminSettings() {
   const [commissionUsers, setCommissionUsers] = useState<Array<{ hubspot_user_name: string; hubspot_user_id: string; commission_percentage: number }>>([]);
   const [newCommissionUserName, setNewCommissionUserName] = useState('');
   const [newCommissionPercentage, setNewCommissionPercentage] = useState('40');
+  const [fetchingOwners, setFetchingOwners] = useState(false);
   
   // Form state
   const [formData, setFormData] = useState({
@@ -849,6 +850,48 @@ export default function AdminSettings() {
                       Add
                     </Button>
                   </div>
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    disabled={fetchingOwners || !portalId}
+                    onClick={async () => {
+                      if (!portalId) return;
+                      setFetchingOwners(true);
+                      try {
+                        const { data, error } = await supabase.functions.invoke('hubspot-get-owners', {
+                          body: { portalId }
+                        });
+                        if (error) throw error;
+                        if (data?.owners?.length) {
+                          const existingNames = new Set(commissionUsers.map(u => u.hubspot_user_name.toLowerCase()));
+                          const newOwners = data.owners
+                            .filter((o: any) => !existingNames.has(`${o.firstName} ${o.lastName}`.trim().toLowerCase()))
+                            .map((o: any) => ({
+                              hubspot_user_name: `${o.firstName} ${o.lastName}`.trim(),
+                              hubspot_user_id: o.id || '',
+                              commission_percentage: 40,
+                            }));
+                          if (newOwners.length > 0) {
+                            setCommissionUsers(prev => [...prev, ...newOwners]);
+                            toast.success(`Added ${newOwners.length} new user(s) from HubSpot`);
+                          } else {
+                            toast.info('All HubSpot owners are already in the list');
+                          }
+                        } else {
+                          toast.info('No owners found in HubSpot');
+                        }
+                      } catch (err) {
+                        console.error('Failed to fetch owners:', err);
+                        toast.error('Failed to fetch owners from HubSpot');
+                      } finally {
+                        setFetchingOwners(false);
+                      }
+                    }}
+                  >
+                    {fetchingOwners ? <Loader2 className="h-4 w-4 mr-1 animate-spin" /> : <Download className="h-4 w-4 mr-1" />}
+                    Fetch from HubSpot
+                  </Button>
                 </CardContent>
               </Card>
 

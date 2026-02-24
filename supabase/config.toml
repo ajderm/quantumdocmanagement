@@ -44,3 +44,6 @@ verify_jwt = false
 
 [functions.field-mappings-save]
 verify_jwt = false
+
+[functions.hubspot-get-owners]
+verify_jwt = false
