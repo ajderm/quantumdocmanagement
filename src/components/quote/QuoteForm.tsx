@@ -317,6 +317,8 @@ export function QuoteForm({ deal, company, lineItems, dealOwner, onFormChange, p
   const totalBuyout = totalBuyoutForCalc;
 
   useEffect(() => {
+    if (hasInitializedRef.current) return;
+
     // Get retail price from deal amount
     const dealAmount = parseFloat(deal?.amount) || 0;
     
@@ -327,7 +329,6 @@ export function QuoteForm({ deal, company, lineItems, dealOwner, onFormChange, p
       preparedByEmail: dealOwner?.email || '', 
       preparedByPhone: dealOwner?.phone || '', 
       companyName: company?.name || '', 
-      // Use default company address for "Prepared for" section
       address: company?.address || '', 
       address2: company?.address2 || '', 
       city: company?.city || '', 
@@ -347,12 +348,12 @@ export function QuoteForm({ deal, company, lineItems, dealOwner, onFormChange, p
     // If we have saved config, merge it with HubSpot data
     if (savedConfig) {
       const discountPercent = savedConfig.cashDiscountPercent ?? 5;
-      // Always use fresh HubSpot deal amount for retail price
-      const retailPriceToUse = hubspotData.retailPrice;
+      // Use saved retailPrice if available, otherwise fall back to HubSpot deal amount
+      const retailPriceToUse = savedConfig.retailPrice || hubspotData.retailPrice;
       setFormData(prev => ({ 
         ...prev, 
         ...savedConfig,
-        // Override with fresh HubSpot data for these fields
+        // Override with fresh HubSpot data for CRM-identity fields
         quoteNumber: hubspotData.quoteNumber || savedConfig.quoteNumber,
         preparedBy: hubspotData.preparedBy || savedConfig.preparedBy,
         preparedByEmail: hubspotData.preparedByEmail || savedConfig.preparedByEmail,
@@ -365,7 +366,6 @@ export function QuoteForm({ deal, company, lineItems, dealOwner, onFormChange, p
         zip: hubspotData.zip || savedConfig.zip,
         phone: hubspotData.phone || savedConfig.phone,
         lineItems: savedConfig.lineItems?.length > 0 ? savedConfig.lineItems : hubspotData.lineItems,
-        // Always use fresh HubSpot deal amount
         retailPrice: retailPriceToUse,
         cashDiscountPercent: discountPercent,
         cashDiscount: retailPriceToUse * (1 - discountPercent / 100),
@@ -379,9 +379,6 @@ export function QuoteForm({ deal, company, lineItems, dealOwner, onFormChange, p
       if (savedConfig.earlyTerminationFee > 0) setEarlyTerminationFeeText(String(savedConfig.earlyTerminationFee));
       if (savedConfig.returnShipping > 0) setReturnShippingText(String(savedConfig.returnShipping));
       if (savedConfig.paymentAmount > 0) setPaymentAmountText(String(savedConfig.paymentAmount));
-      
-      // Mark as initialized after loading saved config
-      hasInitializedRef.current = true;
     } else {
       const discountPercent = 5;
       setFormData(prev => ({ 
@@ -391,6 +388,8 @@ export function QuoteForm({ deal, company, lineItems, dealOwner, onFormChange, p
         cashDiscount: hubspotData.retailPrice * (1 - discountPercent / 100)
       }));
     }
+
+    hasInitializedRef.current = true;
   }, [deal, company, dealOwner, lineItems, savedConfig]);
 
   // Auto-recalculate retailPrice when line items change

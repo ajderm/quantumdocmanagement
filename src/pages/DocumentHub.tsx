@@ -259,6 +259,9 @@ function DocumentHubContent() {
   const [documentTerms, setDocumentTerms] = useState<DocumentTerms>({});
   const [commissionUsers, setCommissionUsers] = useState<Array<{ hubspot_user_name: string; hubspot_user_id?: string; commission_percentage: number }>>([]);
 
+  // configsLoaded gate: prevents forms from rendering before saved configs are fetched
+  const [configsLoaded, setConfigsLoaded] = useState(false);
+
   // Custom Documents state
   const [customDocuments, setCustomDocuments] = useState<CustomDocument[]>([]);
   const [customDocFormData, setCustomDocFormData] = useState<Record<string, Record<string, any>>>({});
@@ -470,7 +473,10 @@ function DocumentHubContent() {
       const currentPortalId = portalId || localStorage.getItem('hs_portal_id');
       const dealId = deal?.hsObjectId;
       
-      if (!currentPortalId || !dealId) return;
+      if (!currentPortalId || !dealId) {
+        setConfigsLoaded(true);
+        return;
+      }
 
       try {
         const { data, error } = await supabase.functions.invoke('get-configurations-bulk', {
@@ -566,6 +572,8 @@ function DocumentHubContent() {
         }
       } catch (err) {
         console.error('Failed to load configurations:', err);
+      } finally {
+        setConfigsLoaded(true);
       }
     };
 
@@ -2683,7 +2691,7 @@ function DocumentHubContent() {
     setShowCustomDocPreview(prev => ({ ...prev, [docId]: true }));
   }, []);
 
-  if (loading) {
+  if (loading || !configsLoaded) {
     return (
       <div className="flex items-center justify-center min-h-screen bg-background">
         <Loader2 className="h-8 w-8 animate-spin text-primary" />
