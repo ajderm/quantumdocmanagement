@@ -1,137 +1,153 @@
 
 
-# Phase 1 -- Bug Fixes + Blank Screen Fix
+# Phase 2 -- Enhancements (Tasks 5-11)
 
-## Priority 0: Fix the Blank Screen
+## Status of Each Task
 
-The app loads briefly then goes blank inside HubSpot. This is caused by an unhandled promise rejection crashing React after the initial render. The fix adds:
-
-1. A global `unhandledrejection` event listener in `App.tsx` to prevent React from crashing on uncaught async errors.
-2. Try/catch wrappers around all async operations in `DocumentHub.tsx` that currently lack them (specifically the dealer info fetch and config bulk load).
-3. An error boundary component that catches render-time errors and shows a recovery UI instead of a blank screen.
-
----
-
-## Task 1: Equipment Price Edits Not Updating Retail Price Total
-
-**Problem:** In the Quote form, editing a line item's Price or Quantity does not recalculate the "Retail Price" field. It stays at whatever value was loaded from the HubSpot deal amount.
-
-**Root Cause:** `retailPrice` is set once from `deal.amount` during initialization (QuoteForm.tsx line 338) and is never recalculated when line items change.
-
-**Fix:**
-- Add a `useEffect` in `QuoteForm.tsx` that watches `formData.lineItems` and recalculates `retailPrice = SUM(price x quantity)` whenever any line item's price, quantity, or the number of items changes.
-- Only auto-recalculate if the line items total is greater than 0 (to avoid zeroing out the field before items load).
-- The field remains manually editable (user can override), but any line item change resets it to the calculated value.
-
-**Scope:** `QuoteForm.tsx` primarily. Will audit `CommissionForm.tsx` as well -- the commission form already computes `totalBilled` reactively from line items, so no fix is needed there.
-
-**Files:** `src/components/quote/QuoteForm.tsx`
+| # | Task | Status | Work Needed |
+|---|------|--------|-------------|
+| 5 | Mono vs. Color classification | Not started | Full implementation |
+| 6 | Sold-On date default to close date | Already done | No work needed |
+| 7 | Transaction Type dropdown | Partial | Convert text input to dropdown with dynamic leasing partners |
+| 8 | Backend per-rep commission defaults | Partial | Add dynamic HubSpot owner fetching alongside manual fallback |
+| 9 | Default cost fields | Partial | Set connectivity default to $100, convert promo/discount to text, add split rep selector |
+| 10 | Lease term constraints by company | Already done | No work needed |
+| 11 | Build vs. Rep Cost columns | Already done | No work needed |
 
 ---
 
-## Task 2: Lease Vendor Selection Not Persisting After Save
+## Task 5: Mono vs. Color Machine Classification
 
-**Problem:** Changing the leasing company, saving, and reopening reverts to the previous value.
+Add a "Machine Type" toggle per line item on forms that have equipment tables.
 
-**Root Cause:** Race condition between two async effects:
-1. The rate factors fetch (`useEffect` on `[portalId]`) runs and may auto-select the first leasing company if `formData.leasingCompanyId` is empty.
-2. The saved config initialization (`useEffect` on `[deal, company, ...]`) runs later and spreads `savedConfig`, but the auto-select may have already fired.
+**Changes:**
 
-Additionally, the initialization effect (line 342-388) always overrides `retailPrice` with the fresh HubSpot deal amount, which is correct, but the same pattern of "fresh HubSpot overrides saved config" may be accidentally applied to other fields depending on timing.
+1. **CommissionForm.tsx** -- Add a `machineType` field ("Color" | "Mono") to `CommissionLineItem`. Add a dropdown column in the line items table. When "Mono" is selected, grey out any color-related fields on that row (currently the commission form does not have separate color/mono rate fields, so this is primarily a data classification for now).
 
-**Fix:**
-- In the rate factors fetch effect, change the auto-select guard to also check `savedConfig?.leasingCompanyId` (already partially done but `formData.leasingCompanyId` may not be set yet due to timing).
-- Add a `hasInitializedRef` guard (similar to CommissionForm) to prevent race conditions. The form should not auto-select a leasing company until after the saved config has been applied.
-- Audit all document forms for the same "saved value overwritten by HubSpot default" pattern and apply the "saved value takes priority" rule globally.
+2. **QuoteForm.tsx** -- Add the same `machineType` field to quote line items. When "Mono" is selected, disable/grey-out and zero any color overage fields (e.g., "Overage Color Rate", "Included Color") on that line item.
 
-**Files:** `src/components/quote/QuoteForm.tsx` (primary), plus audit of other form components.
+3. **hubspot-get-deal/index.ts** -- Add `color_mono` or `machine_type` to `lineItemPropsNeeded` to attempt auto-detection from HubSpot. Default to "Color" if not set.
+
+**Files:** `CommissionForm.tsx`, `QuoteForm.tsx`, `hubspot-get-deal/index.ts`
 
 ---
 
-## Task 3: Condition Field Not Pulling from Line Items (Commission Tab)
+## Task 7: Transaction Type Dropdown
 
-**Problem:** The Condition field (New/Used/Refurbished) for each line item on the Commission tab is blank, even though HubSpot line items have condition values.
+Replace the plain text input with a structured dropdown.
 
-**Root Cause:** The HubSpot API property name for condition may not match what's being requested. Currently `hubspot-get-deal` requests `condition` as a line item property (line 351), but the actual HubSpot property could be named differently (e.g., `hs_product_condition`, or a custom property). The value comes back empty.
+**Changes in CommissionForm.tsx:**
 
-**Fix:**
-1. In `hubspot-get-deal/index.ts`, add `hs_product_condition` to `lineItemPropsNeeded` alongside the existing `condition`.
-2. Update the line item mapping (line 570) to try multiple property names: `lineItemResponse.properties.condition || lineItemResponse.properties.hs_product_condition || ''`.
-3. In `CommissionForm.tsx` initialization (line 218), ensure `item.condition` or `item.properties?.hs_product_condition` is checked.
-4. Default to "New" if the value is empty (per the brief).
+1. Replace the Transaction Type `<Input>` with a `<Select>` dropdown containing:
+   - "Purchase"
+   - Dynamic entries from `leasingCompanies` (already fetched), formatted as "Lease -- {Company Name}"
+2. When a lease option is selected, auto-populate `leaseCompany` in the Lease Information section with the matching company name.
+3. When "Purchase" is selected, clear lease-related fields and optionally visually dim the Lease Information card.
 
-**Files:** `supabase/functions/hubspot-get-deal/index.ts`, `src/components/commission/CommissionForm.tsx`
+**Files:** `CommissionForm.tsx`
 
 ---
 
-## Task 4: Commission Rate and Percentage Overwrite Prevention
+## Task 8: Dynamic HubSpot Owner Fetching for Commission Defaults
 
-**Problem:** The lease rate and commission percentage fields on the commission form are freely editable by any user.
+Currently, commission users are added manually in Admin Settings. This task adds dynamic fetching of HubSpot owners as a convenience, with manual fallback.
 
-**Fix:**
-- **Lease Rate (`rateUsed`):** Make the field read-only on the commission form. It auto-populates from the rate factors when a term is selected. The field should appear visually disabled (greyed out background). Users can edit the rate on the deal itself, not on the commission sheet.
-- **Commission Percentage:** Make the field read-only on the commission form. It auto-populates from the backend commission user settings (already implemented). The field should appear visually disabled. Only editable in Admin Settings.
-- Both fields will use `readOnly` attribute and a `bg-muted/50` class to indicate they are locked.
+**Changes:**
 
-**Files:** `src/components/commission/CommissionForm.tsx`
+1. **New edge function: `hubspot-get-owners/index.ts`** -- Fetches all owners from the HubSpot portal (`/crm/v3/owners`) and returns their names, IDs, and emails. Requires `portalId` for token lookup.
+
+2. **AdminSettings.tsx** -- Add a "Fetch from HubSpot" button next to the Commission Users section. When clicked, it calls the new edge function, retrieves active owners, and offers to add any that are not already in the manual list. Users can still manually add/remove reps.
+
+**Files:** `supabase/functions/hubspot-get-owners/index.ts` (new), `AdminSettings.tsx`
+
+---
+
+## Task 9: Default Cost Field Corrections
+
+**Changes in CommissionForm.tsx:**
+
+1. Set `connectivity` default to `100` (currently `0`) in `getDefaultCommissionFormData()` and the initial text state.
+2. Convert `promoDiscounts` from a currency input to a **text input** (notes field) -- change the type from `number` to `string` in the form data interface. Update the field to accept free text like "DIR deal" instead of dollar amounts. Remove it from commission calculations (it was being subtracted from net equipment rev).
+3. Add a split rep selector: when `splitPercentage > 0`, show a dropdown of commission users (from the `commissionUsers` prop) to select who the split is with. Store as `splitRepName` in the form data.
+
+**Files:** `CommissionForm.tsx`, `CommissionPreview.tsx` (if the preview displays promo as currency)
 
 ---
 
 ## Technical Details
 
-### Error Boundary Component
+### New Edge Function: hubspot-get-owners
 
 ```text
-src/components/ErrorBoundary.tsx (new file)
-- Class component that catches render errors
-- Displays a "Something went wrong" message with a Retry button
-- Logs errors to console for debugging
-```
-
-### App.tsx Changes
-
-```text
-- Wrap <BrowserRouter> with <ErrorBoundary>
-- Add useEffect for global unhandledrejection listener
-```
-
-### QuoteForm.tsx Changes
-
-```text
-- Add useEffect watching formData.lineItems to recalculate retailPrice
-- Add hasInitializedRef to prevent race condition with rate factors auto-select
-- Ensure leasingCompanyId from savedConfig is preserved during initialization
+supabase/functions/hubspot-get-owners/index.ts
+- Accepts { portalId }
+- Validates portalId format
+- Verifies portal has valid HubSpot token
+- Calls GET /crm/v3/owners?limit=100
+- Returns array of { id, firstName, lastName, email }
 ```
 
 ### CommissionForm.tsx Changes
 
 ```text
-- Make rateUsed Input: readOnly + bg-muted/50 styling
-- Make commissionPercentage Input: readOnly + bg-muted/50 styling
-- Update condition default to "New" when empty
-- Update condition mapping to check hs_product_condition
+Interface changes:
+- Add machineType: "Color" | "Mono" to CommissionLineItem
+- Change promoDiscounts from number to string
+- Add splitRepName: string to CommissionFormData
+
+UI changes:
+- Transaction Type: Replace Input with Select dropdown
+- Add Machine Type column to line items table
+- Promo/Discount: Change to text Input (no currency formatting)
+- Split section: Show rep selector dropdown when split % > 0
+- Connectivity default: 100 instead of 0
+
+Calculation changes:
+- Remove promoDiscounts from netEquipRev calculation
+  (it becomes a notes field, not a dollar amount)
+```
+
+### QuoteForm.tsx Changes
+
+```text
+- Add machineType field to quote line items
+- When "Mono" selected, disable color-specific fields on that row
+- Auto-detect from HubSpot line item property if available
+```
+
+### AdminSettings.tsx Changes
+
+```text
+- Add "Fetch HubSpot Owners" button in Commission Users section
+- On click: call hubspot-get-owners edge function
+- Merge returned owners with existing manual list
+- Preserve existing commission percentages for known users
 ```
 
 ### hubspot-get-deal/index.ts Changes
 
 ```text
-- Add 'hs_product_condition' to lineItemPropsNeeded set
-- Update line item mapping to fall through: condition || hs_product_condition || 'New'
+- Add 'color_mono' and 'machine_type' to lineItemPropsNeeded
+- Map machineType in line item response: 
+  properties.color_mono || properties.machine_type || 'Color'
 ```
 
 ### Files Modified Summary
 
 | File | Changes |
 |------|---------|
-| `src/components/ErrorBoundary.tsx` | New error boundary component |
-| `src/App.tsx` | Wrap with ErrorBoundary, add unhandledrejection handler |
-| `src/components/quote/QuoteForm.tsx` | Reactive retailPrice recalc, race condition fix for leasingCompanyId |
-| `src/components/commission/CommissionForm.tsx` | Read-only rate and commission %, condition default to "New" |
-| `supabase/functions/hubspot-get-deal/index.ts` | Add hs_product_condition to line item properties |
+| `src/components/commission/CommissionForm.tsx` | Transaction Type dropdown, machine type column, promo as text, connectivity default, split rep selector |
+| `src/components/commission/CommissionPreview.tsx` | Update promo display from currency to text |
+| `src/components/quote/QuoteForm.tsx` | Machine type per line item, disable color fields for mono |
+| `src/pages/admin/AdminSettings.tsx` | Fetch HubSpot Owners button |
+| `supabase/functions/hubspot-get-owners/index.ts` | New -- fetch portal owners from HubSpot API |
+| `supabase/functions/hubspot-get-deal/index.ts` | Add color_mono/machine_type to line item properties |
 
 ### Backward Compatibility
 
-- `retailPrice` recalculation is additive; manually typing in the field still works.
-- Read-only fields on commission form still save their values; they just can't be changed on the form itself.
-- Condition defaulting to "New" only applies when the value is truly empty.
+- Existing saved configs without `machineType` default to "Color" (no behavior change).
+- Existing saved `promoDiscounts` as a number will be converted to string on load.
+- `splitRepName` defaults to empty string if not present in saved config.
+- Connectivity default change only affects new forms; saved configs preserve their value.
+- Tasks 6, 10, and 11 require no changes as they are already implemented.
 
