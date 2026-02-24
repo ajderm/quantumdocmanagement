@@ -387,6 +387,15 @@ export function QuoteForm({ deal, company, lineItems, dealOwner, onFormChange, p
     }
   }, [deal, company, dealOwner, lineItems, savedConfig]);
 
+  // Auto-recalculate retailPrice when line items change
+  useEffect(() => {
+    if (!formData.lineItems || formData.lineItems.length === 0) return;
+    const total = formData.lineItems.reduce((sum, item) => sum + (item.price * item.quantity), 0);
+    if (total > 0 && Math.abs(total - formData.retailPrice) > 0.01) {
+      setFormData(prev => ({ ...prev, retailPrice: total }));
+    }
+  }, [formData.lineItems]);
+
   // Auto-calculate cash discount when retail price or discount percent changes
   useEffect(() => {
     const calculatedCashDiscount = formData.retailPrice * (1 - formData.cashDiscountPercent / 100);
