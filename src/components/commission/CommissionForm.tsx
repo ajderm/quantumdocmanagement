@@ -215,7 +215,7 @@ export function CommissionForm({ deal, company, lineItems, dealOwner, portalId, 
         description: `${item.quantity || 1} - ${item.name || item.description || ""}`,
         billed: item.price || 0,
         repCost: item.cost || 0,
-        condition: item.condition || item.properties?.condition || "",
+        condition: item.condition || item.properties?.condition || item.properties?.hs_product_condition || "New",
         dealerSource: item.dealer || item.properties?.dealer || "",
         specialPricing: "",
       })),
@@ -257,7 +257,7 @@ export function CommissionForm({ deal, company, lineItems, dealOwner, portalId, 
           if (freshItem) {
             return {
               ...savedItem,
-              condition: freshItem.condition || freshItem.properties?.condition || savedItem.condition || "",
+              condition: freshItem.condition || freshItem.properties?.condition || freshItem.properties?.hs_product_condition || savedItem.condition || "New",
               dealerSource: freshItem.dealer || freshItem.properties?.dealer || savedItem.dealerSource || "",
             };
           }
@@ -524,9 +524,9 @@ export function CommissionForm({ deal, company, lineItems, dealOwner, portalId, 
               <div>
                 <Label className="text-xs">Rate Used</Label>
                 <Input
-                  className="h-7 text-sm text-right"
+                  className="h-7 text-sm text-right bg-muted/50"
+                  readOnly
                   value={rateText || (formData.rateUsed ? String(formData.rateUsed) : "")}
-                  onChange={e => { setRateText(e.target.value); updateField("rateUsed", parseFloat(e.target.value) || 0); }}
                 />
               </div>
             </div>
@@ -553,7 +553,7 @@ export function CommissionForm({ deal, company, lineItems, dealOwner, portalId, 
           <div className="grid grid-cols-3 gap-3">
             <div>
               <Label className="text-xs">Commission %</Label>
-              <Input className="h-8 text-sm text-right" value={formData.commissionPercentage || ""} onChange={e => updateField("commissionPercentage", parseFloat(e.target.value) || 0)} />
+              <Input className="h-8 text-sm text-right bg-muted/50" readOnly value={formData.commissionPercentage || ""} />
             </div>
             <div>
               <Label className="text-xs">Connected Amount</Label>
