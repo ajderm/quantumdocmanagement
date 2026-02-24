@@ -597,6 +597,7 @@ function DocumentHubContent() {
       if (!saveError) {
         setLastSavedData(dataString);
         setHasUnsavedChanges(false);
+        setSavedConfig(dataToSave);
         console.log('Auto-saved configuration');
       }
     } catch (err) {
@@ -656,6 +657,7 @@ function DocumentHubContent() {
       if (!saveError) {
         setInstallationLastSavedData(dataString);
         setInstallationHasUnsavedChanges(false);
+        setInstallationSavedConfig(prev => ({ ...prev, [dataToSave.selectedLineItemId]: dataToSave }));
         console.log('Auto-saved installation configuration');
       }
     } catch (err) {
@@ -702,6 +704,7 @@ function DocumentHubContent() {
       if (!saveError) {
         setServiceAgreementLastSavedData(dataString);
         setServiceAgreementHasUnsavedChanges(false);
+        setServiceAgreementSavedConfig(dataToSave);
         console.log('Auto-saved service agreement configuration');
       }
     } catch (err) {
@@ -759,6 +762,7 @@ function DocumentHubContent() {
       if (!saveError) {
         setFmvLeaseLastSavedData(dataString);
         setFmvLeaseHasUnsavedChanges(false);
+        setFmvLeaseSavedConfig(dataToSave);
         console.log('Auto-saved FMV lease configuration');
       }
     } catch (err) {
@@ -818,6 +822,7 @@ function DocumentHubContent() {
       if (!saveError) {
         setLeaseFundingLastSavedData(dataString);
         setLeaseFundingHasUnsavedChanges(false);
+        if (lineItemId) setLeaseFundingSavedConfig(prev => ({ ...prev, [lineItemId]: dataToSave }));
         console.log('Auto-saved lease funding configuration');
       }
     } catch (err) {
@@ -864,6 +869,7 @@ function DocumentHubContent() {
       if (!saveError) {
         setLoiLastSavedData(dataString);
         setLoiHasUnsavedChanges(false);
+        setLoiSavedConfig(dataToSave);
         console.log('Auto-saved LOI configuration');
       }
     } catch (err) {
@@ -921,6 +927,7 @@ function DocumentHubContent() {
       if (!saveError) {
         setLeaseReturnLastSavedData(dataString);
         setLeaseReturnHasUnsavedChanges(false);
+        setLeaseReturnSavedConfig(dataToSave);
         console.log('Auto-saved lease return configuration');
       }
     } catch (err) {
@@ -978,6 +985,7 @@ function DocumentHubContent() {
       if (!saveError) {
         setInterterritorialLastSavedData(dataString);
         setInterterritorialHasUnsavedChanges(false);
+        setInterterritorialSavedConfig(dataToSave);
         console.log('Auto-saved interterritorial configuration');
       }
     } catch (err) {
@@ -1026,6 +1034,7 @@ function DocumentHubContent() {
       if (!saveError) {
         setNewCustomerLastSavedData(dataString);
         setNewCustomerHasUnsavedChanges(false);
+        setNewCustomerSavedConfig(dataToSave);
         console.log('Auto-saved new customer configuration');
       }
     } catch (err) { console.error('New customer auto-save error:', err); }
@@ -1116,6 +1125,7 @@ function DocumentHubContent() {
       if (!saveError) {
         setRelocationLastSavedData(dataString);
         setRelocationHasUnsavedChanges(false);
+        setRelocationSavedConfig(dataToSave);
         console.log('Auto-saved relocation configuration');
       }
     } catch (err) { console.error('Relocation auto-save error:', err); }
@@ -1189,6 +1199,7 @@ function DocumentHubContent() {
       if (!saveError) {
         setRemovalLastSavedData(dataString);
         setRemovalHasUnsavedChanges(false);
+        setRemovalSavedConfig(dataToSave);
         console.log('Auto-saved removal configuration');
       }
     } catch (err) { console.error('Removal auto-save error:', err); }
@@ -1262,6 +1273,7 @@ function DocumentHubContent() {
       if (!saveError) {
         setCommissionLastSavedData(dataString);
         setCommissionHasUnsavedChanges(false);
+        setCommissionSavedConfig(dataToSave);
         console.log('Auto-saved commission configuration');
       }
     } catch (err) { console.error('Commission auto-save error:', err); }
@@ -1986,6 +1998,7 @@ function DocumentHubContent() {
 
       setServiceAgreementLastSavedData(JSON.stringify(serviceAgreementFormData));
       setServiceAgreementHasUnsavedChanges(false);
+      setServiceAgreementSavedConfig(serviceAgreementFormData);
       toast.success('Service agreement configuration saved');
     } catch (err) {
       console.error('Save error:', err);
@@ -2091,6 +2104,7 @@ function DocumentHubContent() {
 
       setFmvLeaseLastSavedData(JSON.stringify(fmvLeaseFormData));
       setFmvLeaseHasUnsavedChanges(false);
+      setFmvLeaseSavedConfig(fmvLeaseFormData);
       toast.success('FMV lease configuration saved');
     } catch (err) {
       console.error('Save error:', err);
