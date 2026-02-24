@@ -79,6 +79,8 @@ const DEFAULT_RATE_FACTORS: Record<number, number> = { 12: 0.088, 24: 0.046, 36:
 
 export function QuoteForm({ deal, company, lineItems, dealOwner, onFormChange, portalId, savedConfig }: QuoteFormProps) {
   const hasInitializedRef = useRef(false);
+  const savedConfigRef = useRef(savedConfig);
+  const leasingCompanyIdRef = useRef('');
   const [formData, setFormData] = useState<QuoteFormData>({ 
     quoteNumber: '', 
     quoteDate: new Date().toISOString().split('T')[0], 
@@ -135,6 +137,10 @@ export function QuoteForm({ deal, company, lineItems, dealOwner, onFormChange, p
   const [leasingCompanies, setLeasingCompanies] = useState<string[]>([]);
   const [hasRateSheet, setHasRateSheet] = useState(false);
 
+  // Keep refs in sync for stale closure prevention
+  useEffect(() => { savedConfigRef.current = savedConfig; }, [savedConfig]);
+  useEffect(() => { leasingCompanyIdRef.current = formData.leasingCompanyId; }, [formData.leasingCompanyId]);
+
   // Fetch rate factors from database
   useEffect(() => {
     const fetchRateFactors = async () => {
@@ -156,8 +162,8 @@ export function QuoteForm({ deal, company, lineItems, dealOwner, onFormChange, p
           setLeasingCompanies(data.leasingCompanies || []);
           setHasRateSheet(true);
           
-          // Auto-select first company if none selected (but not if we have saved config)
-          if (!formData.leasingCompanyId && !savedConfig?.leasingCompanyId && data.leasingCompanies?.length > 0) {
+          // Auto-select first company if none selected (use refs to avoid stale closure)
+          if (!leasingCompanyIdRef.current && !savedConfigRef.current?.leasingCompanyId && data.leasingCompanies?.length > 0) {
             setFormData(prev => ({ ...prev, leasingCompanyId: data.leasingCompanies[0] }));
           }
         }
