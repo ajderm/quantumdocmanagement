@@ -1,120 +1,131 @@
 
 
-# Fix: Data Persistence Failures (Quote + Service Agreement)
+# Fix: Race Condition in Form Initialization Across All Document Types
 
-## Root Cause Analysis
+## Problem Summary
 
-Two separate bugs are causing saved data to be lost on reload:
+Saved form data is overwritten by HubSpot defaults on page reload because forms initialize before the database-saved configurations have loaded. Two parallel async operations -- HubSpot data fetch and Supabase config bulk load -- complete at different times, but forms begin rendering as soon as HubSpot data arrives.
 
-### Bug 1: Quote Leasing Company Reverts (Stale Closure)
+## Root Causes
 
-The rate factors fetch effect in `QuoteForm.tsx` runs once when `portalId` is set. Its async callback captures `formData.leasingCompanyId` and `savedConfig` in a closure at mount time -- when both are still empty/undefined. When the rate factors response arrives (even seconds later), the guard check uses these stale values:
+### Race Condition (All Document Types)
+1. `useHubSpot()` fetches deal data. When it completes, `loading` becomes `false` and `DocumentHubContent` renders all forms.
+2. `loadAllConfigs` (bulk Supabase fetch) runs in a separate `useEffect`. It depends on `deal?.hsObjectId`, which is only available after HubSpot loads.
+3. Forms mount and initialize with HubSpot defaults before `savedConfig` arrives from the bulk load.
+4. When `savedConfig` finally arrives, some forms (like ServiceAgreement) have already set `hasInitializedRef = true`, so they ignore the saved data entirely.
 
-```text
-// At mount time: formData.leasingCompanyId = '' and savedConfig = undefined
-// By the time this code runs, savedConfig may have loaded,
-// but the closure still sees the old values
-if (!formData.leasingCompanyId && !savedConfig?.leasingCompanyId) {
-  setFormData(prev => ({ ...prev, leasingCompanyId: firstCompany }));
-}
-```
+### retailPrice Override (Quote)
+The Quote init effect always sets `retailPrice = deal.amount`, even when `savedConfig` exists. If the user edited line item prices or manually adjusted the retail price, those edits are lost on every reload.
 
-This overwrites the correctly-loaded `leasingCompanyId` from the saved config.
-
-### Bug 2: Service Agreement Data Lost (savedConfig Not Updated After Save)
-
-The explicit Save button and auto-save for the service agreement both write to the database, but neither updates the `serviceAgreementSavedConfig` state in `DocumentHub.tsx`. Since Radix UI tabs unmount inactive tab content by default, whenever the user switches away from the Service Agreement tab and comes back, the `ServiceAgreementForm` remounts with the OLD `savedConfig` from the initial bulk load. The init effect then overwrites the user's changes with stale data.
-
-This same bug affects ALL document types except Quote (which already calls `setSavedConfig(formData)` after save).
+### No hasInitializedRef Guard (Quote)
+Unlike other forms, the Quote init `useEffect` does NOT use `hasInitializedRef` as a guard. It re-runs on every `deal`, `company`, `dealOwner`, `lineItems`, or `savedConfig` change, repeatedly overwriting form state.
 
 ---
 
-## Fix 1: Stale Closure in Rate Factors Effect
+## Solution
 
-**File:** `src/components/quote/QuoteForm.tsx`
+### Step 1: Add `configsLoaded` Gate in DocumentHub
 
-Use a ref to track the latest `savedConfig` and `formData.leasingCompanyId`, and check the ref inside the async callback instead of the closure values:
+Add a `configsLoaded` boolean state that starts as `false` and becomes `true` only after the `loadAllConfigs` call completes (whether it finds data or not). Gate the rendering of all form content on BOTH `!loading` (HubSpot done) AND `configsLoaded` (Supabase done). While either is pending, show a loading skeleton.
 
-- Add `savedConfigRef` that stays in sync with `savedConfig` prop
-- Add `leasingCompanyIdRef` that stays in sync with `formData.leasingCompanyId`
-- In the rate factors async callback, check ref values instead of closure values
+```text
+// New state
+const [configsLoaded, setConfigsLoaded] = useState(false);
 
-This ensures the auto-select guard uses the current state, not the stale closure.
+// In loadAllConfigs effect:
+// Set to true in finally block, even if there's an error
+// This ensures forms never render before we know whether saved data exists
 
-## Fix 2: Update savedConfig After Every Save
+// In the render:
+if (loading || !configsLoaded) {
+  return <LoadingSkeleton />;
+}
+```
 
-**File:** `src/pages/DocumentHub.tsx`
+### Step 2: Fix QuoteForm retailPrice Logic
 
-After every successful explicit save AND auto-save, update the corresponding `savedConfig` state so that tab remounts use the latest data:
+Change QuoteForm init effect (lines 319-394):
+- Add `hasInitializedRef` guard (same pattern as other forms)
+- When `savedConfig` exists: use `savedConfig.retailPrice` instead of `deal.amount`
+- The existing line-item recalculation effect (lines 396-403) will still reactively update `retailPrice` when the user edits line items
 
-### Explicit Save Handlers (add `setSavedConfig` call after DB write succeeds):
-- `handleServiceAgreementSave` -- add `setServiceAgreementSavedConfig(serviceAgreementFormData)`
-- `handleInstallationSave` -- already handled (or add if missing)
-- `handleFMVLeaseSave` -- add `setFmvLeaseSavedConfig(fmvLeaseFormData)`
-- `handleLoiSave` -- add `setLoiSavedConfig(loiFormData)`
-- `handleLeaseReturnSave` -- add `setLeaseReturnSavedConfig(leaseReturnFormData)`
-- `handleInterterritorialSave` -- add corresponding setter
-- `handleNewCustomerSave` -- add corresponding setter
-- `handleRelocationSave` -- add corresponding setter
-- `handleRemovalSave` -- add corresponding setter
-- `handleCommissionSave` -- add corresponding setter
+```text
+// Current (broken):
+const retailPriceToUse = hubspotData.retailPrice; // Always deal.amount
 
-### Auto-Save Handlers (add `setSavedConfig` call on success):
-- `performServiceAgreementAutoSave` -- add `setServiceAgreementSavedConfig(dataToSave)`
-- And similarly for all other document auto-save functions
+// Fixed:
+const retailPriceToUse = savedConfig.retailPrice || hubspotData.retailPrice;
+```
 
-This ensures that when tabs are switched and forms remount, the initialization effect receives the latest saved data.
+### Step 3: Add hasInitializedRef Guard to QuoteForm
+
+Add the same `if (hasInitializedRef.current) return;` guard at the top of the Quote init effect, matching the pattern used by ServiceAgreement, LeaseReturn, and other forms.
+
+### Step 4: Add Autosave Status Indicator
+
+Add a small "Saving..." / "Saved" text indicator near each save button. This uses existing auto-save infrastructure -- just surface the state visually.
 
 ---
 
 ## Technical Details
 
+### DocumentHub.tsx Changes
+
+```text
+New state variable:
+  const [configsLoaded, setConfigsLoaded] = useState(false);
+
+In loadAllConfigs effect (around line 468):
+  - Wrap the async function body in try/finally
+  - Add setConfigsLoaded(true) in the finally block
+  - Also set configsLoaded = true if the early return fires (no portalId/dealId)
+
+In the loading check (around line 2690):
+  Change: if (loading) { return <Loader /> }
+  To:     if (loading || !configsLoaded) { return <Loader /> }
+
+Add save status indicator near each Save button:
+  - Show "Saving..." text while auto-save is in progress
+  - Show "Saved" text briefly after successful save
+  - Uses existing hasUnsavedChanges / lastSavedData state
+```
+
 ### QuoteForm.tsx Changes
 
 ```text
-Add refs:
-  const savedConfigRef = useRef(savedConfig);
-  const leasingCompanyIdRef = useRef(formData.leasingCompanyId);
-
-Add sync effects:
-  useEffect(() => { savedConfigRef.current = savedConfig; }, [savedConfig]);
-  useEffect(() => { leasingCompanyIdRef.current = formData.leasingCompanyId; }, [formData.leasingCompanyId]);
-
-In rate factors effect, change guard from:
-  if (!formData.leasingCompanyId && !savedConfig?.leasingCompanyId ...)
-To:
-  if (!leasingCompanyIdRef.current && !savedConfigRef.current?.leasingCompanyId ...)
+Init effect (lines 319-394):
+  1. Add guard: if (hasInitializedRef.current) return;
+  2. Change retailPrice logic:
+     - If savedConfig exists: retailPriceToUse = savedConfig.retailPrice || hubspotData.retailPrice
+     - If no savedConfig: retailPriceToUse = hubspotData.retailPrice (current behavior)
+  3. Set hasInitializedRef.current = true at end of both branches
 ```
 
-### DocumentHub.tsx Changes
+### ServiceAgreementForm.tsx -- No Changes Needed
 
-For each explicit save handler, add the savedConfig update after the successful DB write. Example for service agreement:
+The existing `hasInitializedRef` guard is correct. The race condition fix in DocumentHub (gating on `configsLoaded`) ensures `savedConfig` is available before the form mounts, so the guard works as intended.
 
-```text
-// After line 1988 (setServiceAgreementHasUnsavedChanges(false)):
-setServiceAgreementSavedConfig(serviceAgreementFormData);
-```
+### Other Forms -- No Changes Needed
 
-For each auto-save handler, add the savedConfig update on success. Example:
+LeaseReturnForm, CommissionForm, InterterritorialForm, FMVLeaseForm, LoiForm, NewCustomerForm, RelocationForm, RemovalForm, InstallationForm, LeaseFundingForm all use `hasInitializedRef` or receive data directly via props from DocumentHub. The `configsLoaded` gate in DocumentHub fixes all of them simultaneously.
 
-```text
-// In performServiceAgreementAutoSave, after setServiceAgreementLastSavedData:
-setServiceAgreementSavedConfig(dataToSave);
-```
+---
 
-This pattern is applied to all 11 document types (quote already has this for explicit save but not auto-save).
-
-### Files Modified
+## Files Modified
 
 | File | Changes |
 |------|---------|
-| `src/components/quote/QuoteForm.tsx` | Add refs for savedConfig and leasingCompanyId; use refs in rate factors guard |
-| `src/pages/DocumentHub.tsx` | Add savedConfig state updates in all explicit save handlers and auto-save handlers |
+| `src/pages/DocumentHub.tsx` | Add `configsLoaded` state, set it in `loadAllConfigs`, gate form rendering, add save status indicators |
+| `src/components/quote/QuoteForm.tsx` | Add `hasInitializedRef` guard to init effect, fix `retailPrice` to use saved value when available |
 
-### Scope
+## What This Does NOT Change
 
-- ~20 lines changed in QuoteForm.tsx
-- ~20 lines added across DocumentHub.tsx (1-2 lines per save handler, 11 document types x 2 save paths)
-- No database changes, no edge function changes
-- Fully backward compatible
+- Save/auto-save logic (already working correctly)
+- Edge functions (no changes)
+- Database schema (no changes)
+- Other form components (fixed by the DocumentHub gate)
+
+## Why This Works
+
+By preventing forms from mounting until both data sources are ready, we eliminate the race condition at the architectural level. Every form's init effect will see the correct `savedConfig` on its first (and only) run. The `hasInitializedRef` guard then prevents re-initialization if props change later.
 
