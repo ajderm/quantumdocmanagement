@@ -1,153 +1,120 @@
 
 
-# Phase 2 -- Enhancements (Tasks 5-11)
+# Fix: Data Persistence Failures (Quote + Service Agreement)
 
-## Status of Each Task
+## Root Cause Analysis
 
-| # | Task | Status | Work Needed |
-|---|------|--------|-------------|
-| 5 | Mono vs. Color classification | Not started | Full implementation |
-| 6 | Sold-On date default to close date | Already done | No work needed |
-| 7 | Transaction Type dropdown | Partial | Convert text input to dropdown with dynamic leasing partners |
-| 8 | Backend per-rep commission defaults | Partial | Add dynamic HubSpot owner fetching alongside manual fallback |
-| 9 | Default cost fields | Partial | Set connectivity default to $100, convert promo/discount to text, add split rep selector |
-| 10 | Lease term constraints by company | Already done | No work needed |
-| 11 | Build vs. Rep Cost columns | Already done | No work needed |
+Two separate bugs are causing saved data to be lost on reload:
 
----
+### Bug 1: Quote Leasing Company Reverts (Stale Closure)
 
-## Task 5: Mono vs. Color Machine Classification
+The rate factors fetch effect in `QuoteForm.tsx` runs once when `portalId` is set. Its async callback captures `formData.leasingCompanyId` and `savedConfig` in a closure at mount time -- when both are still empty/undefined. When the rate factors response arrives (even seconds later), the guard check uses these stale values:
 
-Add a "Machine Type" toggle per line item on forms that have equipment tables.
+```text
+// At mount time: formData.leasingCompanyId = '' and savedConfig = undefined
+// By the time this code runs, savedConfig may have loaded,
+// but the closure still sees the old values
+if (!formData.leasingCompanyId && !savedConfig?.leasingCompanyId) {
+  setFormData(prev => ({ ...prev, leasingCompanyId: firstCompany }));
+}
+```
 
-**Changes:**
+This overwrites the correctly-loaded `leasingCompanyId` from the saved config.
 
-1. **CommissionForm.tsx** -- Add a `machineType` field ("Color" | "Mono") to `CommissionLineItem`. Add a dropdown column in the line items table. When "Mono" is selected, grey out any color-related fields on that row (currently the commission form does not have separate color/mono rate fields, so this is primarily a data classification for now).
+### Bug 2: Service Agreement Data Lost (savedConfig Not Updated After Save)
 
-2. **QuoteForm.tsx** -- Add the same `machineType` field to quote line items. When "Mono" is selected, disable/grey-out and zero any color overage fields (e.g., "Overage Color Rate", "Included Color") on that line item.
+The explicit Save button and auto-save for the service agreement both write to the database, but neither updates the `serviceAgreementSavedConfig` state in `DocumentHub.tsx`. Since Radix UI tabs unmount inactive tab content by default, whenever the user switches away from the Service Agreement tab and comes back, the `ServiceAgreementForm` remounts with the OLD `savedConfig` from the initial bulk load. The init effect then overwrites the user's changes with stale data.
 
-3. **hubspot-get-deal/index.ts** -- Add `color_mono` or `machine_type` to `lineItemPropsNeeded` to attempt auto-detection from HubSpot. Default to "Color" if not set.
-
-**Files:** `CommissionForm.tsx`, `QuoteForm.tsx`, `hubspot-get-deal/index.ts`
+This same bug affects ALL document types except Quote (which already calls `setSavedConfig(formData)` after save).
 
 ---
 
-## Task 7: Transaction Type Dropdown
+## Fix 1: Stale Closure in Rate Factors Effect
 
-Replace the plain text input with a structured dropdown.
+**File:** `src/components/quote/QuoteForm.tsx`
 
-**Changes in CommissionForm.tsx:**
+Use a ref to track the latest `savedConfig` and `formData.leasingCompanyId`, and check the ref inside the async callback instead of the closure values:
 
-1. Replace the Transaction Type `<Input>` with a `<Select>` dropdown containing:
-   - "Purchase"
-   - Dynamic entries from `leasingCompanies` (already fetched), formatted as "Lease -- {Company Name}"
-2. When a lease option is selected, auto-populate `leaseCompany` in the Lease Information section with the matching company name.
-3. When "Purchase" is selected, clear lease-related fields and optionally visually dim the Lease Information card.
+- Add `savedConfigRef` that stays in sync with `savedConfig` prop
+- Add `leasingCompanyIdRef` that stays in sync with `formData.leasingCompanyId`
+- In the rate factors async callback, check ref values instead of closure values
 
-**Files:** `CommissionForm.tsx`
+This ensures the auto-select guard uses the current state, not the stale closure.
 
----
+## Fix 2: Update savedConfig After Every Save
 
-## Task 8: Dynamic HubSpot Owner Fetching for Commission Defaults
+**File:** `src/pages/DocumentHub.tsx`
 
-Currently, commission users are added manually in Admin Settings. This task adds dynamic fetching of HubSpot owners as a convenience, with manual fallback.
+After every successful explicit save AND auto-save, update the corresponding `savedConfig` state so that tab remounts use the latest data:
 
-**Changes:**
+### Explicit Save Handlers (add `setSavedConfig` call after DB write succeeds):
+- `handleServiceAgreementSave` -- add `setServiceAgreementSavedConfig(serviceAgreementFormData)`
+- `handleInstallationSave` -- already handled (or add if missing)
+- `handleFMVLeaseSave` -- add `setFmvLeaseSavedConfig(fmvLeaseFormData)`
+- `handleLoiSave` -- add `setLoiSavedConfig(loiFormData)`
+- `handleLeaseReturnSave` -- add `setLeaseReturnSavedConfig(leaseReturnFormData)`
+- `handleInterterritorialSave` -- add corresponding setter
+- `handleNewCustomerSave` -- add corresponding setter
+- `handleRelocationSave` -- add corresponding setter
+- `handleRemovalSave` -- add corresponding setter
+- `handleCommissionSave` -- add corresponding setter
 
-1. **New edge function: `hubspot-get-owners/index.ts`** -- Fetches all owners from the HubSpot portal (`/crm/v3/owners`) and returns their names, IDs, and emails. Requires `portalId` for token lookup.
+### Auto-Save Handlers (add `setSavedConfig` call on success):
+- `performServiceAgreementAutoSave` -- add `setServiceAgreementSavedConfig(dataToSave)`
+- And similarly for all other document auto-save functions
 
-2. **AdminSettings.tsx** -- Add a "Fetch from HubSpot" button next to the Commission Users section. When clicked, it calls the new edge function, retrieves active owners, and offers to add any that are not already in the manual list. Users can still manually add/remove reps.
-
-**Files:** `supabase/functions/hubspot-get-owners/index.ts` (new), `AdminSettings.tsx`
-
----
-
-## Task 9: Default Cost Field Corrections
-
-**Changes in CommissionForm.tsx:**
-
-1. Set `connectivity` default to `100` (currently `0`) in `getDefaultCommissionFormData()` and the initial text state.
-2. Convert `promoDiscounts` from a currency input to a **text input** (notes field) -- change the type from `number` to `string` in the form data interface. Update the field to accept free text like "DIR deal" instead of dollar amounts. Remove it from commission calculations (it was being subtracted from net equipment rev).
-3. Add a split rep selector: when `splitPercentage > 0`, show a dropdown of commission users (from the `commissionUsers` prop) to select who the split is with. Store as `splitRepName` in the form data.
-
-**Files:** `CommissionForm.tsx`, `CommissionPreview.tsx` (if the preview displays promo as currency)
+This ensures that when tabs are switched and forms remount, the initialization effect receives the latest saved data.
 
 ---
 
 ## Technical Details
 
-### New Edge Function: hubspot-get-owners
-
-```text
-supabase/functions/hubspot-get-owners/index.ts
-- Accepts { portalId }
-- Validates portalId format
-- Verifies portal has valid HubSpot token
-- Calls GET /crm/v3/owners?limit=100
-- Returns array of { id, firstName, lastName, email }
-```
-
-### CommissionForm.tsx Changes
-
-```text
-Interface changes:
-- Add machineType: "Color" | "Mono" to CommissionLineItem
-- Change promoDiscounts from number to string
-- Add splitRepName: string to CommissionFormData
-
-UI changes:
-- Transaction Type: Replace Input with Select dropdown
-- Add Machine Type column to line items table
-- Promo/Discount: Change to text Input (no currency formatting)
-- Split section: Show rep selector dropdown when split % > 0
-- Connectivity default: 100 instead of 0
-
-Calculation changes:
-- Remove promoDiscounts from netEquipRev calculation
-  (it becomes a notes field, not a dollar amount)
-```
-
 ### QuoteForm.tsx Changes
 
 ```text
-- Add machineType field to quote line items
-- When "Mono" selected, disable color-specific fields on that row
-- Auto-detect from HubSpot line item property if available
+Add refs:
+  const savedConfigRef = useRef(savedConfig);
+  const leasingCompanyIdRef = useRef(formData.leasingCompanyId);
+
+Add sync effects:
+  useEffect(() => { savedConfigRef.current = savedConfig; }, [savedConfig]);
+  useEffect(() => { leasingCompanyIdRef.current = formData.leasingCompanyId; }, [formData.leasingCompanyId]);
+
+In rate factors effect, change guard from:
+  if (!formData.leasingCompanyId && !savedConfig?.leasingCompanyId ...)
+To:
+  if (!leasingCompanyIdRef.current && !savedConfigRef.current?.leasingCompanyId ...)
 ```
 
-### AdminSettings.tsx Changes
+### DocumentHub.tsx Changes
+
+For each explicit save handler, add the savedConfig update after the successful DB write. Example for service agreement:
 
 ```text
-- Add "Fetch HubSpot Owners" button in Commission Users section
-- On click: call hubspot-get-owners edge function
-- Merge returned owners with existing manual list
-- Preserve existing commission percentages for known users
+// After line 1988 (setServiceAgreementHasUnsavedChanges(false)):
+setServiceAgreementSavedConfig(serviceAgreementFormData);
 ```
 
-### hubspot-get-deal/index.ts Changes
+For each auto-save handler, add the savedConfig update on success. Example:
 
 ```text
-- Add 'color_mono' and 'machine_type' to lineItemPropsNeeded
-- Map machineType in line item response: 
-  properties.color_mono || properties.machine_type || 'Color'
+// In performServiceAgreementAutoSave, after setServiceAgreementLastSavedData:
+setServiceAgreementSavedConfig(dataToSave);
 ```
 
-### Files Modified Summary
+This pattern is applied to all 11 document types (quote already has this for explicit save but not auto-save).
+
+### Files Modified
 
 | File | Changes |
 |------|---------|
-| `src/components/commission/CommissionForm.tsx` | Transaction Type dropdown, machine type column, promo as text, connectivity default, split rep selector |
-| `src/components/commission/CommissionPreview.tsx` | Update promo display from currency to text |
-| `src/components/quote/QuoteForm.tsx` | Machine type per line item, disable color fields for mono |
-| `src/pages/admin/AdminSettings.tsx` | Fetch HubSpot Owners button |
-| `supabase/functions/hubspot-get-owners/index.ts` | New -- fetch portal owners from HubSpot API |
-| `supabase/functions/hubspot-get-deal/index.ts` | Add color_mono/machine_type to line item properties |
+| `src/components/quote/QuoteForm.tsx` | Add refs for savedConfig and leasingCompanyId; use refs in rate factors guard |
+| `src/pages/DocumentHub.tsx` | Add savedConfig state updates in all explicit save handlers and auto-save handlers |
 
-### Backward Compatibility
+### Scope
 
-- Existing saved configs without `machineType` default to "Color" (no behavior change).
-- Existing saved `promoDiscounts` as a number will be converted to string on load.
-- `splitRepName` defaults to empty string if not present in saved config.
-- Connectivity default change only affects new forms; saved configs preserve their value.
-- Tasks 6, 10, and 11 require no changes as they are already implemented.
+- ~20 lines changed in QuoteForm.tsx
+- ~20 lines added across DocumentHub.tsx (1-2 lines per save handler, 11 document types x 2 save paths)
+- No database changes, no edge function changes
+- Fully backward compatible
 
