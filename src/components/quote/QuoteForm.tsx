@@ -400,20 +400,11 @@ export function QuoteForm({ deal, company, lineItems, dealOwner, onFormChange, p
     const total = formData.lineItems.reduce((sum, item) => sum + (item.price * item.quantity), 0);
     setFormData(prev => {
       if (Math.abs(total - prev.retailPrice) > 0.01) {
-        const discountPercent = prev.cashDiscountPercent;
-        return { ...prev, retailPrice: total, cashDiscount: total * (1 - discountPercent / 100) };
+        return { ...prev, retailPrice: total };
       }
       return prev;
     });
   }, [formData.lineItems]);
-
-  // Auto-calculate cash discount when retail price or discount percent changes
-  useEffect(() => {
-    const calculatedCashDiscount = formData.retailPrice * (1 - formData.cashDiscountPercent / 100);
-    if (Math.abs(calculatedCashDiscount - formData.cashDiscount) > 0.01) {
-      setFormData(prev => ({ ...prev, cashDiscount: calculatedCashDiscount }));
-    }
-  }, [formData.retailPrice, formData.cashDiscountPercent]);
 
   // Auto-calculate base rate when service values change (if not manually set)
   useEffect(() => {
