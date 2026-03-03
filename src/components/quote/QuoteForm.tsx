@@ -963,7 +963,7 @@ export function QuoteForm({ deal, company, lineItems, dealOwner, onFormChange, p
           <div className="mt-4 p-3 bg-muted/50 rounded-lg">
             <div className="flex justify-between items-center">
               <div className="flex items-center gap-2">
-                <span className="text-sm font-medium">Base Rate (per month)</span>
+                <span className="text-sm font-medium">{getLabel(formCustomization, 'serviceBaseRate', 'Base Rate (per month)')}</span>
                 {formData.baseRateManuallySet && (
                   <button 
                     type="button" 
