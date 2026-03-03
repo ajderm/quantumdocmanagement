@@ -18,7 +18,7 @@ interface QuotePreviewProps {
 }
 
 export const QuotePreview = forwardRef<HTMLDivElement, QuotePreviewProps>(
-  ({ formData, dealerInfo, documentStyles }, ref) => {
+  ({ formData, dealerInfo, documentStyles, formCustomization }, ref) => {
     // Use pre-calculated payments from formData, respecting overrides
     const getLeasePayment = (term: number): number => {
       const override = formData.paymentOverrides?.[term];
