@@ -510,10 +510,11 @@ export function QuoteForm({ deal, company, lineItems, dealOwner, onFormChange, p
         </CardHeader>
         <CardContent>
           <div className="space-y-2">
-            <div className="grid grid-cols-[50px_1fr_1.5fr_100px_100px_70px_100px_40px] gap-2 text-xs font-medium text-muted-foreground px-2">
+            <div className="grid grid-cols-[50px_1fr_1.2fr_100px_100px_100px_70px_100px_40px] gap-2 text-xs font-medium text-muted-foreground px-2">
               <div>Qty</div>
               <div>Model</div>
               <div>Description</div>
+              <div>Dealer</div>
               <div>MSRP</div>
               <div>Rep Cost</div>
               <div>Markup %</div>
