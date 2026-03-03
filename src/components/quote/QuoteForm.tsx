@@ -8,7 +8,7 @@ import { Plus, Trash2, AlertTriangle, X } from 'lucide-react';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { supabase } from '@/integrations/supabase/client';
 
-export interface QuoteLineItem { id: string; quantity: number; model: string; description: string; price: number; cost: number; markupPercent: number; msrp: number; }
+export interface QuoteLineItem { id: string; quantity: number; model: string; description: string; price: number; cost: number; markupPercent: number; msrp: number; dealerSource: string; }
 export interface QuoteFormData { 
   quoteNumber: string; 
   quoteDate: string; 
@@ -344,7 +344,8 @@ export function QuoteForm({ deal, company, lineItems, dealOwner, onFormChange, p
         markupPercent: 0,
         price: item.price || 0,
         msrp: item.price || 0,
-      })), 
+        dealerSource: item.dealer || item.properties?.dealer || item.properties?.manufacturer || item.properties?.vendor || '',
+      })),
       retailPrice: dealAmount
     };
 
@@ -353,12 +354,16 @@ export function QuoteForm({ deal, company, lineItems, dealOwner, onFormChange, p
       // Use saved retailPrice if available, otherwise fall back to HubSpot deal amount
       const retailPriceToUse = savedConfig.retailPrice || hubspotData.retailPrice;
       // Ensure saved line items have cost/markupPercent fields (backward compat)
-      const savedLineItems = (savedConfig.lineItems?.length > 0 ? savedConfig.lineItems : hubspotData.lineItems).map((item: any) => ({
-        ...item,
-        cost: item.cost ?? 0,
-        markupPercent: item.markupPercent ?? 0,
-        msrp: item.msrp ?? item.price ?? 0,
-      }));
+      const savedLineItems = (savedConfig.lineItems?.length > 0 ? savedConfig.lineItems : hubspotData.lineItems).map((item: any, idx: number) => {
+        const freshItem = hubspotData.lineItems[idx];
+        return {
+          ...item,
+          cost: item.cost ?? 0,
+          markupPercent: item.markupPercent ?? 0,
+          msrp: item.msrp ?? item.price ?? 0,
+          dealerSource: freshItem?.dealerSource || item.dealerSource || '',
+        };
+      });
       setFormData(prev => ({ 
         ...prev, 
         ...savedConfig,
@@ -434,7 +439,7 @@ export function QuoteForm({ deal, company, lineItems, dealOwner, onFormChange, p
       return { ...prev, lineItems: newItems }; 
     }); 
   };
-  const addLineItem = () => { setFormData(prev => ({ ...prev, lineItems: [...prev.lineItems, { id: `new-${Date.now()}`, quantity: 1, model: '', description: '', price: 0, cost: 0, markupPercent: 0, msrp: 0 }] })); };
+  const addLineItem = () => { setFormData(prev => ({ ...prev, lineItems: [...prev.lineItems, { id: `new-${Date.now()}`, quantity: 1, model: '', description: '', price: 0, cost: 0, markupPercent: 0, msrp: 0, dealerSource: '' }] })); };
   const removeLineItem = (index: number) => { setFormData(prev => { const newItems = prev.lineItems.filter((_, i) => i !== index); return { ...prev, lineItems: newItems }; }); };
   
   const toggleTerm = (term: number) => { 
@@ -505,10 +510,11 @@ export function QuoteForm({ deal, company, lineItems, dealOwner, onFormChange, p
         </CardHeader>
         <CardContent>
           <div className="space-y-2">
-            <div className="grid grid-cols-[50px_1fr_1.5fr_100px_100px_70px_100px_40px] gap-2 text-xs font-medium text-muted-foreground px-2">
+            <div className="grid grid-cols-[50px_1fr_1.2fr_100px_100px_100px_70px_100px_40px] gap-2 text-xs font-medium text-muted-foreground px-2">
               <div>Qty</div>
               <div>Model</div>
               <div>Description</div>
+              <div>Dealer</div>
               <div>MSRP</div>
               <div>Rep Cost</div>
               <div>Markup %</div>
@@ -516,7 +522,7 @@ export function QuoteForm({ deal, company, lineItems, dealOwner, onFormChange, p
               <div></div>
             </div>
             {formData.lineItems.map((item, idx) => (
-              <div key={item.id} className="grid grid-cols-[50px_1fr_1.5fr_100px_100px_70px_100px_40px] gap-2 items-center">
+              <div key={item.id} className="grid grid-cols-[50px_1fr_1.2fr_100px_100px_100px_70px_100px_40px] gap-2 items-center">
                 <div>
                   <Input type="number" min="1" value={item.quantity} onChange={e => updateLineItem(idx, 'quantity', parseInt(e.target.value) || 1)} className="h-8 text-sm" />
                 </div>
@@ -525,6 +531,9 @@ export function QuoteForm({ deal, company, lineItems, dealOwner, onFormChange, p
                 </div>
                 <div>
                   <Input value={item.description} onChange={e => updateLineItem(idx, 'description', e.target.value)} className="h-8 text-sm" />
+                </div>
+                <div>
+                  <Input value={item.dealerSource} onChange={e => updateLineItem(idx, 'dealerSource', e.target.value)} className="h-8 text-sm" placeholder="Dealer" />
                 </div>
                 <div>
                   <div className="relative">
