@@ -8,6 +8,7 @@ import { Plus, Trash2, AlertTriangle, X, Package } from 'lucide-react';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { supabase } from '@/integrations/supabase/client';
 import { ProductSearchModal, HubSpotProduct } from './ProductSearchModal';
+import { getLabel, isSectionVisible, type FormCustomizationConfig } from '@/lib/formCustomization';
 
 export interface QuoteLineItem { id: string; quantity: number; model: string; description: string; price: number; cost: number; markupPercent: number; msrp: number; dealerSource: string; hs_product_id?: string; }
 export interface QuoteFormData { 
@@ -56,7 +57,7 @@ export interface QuoteFormData {
   totalBuyoutOverride?: number;
 }
 
-interface QuoteFormProps { deal: any; company: any; contacts: any[]; lineItems: any[]; dealOwner: any; onFormChange: (data: QuoteFormData) => void; portalId?: string; savedConfig?: QuoteFormData; }
+interface QuoteFormProps { deal: any; company: any; contacts: any[]; lineItems: any[]; dealOwner: any; onFormChange: (data: QuoteFormData) => void; portalId?: string; savedConfig?: QuoteFormData; formCustomization?: FormCustomizationConfig; }
 
 interface RateFactor {
   id: string;
@@ -80,7 +81,7 @@ const parseCurrency = (value: string): number => {
 // Default fallback rate factors if no rate sheet uploaded
 const DEFAULT_RATE_FACTORS: Record<number, number> = { 12: 0.088, 24: 0.046, 36: 0.032, 48: 0.026, 60: 0.022, 72: 0.019 };
 
-export function QuoteForm({ deal, company, lineItems, dealOwner, onFormChange, portalId, savedConfig }: QuoteFormProps) {
+export function QuoteForm({ deal, company, lineItems, dealOwner, onFormChange, portalId, savedConfig, formCustomization }: QuoteFormProps) {
   const hasInitializedRef = useRef(false);
   const savedConfigRef = useRef(savedConfig);
   const leasingCompanyIdRef = useRef('');
@@ -557,6 +558,7 @@ export function QuoteForm({ deal, company, lineItems, dealOwner, onFormChange, p
     <>
     <div className="space-y-4">
       {/* Quote Details */}
+      {isSectionVisible(formCustomization, 'customerInfo') && (
       <Card>
         <CardHeader className="py-3">
           <CardTitle className="text-sm">Quote Details</CardTitle>
@@ -564,8 +566,9 @@ export function QuoteForm({ deal, company, lineItems, dealOwner, onFormChange, p
         <CardContent>
           <div className="grid grid-cols-2 gap-4">
             <div className="space-y-3">
-              <div><Label className="text-xs">Quote Number</Label><Input value={formData.quoteNumber} onChange={e => updateField('quoteNumber', e.target.value)} className="h-8 text-sm" /></div>
-              <div><Label className="text-xs">Quote Date</Label><Input type="date" value={formData.quoteDate} onChange={e => updateField('quoteDate', e.target.value)} className="h-8 text-sm" /></div>
+              <div><Label className="text-xs">{getLabel(formCustomization, 'quoteNumber', 'Quote Number')}</Label><Input value={formData.quoteNumber} onChange={e => updateField('quoteNumber', e.target.value)} className="h-8 text-sm" /></div>
+              <div><Label className="text-xs">{getLabel(formCustomization, 'quoteDate', 'Quote Date')}</Label><Input type="date" value={formData.quoteDate} onChange={e => updateField('quoteDate', e.target.value)} className="h-8 text-sm" /></div>
+              <div><Label className="text-xs">{getLabel(formCustomization, 'preparedBy', 'Prepared By')}</Label><Input value={formData.preparedBy} onChange={e => updateField('preparedBy', e.target.value)} className="h-8 text-sm" /></div>
               <div><Label className="text-xs">Prepared By</Label><Input value={formData.preparedBy} onChange={e => updateField('preparedBy', e.target.value)} className="h-8 text-sm" /></div>
             </div>
             <div className="space-y-3">
@@ -575,25 +578,29 @@ export function QuoteForm({ deal, company, lineItems, dealOwner, onFormChange, p
           </div>
         </CardContent>
       </Card>
+      )}
 
       {/* Prepared For */}
+      {isSectionVisible(formCustomization, 'customerInfo') && (
       <Card>
         <CardHeader className="py-3">
           <CardTitle className="text-sm">Prepared For</CardTitle>
         </CardHeader>
         <CardContent>
           <div className="grid grid-cols-2 gap-3">
-            <div className="col-span-2"><Label className="text-xs">Company Name</Label><Input value={formData.companyName} onChange={e => updateField('companyName', e.target.value)} className="h-8 text-sm" /></div>
-            <div className="col-span-2"><Label className="text-xs">Address</Label><Input value={formData.address} onChange={e => updateField('address', e.target.value)} className="h-8 text-sm" /></div>
+            <div className="col-span-2"><Label className="text-xs">{getLabel(formCustomization, 'companyName', 'Company Name')}</Label><Input value={formData.companyName} onChange={e => updateField('companyName', e.target.value)} className="h-8 text-sm" /></div>
+            <div className="col-span-2"><Label className="text-xs">{getLabel(formCustomization, 'address', 'Address')}</Label><Input value={formData.address} onChange={e => updateField('address', e.target.value)} className="h-8 text-sm" /></div>
             <div className="col-span-2"><Label className="text-xs">Address Line 2</Label><Input value={formData.address2} onChange={e => updateField('address2', e.target.value)} className="h-8 text-sm" /></div>
             <div><Label className="text-xs">City</Label><Input value={formData.city} onChange={e => updateField('city', e.target.value)} className="h-8 text-sm" /></div>
             <div className="grid grid-cols-2 gap-2"><div><Label className="text-xs">State</Label><Input value={formData.state} onChange={e => updateField('state', e.target.value)} className="h-8 text-sm" /></div><div><Label className="text-xs">Zip</Label><Input value={formData.zip} onChange={e => updateField('zip', e.target.value)} className="h-8 text-sm" /></div></div>
-            <div className="col-span-2"><Label className="text-xs">Phone</Label><Input value={formData.phone} onChange={e => updateField('phone', e.target.value)} className="h-8 text-sm" /></div>
+            <div className="col-span-2"><Label className="text-xs">{getLabel(formCustomization, 'phone', 'Phone')}</Label><Input value={formData.phone} onChange={e => updateField('phone', e.target.value)} className="h-8 text-sm" /></div>
           </div>
         </CardContent>
       </Card>
+      )}
 
       {/* Equipment */}
+      {isSectionVisible(formCustomization, 'equipment') && (
       <Card>
         <CardHeader className="py-3">
           <CardTitle className="text-sm flex items-center justify-between">
@@ -664,6 +671,7 @@ export function QuoteForm({ deal, company, lineItems, dealOwner, onFormChange, p
           </div>
         </CardContent>
       </Card>
+      )}
       
       {/* Configuration */}
       <Card>
@@ -745,6 +753,7 @@ export function QuoteForm({ deal, company, lineItems, dealOwner, onFormChange, p
       </Card>
 
       {/* Pricing */}
+      {isSectionVisible(formCustomization, 'pricing') && (
       <Card>
         <CardHeader className="py-3">
           <CardTitle className="text-sm">Pricing</CardTitle>
@@ -753,7 +762,7 @@ export function QuoteForm({ deal, company, lineItems, dealOwner, onFormChange, p
           <div className="grid grid-cols-2 gap-4">
             <div className="space-y-3">
               <div>
-                <Label className="text-xs">Total Sell Price</Label>
+                <Label className="text-xs">{getLabel(formCustomization, 'retailPrice', 'Total Sell Price')}</Label>
                 <div className="relative">
                   <span className="absolute left-2 top-1/2 -translate-y-1/2 text-muted-foreground text-sm">$</span>
                   <Input 
@@ -843,8 +852,10 @@ export function QuoteForm({ deal, company, lineItems, dealOwner, onFormChange, p
           </div>
         </CardContent>
       </Card>
+      )}
 
       {/* Service Agreement */}
+      {isSectionVisible(formCustomization, 'serviceAgreement') && (
       <Card>
         <CardHeader className="py-3">
           <CardTitle className="text-sm">Service Agreement</CardTitle>
@@ -853,7 +864,7 @@ export function QuoteForm({ deal, company, lineItems, dealOwner, onFormChange, p
           <div className="grid grid-cols-2 gap-4">
             <div className="grid grid-cols-2 gap-2">
               <div>
-                <Label className="text-xs">Included B/W</Label>
+                <Label className="text-xs">{getLabel(formCustomization, 'includedBWCopies', 'Included B/W')}</Label>
                 <Input 
                   type="number" 
                   min="0"
@@ -864,7 +875,7 @@ export function QuoteForm({ deal, company, lineItems, dealOwner, onFormChange, p
                 />
               </div>
               <div>
-                <Label className="text-xs">Included Color</Label>
+                <Label className="text-xs">{getLabel(formCustomization, 'includedColorCopies', 'Included Color')}</Label>
                 <Input 
                   type="number"
                   min="0" 
@@ -877,7 +888,7 @@ export function QuoteForm({ deal, company, lineItems, dealOwner, onFormChange, p
             </div>
             <div className="grid grid-cols-2 gap-2">
               <div>
-                <Label className="text-xs">Overage B/W Rate</Label>
+                <Label className="text-xs">{getLabel(formCustomization, 'overageBWRate', 'Overage B/W Rate')}</Label>
                 <div className="relative">
                   <span className="absolute left-2 top-1/2 -translate-y-1/2 text-muted-foreground text-sm">$</span>
                   <Input 
@@ -912,7 +923,7 @@ export function QuoteForm({ deal, company, lineItems, dealOwner, onFormChange, p
                 </div>
               </div>
               <div>
-                <Label className="text-xs">Overage Color Rate</Label>
+                <Label className="text-xs">{getLabel(formCustomization, 'overageColorRate', 'Overage Color Rate')}</Label>
                 <div className="relative">
                   <span className="absolute left-2 top-1/2 -translate-y-1/2 text-muted-foreground text-sm">$</span>
                   <Input 
@@ -952,7 +963,7 @@ export function QuoteForm({ deal, company, lineItems, dealOwner, onFormChange, p
           <div className="mt-4 p-3 bg-muted/50 rounded-lg">
             <div className="flex justify-between items-center">
               <div className="flex items-center gap-2">
-                <span className="text-sm font-medium">Base Rate (per month)</span>
+                <span className="text-sm font-medium">{getLabel(formCustomization, 'serviceBaseRate', 'Base Rate (per month)')}</span>
                 {formData.baseRateManuallySet && (
                   <button 
                     type="button" 
@@ -977,8 +988,10 @@ export function QuoteForm({ deal, company, lineItems, dealOwner, onFormChange, p
           </div>
         </CardContent>
       </Card>
+      )}
 
       {/* Buyout Information */}
+      {isSectionVisible(formCustomization, 'buyout') && (
       <Card>
         <CardHeader className="py-3">
           <CardTitle className="text-sm">Buyout Information</CardTitle>
@@ -1096,6 +1109,7 @@ export function QuoteForm({ deal, company, lineItems, dealOwner, onFormChange, p
           </div>
         </CardContent>
       </Card>
+      )}
     </div>
 
       <ProductSearchModal

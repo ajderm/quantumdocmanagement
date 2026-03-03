@@ -13,7 +13,9 @@ import { toast } from 'sonner';
 import { Badge } from '@/components/ui/badge';
 import { FieldMappingEditor } from '@/components/admin/FieldMappingEditor';
 import { CustomDocumentBuilder } from '@/components/admin/CustomDocumentBuilder';
+import { FormCustomizationTab } from '@/components/admin/FormCustomizationTab';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import type { FormCustomizationMap } from '@/lib/formCustomization';
 
 const DOCUMENT_TYPES = [
   { code: 'quote', name: 'Quote' },
@@ -64,6 +66,9 @@ export default function AdminSettings() {
   
   // Form visibility settings
   const [enabledForms, setEnabledForms] = useState<string[]>(ALL_FORM_TYPES.map(f => f.code));
+  
+  // Form customization (field labels, hidden sections)
+  const [formCustomization, setFormCustomization] = useState<FormCustomizationMap>({});
   
   // Document styles
   const [docStyleFontFamily, setDocStyleFontFamily] = useState('Arial, sans-serif');
@@ -163,6 +168,9 @@ export default function AdminSettings() {
           }
           if (settings.enabled_forms && Array.isArray(settings.enabled_forms)) {
             setEnabledForms(settings.enabled_forms);
+          }
+          if (settings.form_customization && typeof settings.form_customization === 'object') {
+            setFormCustomization(settings.form_customization as FormCustomizationMap);
           }
           if (settings.document_styles) {
             const ds = settings.document_styles;
@@ -368,6 +376,7 @@ export default function AdminSettings() {
         },
         proposal_template_url: proposalTemplateUrl,
         proposal_template_name: proposalFileName,
+        form_customization: formCustomization,
       };
 
       const { data: result, error: invokeError } = await supabase.functions.invoke('dealer-account-save', {
@@ -456,6 +465,10 @@ export default function AdminSettings() {
             <TabsTrigger value="pricing-tiers">
               <DollarSign className="h-4 w-4 mr-2" />
               Pricing Tiers
+            </TabsTrigger>
+            <TabsTrigger value="form-customization">
+              <Settings2 className="h-4 w-4 mr-2" />
+              Form Customization
             </TabsTrigger>
             <TabsTrigger value="leasing" asChild>
               <Link to={`/admin/leasing?portalId=${portalId || ''}`}>
@@ -1218,6 +1231,19 @@ export default function AdminSettings() {
                   </div>
                 </CardContent>
               </Card>
+            </div>
+          </TabsContent>
+
+          <TabsContent value="form-customization">
+            <FormCustomizationTab value={formCustomization} onChange={setFormCustomization} />
+            <div className="mt-4">
+              <Button onClick={handleSave} disabled={saving}>
+                {saving ? (
+                  <><Loader2 className="h-4 w-4 mr-2 animate-spin" />Saving...</>
+                ) : (
+                  <><Save className="h-4 w-4 mr-2" />Save Customization</>
+                )}
+              </Button>
             </div>
           </TabsContent>
         </Tabs>

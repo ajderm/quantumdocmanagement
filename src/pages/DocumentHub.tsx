@@ -60,6 +60,7 @@ import { CommissionForm, CommissionFormData, getDefaultCommissionFormData } from
 import { CommissionPreview } from '@/components/commission/CommissionPreview';
 import { CustomDocumentForm, CustomDocumentPreview, DynamicIcon } from '@/components/custom-document';
 import type { CustomDocument } from '@/components/admin/types';
+import type { FormCustomizationConfig, FormCustomizationMap } from '@/lib/formCustomization';
 
 const documentTypes = [
   { code: 'quote', name: 'Quote', icon: FileText },
@@ -97,6 +98,7 @@ interface DealerSettings {
   };
   proposal_template_url?: string;
   proposal_template_name?: string;
+  form_customization?: FormCustomizationMap;
 }
 
 interface DocumentTerms {
@@ -2878,6 +2880,7 @@ function DocumentHubContent() {
                   onFormChange={handleFormChange}
                   portalId={portalId || localStorage.getItem('hs_portal_id') || undefined}
                   savedConfig={savedConfig || undefined}
+                  formCustomization={dealerSettings.form_customization?.quote}
                 />
 
                 {/* Actions */}
@@ -3649,7 +3652,7 @@ function DocumentHubContent() {
       {/* Hidden preview for Quote PDF generation */}
       <div className="hidden">
         {formData && (
-          <QuotePreview ref={previewRef} formData={formData} dealerInfo={dealerInfo || undefined} documentStyles={dealerSettings.document_styles} />
+          <QuotePreview ref={previewRef} formData={formData} dealerInfo={dealerInfo || undefined} documentStyles={dealerSettings.document_styles} formCustomization={dealerSettings.form_customization?.quote} />
         )}
       </div>
 
@@ -3688,7 +3691,7 @@ function DocumentHubContent() {
             <div className="p-4 flex justify-center">
               {formData && (
                 <div className="shadow-lg border">
-                  <QuotePreview formData={formData} dealerInfo={dealerInfo || undefined} documentStyles={dealerSettings.document_styles} />
+                  <QuotePreview formData={formData} dealerInfo={dealerInfo || undefined} documentStyles={dealerSettings.document_styles} formCustomization={dealerSettings.form_customization?.quote} />
                 </div>
               )}
             </div>

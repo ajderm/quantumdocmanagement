@@ -1,6 +1,7 @@
 import { forwardRef } from 'react';
 import type { QuoteFormData } from './QuoteForm';
 import type { DocumentStyles } from '@/components/commission/CommissionPreview';
+import { getLabel, isSectionVisible, type FormCustomizationConfig } from '@/lib/formCustomization';
 
 interface QuotePreviewProps {
   formData: QuoteFormData;
@@ -13,10 +14,11 @@ interface QuotePreviewProps {
     termsAndConditions?: string;
   };
   documentStyles?: DocumentStyles;
+  formCustomization?: FormCustomizationConfig;
 }
 
 export const QuotePreview = forwardRef<HTMLDivElement, QuotePreviewProps>(
-  ({ formData, dealerInfo, documentStyles }, ref) => {
+  ({ formData, dealerInfo, documentStyles, formCustomization }, ref) => {
     // Use pre-calculated payments from formData, respecting overrides
     const getLeasePayment = (term: number): number => {
       const override = formData.paymentOverrides?.[term];
@@ -84,15 +86,15 @@ export const QuotePreview = forwardRef<HTMLDivElement, QuotePreviewProps>(
             <table className="text-right ml-auto">
               <tbody>
                 <tr>
-                  <td className="pr-4">Quote Number:</td>
+                  <td className="pr-4">{getLabel(formCustomization, 'quoteNumber', 'Quote Number')}:</td>
                   <td className="font-semibold">{formData.quoteNumber}</td>
                 </tr>
                 <tr>
-                  <td className="pr-4">Quote Date:</td>
+                  <td className="pr-4">{getLabel(formCustomization, 'quoteDate', 'Quote Date')}:</td>
                   <td>{formatDate(formData.quoteDate)}</td>
                 </tr>
                 <tr>
-                  <td className="pr-4">Prepared By:</td>
+                  <td className="pr-4">{getLabel(formCustomization, 'preparedBy', 'Prepared By')}:</td>
                   <td>{formData.preparedBy}</td>
                 </tr>
               </tbody>
@@ -101,6 +103,7 @@ export const QuotePreview = forwardRef<HTMLDivElement, QuotePreviewProps>(
         </div>
 
         {/* Prepared For */}
+        {isSectionVisible(formCustomization, 'customerInfo') && (
         <div className="mb-6">
           <p className="font-bold mb-1">Prepared For:</p>
           <p className="font-semibold">{formData.companyName}</p>
@@ -109,8 +112,10 @@ export const QuotePreview = forwardRef<HTMLDivElement, QuotePreviewProps>(
           <p>{formData.city}, {formData.state} {formData.zip}</p>
           {formData.phone && <p>{formData.phone}</p>}
         </div>
+        )}
 
         {/* Equipment Table */}
+        {isSectionVisible(formCustomization, 'equipment') && (
         <div className="mb-6">
           <p className="font-bold mb-2">EQUIPMENT</p>
           <table className="w-full border-collapse text-[9px]">
@@ -152,6 +157,7 @@ export const QuotePreview = forwardRef<HTMLDivElement, QuotePreviewProps>(
             </tbody>
           </table>
         </div>
+        )}
 
         {/* Combined Pricing Table - Purchase | Lease | Service Agreement */}
         <div className="mb-4">
@@ -276,7 +282,7 @@ export const QuotePreview = forwardRef<HTMLDivElement, QuotePreviewProps>(
         )}
 
         {/* Terms & Conditions */}
-        {dealerInfo?.termsAndConditions && (
+        {isSectionVisible(formCustomization, 'termsAndConditions') && dealerInfo?.termsAndConditions && (
           <div className="mb-6 text-[10px]">
             <p className="font-bold mb-1">Terms & Conditions:</p>
             <p className="whitespace-pre-wrap">{dealerInfo.termsAndConditions}</p>
@@ -292,6 +298,7 @@ export const QuotePreview = forwardRef<HTMLDivElement, QuotePreviewProps>(
         </div>
 
         {/* Acceptance Section */}
+        {isSectionVisible(formCustomization, 'acceptance') && (
         <div className="mt-4 pt-2 border-t border-gray-300">
           <p className="font-bold mb-2">Accepted By:</p>
           <div className="grid grid-cols-2 gap-x-6 gap-y-2">
@@ -313,6 +320,7 @@ export const QuotePreview = forwardRef<HTMLDivElement, QuotePreviewProps>(
             </div>
           </div>
         </div>
+        )}
 
         {/* Confidentiality Notice */}
         <div className="mt-6 text-[9px] text-gray-500 italic">
