@@ -814,7 +814,7 @@ export function QuoteForm({ deal, company, lineItems, dealOwner, onFormChange, p
                     <div key={t} className="flex items-center gap-2 text-sm bg-muted/50 rounded px-3 py-2">
                       <span className="min-w-[70px]">{t} months</span>
                       <span className={`font-medium min-w-[90px] ${hasOverride ? 'text-muted-foreground line-through' : ''}`}>
-                        ${calculatedPayment.toLocaleString()}/mo
+                        ${(calculatedPayment ?? 0).toLocaleString()}/mo
                       </span>
                       <div className="flex items-center gap-1 ml-auto">
                         <span className="text-xs text-muted-foreground">Override:</span>
