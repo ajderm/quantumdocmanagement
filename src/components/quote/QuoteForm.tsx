@@ -112,6 +112,7 @@ export function QuoteForm({ deal, company, lineItems, dealOwner, onFormChange, p
     priceDisplay: 'both',
     leasingPriceType: 'without_buyout',
     leaseProgram: 'fmv',
+    specialPricingTier: '',
     // Buyout defaults
     earlyTerminationFee: 0,
     returnShipping: 0,
