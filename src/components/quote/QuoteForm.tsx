@@ -38,6 +38,8 @@ export interface QuoteFormData {
   priceDisplay: 'both' | 'purchase_only' | 'lease_only';
   leasingPriceType: 'without_buyout' | 'with_buyout';
   leaseProgram: 'fmv' | 'dollar_buyout';
+  // Special Pricing Tier (deal-level)
+  specialPricingTier: string;
   // Buyout fields
   earlyTerminationFee: number;
   returnShipping: number;
