@@ -2880,6 +2880,7 @@ function DocumentHubContent() {
                   onFormChange={handleFormChange}
                   portalId={portalId || localStorage.getItem('hs_portal_id') || undefined}
                   savedConfig={savedConfig || undefined}
+                  formCustomization={dealerSettings.form_customization?.quote}
                 />
 
                 {/* Actions */}
