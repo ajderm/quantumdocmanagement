@@ -172,6 +172,64 @@ export function CommissionForm({ deal, company, lineItems, dealOwner, portalId, 
     fetchLeasingCompanies();
   }, [portalId]);
 
+  // Fetch pricing tiers
+  useEffect(() => {
+    const fetchPricingTiers = async () => {
+      if (!portalId) return;
+      try {
+        const { data } = await supabase.functions.invoke('pricing-tiers-get', {
+          body: { portalId }
+        });
+        if (data?.tiers) {
+          setPricingTiers(data.tiers);
+        }
+      } catch (err) {
+        console.error('Failed to fetch pricing tiers:', err);
+      }
+    };
+    fetchPricingTiers();
+  }, [portalId]);
+
+  // Handle pricing tier change — apply tier prices to all line items
+  const handlePricingTierChange = (tierName: string) => {
+    if (!formData.specialPricingTier || formData.specialPricingTier === 'Standard') {
+      const costs: Record<string, number> = {};
+      formData.lineItems.forEach(item => { costs[item.id] = item.repCost; });
+      setOriginalRepCosts(costs);
+    }
+
+    if (tierName === 'Standard' || !tierName) {
+      setFormData(prev => ({
+        ...prev,
+        specialPricingTier: tierName,
+        lineItems: prev.lineItems.map(item => ({
+          ...item,
+          repCost: originalRepCosts[item.id] ?? item.repCost,
+          specialPricing: tierName || '',
+        })),
+      }));
+      return;
+    }
+
+    const tier = pricingTiers.find(t => t.name === tierName);
+    if (!tier) return;
+
+    setFormData(prev => ({
+      ...prev,
+      specialPricingTier: tierName,
+      lineItems: prev.lineItems.map(item => {
+        const priceMatch = tier.prices.find(p =>
+          item.description.toLowerCase().includes(p.product_model.toLowerCase())
+        );
+        return {
+          ...item,
+          repCost: priceMatch ? priceMatch.rep_cost : item.repCost,
+          specialPricing: tierName,
+        };
+      }),
+    }));
+  };
+
   // Available terms for selected leasing company
   const availableTerms = formData.leaseCompany
     ? [...new Set(rateFactors.filter(r => r.leasing_company === formData.leaseCompany).map(r => r.term_months))].sort((a, b) => a - b)
