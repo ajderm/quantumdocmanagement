@@ -235,7 +235,7 @@ export const QuotePreview = forwardRef<HTMLDivElement, QuotePreviewProps>(
                             <tr>
                               <td className="font-bold pr-2 py-[1px] pt-1" rowSpan={2}>INCLUDES</td>
                               <td className="py-[1px] pt-1">B/W COPIES</td>
-                              <td className="text-right py-[1px] pt-1">{formData.includedBWCopies.toLocaleString()}</td>
+                              <td className="text-right py-[1px] pt-1">{(formData.includedBWCopies ?? 0).toLocaleString()}</td>
                             </tr>
                             <tr>
                               <td className="py-[1px]">COLOR COPIES</td>
