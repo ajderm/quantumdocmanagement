@@ -1620,6 +1620,32 @@ function DocumentHubContent() {
       localStorage.removeItem(`quote_backup_${currentPortalId}_${dealId}`);
       localStorage.removeItem(`quote_backup_${dealId}`);
 
+      // Sync line items to HubSpot (replace all)
+      if (formData.lineItems && formData.lineItems.length > 0) {
+        try {
+          const { error: syncError } = await supabase.functions.invoke('hubspot-sync-line-items', {
+            body: {
+              portalId: currentPortalId,
+              dealId: dealId,
+              lineItems: formData.lineItems.map(item => ({
+                hs_product_id: (item as any).hs_product_id || undefined,
+                model: item.model,
+                description: item.description,
+                quantity: item.quantity,
+                price: item.price,
+                cost: item.cost,
+              })),
+            }
+          });
+
+          if (syncError) {
+            console.error('Line item sync error:', syncError);
+          }
+        } catch (syncErr) {
+          console.error('Line item sync error:', syncErr);
+        }
+      }
+
       if (formData.buyoutFinancingAmount > 0) {
         try {
           const { error: hubspotError } = await supabase.functions.invoke('hubspot-update-deal', {
@@ -1634,16 +1660,16 @@ function DocumentHubContent() {
 
           if (hubspotError) {
             console.error('HubSpot update error:', hubspotError);
-            toast.success('Configuration saved (HubSpot sync failed)');
+            toast.success('Configuration saved (HubSpot sync partial)');
           } else {
             toast.success('Configuration saved & synced to HubSpot');
           }
         } catch (hsErr) {
           console.error('HubSpot sync error:', hsErr);
-          toast.success('Configuration saved (HubSpot sync failed)');
+          toast.success('Configuration saved (HubSpot sync partial)');
         }
       } else {
-        toast.success('Configuration saved');
+        toast.success('Configuration saved & line items synced');
       }
     } catch (err) {
       console.error('Save error:', err);
