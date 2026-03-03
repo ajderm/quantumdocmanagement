@@ -419,6 +419,8 @@ export function QuoteForm({ deal, company, lineItems, dealOwner, onFormChange, p
         price: item.price || 0,
         msrp: item.price || 0,
         dealerSource: item.dealer || item.properties?.dealer || item.properties?.manufacturer || item.properties?.vendor || '',
+        productType: item.category || '',
+        parentLineItemId: '',
       })),
       retailPrice: dealAmount
     };
