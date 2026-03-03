@@ -522,7 +522,7 @@ export function QuoteForm({ deal, company, lineItems, dealOwner, onFormChange, p
               <div></div>
             </div>
             {formData.lineItems.map((item, idx) => (
-              <div key={item.id} className="grid grid-cols-[50px_1fr_1.5fr_100px_100px_70px_100px_40px] gap-2 items-center">
+              <div key={item.id} className="grid grid-cols-[50px_1fr_1.2fr_100px_100px_100px_70px_100px_40px] gap-2 items-center">
                 <div>
                   <Input type="number" min="1" value={item.quantity} onChange={e => updateLineItem(idx, 'quantity', parseInt(e.target.value) || 1)} className="h-8 text-sm" />
                 </div>
