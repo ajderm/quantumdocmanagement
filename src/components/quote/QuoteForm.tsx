@@ -520,7 +520,7 @@ export function QuoteForm({ deal, company, lineItems, dealOwner, onFormChange, p
 
   const handleAddProductFromLibrary = (product: HubSpotProduct, tierCost?: number) => {
     const cost = tierCost ?? product.cost;
-    const newItem = {
+    const newItem: QuoteLineItem = {
       id: `hs-${product.id}-${Date.now()}`,
       quantity: 1,
       model: product.sku || product.name,
@@ -533,8 +533,10 @@ export function QuoteForm({ deal, company, lineItems, dealOwner, onFormChange, p
       msrp: product.price,
       dealerSource: '',
       hs_product_id: product.id,
+      productType: product.productType || '',
+      parentLineItemId: '',
     };
-    setFormData(prev => ({ ...prev, lineItems: [...prev.lineItems, newItem as any] }));
+    setFormData(prev => ({ ...prev, lineItems: [...prev.lineItems, newItem] }));
   };
   
   const toggleTerm = (term: number) => { 
