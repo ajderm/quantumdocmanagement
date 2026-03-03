@@ -13,7 +13,9 @@ import { toast } from 'sonner';
 import { Badge } from '@/components/ui/badge';
 import { FieldMappingEditor } from '@/components/admin/FieldMappingEditor';
 import { CustomDocumentBuilder } from '@/components/admin/CustomDocumentBuilder';
+import { FormCustomizationTab } from '@/components/admin/FormCustomizationTab';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import type { FormCustomizationMap } from '@/lib/formCustomization';
 
 const DOCUMENT_TYPES = [
   { code: 'quote', name: 'Quote' },
