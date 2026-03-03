@@ -1057,6 +1057,169 @@ export default function AdminSettings() {
           <TabsContent value="custom-documents">
             {portalId && <CustomDocumentBuilder portalId={portalId} />}
           </TabsContent>
+
+          <TabsContent value="pricing-tiers">
+            <div className="space-y-6">
+              <Card>
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2">
+                    <DollarSign className="h-5 w-5" />
+                    Pricing Tiers
+                  </CardTitle>
+                  <CardDescription>
+                    Configure special pricing tiers (e.g., DIR, NASPO, SourceWell). Each tier has a fixed price list mapping product models to rep costs.
+                  </CardDescription>
+                </CardHeader>
+                <CardContent className="space-y-6">
+                  {pricingTiers.map((tier, tierIdx) => (
+                    <Card key={tierIdx} className="border">
+                      <CardHeader className="py-3">
+                        <div className="flex items-center justify-between">
+                          <div className="flex items-center gap-2">
+                            <Input
+                              className="h-8 text-sm font-semibold w-48"
+                              value={tier.name}
+                              onChange={e => {
+                                const updated = [...pricingTiers];
+                                updated[tierIdx] = { ...updated[tierIdx], name: e.target.value };
+                                setPricingTiers(updated);
+                              }}
+                              placeholder="Tier name (e.g., DIR)"
+                            />
+                            <Badge variant="secondary">{tier.prices.length} products</Badge>
+                          </div>
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            className="text-destructive"
+                            onClick={() => setPricingTiers(prev => prev.filter((_, i) => i !== tierIdx))}
+                          >
+                            <Trash2 className="h-4 w-4" />
+                          </Button>
+                        </div>
+                      </CardHeader>
+                      <CardContent>
+                        <div className="space-y-2">
+                          <div className="grid grid-cols-[1fr_120px_40px] gap-2 text-xs font-medium text-muted-foreground px-1">
+                            <span>Product Model</span>
+                            <span>Rep Cost</span>
+                            <span></span>
+                          </div>
+                          {tier.prices.map((price, priceIdx) => (
+                            <div key={priceIdx} className="grid grid-cols-[1fr_120px_40px] gap-2">
+                              <Input
+                                className="h-8 text-sm"
+                                value={price.product_model}
+                                onChange={e => {
+                                  const updated = [...pricingTiers];
+                                  const prices = [...updated[tierIdx].prices];
+                                  prices[priceIdx] = { ...prices[priceIdx], product_model: e.target.value };
+                                  updated[tierIdx] = { ...updated[tierIdx], prices };
+                                  setPricingTiers(updated);
+                                }}
+                                placeholder="e.g., iR-ADV C5560i"
+                              />
+                              <div className="relative">
+                                <span className="absolute left-2 top-1/2 -translate-y-1/2 text-muted-foreground text-sm">$</span>
+                                <Input
+                                  className="h-8 text-sm pl-5"
+                                  value={price.rep_cost}
+                                  onChange={e => {
+                                    const updated = [...pricingTiers];
+                                    const prices = [...updated[tierIdx].prices];
+                                    prices[priceIdx] = { ...prices[priceIdx], rep_cost: e.target.value };
+                                    updated[tierIdx] = { ...updated[tierIdx], prices };
+                                    setPricingTiers(updated);
+                                  }}
+                                  placeholder="0.00"
+                                />
+                              </div>
+                              <Button
+                                variant="ghost"
+                                size="sm"
+                                className="h-8 w-8 p-0 text-destructive"
+                                onClick={() => {
+                                  const updated = [...pricingTiers];
+                                  updated[tierIdx] = {
+                                    ...updated[tierIdx],
+                                    prices: updated[tierIdx].prices.filter((_, i) => i !== priceIdx),
+                                  };
+                                  setPricingTiers(updated);
+                                }}
+                              >
+                                <X className="h-3.5 w-3.5" />
+                              </Button>
+                            </div>
+                          ))}
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() => {
+                              const updated = [...pricingTiers];
+                              updated[tierIdx] = {
+                                ...updated[tierIdx],
+                                prices: [...updated[tierIdx].prices, { product_model: '', rep_cost: '' }],
+                              };
+                              setPricingTiers(updated);
+                            }}
+                          >
+                            <Plus className="h-3 w-3 mr-1" />
+                            Add Product
+                          </Button>
+                        </div>
+                      </CardContent>
+                    </Card>
+                  ))}
+
+                  <div className="flex items-center gap-3">
+                    <Button
+                      variant="outline"
+                      onClick={() => setPricingTiers(prev => [...prev, { name: '', prices: [] }])}
+                    >
+                      <Plus className="h-4 w-4 mr-2" />
+                      Add Pricing Tier
+                    </Button>
+                    <Button
+                      onClick={async () => {
+                        if (!portalId) return;
+                        setSavingTiers(true);
+                        try {
+                          const tiersPayload = pricingTiers
+                            .filter(t => t.name.trim())
+                            .map(t => ({
+                              name: t.name.trim(),
+                              prices: t.prices
+                                .filter(p => p.product_model.trim() && p.rep_cost)
+                                .map(p => ({
+                                  product_model: p.product_model.trim(),
+                                  rep_cost: parseFloat(p.rep_cost) || 0,
+                                })),
+                            }));
+                          const { error } = await supabase.functions.invoke('pricing-tiers-save', {
+                            body: { portalId, tiers: tiersPayload }
+                          });
+                          if (error) throw error;
+                          toast.success('Pricing tiers saved successfully');
+                        } catch (error) {
+                          console.error('Error saving pricing tiers:', error);
+                          toast.error('Failed to save pricing tiers');
+                        } finally {
+                          setSavingTiers(false);
+                        }
+                      }}
+                      disabled={savingTiers}
+                    >
+                      {savingTiers ? (
+                        <><Loader2 className="h-4 w-4 mr-2 animate-spin" />Saving...</>
+                      ) : (
+                        <><Save className="h-4 w-4 mr-2" />Save Pricing Tiers</>
+                      )}
+                    </Button>
+                  </div>
+                </CardContent>
+              </Card>
+            </div>
+          </TabsContent>
         </Tabs>
       </div>
     </div>
