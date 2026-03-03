@@ -32,6 +32,14 @@ export interface LabeledContacts {
   itContact: LabeledContact | null;
 }
 
+export interface LinkedAccessoryItem {
+  id: string;
+  model: string;
+  description: string;
+  quantity: number;
+  productType: string;
+}
+
 export interface InstallationFormData {
   // Selected line item
   selectedLineItemId: string;
@@ -74,6 +82,9 @@ export interface InstallationFormData {
   installedSerial: string;
   installedMacAddress: string;
   installedIpAddress: string;
+  
+  // Linked accessories/software for this hardware
+  linkedAccessories: LinkedAccessoryItem[];
   
   // Networking - Dealer Setup Print
   dealerSetupPrint: string;
