@@ -38,6 +38,8 @@ export interface QuoteFormData {
   priceDisplay: 'both' | 'purchase_only' | 'lease_only';
   leasingPriceType: 'without_buyout' | 'with_buyout';
   leaseProgram: 'fmv' | 'dollar_buyout';
+  // Special Pricing Tier (deal-level)
+  specialPricingTier: string;
   // Buyout fields
   earlyTerminationFee: number;
   returnShipping: number;
@@ -110,6 +112,7 @@ export function QuoteForm({ deal, company, lineItems, dealOwner, onFormChange, p
     priceDisplay: 'both',
     leasingPriceType: 'without_buyout',
     leaseProgram: 'fmv',
+    specialPricingTier: '',
     // Buyout defaults
     earlyTerminationFee: 0,
     returnShipping: 0,
@@ -136,6 +139,10 @@ export function QuoteForm({ deal, company, lineItems, dealOwner, onFormChange, p
   const [rateFactors, setRateFactors] = useState<RateFactor[]>([]);
   const [leasingCompanies, setLeasingCompanies] = useState<string[]>([]);
   const [hasRateSheet, setHasRateSheet] = useState(false);
+
+  // Pricing tiers
+  const [pricingTiers, setPricingTiers] = useState<Array<{ id: string; name: string; prices: Array<{ product_model: string; rep_cost: number }> }>>([]);
+  const [originalCosts, setOriginalCosts] = useState<Record<string, number>>({});
 
   // Keep refs in sync for stale closure prevention
   useEffect(() => { savedConfigRef.current = savedConfig; }, [savedConfig]);
@@ -174,6 +181,70 @@ export function QuoteForm({ deal, company, lineItems, dealOwner, onFormChange, p
 
     fetchRateFactors();
   }, [portalId]);
+
+  // Fetch pricing tiers
+  useEffect(() => {
+    const fetchPricingTiers = async () => {
+      const currentPortalId = portalId || localStorage.getItem('hs_portal_id');
+      if (!currentPortalId) return;
+      try {
+        const { data } = await supabase.functions.invoke('pricing-tiers-get', {
+          body: { portalId: currentPortalId }
+        });
+        if (data?.tiers) {
+          setPricingTiers(data.tiers);
+        }
+      } catch (err) {
+        console.error('Failed to fetch pricing tiers:', err);
+      }
+    };
+    fetchPricingTiers();
+  }, [portalId]);
+
+  // Handle pricing tier change — apply tier prices to all line items
+  const handlePricingTierChange = (tierName: string) => {
+    if (!formData.specialPricingTier || formData.specialPricingTier === 'Standard') {
+      const costs: Record<string, number> = {};
+      formData.lineItems.forEach(item => { costs[item.id] = item.cost; });
+      setOriginalCosts(costs);
+    }
+
+    if (tierName === 'Standard' || !tierName) {
+      setFormData(prev => ({
+        ...prev,
+        specialPricingTier: tierName,
+        lineItems: prev.lineItems.map(item => {
+          const origCost = originalCosts[item.id] ?? item.cost;
+          const newPrice = origCost > 0 && item.markupPercent > 0
+            ? origCost * (1 + item.markupPercent / 100)
+            : item.msrp || item.price;
+          return { ...item, cost: origCost, price: Math.round(newPrice * 100) / 100 };
+        }),
+      }));
+      return;
+    }
+
+    const tier = pricingTiers.find(t => t.name === tierName);
+    if (!tier) return;
+
+    setFormData(prev => ({
+      ...prev,
+      specialPricingTier: tierName,
+      lineItems: prev.lineItems.map(item => {
+        const priceMatch = tier.prices.find(p =>
+          item.model.toLowerCase() === p.product_model.toLowerCase()
+        );
+        if (priceMatch) {
+          const newCost = priceMatch.rep_cost;
+          const newPrice = item.markupPercent > 0
+            ? newCost * (1 + item.markupPercent / 100)
+            : item.price;
+          return { ...item, cost: newCost, price: Math.round(newPrice * 100) / 100 };
+        }
+        return item;
+      }),
+    }));
+  };
 
   // Get available terms for selected company and program
   const availableTerms = useMemo(() => {
@@ -575,7 +646,21 @@ export function QuoteForm({ deal, company, lineItems, dealOwner, onFormChange, p
           <CardTitle className="text-sm">Configuration</CardTitle>
         </CardHeader>
         <CardContent>
-          <div className="grid grid-cols-4 gap-4">
+          <div className="grid grid-cols-5 gap-4">
+            <div>
+              <Label className="text-xs">Special Pricing</Label>
+              <Select value={formData.specialPricingTier || 'Standard'} onValueChange={handlePricingTierChange}>
+                <SelectTrigger className="h-8 text-sm">
+                  <SelectValue placeholder="Standard" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="Standard">Standard</SelectItem>
+                  {pricingTiers.map(tier => (
+                    <SelectItem key={tier.id} value={tier.name}>{tier.name}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
             <div>
               <Label className="text-xs">Leasing Company</Label>
               <Select value={formData.leasingCompanyId} onValueChange={(v) => updateField('leasingCompanyId', v)}>

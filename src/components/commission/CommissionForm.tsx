@@ -30,6 +30,9 @@ export interface CommissionFormData {
   // Customer/Sale Type
   transactionType: string;
 
+  // Special Pricing Tier (deal-level)
+  specialPricingTier: string;
+
   // Line Items
   lineItems: CommissionLineItem[];
 
@@ -94,6 +97,7 @@ export function getDefaultCommissionFormData(): CommissionFormData {
     cityStateZip: "",
     county: "",
     transactionType: "",
+    specialPricingTier: "",
     lineItems: [],
     promoDiscounts: "",
     buyoutTradeUp: 0,
@@ -127,7 +131,10 @@ export function CommissionForm({ deal, company, lineItems, dealOwner, portalId, 
   const [leasingCompanies, setLeasingCompanies] = useState<string[]>([]);
   const [rateFactors, setRateFactors] = useState<Array<{ leasing_company: string; term_months: number; rate_factor: number }>>([]);
   const [loadingCompanies, setLoadingCompanies] = useState(false);
-
+  
+  // Pricing tiers
+  const [pricingTiers, setPricingTiers] = useState<Array<{ id: string; name: string; prices: Array<{ product_model: string; rep_cost: number }> }>>([]);
+  const [originalRepCosts, setOriginalRepCosts] = useState<Record<string, number>>({});
   // Local text states for currency inputs
   const [buyoutText, setBuyoutText] = useState("");
   const [shippingText, setShippingText] = useState("170");
@@ -164,6 +171,64 @@ export function CommissionForm({ deal, company, lineItems, dealOwner, portalId, 
     };
     fetchLeasingCompanies();
   }, [portalId]);
+
+  // Fetch pricing tiers
+  useEffect(() => {
+    const fetchPricingTiers = async () => {
+      if (!portalId) return;
+      try {
+        const { data } = await supabase.functions.invoke('pricing-tiers-get', {
+          body: { portalId }
+        });
+        if (data?.tiers) {
+          setPricingTiers(data.tiers);
+        }
+      } catch (err) {
+        console.error('Failed to fetch pricing tiers:', err);
+      }
+    };
+    fetchPricingTiers();
+  }, [portalId]);
+
+  // Handle pricing tier change — apply tier prices to all line items
+  const handlePricingTierChange = (tierName: string) => {
+    if (!formData.specialPricingTier || formData.specialPricingTier === 'Standard') {
+      const costs: Record<string, number> = {};
+      formData.lineItems.forEach(item => { costs[item.id] = item.repCost; });
+      setOriginalRepCosts(costs);
+    }
+
+    if (tierName === 'Standard' || !tierName) {
+      setFormData(prev => ({
+        ...prev,
+        specialPricingTier: tierName,
+        lineItems: prev.lineItems.map(item => ({
+          ...item,
+          repCost: originalRepCosts[item.id] ?? item.repCost,
+          specialPricing: tierName || '',
+        })),
+      }));
+      return;
+    }
+
+    const tier = pricingTiers.find(t => t.name === tierName);
+    if (!tier) return;
+
+    setFormData(prev => ({
+      ...prev,
+      specialPricingTier: tierName,
+      lineItems: prev.lineItems.map(item => {
+        const priceMatch = tier.prices.find(p =>
+          item.description.toLowerCase().includes(p.product_model.toLowerCase())
+        );
+        return {
+          ...item,
+          repCost: priceMatch ? priceMatch.rep_cost : item.repCost,
+          specialPricing: tierName,
+        };
+      }),
+    }));
+  };
 
   // Available terms for selected leasing company
   const availableTerms = formData.leaseCompany
@@ -253,6 +318,7 @@ export function CommissionForm({ deal, company, lineItems, dealOwner, portalId, 
       // Ensure new fields have defaults if missing from old config
       if (merged.splitPercentage === undefined) merged.splitPercentage = 0;
       if (merged.splitRepName === undefined) merged.splitRepName = "";
+      if (merged.specialPricingTier === undefined) merged.specialPricingTier = "";
       
       // Backward compatibility: migrate promoDiscounts from number to string
       if (typeof merged.promoDiscounts === 'number') {
@@ -439,21 +505,36 @@ export function CommissionForm({ deal, company, lineItems, dealOwner, portalId, 
       {/* Line Items */}
       <Card>
         <CardHeader className="pb-2">
-          <CardTitle className="text-sm">Equipment Items</CardTitle>
+          <CardTitle className="text-sm flex items-center justify-between">
+            <span>Equipment Items</span>
+            <div className="flex items-center gap-2">
+              <Label className="text-xs font-normal text-muted-foreground">Special Pricing Tier</Label>
+              <Select value={formData.specialPricingTier || 'Standard'} onValueChange={handlePricingTierChange}>
+                <SelectTrigger className="h-8 text-sm w-40">
+                  <SelectValue placeholder="Standard" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="Standard">Standard</SelectItem>
+                  {pricingTiers.map(tier => (
+                    <SelectItem key={tier.id} value={tier.name}>{tier.name}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+          </CardTitle>
         </CardHeader>
         <CardContent>
           <div className="space-y-2">
-            <div className="grid grid-cols-[1fr_80px_80px_80px_80px_100px_1fr] gap-2 text-xs font-medium text-muted-foreground px-1">
+            <div className="grid grid-cols-[1fr_80px_80px_80px_80px_100px] gap-2 text-xs font-medium text-muted-foreground px-1">
               <span>Description</span>
               <span>Billed</span>
               <span>Rep Cost</span>
               <span>Type</span>
               <span>Condition</span>
               <span>Dealer Source</span>
-              <span>Special Pricing / Credits</span>
             </div>
             {formData.lineItems.map((item, index) => (
-              <div key={item.id} className="grid grid-cols-[1fr_80px_80px_80px_80px_100px_1fr] gap-2">
+              <div key={item.id} className="grid grid-cols-[1fr_80px_80px_80px_80px_100px] gap-2">
                 <Input className="h-8 text-sm" value={item.description} onChange={e => updateLineItem(index, "description", e.target.value)} />
                 <Input className="h-8 text-sm text-right" value={item.billed ? formatCurrency(item.billed) : ""} onChange={e => updateLineItem(index, "billed", parseCurrency(e.target.value))} />
                 <Input className="h-8 text-sm text-right" value={item.repCost ? formatCurrency(item.repCost) : ""} onChange={e => updateLineItem(index, "repCost", parseCurrency(e.target.value))} />
@@ -468,10 +549,9 @@ export function CommissionForm({ deal, company, lineItems, dealOwner, portalId, 
                 </Select>
                 <Input className="h-8 text-sm" value={item.condition} onChange={e => updateLineItem(index, "condition", e.target.value)} />
                 <Input className="h-8 text-sm" value={item.dealerSource} onChange={e => updateLineItem(index, "dealerSource", e.target.value)} />
-                <Input className="h-8 text-sm" placeholder="DIR, nonprofit, promo..." value={item.specialPricing} onChange={e => updateLineItem(index, "specialPricing", e.target.value)} />
               </div>
             ))}
-            <div className="grid grid-cols-[1fr_80px_80px_80px_80px_100px_1fr] gap-2 text-xs font-bold px-1 pt-1 border-t">
+            <div className="grid grid-cols-[1fr_80px_80px_80px_80px_100px] gap-2 text-xs font-bold px-1 pt-1 border-t">
               <span>Total Equipment</span>
               <span className="text-right">${formatCurrency(totalBilled)}</span>
               <span className="text-right">${formatCurrency(totalRepCost)}</span>

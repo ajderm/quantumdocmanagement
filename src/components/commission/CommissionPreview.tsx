@@ -93,12 +93,15 @@ export const CommissionPreview = forwardRef<HTMLDivElement, CommissionPreviewPro
         </div>
 
         {/* Customer/Sale Type */}
-        {(formData.transactionType || formData.promoDiscounts) && (
+        {(formData.transactionType || formData.promoDiscounts || formData.specialPricingTier) && (
           <div className="mb-3">
             <div className="font-bold pb-1 mb-2" style={{ borderBottom: `2px solid ${borderColor}` }}>CUSTOMER/SALE TYPE</div>
             <div className="text-[9px] space-y-0.5">
               {formData.transactionType && (
                 <div><span className="font-semibold">Transaction Type: </span>{formData.transactionType}</div>
+              )}
+              {formData.specialPricingTier && formData.specialPricingTier !== 'Standard' && (
+                <div><span className="font-semibold">Special Pricing: </span>{formData.specialPricingTier}</div>
               )}
               {formData.promoDiscounts && (
                 <div><span className="font-semibold">Promo / Discount: </span>{formData.promoDiscounts}</div>

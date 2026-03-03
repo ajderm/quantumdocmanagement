@@ -1,105 +1,131 @@
 
 
-# Special Pricing Tiers — Dropdown with Fixed Price Lists
+# Fix: Race Condition in Form Initialization Across All Document Types
 
-## Summary
+## Problem Summary
 
-Replace the free-text "Special Pricing / Credits" field on both the Commission and Quote forms with a dropdown selector. Each pricing tier (Standard, DIR, NASPO, SourceWell, Nonprofit, etc.) has a fixed price list mapping product models to rep costs. Selecting a tier applies the corresponding rep cost to all matching line items. Admins configure tiers and their price lists via a new admin settings tab.
+Saved form data is overwritten by HubSpot defaults on page reload because forms initialize before the database-saved configurations have loaded. Two parallel async operations -- HubSpot data fetch and Supabase config bulk load -- complete at different times, but forms begin rendering as soon as HubSpot data arrives.
 
-## Database Changes
+## Root Causes
 
-### New table: `pricing_tiers`
+### Race Condition (All Document Types)
+1. `useHubSpot()` fetches deal data. When it completes, `loading` becomes `false` and `DocumentHubContent` renders all forms.
+2. `loadAllConfigs` (bulk Supabase fetch) runs in a separate `useEffect`. It depends on `deal?.hsObjectId`, which is only available after HubSpot loads.
+3. Forms mount and initialize with HubSpot defaults before `savedConfig` arrives from the bulk load.
+4. When `savedConfig` finally arrives, some forms (like ServiceAgreement) have already set `hasInitializedRef = true`, so they ignore the saved data entirely.
 
-| Column | Type | Notes |
-|--------|------|-------|
-| id | uuid PK | |
-| portal_id | text NOT NULL | Tenant isolation |
-| name | text NOT NULL | e.g. "DIR", "NASPO" |
-| sort_order | int DEFAULT 0 | Display order |
-| is_active | boolean DEFAULT true | |
-| created_at / updated_at | timestamptz | |
+### retailPrice Override (Quote)
+The Quote init effect always sets `retailPrice = deal.amount`, even when `savedConfig` exists. If the user edited line item prices or manually adjusted the retail price, those edits are lost on every reload.
 
-Unique constraint on `(portal_id, name)`. RLS: service_role only (accessed via edge functions).
+### No hasInitializedRef Guard (Quote)
+Unlike other forms, the Quote init `useEffect` does NOT use `hasInitializedRef` as a guard. It re-runs on every `deal`, `company`, `dealOwner`, `lineItems`, or `savedConfig` change, repeatedly overwriting form state.
 
-### New table: `pricing_tier_prices`
+---
 
-| Column | Type | Notes |
-|--------|------|-------|
-| id | uuid PK | |
-| pricing_tier_id | uuid FK → pricing_tiers | |
-| product_model | text NOT NULL | Matches line item model |
-| rep_cost | numeric NOT NULL | Fixed cost for this tier |
-| created_at | timestamptz | |
+## Solution
 
-Unique constraint on `(pricing_tier_id, product_model)`. RLS: service_role only.
+### Step 1: Add `configsLoaded` Gate in DocumentHub
 
-## Backend Changes
-
-### New edge function: `pricing-tiers-get`
-
-- Input: `{ portalId }`
-- Returns all active pricing tiers for the portal, each with their price list (array of `{ product_model, rep_cost }`)
-- Used by both Quote and Commission forms on load
-
-### New edge function: `pricing-tiers-save`
-
-- Input: `{ portalId, tiers: [{ name, prices: [{ product_model, rep_cost }] }] }`
-- Admin-only: upserts tiers and their price lists
-- Used by admin settings page
-
-## Frontend Changes
-
-### 1. Commission Form (`CommissionForm.tsx`)
-
-- Add `specialPricingTier: string` to `CommissionFormData` (deal-level, not per-line-item)
-- Replace per-item `specialPricing` text input with a single dropdown above the equipment grid
-- On tier selection: look up each line item's model in the tier's price list → update `repCost` for all matching items
-- Remove `specialPricing` column from the per-item grid (replaced by deal-level dropdown)
-- Keep `specialPricing` on `CommissionLineItem` for backward compatibility / display on preview
-
-### 2. Quote Form (`QuoteForm.tsx`)
-
-- Add `specialPricingTier: string` to `QuoteFormData`
-- Add dropdown above the equipment grid (near leasing company / config section)
-- On tier selection: look up each line item's model in the tier's price list → update `cost` (rep cost) for all matching items
-- Recalculate `price` (sell price) based on new cost + existing markup%
-
-### 3. Commission Preview (`CommissionPreview.tsx`)
-
-- Show selected tier name in the "Special Pricing" column or as a header-level label
-
-### 4. Admin Settings (`AdminSettings.tsx`)
-
-- New "Pricing Tiers" tab
-- List existing tiers with ability to add/remove
-- Each tier has a price list table: product model + rep cost
-- Support CSV upload for bulk price list entry (similar to rate sheet upload pattern)
-
-## Repricing Logic (both forms)
+Add a `configsLoaded` boolean state that starts as `false` and becomes `true` only after the `loadAllConfigs` call completes (whether it finds data or not). Gate the rendering of all form content on BOTH `!loading` (HubSpot done) AND `configsLoaded` (Supabase done). While either is pending, show a loading skeleton.
 
 ```text
-When user selects a tier:
-  1. Fetch tier's price list (already loaded on form init)
-  2. For each line item:
-     a. Match item.model against price list entries
-     b. If match found → set repCost/cost to the tier's rep_cost
-     c. If no match → leave repCost/cost unchanged
-  3. Recalculate derived fields (sell price, totals)
+// New state
+const [configsLoaded, setConfigsLoaded] = useState(false);
 
-When user changes tier:
-  - Same logic re-runs with new tier's prices
-  - "Standard" tier = original HubSpot costs (reset to initial values)
+// In loadAllConfigs effect:
+// Set to true in finally block, even if there's an error
+// This ensures forms never render before we know whether saved data exists
+
+// In the render:
+if (loading || !configsLoaded) {
+  return <LoadingSkeleton />;
+}
 ```
+
+### Step 2: Fix QuoteForm retailPrice Logic
+
+Change QuoteForm init effect (lines 319-394):
+- Add `hasInitializedRef` guard (same pattern as other forms)
+- When `savedConfig` exists: use `savedConfig.retailPrice` instead of `deal.amount`
+- The existing line-item recalculation effect (lines 396-403) will still reactively update `retailPrice` when the user edits line items
+
+```text
+// Current (broken):
+const retailPriceToUse = hubspotData.retailPrice; // Always deal.amount
+
+// Fixed:
+const retailPriceToUse = savedConfig.retailPrice || hubspotData.retailPrice;
+```
+
+### Step 3: Add hasInitializedRef Guard to QuoteForm
+
+Add the same `if (hasInitializedRef.current) return;` guard at the top of the Quote init effect, matching the pattern used by ServiceAgreement, LeaseReturn, and other forms.
+
+### Step 4: Add Autosave Status Indicator
+
+Add a small "Saving..." / "Saved" text indicator near each save button. This uses existing auto-save infrastructure -- just surface the state visually.
+
+---
+
+## Technical Details
+
+### DocumentHub.tsx Changes
+
+```text
+New state variable:
+  const [configsLoaded, setConfigsLoaded] = useState(false);
+
+In loadAllConfigs effect (around line 468):
+  - Wrap the async function body in try/finally
+  - Add setConfigsLoaded(true) in the finally block
+  - Also set configsLoaded = true if the early return fires (no portalId/dealId)
+
+In the loading check (around line 2690):
+  Change: if (loading) { return <Loader /> }
+  To:     if (loading || !configsLoaded) { return <Loader /> }
+
+Add save status indicator near each Save button:
+  - Show "Saving..." text while auto-save is in progress
+  - Show "Saved" text briefly after successful save
+  - Uses existing hasUnsavedChanges / lastSavedData state
+```
+
+### QuoteForm.tsx Changes
+
+```text
+Init effect (lines 319-394):
+  1. Add guard: if (hasInitializedRef.current) return;
+  2. Change retailPrice logic:
+     - If savedConfig exists: retailPriceToUse = savedConfig.retailPrice || hubspotData.retailPrice
+     - If no savedConfig: retailPriceToUse = hubspotData.retailPrice (current behavior)
+  3. Set hasInitializedRef.current = true at end of both branches
+```
+
+### ServiceAgreementForm.tsx -- No Changes Needed
+
+The existing `hasInitializedRef` guard is correct. The race condition fix in DocumentHub (gating on `configsLoaded`) ensures `savedConfig` is available before the form mounts, so the guard works as intended.
+
+### Other Forms -- No Changes Needed
+
+LeaseReturnForm, CommissionForm, InterterritorialForm, FMVLeaseForm, LoiForm, NewCustomerForm, RelocationForm, RemovalForm, InstallationForm, LeaseFundingForm all use `hasInitializedRef` or receive data directly via props from DocumentHub. The `configsLoaded` gate in DocumentHub fixes all of them simultaneously.
+
+---
 
 ## Files Modified
 
 | File | Changes |
 |------|---------|
-| **Database** | Create `pricing_tiers` and `pricing_tier_prices` tables |
-| `supabase/functions/pricing-tiers-get/index.ts` | New — fetch tiers + prices for portal |
-| `supabase/functions/pricing-tiers-save/index.ts` | New — admin upsert tiers + prices |
-| `src/components/commission/CommissionForm.tsx` | Add tier dropdown, repricing logic |
-| `src/components/commission/CommissionPreview.tsx` | Show selected tier |
-| `src/components/quote/QuoteForm.tsx` | Add tier dropdown, repricing logic |
-| `src/pages/admin/AdminSettings.tsx` | New "Pricing Tiers" management tab |
+| `src/pages/DocumentHub.tsx` | Add `configsLoaded` state, set it in `loadAllConfigs`, gate form rendering, add save status indicators |
+| `src/components/quote/QuoteForm.tsx` | Add `hasInitializedRef` guard to init effect, fix `retailPrice` to use saved value when available |
+
+## What This Does NOT Change
+
+- Save/auto-save logic (already working correctly)
+- Edge functions (no changes)
+- Database schema (no changes)
+- Other form components (fixed by the DocumentHub gate)
+
+## Why This Works
+
+By preventing forms from mounting until both data sources are ready, we eliminate the race condition at the architectural level. Every form's init effect will see the correct `savedConfig` on its first (and only) run. The `hasInitializedRef` guard then prevents re-initialization if props change later.
 
