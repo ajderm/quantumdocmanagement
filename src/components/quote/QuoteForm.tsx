@@ -419,8 +419,20 @@ export function QuoteForm({ deal, company, lineItems, dealOwner, onFormChange, p
   useEffect(() => { onFormChange(formData); }, [formData, onFormChange]);
 
   const updateField = <K extends keyof QuoteFormData>(field: K, value: QuoteFormData[K]) => { setFormData(prev => ({ ...prev, [field]: value })); };
-  const updateLineItem = (index: number, field: keyof QuoteLineItem, value: string | number) => { setFormData(prev => { const newItems = [...prev.lineItems]; newItems[index] = { ...newItems[index], [field]: value }; return { ...prev, lineItems: newItems }; }); };
-  const addLineItem = () => { setFormData(prev => ({ ...prev, lineItems: [...prev.lineItems, { id: `new-${Date.now()}`, quantity: 1, model: '', description: '', price: 0 }] })); };
+  const updateLineItem = (index: number, field: keyof QuoteLineItem, value: string | number) => { 
+    setFormData(prev => { 
+      const newItems = [...prev.lineItems]; 
+      newItems[index] = { ...newItems[index], [field]: value };
+      // Auto-recalculate sell price when cost or markupPercent changes
+      if (field === 'cost' || field === 'markupPercent') {
+        const cost = field === 'cost' ? (value as number) : newItems[index].cost;
+        const markup = field === 'markupPercent' ? (value as number) : newItems[index].markupPercent;
+        newItems[index].price = Math.round(cost * (1 + markup / 100) * 100) / 100;
+      }
+      return { ...prev, lineItems: newItems }; 
+    }); 
+  };
+  const addLineItem = () => { setFormData(prev => ({ ...prev, lineItems: [...prev.lineItems, { id: `new-${Date.now()}`, quantity: 1, model: '', description: '', price: 0, cost: 0, markupPercent: 0 }] })); };
   const removeLineItem = (index: number) => { setFormData(prev => { const newItems = prev.lineItems.filter((_, i) => i !== index); return { ...prev, lineItems: newItems }; }); };
   
   const toggleTerm = (term: number) => { 
