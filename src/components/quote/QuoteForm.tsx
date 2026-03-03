@@ -923,7 +923,7 @@ export function QuoteForm({ deal, company, lineItems, dealOwner, onFormChange, p
                 </div>
               </div>
               <div>
-                <Label className="text-xs">Overage Color Rate</Label>
+                <Label className="text-xs">{getLabel(formCustomization, 'overageColorRate', 'Overage Color Rate')}</Label>
                 <div className="relative">
                   <span className="absolute left-2 top-1/2 -translate-y-1/2 text-muted-foreground text-sm">$</span>
                   <Input 
