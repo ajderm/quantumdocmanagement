@@ -988,8 +988,10 @@ export function QuoteForm({ deal, company, lineItems, dealOwner, onFormChange, p
           </div>
         </CardContent>
       </Card>
+      )}
 
       {/* Buyout Information */}
+      {isSectionVisible(formCustomization, 'buyout') && (
       <Card>
         <CardHeader className="py-3">
           <CardTitle className="text-sm">Buyout Information</CardTitle>
