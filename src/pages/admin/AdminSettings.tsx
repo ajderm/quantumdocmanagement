@@ -185,6 +185,26 @@ export default function AdminSettings() {
             commission_percentage: u.commission_percentage ?? 40,
           })));
         }
+
+        // Load pricing tiers
+        if (portalId) {
+          try {
+            const { data: tiersData } = await supabase.functions.invoke('pricing-tiers-get', {
+              body: { portalId }
+            });
+            if (tiersData?.tiers) {
+              setPricingTiers(tiersData.tiers.map((t: any) => ({
+                name: t.name,
+                prices: (t.prices || []).map((p: any) => ({
+                  product_model: p.product_model,
+                  rep_cost: String(p.rep_cost),
+                })),
+              })));
+            }
+          } catch (err) {
+            console.error('Failed to load pricing tiers:', err);
+          }
+        }
       } catch (error) {
         console.error('Error loading dealer account:', error);
         toast.error('Failed to load settings');
