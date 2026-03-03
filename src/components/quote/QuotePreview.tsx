@@ -1,6 +1,7 @@
 import { forwardRef } from 'react';
 import type { QuoteFormData } from './QuoteForm';
 import type { DocumentStyles } from '@/components/commission/CommissionPreview';
+import { getLabel, isSectionVisible, type FormCustomizationConfig } from '@/lib/formCustomization';
 
 interface QuotePreviewProps {
   formData: QuoteFormData;
@@ -13,6 +14,7 @@ interface QuotePreviewProps {
     termsAndConditions?: string;
   };
   documentStyles?: DocumentStyles;
+  formCustomization?: FormCustomizationConfig;
 }
 
 export const QuotePreview = forwardRef<HTMLDivElement, QuotePreviewProps>(
