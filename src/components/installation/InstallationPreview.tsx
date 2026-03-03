@@ -1,5 +1,5 @@
 import { forwardRef } from 'react';
-import type { InstallationFormData } from './InstallationForm';
+import type { InstallationFormData, LinkedAccessoryItem } from './InstallationForm';
 import type { DocumentStyles } from '@/components/commission/CommissionPreview';
 
 interface InstallationPreviewProps {
