@@ -216,7 +216,7 @@ export const QuotePreview = forwardRef<HTMLDivElement, QuotePreviewProps>(
                   <>
                     <td className="py-1">{formData.selectedTerms[0]} months</td>
                     <td className="py-1 text-right font-semibold pr-3">
-                      ${getLeasePayment(formData.selectedTerms[0]).toLocaleString()}/mo
+                      ${(getLeasePayment(formData.selectedTerms[0]) ?? 0).toLocaleString()}/mo
                     </td>
                   </>
                 )}
