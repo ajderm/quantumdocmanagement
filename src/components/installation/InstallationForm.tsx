@@ -624,6 +624,25 @@ export function InstallationForm({
                   />
                 </div>
               </div>
+              
+              {/* Linked Accessories */}
+              {formData.linkedAccessories.length > 0 && (
+                <div className="mt-4">
+                  <Label className="text-xs font-medium text-muted-foreground mb-2 block">Linked Accessories / Software</Label>
+                  <div className="space-y-1">
+                    {formData.linkedAccessories.map((acc) => (
+                      <div key={acc.id} className="grid grid-cols-12 gap-3 items-center bg-muted/30 rounded px-2 py-1">
+                        <div className="col-span-1 text-xs text-center">{acc.quantity}</div>
+                        <div className="col-span-3 text-xs">{acc.model}</div>
+                        <div className="col-span-6 text-xs text-muted-foreground">{acc.description}</div>
+                        <div className="col-span-2">
+                          <Badge variant="secondary" className="text-[10px]">{acc.productType}</Badge>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
             </CardContent>
           </Card>
 
