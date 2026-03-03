@@ -86,15 +86,15 @@ export const QuotePreview = forwardRef<HTMLDivElement, QuotePreviewProps>(
             <table className="text-right ml-auto">
               <tbody>
                 <tr>
-                  <td className="pr-4">Quote Number:</td>
+                  <td className="pr-4">{getLabel(formCustomization, 'quoteNumber', 'Quote Number')}:</td>
                   <td className="font-semibold">{formData.quoteNumber}</td>
                 </tr>
                 <tr>
-                  <td className="pr-4">Quote Date:</td>
+                  <td className="pr-4">{getLabel(formCustomization, 'quoteDate', 'Quote Date')}:</td>
                   <td>{formatDate(formData.quoteDate)}</td>
                 </tr>
                 <tr>
-                  <td className="pr-4">Prepared By:</td>
+                  <td className="pr-4">{getLabel(formCustomization, 'preparedBy', 'Prepared By')}:</td>
                   <td>{formData.preparedBy}</td>
                 </tr>
               </tbody>
