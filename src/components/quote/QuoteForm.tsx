@@ -385,12 +385,9 @@ export function QuoteForm({ deal, company, lineItems, dealOwner, onFormChange, p
       if (savedConfig.returnShipping > 0) setReturnShippingText(String(savedConfig.returnShipping));
       if (savedConfig.paymentAmount > 0) setPaymentAmountText(String(savedConfig.paymentAmount));
     } else {
-      const discountPercent = 5;
       setFormData(prev => ({ 
         ...prev, 
         ...hubspotData,
-        cashDiscountPercent: discountPercent,
-        cashDiscount: hubspotData.retailPrice * (1 - discountPercent / 100)
       }));
     }
 
