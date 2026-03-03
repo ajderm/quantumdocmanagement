@@ -146,7 +146,7 @@ export const QuotePreview = forwardRef<HTMLDivElement, QuotePreviewProps>(
               })}
               {formData.lineItems.length === 0 && (
                 <tr>
-                  <td colSpan={3} className="py-2 text-gray-400 text-center">No equipment items</td>
+                  <td colSpan={5} className="py-2 text-gray-400 text-center">No equipment items</td>
                 </tr>
               )}
             </tbody>
