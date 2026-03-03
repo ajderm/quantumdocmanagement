@@ -2940,6 +2940,14 @@ function DocumentHubContent() {
                   onLineItemSwitch={handleInstallationLineItemSwitch}
                   savedConfig={getCurrentInstallationSavedConfig()}
                   labeledContacts={labeledContacts || undefined}
+                  quoteLineItems={formData?.lineItems?.map(li => ({
+                    id: li.id,
+                    model: li.model,
+                    description: li.description,
+                    quantity: li.quantity,
+                    productType: li.productType,
+                    parentLineItemId: li.parentLineItemId,
+                  }))}
                 />
 
                 {/* Actions */}
