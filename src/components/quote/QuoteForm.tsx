@@ -24,8 +24,8 @@ export interface QuoteFormData {
   phone: string; 
   lineItems: QuoteLineItem[]; 
   retailPrice: number; 
-  cashDiscountPercent: number;
-  cashDiscount: number; 
+  cashDiscountPercent?: number;
+  cashDiscount?: number; 
   selectedTerms: number[]; 
   serviceBaseRate: number; 
   includedBWCopies: number; 
