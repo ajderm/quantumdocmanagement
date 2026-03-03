@@ -32,6 +32,14 @@ export interface LabeledContacts {
   itContact: LabeledContact | null;
 }
 
+export interface LinkedAccessoryItem {
+  id: string;
+  model: string;
+  description: string;
+  quantity: number;
+  productType: string;
+}
+
 export interface InstallationFormData {
   // Selected line item
   selectedLineItemId: string;
@@ -75,6 +83,9 @@ export interface InstallationFormData {
   installedMacAddress: string;
   installedIpAddress: string;
   
+  // Linked accessories/software for this hardware
+  linkedAccessories: LinkedAccessoryItem[];
+  
   // Networking - Dealer Setup Print
   dealerSetupPrint: string;
   printWindowsComputers: string;
@@ -104,6 +115,15 @@ export interface InstallationFormData {
   removalInstructions: string;
 }
 
+interface QuoteLineItemRef {
+  id: string;
+  model: string;
+  description: string;
+  quantity: number;
+  productType?: string;
+  parentLineItemId?: string;
+}
+
 interface InstallationFormProps {
   deal: any;
   company: any;
@@ -116,6 +136,7 @@ interface InstallationFormProps {
   onLineItemSwitch?: (newLineItemId: string, currentFormData: InstallationFormData) => void;
   savedConfig?: InstallationFormData;
   labeledContacts?: LabeledContacts;
+  quoteLineItems?: QuoteLineItemRef[];
 }
 
 const MAX_REMOVED_EQUIPMENT = 10;
@@ -132,6 +153,7 @@ export function InstallationForm({
   onLineItemSwitch,
   savedConfig,
   labeledContacts,
+  quoteLineItems,
 }: InstallationFormProps) {
   // Filter line items to show only hardware (hs_product_type = "Hardware")
   const baseHardwareLineItems = lineItems.filter(
@@ -207,6 +229,7 @@ export function InstallationForm({
     meterContactEmail: '',
     removedEquipment: [],
     removalInstructions: '',
+    linkedAccessories: [],
   });
 
   // Load saved config
@@ -316,15 +339,32 @@ export function InstallationForm({
       // Use hardwareLineItems to find expanded items (e.g., id_1, id_2 for qty > 1)
       const selectedItem = hardwareLineItems.find(item => item.id === formData.selectedLineItemId);
       if (selectedItem) {
+        // Find linked accessories from quote line items
+        // For expanded items (id_1, id_2), match on the base ID (before the underscore)
+        const baseId = formData.selectedLineItemId.includes('_') 
+          ? formData.selectedLineItemId.split('_').slice(0, -1).join('_')
+          : formData.selectedLineItemId;
+        
+        const accessories: LinkedAccessoryItem[] = (quoteLineItems || [])
+          .filter(ql => ql.parentLineItemId === baseId || ql.parentLineItemId === formData.selectedLineItemId)
+          .map(ql => ({
+            id: ql.id,
+            model: ql.model,
+            description: ql.description,
+            quantity: ql.quantity,
+            productType: ql.productType || '',
+          }));
+
         setFormData(prev => ({
           ...prev,
           installedQty: selectedItem.quantity || 1,
           installedModel: selectedItem.model || selectedItem.sku || '',
           installedDescription: selectedItem.description || selectedItem.name || '',
+          linkedAccessories: accessories,
         }));
       }
     }
-  }, [formData.selectedLineItemId, lineItems]);
+  }, [formData.selectedLineItemId, lineItems, quoteLineItems]);
 
   // Notify parent of changes
   useEffect(() => {
@@ -584,6 +624,25 @@ export function InstallationForm({
                   />
                 </div>
               </div>
+              
+              {/* Linked Accessories */}
+              {formData.linkedAccessories.length > 0 && (
+                <div className="mt-4">
+                  <Label className="text-xs font-medium text-muted-foreground mb-2 block">Linked Accessories / Software</Label>
+                  <div className="space-y-1">
+                    {formData.linkedAccessories.map((acc) => (
+                      <div key={acc.id} className="grid grid-cols-12 gap-3 items-center bg-muted/30 rounded px-2 py-1">
+                        <div className="col-span-1 text-xs text-center">{acc.quantity}</div>
+                        <div className="col-span-3 text-xs">{acc.model}</div>
+                        <div className="col-span-6 text-xs text-muted-foreground">{acc.description}</div>
+                        <div className="col-span-2">
+                          <Badge variant="secondary" className="text-[10px]">{acc.productType}</Badge>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
             </CardContent>
           </Card>
 

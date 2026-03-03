@@ -102,7 +102,7 @@ Deno.serve(async (req) => {
       filterGroups: [],
       properties: [
         'name', 'hs_sku', 'description', 'price',
-        'hs_cost_of_goods_sold', 'hs_product_type',
+        'hs_cost_of_goods_sold', 'unit_cost', 'hs_product_type',
         'hs_images', 'hs_recurring_billing_period',
       ],
       limit: 100,
@@ -160,7 +160,7 @@ Deno.serve(async (req) => {
         sku: p.properties.hs_sku || '',
         description: p.properties.description || '',
         price: parseFloat(p.properties.price) || 0,
-        cost: parseFloat(p.properties.hs_cost_of_goods_sold) || 0,
+        cost: parseFloat(p.properties.unit_cost) || parseFloat(p.properties.hs_cost_of_goods_sold) || 0,
         productType: effectiveType,
         originalType: normalizedType,
         hasOverride: !!override,
