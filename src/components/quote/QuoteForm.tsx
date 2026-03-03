@@ -9,7 +9,7 @@ import { Alert, AlertDescription } from '@/components/ui/alert';
 import { supabase } from '@/integrations/supabase/client';
 import { ProductSearchModal, HubSpotProduct } from './ProductSearchModal';
 
-export interface QuoteLineItem { id: string; quantity: number; model: string; description: string; price: number; cost: number; markupPercent: number; msrp: number; dealerSource: string; }
+export interface QuoteLineItem { id: string; quantity: number; model: string; description: string; price: number; cost: number; markupPercent: number; msrp: number; dealerSource: string; hs_product_id?: string; }
 export interface QuoteFormData { 
   quoteNumber: string; 
   quoteDate: string; 
