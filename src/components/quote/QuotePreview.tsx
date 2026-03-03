@@ -239,7 +239,7 @@ export const QuotePreview = forwardRef<HTMLDivElement, QuotePreviewProps>(
                             </tr>
                             <tr>
                               <td className="py-[1px]">COLOR COPIES</td>
-                              <td className="text-right py-[1px]">{formData.includedColorCopies.toLocaleString()}</td>
+                              <td className="text-right py-[1px]">{(formData.includedColorCopies ?? 0).toLocaleString()}</td>
                             </tr>
                           </>
                         )}
