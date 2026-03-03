@@ -533,6 +533,8 @@ export function QuoteForm({ deal, company, lineItems, dealOwner, onFormChange, p
                   <Input value={item.description} onChange={e => updateLineItem(idx, 'description', e.target.value)} className="h-8 text-sm" />
                 </div>
                 <div>
+                  <Input value={item.dealerSource} onChange={e => updateLineItem(idx, 'dealerSource', e.target.value)} className="h-8 text-sm" placeholder="Dealer" />
+                <div>
                   <div className="relative">
                     <span className="absolute left-2 top-1/2 -translate-y-1/2 text-muted-foreground text-sm">$</span>
                     <Input type="text" value={formatCurrency(item.msrp || 0)} readOnly className="h-8 text-sm pl-5 bg-muted/50" />
