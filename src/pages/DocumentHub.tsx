@@ -60,6 +60,7 @@ import { CommissionForm, CommissionFormData, getDefaultCommissionFormData } from
 import { CommissionPreview } from '@/components/commission/CommissionPreview';
 import { CustomDocumentForm, CustomDocumentPreview, DynamicIcon } from '@/components/custom-document';
 import type { CustomDocument } from '@/components/admin/types';
+import type { FormCustomizationConfig, FormCustomizationMap } from '@/lib/formCustomization';
 
 const documentTypes = [
   { code: 'quote', name: 'Quote', icon: FileText },
