@@ -59,3 +59,6 @@ verify_jwt = false
 
 [functions.hubspot-sync-line-items]
 verify_jwt = false
+
+[functions.product-type-override-save]
+verify_jwt = false
