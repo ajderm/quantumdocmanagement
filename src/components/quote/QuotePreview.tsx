@@ -35,7 +35,7 @@ export const QuotePreview = forwardRef<HTMLDivElement, QuotePreviewProps>(
     };
 
     const formatCurrency = (value: number) => {
-      return value.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+      return (value ?? 0).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
     };
 
     const hasServiceAgreement = formData.serviceBaseRate > 0 || formData.includedBWCopies > 0 || formData.includedColorCopies > 0;
