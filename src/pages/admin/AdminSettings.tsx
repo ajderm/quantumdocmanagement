@@ -376,6 +376,7 @@ export default function AdminSettings() {
         },
         proposal_template_url: proposalTemplateUrl,
         proposal_template_name: proposalFileName,
+        form_customization: formCustomization,
       };
 
       const { data: result, error: invokeError } = await supabase.functions.invoke('dealer-account-save', {
