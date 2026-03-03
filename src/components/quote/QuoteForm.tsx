@@ -4,11 +4,12 @@ import { Label } from '@/components/ui/label';
 import { Button } from '@/components/ui/button';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Plus, Trash2, AlertTriangle, X } from 'lucide-react';
+import { Plus, Trash2, AlertTriangle, X, Package } from 'lucide-react';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { supabase } from '@/integrations/supabase/client';
+import { ProductSearchModal, HubSpotProduct } from './ProductSearchModal';
 
-export interface QuoteLineItem { id: string; quantity: number; model: string; description: string; price: number; cost: number; markupPercent: number; msrp: number; dealerSource: string; }
+export interface QuoteLineItem { id: string; quantity: number; model: string; description: string; price: number; cost: number; markupPercent: number; msrp: number; dealerSource: string; hs_product_id?: string; }
 export interface QuoteFormData { 
   quoteNumber: string; 
   quoteDate: string; 
@@ -143,6 +144,7 @@ export function QuoteForm({ deal, company, lineItems, dealOwner, onFormChange, p
   // Pricing tiers
   const [pricingTiers, setPricingTiers] = useState<Array<{ id: string; name: string; prices: Array<{ product_model: string; rep_cost: number }> }>>([]);
   const [originalCosts, setOriginalCosts] = useState<Record<string, number>>({});
+  const [productSearchOpen, setProductSearchOpen] = useState(false);
 
   // Keep refs in sync for stale closure prevention
   useEffect(() => { savedConfigRef.current = savedConfig; }, [savedConfig]);
@@ -512,6 +514,25 @@ export function QuoteForm({ deal, company, lineItems, dealOwner, onFormChange, p
   };
   const addLineItem = () => { setFormData(prev => ({ ...prev, lineItems: [...prev.lineItems, { id: `new-${Date.now()}`, quantity: 1, model: '', description: '', price: 0, cost: 0, markupPercent: 0, msrp: 0, dealerSource: '' }] })); };
   const removeLineItem = (index: number) => { setFormData(prev => { const newItems = prev.lineItems.filter((_, i) => i !== index); return { ...prev, lineItems: newItems }; }); };
+
+  const handleAddProductFromLibrary = (product: HubSpotProduct, tierCost?: number) => {
+    const cost = tierCost ?? product.cost;
+    const newItem = {
+      id: `hs-${product.id}-${Date.now()}`,
+      quantity: 1,
+      model: product.sku || product.name,
+      description: product.name,
+      price: cost > 0 && formData.lineItems.length > 0 && formData.lineItems[0]?.markupPercent > 0
+        ? Math.round(cost * (1 + formData.lineItems[0].markupPercent / 100) * 100) / 100
+        : product.price,
+      cost,
+      markupPercent: formData.lineItems.length > 0 ? formData.lineItems[0]?.markupPercent || 0 : 0,
+      msrp: product.price,
+      dealerSource: '',
+      hs_product_id: product.id,
+    };
+    setFormData(prev => ({ ...prev, lineItems: [...prev.lineItems, newItem as any] }));
+  };
   
   const toggleTerm = (term: number) => { 
     setFormData(prev => { 
@@ -533,6 +554,7 @@ export function QuoteForm({ deal, company, lineItems, dealOwner, onFormChange, p
   };
 
   return (
+    <>
     <div className="space-y-4">
       {/* Quote Details */}
       <Card>
@@ -576,7 +598,10 @@ export function QuoteForm({ deal, company, lineItems, dealOwner, onFormChange, p
         <CardHeader className="py-3">
           <CardTitle className="text-sm flex items-center justify-between">
             <span>Equipment</span>
-            <Button type="button" variant="outline" size="sm" onClick={addLineItem}><Plus className="h-3 w-3 mr-1" />Add Item</Button>
+            <div className="flex gap-2">
+              <Button type="button" variant="default" size="sm" onClick={() => setProductSearchOpen(true)}><Package className="h-3 w-3 mr-1" />Add Product</Button>
+              <Button type="button" variant="outline" size="sm" onClick={addLineItem}><Plus className="h-3 w-3 mr-1" />Manual Entry</Button>
+            </div>
           </CardTitle>
         </CardHeader>
         <CardContent>
@@ -1072,5 +1097,15 @@ export function QuoteForm({ deal, company, lineItems, dealOwner, onFormChange, p
         </CardContent>
       </Card>
     </div>
+
+      <ProductSearchModal
+        open={productSearchOpen}
+        onOpenChange={setProductSearchOpen}
+        portalId={portalId || localStorage.getItem('hs_portal_id') || ''}
+        selectedTier={formData.specialPricingTier}
+        pricingTiers={pricingTiers}
+        onAddProduct={handleAddProductFromLibrary}
+      />
+    </>
   );
 }

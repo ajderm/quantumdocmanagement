@@ -53,3 +53,9 @@ verify_jwt = false
 
 [functions.pricing-tiers-save]
 verify_jwt = false
+
+[functions.hubspot-get-products]
+verify_jwt = false
+
+[functions.hubspot-sync-line-items]
+verify_jwt = false
