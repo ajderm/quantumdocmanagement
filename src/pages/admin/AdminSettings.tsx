@@ -1233,6 +1233,19 @@ export default function AdminSettings() {
               </Card>
             </div>
           </TabsContent>
+
+          <TabsContent value="form-customization">
+            <FormCustomizationTab value={formCustomization} onChange={setFormCustomization} />
+            <div className="mt-4">
+              <Button onClick={handleSave} disabled={saving}>
+                {saving ? (
+                  <><Loader2 className="h-4 w-4 mr-2 animate-spin" />Saving...</>
+                ) : (
+                  <><Save className="h-4 w-4 mr-2" />Save Customization</>
+                )}
+              </Button>
+            </div>
+          </TabsContent>
         </Tabs>
       </div>
     </div>
