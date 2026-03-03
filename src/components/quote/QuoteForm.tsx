@@ -864,7 +864,7 @@ export function QuoteForm({ deal, company, lineItems, dealOwner, onFormChange, p
           <div className="grid grid-cols-2 gap-4">
             <div className="grid grid-cols-2 gap-2">
               <div>
-                <Label className="text-xs">Included B/W</Label>
+                <Label className="text-xs">{getLabel(formCustomization, 'includedBWCopies', 'Included B/W')}</Label>
                 <Input 
                   type="number" 
                   min="0"
