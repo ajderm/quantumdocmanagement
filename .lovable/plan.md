@@ -1,131 +1,98 @@
 
 
-# Fix: Race Condition in Form Initialization Across All Document Types
+# Fix Plan: Product Library, Product Grouping, and Rep Cost Pricing
 
-## Problem Summary
+## Issue 1: Product Search Modal Not Loading
 
-Saved form data is overwritten by HubSpot defaults on page reload because forms initialize before the database-saved configurations have loaded. Two parallel async operations -- HubSpot data fetch and Supabase config bulk load -- complete at different times, but forms begin rendering as soon as HubSpot data arrives.
+**Root Cause**: The HubSpot OAuth app is missing the `crm.objects.products.read` scope. The edge function logs show a `403 MISSING_SCOPES` error from HubSpot's API.
 
-## Root Causes
+**Fix**: This is a HubSpot app configuration issue, not a code issue. You need to add the `crm.objects.products.read` scope to your HubSpot app settings:
+1. Go to your HubSpot Developer account > Apps > your app
+2. Under "Auth" > "Scopes", add `crm.objects.products.read` (or `e-commerce`)
+3. Re-authorize the app for each portal (existing installs need to re-approve the new scope)
 
-### Race Condition (All Document Types)
-1. `useHubSpot()` fetches deal data. When it completes, `loading` becomes `false` and `DocumentHubContent` renders all forms.
-2. `loadAllConfigs` (bulk Supabase fetch) runs in a separate `useEffect`. It depends on `deal?.hsObjectId`, which is only available after HubSpot loads.
-3. Forms mount and initialize with HubSpot defaults before `savedConfig` arrives from the bulk load.
-4. When `savedConfig` finally arrives, some forms (like ServiceAgreement) have already set `hasInitializedRef = true`, so they ignore the saved data entirely.
-
-### retailPrice Override (Quote)
-The Quote init effect always sets `retailPrice = deal.amount`, even when `savedConfig` exists. If the user edited line item prices or manually adjusted the retail price, those edits are lost on every reload.
-
-### No hasInitializedRef Guard (Quote)
-Unlike other forms, the Quote init `useEffect` does NOT use `hasInitializedRef` as a guard. It re-runs on every `deal`, `company`, `dealOwner`, `lineItems`, or `savedConfig` change, repeatedly overwriting form state.
+No code changes needed for this issue.
 
 ---
 
-## Solution
+## Issue 2: Product Grouping (Hardware + Accessories)
 
-### Step 1: Add `configsLoaded` Gate in DocumentHub
+This is a significant feature addition. The goal is to let users associate accessories/software with specific hardware items in the Quote, so that when Installation documents are generated per-hardware-unit, the accompanying accessories flow through.
 
-Add a `configsLoaded` boolean state that starts as `false` and becomes `true` only after the `loadAllConfigs` call completes (whether it finds data or not). Gate the rendering of all form content on BOTH `!loading` (HubSpot done) AND `configsLoaded` (Supabase done). While either is pending, show a loading skeleton.
+### Data Model Change
 
-```text
-// New state
-const [configsLoaded, setConfigsLoaded] = useState(false);
+Add a `parentLineItemId` field to `QuoteLineItem` to create parent-child relationships:
 
-// In loadAllConfigs effect:
-// Set to true in finally block, even if there's an error
-// This ensures forms never render before we know whether saved data exists
-
-// In the render:
-if (loading || !configsLoaded) {
-  return <LoadingSkeleton />;
+```typescript
+export interface QuoteLineItem {
+  // ... existing fields
+  productType?: string;        // 'Hardware' | 'Accessory' | 'Software' | 'Service'
+  parentLineItemId?: string;   // ID of the hardware item this accessory is tied to
 }
 ```
 
-### Step 2: Fix QuoteForm retailPrice Logic
+### UI Changes (QuoteForm Equipment Table)
 
-Change QuoteForm init effect (lines 319-394):
-- Add `hasInitializedRef` guard (same pattern as other forms)
-- When `savedConfig` exists: use `savedConfig.retailPrice` instead of `deal.amount`
-- The existing line-item recalculation effect (lines 396-403) will still reactively update `retailPrice` when the user edits line items
+- Add a `productType` column (auto-populated from HubSpot `hs_product_type`, editable)
+- For non-hardware items, add a "Linked To" dropdown showing available hardware items
+- Visually indent linked accessories under their parent hardware
+- When a product is added from the library, carry over its `productType`
 
-```text
-// Current (broken):
-const retailPriceToUse = hubspotData.retailPrice; // Always deal.amount
+### Installation Form Changes
 
-// Fixed:
-const retailPriceToUse = savedConfig.retailPrice || hubspotData.retailPrice;
-```
+- When generating an Installation document for a hardware item, include its linked accessories/software in the equipment section
+- The `InstallationForm` already filters by hardware. Extend it to also pull in child line items where `parentLineItemId` matches the selected hardware's ID
 
-### Step 3: Add hasInitializedRef Guard to QuoteForm
+### Files to Create/Modify
 
-Add the same `if (hasInitializedRef.current) return;` guard at the top of the Quote init effect, matching the pattern used by ServiceAgreement, LeaseReturn, and other forms.
-
-### Step 4: Add Autosave Status Indicator
-
-Add a small "Saving..." / "Saved" text indicator near each save button. This uses existing auto-save infrastructure -- just surface the state visually.
+| File | Change |
+|------|--------|
+| `src/components/quote/QuoteForm.tsx` | Add `productType` and `parentLineItemId` to line items; add "Linked To" column; visual grouping |
+| `src/components/quote/QuotePreview.tsx` | Show grouped equipment in output |
+| `src/components/installation/InstallationForm.tsx` | Include linked accessories for selected hardware |
+| `src/components/installation/InstallationPreview.tsx` | Show accessories in output |
 
 ---
 
-## Technical Details
+## Issue 3: Rep Cost $0 and Pricing Calculations
 
-### DocumentHub.tsx Changes
+**Root Cause**: The backend fetches `hs_cost_of_goods_sold` for line item cost. The user says the correct property is `unit_cost`. Additionally, HubSpot line items may store cost in `unit_cost` (per-unit) vs `hs_cost_of_goods_sold` (which may be a total or may be empty).
 
-```text
-New state variable:
-  const [configsLoaded, setConfigsLoaded] = useState(false);
+### Backend Fix
 
-In loadAllConfigs effect (around line 468):
-  - Wrap the async function body in try/finally
-  - Add setConfigsLoaded(true) in the finally block
-  - Also set configsLoaded = true if the early return fires (no portalId/dealId)
+In `supabase/functions/hubspot-get-deal/index.ts`:
+- Add `unit_cost` to `lineItemPropsNeeded`
+- Use `unit_cost` as primary cost source, fall back to `hs_cost_of_goods_sold`:
+  ```typescript
+  cost: parseFloat(lineItemResponse.properties.unit_cost) 
+     || parseFloat(lineItemResponse.properties.hs_cost_of_goods_sold) 
+     || 0,
+  ```
 
-In the loading check (around line 2690):
-  Change: if (loading) { return <Loader /> }
-  To:     if (loading || !configsLoaded) { return <Loader /> }
+In `supabase/functions/hubspot-get-products/index.ts`:
+- Add `unit_cost` to the properties list
+- Use `unit_cost` as primary, fall back to `hs_cost_of_goods_sold`
 
-Add save status indicator near each Save button:
-  - Show "Saving..." text while auto-save is in progress
-  - Show "Saved" text briefly after successful save
-  - Uses existing hasUnsavedChanges / lastSavedData state
-```
+### Frontend Pricing Calculations (already correct, just need cost data)
 
-### QuoteForm.tsx Changes
+The QuoteForm already has the correct calculation logic:
+- Line 508-511: When `cost` or `markupPercent` changes, `price = cost * (1 + markup/100)`
+- Line 479-487: `retailPrice` auto-recalculates as sum of `item.price * item.quantity`
 
-```text
-Init effect (lines 319-394):
-  1. Add guard: if (hasInitializedRef.current) return;
-  2. Change retailPrice logic:
-     - If savedConfig exists: retailPriceToUse = savedConfig.retailPrice || hubspotData.retailPrice
-     - If no savedConfig: retailPriceToUse = hubspotData.retailPrice (current behavior)
-  3. Set hasInitializedRef.current = true at end of both branches
-```
+Once Rep Cost populates correctly from the backend, these calculations will work. No frontend pricing logic changes needed.
 
-### ServiceAgreementForm.tsx -- No Changes Needed
+### Files to Modify
 
-The existing `hasInitializedRef` guard is correct. The race condition fix in DocumentHub (gating on `configsLoaded`) ensures `savedConfig` is available before the form mounts, so the guard works as intended.
-
-### Other Forms -- No Changes Needed
-
-LeaseReturnForm, CommissionForm, InterterritorialForm, FMVLeaseForm, LoiForm, NewCustomerForm, RelocationForm, RemovalForm, InstallationForm, LeaseFundingForm all use `hasInitializedRef` or receive data directly via props from DocumentHub. The `configsLoaded` gate in DocumentHub fixes all of them simultaneously.
+| File | Change |
+|------|--------|
+| `supabase/functions/hubspot-get-deal/index.ts` | Add `unit_cost` property; use as primary cost source |
+| `supabase/functions/hubspot-get-products/index.ts` | Add `unit_cost` property; use as primary cost source |
 
 ---
 
-## Files Modified
+## Implementation Order
 
-| File | Changes |
-|------|---------|
-| `src/pages/DocumentHub.tsx` | Add `configsLoaded` state, set it in `loadAllConfigs`, gate form rendering, add save status indicators |
-| `src/components/quote/QuoteForm.tsx` | Add `hasInitializedRef` guard to init effect, fix `retailPrice` to use saved value when available |
-
-## What This Does NOT Change
-
-- Save/auto-save logic (already working correctly)
-- Edge functions (no changes)
-- Database schema (no changes)
-- Other form components (fixed by the DocumentHub gate)
-
-## Why This Works
-
-By preventing forms from mounting until both data sources are ready, we eliminate the race condition at the architectural level. Every form's init effect will see the correct `savedConfig` on its first (and only) run. The `hasInitializedRef` guard then prevents re-initialization if props change later.
+1. **Rep Cost fix** (backend edge functions) - quick, unblocks pricing
+2. **Product Grouping** (QuoteLineItem model + UI + Installation flow) - larger feature
+3. **Product Search** - requires HubSpot app scope change (manual step by user)
 
