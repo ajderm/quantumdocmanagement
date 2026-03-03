@@ -504,21 +504,36 @@ export function CommissionForm({ deal, company, lineItems, dealOwner, portalId, 
       {/* Line Items */}
       <Card>
         <CardHeader className="pb-2">
-          <CardTitle className="text-sm">Equipment Items</CardTitle>
+          <CardTitle className="text-sm flex items-center justify-between">
+            <span>Equipment Items</span>
+            <div className="flex items-center gap-2">
+              <Label className="text-xs font-normal text-muted-foreground">Special Pricing Tier</Label>
+              <Select value={formData.specialPricingTier || 'Standard'} onValueChange={handlePricingTierChange}>
+                <SelectTrigger className="h-8 text-sm w-40">
+                  <SelectValue placeholder="Standard" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="Standard">Standard</SelectItem>
+                  {pricingTiers.map(tier => (
+                    <SelectItem key={tier.id} value={tier.name}>{tier.name}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+          </CardTitle>
         </CardHeader>
         <CardContent>
           <div className="space-y-2">
-            <div className="grid grid-cols-[1fr_80px_80px_80px_80px_100px_1fr] gap-2 text-xs font-medium text-muted-foreground px-1">
+            <div className="grid grid-cols-[1fr_80px_80px_80px_80px_100px] gap-2 text-xs font-medium text-muted-foreground px-1">
               <span>Description</span>
               <span>Billed</span>
               <span>Rep Cost</span>
               <span>Type</span>
               <span>Condition</span>
               <span>Dealer Source</span>
-              <span>Special Pricing / Credits</span>
             </div>
             {formData.lineItems.map((item, index) => (
-              <div key={item.id} className="grid grid-cols-[1fr_80px_80px_80px_80px_100px_1fr] gap-2">
+              <div key={item.id} className="grid grid-cols-[1fr_80px_80px_80px_80px_100px] gap-2">
                 <Input className="h-8 text-sm" value={item.description} onChange={e => updateLineItem(index, "description", e.target.value)} />
                 <Input className="h-8 text-sm text-right" value={item.billed ? formatCurrency(item.billed) : ""} onChange={e => updateLineItem(index, "billed", parseCurrency(e.target.value))} />
                 <Input className="h-8 text-sm text-right" value={item.repCost ? formatCurrency(item.repCost) : ""} onChange={e => updateLineItem(index, "repCost", parseCurrency(e.target.value))} />
@@ -533,10 +548,9 @@ export function CommissionForm({ deal, company, lineItems, dealOwner, portalId, 
                 </Select>
                 <Input className="h-8 text-sm" value={item.condition} onChange={e => updateLineItem(index, "condition", e.target.value)} />
                 <Input className="h-8 text-sm" value={item.dealerSource} onChange={e => updateLineItem(index, "dealerSource", e.target.value)} />
-                <Input className="h-8 text-sm" placeholder="DIR, nonprofit, promo..." value={item.specialPricing} onChange={e => updateLineItem(index, "specialPricing", e.target.value)} />
               </div>
             ))}
-            <div className="grid grid-cols-[1fr_80px_80px_80px_80px_100px_1fr] gap-2 text-xs font-bold px-1 pt-1 border-t">
+            <div className="grid grid-cols-[1fr_80px_80px_80px_80px_100px] gap-2 text-xs font-bold px-1 pt-1 border-t">
               <span>Total Equipment</span>
               <span className="text-right">${formatCurrency(totalBilled)}</span>
               <span className="text-right">${formatCurrency(totalRepCost)}</span>
