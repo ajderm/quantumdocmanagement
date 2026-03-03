@@ -558,6 +558,7 @@ export function QuoteForm({ deal, company, lineItems, dealOwner, onFormChange, p
     <>
     <div className="space-y-4">
       {/* Quote Details */}
+      {isSectionVisible(formCustomization, 'customerInfo') && (
       <Card>
         <CardHeader className="py-3">
           <CardTitle className="text-sm">Quote Details</CardTitle>
@@ -565,8 +566,9 @@ export function QuoteForm({ deal, company, lineItems, dealOwner, onFormChange, p
         <CardContent>
           <div className="grid grid-cols-2 gap-4">
             <div className="space-y-3">
-              <div><Label className="text-xs">Quote Number</Label><Input value={formData.quoteNumber} onChange={e => updateField('quoteNumber', e.target.value)} className="h-8 text-sm" /></div>
-              <div><Label className="text-xs">Quote Date</Label><Input type="date" value={formData.quoteDate} onChange={e => updateField('quoteDate', e.target.value)} className="h-8 text-sm" /></div>
+              <div><Label className="text-xs">{getLabel(formCustomization, 'quoteNumber', 'Quote Number')}</Label><Input value={formData.quoteNumber} onChange={e => updateField('quoteNumber', e.target.value)} className="h-8 text-sm" /></div>
+              <div><Label className="text-xs">{getLabel(formCustomization, 'quoteDate', 'Quote Date')}</Label><Input type="date" value={formData.quoteDate} onChange={e => updateField('quoteDate', e.target.value)} className="h-8 text-sm" /></div>
+              <div><Label className="text-xs">{getLabel(formCustomization, 'preparedBy', 'Prepared By')}</Label><Input value={formData.preparedBy} onChange={e => updateField('preparedBy', e.target.value)} className="h-8 text-sm" /></div>
               <div><Label className="text-xs">Prepared By</Label><Input value={formData.preparedBy} onChange={e => updateField('preparedBy', e.target.value)} className="h-8 text-sm" /></div>
             </div>
             <div className="space-y-3">
