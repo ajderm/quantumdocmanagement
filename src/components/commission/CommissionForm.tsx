@@ -97,6 +97,7 @@ export function getDefaultCommissionFormData(): CommissionFormData {
     cityStateZip: "",
     county: "",
     transactionType: "",
+    specialPricingTier: "",
     lineItems: [],
     promoDiscounts: "",
     buyoutTradeUp: 0,
