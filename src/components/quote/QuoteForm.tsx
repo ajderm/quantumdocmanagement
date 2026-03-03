@@ -1096,5 +1096,15 @@ export function QuoteForm({ deal, company, lineItems, dealOwner, onFormChange, p
         </CardContent>
       </Card>
     </div>
+
+      <ProductSearchModal
+        open={productSearchOpen}
+        onOpenChange={setProductSearchOpen}
+        portalId={portalId || localStorage.getItem('hs_portal_id') || ''}
+        selectedTier={formData.specialPricingTier}
+        pricingTiers={pricingTiers}
+        onAddProduct={handleAddProductFromLibrary}
+      />
+    </>
   );
 }
