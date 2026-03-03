@@ -3691,7 +3691,7 @@ function DocumentHubContent() {
             <div className="p-4 flex justify-center">
               {formData && (
                 <div className="shadow-lg border">
-                  <QuotePreview formData={formData} dealerInfo={dealerInfo || undefined} documentStyles={dealerSettings.document_styles} />
+                  <QuotePreview formData={formData} dealerInfo={dealerInfo || undefined} documentStyles={dealerSettings.document_styles} formCustomization={dealerSettings.form_customization?.quote} />
                 </div>
               )}
             </div>
