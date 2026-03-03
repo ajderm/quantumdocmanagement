@@ -298,6 +298,7 @@ export const QuotePreview = forwardRef<HTMLDivElement, QuotePreviewProps>(
         </div>
 
         {/* Acceptance Section */}
+        {isSectionVisible(formCustomization, 'acceptance') && (
         <div className="mt-4 pt-2 border-t border-gray-300">
           <p className="font-bold mb-2">Accepted By:</p>
           <div className="grid grid-cols-2 gap-x-6 gap-y-2">
@@ -319,6 +320,7 @@ export const QuotePreview = forwardRef<HTMLDivElement, QuotePreviewProps>(
             </div>
           </div>
         </div>
+        )}
 
         {/* Confidentiality Notice */}
         <div className="mt-6 text-[9px] text-gray-500 italic">
