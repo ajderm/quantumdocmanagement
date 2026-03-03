@@ -182,6 +182,70 @@ export function QuoteForm({ deal, company, lineItems, dealOwner, onFormChange, p
     fetchRateFactors();
   }, [portalId]);
 
+  // Fetch pricing tiers
+  useEffect(() => {
+    const fetchPricingTiers = async () => {
+      const currentPortalId = portalId || localStorage.getItem('hs_portal_id');
+      if (!currentPortalId) return;
+      try {
+        const { data } = await supabase.functions.invoke('pricing-tiers-get', {
+          body: { portalId: currentPortalId }
+        });
+        if (data?.tiers) {
+          setPricingTiers(data.tiers);
+        }
+      } catch (err) {
+        console.error('Failed to fetch pricing tiers:', err);
+      }
+    };
+    fetchPricingTiers();
+  }, [portalId]);
+
+  // Handle pricing tier change — apply tier prices to all line items
+  const handlePricingTierChange = (tierName: string) => {
+    if (!formData.specialPricingTier || formData.specialPricingTier === 'Standard') {
+      const costs: Record<string, number> = {};
+      formData.lineItems.forEach(item => { costs[item.id] = item.cost; });
+      setOriginalCosts(costs);
+    }
+
+    if (tierName === 'Standard' || !tierName) {
+      setFormData(prev => ({
+        ...prev,
+        specialPricingTier: tierName,
+        lineItems: prev.lineItems.map(item => {
+          const origCost = originalCosts[item.id] ?? item.cost;
+          const newPrice = origCost > 0 && item.markupPercent > 0
+            ? origCost * (1 + item.markupPercent / 100)
+            : item.msrp || item.price;
+          return { ...item, cost: origCost, price: Math.round(newPrice * 100) / 100 };
+        }),
+      }));
+      return;
+    }
+
+    const tier = pricingTiers.find(t => t.name === tierName);
+    if (!tier) return;
+
+    setFormData(prev => ({
+      ...prev,
+      specialPricingTier: tierName,
+      lineItems: prev.lineItems.map(item => {
+        const priceMatch = tier.prices.find(p =>
+          item.model.toLowerCase() === p.product_model.toLowerCase()
+        );
+        if (priceMatch) {
+          const newCost = priceMatch.rep_cost;
+          const newPrice = item.markupPercent > 0
+            ? newCost * (1 + item.markupPercent / 100)
+            : item.price;
+          return { ...item, cost: newCost, price: Math.round(newPrice * 100) / 100 };
+        }
+        return item;
+      }),
+    }));
+  };
+
   // Get available terms for selected company and program
   const availableTerms = useMemo(() => {
     if (!hasRateSheet || !formData.leasingCompanyId) {
