@@ -671,6 +671,7 @@ export function QuoteForm({ deal, company, lineItems, dealOwner, onFormChange, p
           </div>
         </CardContent>
       </Card>
+      )}
       
       {/* Configuration */}
       <Card>
