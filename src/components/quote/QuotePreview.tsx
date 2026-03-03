@@ -138,12 +138,7 @@ export const QuotePreview = forwardRef<HTMLDivElement, QuotePreviewProps>(
         <div className="mb-4">
           <table className="w-full border-collapse text-[10px]">
             <colgroup>
-              {showPurchase && (
-                <>
-                  <col style={{ width: '14%' }} />
-                  <col style={{ width: '14%' }} />
-                </>
-              )}
+              {showPurchase && <col style={{ width: '18%' }} />}
               {showPurchase && showLease && <col style={{ width: '16px' }} />}
               {showLease && (
                 <>
@@ -155,7 +150,7 @@ export const QuotePreview = forwardRef<HTMLDivElement, QuotePreviewProps>(
             </colgroup>
             <thead>
               <tr className="border-b-2 border-black">
-                {showPurchase && <th colSpan={2} className="text-left py-1 pb-2 font-bold">PURCHASE</th>}
+                {showPurchase && <th className="text-left py-1 pb-2 font-bold">YOUR PRICE</th>}
                 {showPurchase && showLease && <th className="py-1 pb-2 font-bold"></th>}
                 {showLease && <th colSpan={2} className="text-left py-1 pb-2 font-bold">{leaseTypeName.toUpperCase()}</th>}
                 {hasServiceAgreement && (
@@ -163,12 +158,7 @@ export const QuotePreview = forwardRef<HTMLDivElement, QuotePreviewProps>(
                 )}
               </tr>
               <tr className="border-b border-gray-300">
-                {showPurchase && (
-                  <>
-                    <th className="text-left py-1 font-semibold text-[9px]">RETAIL</th>
-                    <th className="text-left py-1 font-semibold text-[9px]">CASH DISCOUNT</th>
-                  </>
-                )}
+                {showPurchase && <th className="text-left py-1 font-semibold text-[9px]"></th>}
                 {showPurchase && showLease && <th className="text-center py-1 font-semibold text-[9px]"></th>}
                 {showLease && (
                   <>
@@ -185,14 +175,9 @@ export const QuotePreview = forwardRef<HTMLDivElement, QuotePreviewProps>(
               {/* First row - main values */}
               <tr className="border-b border-gray-300">
                 {showPurchase && (
-                  <>
-                    <td className="py-1 align-top" rowSpan={Math.max(formData.selectedTerms.length, 1)}>
-                      <span className="font-bold">${formatCurrency(formData.retailPrice)}</span>
-                    </td>
-                    <td className="py-1 align-top" rowSpan={Math.max(formData.selectedTerms.length, 1)}>
-                      <span className="font-bold">${formatCurrency(formData.cashDiscount)}</span>
-                    </td>
-                  </>
+                  <td className="py-1 align-top" rowSpan={Math.max(formData.selectedTerms.length, 1)}>
+                    <span className="font-bold">${formatCurrency(formData.retailPrice)}</span>
+                  </td>
                 )}
                 {showPurchase && showLease && (
                   <td className="text-center py-1 align-middle font-bold text-gray-500" rowSpan={Math.max(formData.selectedTerms.length, 1)}>

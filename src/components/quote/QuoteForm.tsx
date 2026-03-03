@@ -625,7 +625,7 @@ export function QuoteForm({ deal, company, lineItems, dealOwner, onFormChange, p
           <div className="grid grid-cols-2 gap-4">
             <div className="space-y-3">
               <div>
-                <Label className="text-xs">Retail Price</Label>
+                <Label className="text-xs">Total Sell Price</Label>
                 <div className="relative">
                   <span className="absolute left-2 top-1/2 -translate-y-1/2 text-muted-foreground text-sm">$</span>
                   <Input 
@@ -633,33 +633,6 @@ export function QuoteForm({ deal, company, lineItems, dealOwner, onFormChange, p
                     value={formatCurrency(formData.retailPrice)} 
                     onChange={e => updateField('retailPrice', parseCurrency(e.target.value))} 
                     className="h-8 text-sm pl-5" 
-                  />
-                </div>
-              </div>
-              <div>
-                <Label className="text-xs">Discount</Label>
-                <div className="relative">
-                  <Input 
-                    type="number" 
-                    min="0"
-                    max="100"
-                    step="0.1"
-                    value={formData.cashDiscountPercent} 
-                    onChange={e => updateField('cashDiscountPercent', parseFloat(e.target.value) || 0)} 
-                    className="h-8 text-sm pr-7" 
-                  />
-                  <span className="absolute right-2 top-1/2 -translate-y-1/2 text-muted-foreground text-sm">%</span>
-                </div>
-              </div>
-              <div>
-                <Label className="text-xs">Cash Discount Price</Label>
-                <div className="relative">
-                  <span className="absolute left-2 top-1/2 -translate-y-1/2 text-muted-foreground text-sm">$</span>
-                  <Input 
-                    type="text" 
-                    value={formatCurrency(formData.cashDiscount)} 
-                    readOnly
-                    className="h-8 text-sm pl-5 bg-muted/50" 
                   />
                 </div>
               </div>
