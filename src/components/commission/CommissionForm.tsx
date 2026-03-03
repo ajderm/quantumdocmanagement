@@ -30,6 +30,9 @@ export interface CommissionFormData {
   // Customer/Sale Type
   transactionType: string;
 
+  // Special Pricing Tier (deal-level)
+  specialPricingTier: string;
+
   // Line Items
   lineItems: CommissionLineItem[];
 
