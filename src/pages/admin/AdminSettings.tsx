@@ -169,6 +169,9 @@ export default function AdminSettings() {
           if (settings.enabled_forms && Array.isArray(settings.enabled_forms)) {
             setEnabledForms(settings.enabled_forms);
           }
+          if (settings.form_customization && typeof settings.form_customization === 'object') {
+            setFormCustomization(settings.form_customization as FormCustomizationMap);
+          }
           if (settings.document_styles) {
             const ds = settings.document_styles;
             if (ds.fontFamily) setDocStyleFontFamily(ds.fontFamily);
