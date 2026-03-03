@@ -343,6 +343,7 @@ export function QuoteForm({ deal, company, lineItems, dealOwner, onFormChange, p
         cost: item.cost || 0,
         markupPercent: 0,
         price: item.price || 0,
+        msrp: item.price || 0,
       })), 
       retailPrice: dealAmount
     };
