@@ -8,7 +8,7 @@ import { Plus, Trash2, AlertTriangle, X } from 'lucide-react';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { supabase } from '@/integrations/supabase/client';
 
-export interface QuoteLineItem { id: string; quantity: number; model: string; description: string; price: number; }
+export interface QuoteLineItem { id: string; quantity: number; model: string; description: string; price: number; cost: number; markupPercent: number; }
 export interface QuoteFormData { 
   quoteNumber: string; 
   quoteDate: string; 
@@ -24,8 +24,8 @@ export interface QuoteFormData {
   phone: string; 
   lineItems: QuoteLineItem[]; 
   retailPrice: number; 
-  cashDiscountPercent: number;
-  cashDiscount: number; 
+  cashDiscountPercent?: number;
+  cashDiscount?: number; 
   selectedTerms: number[]; 
   serviceBaseRate: number; 
   includedBWCopies: number; 
@@ -96,7 +96,7 @@ export function QuoteForm({ deal, company, lineItems, dealOwner, onFormChange, p
     phone: '', 
     lineItems: [], 
     retailPrice: 0, 
-    cashDiscountPercent: 5,
+    cashDiscountPercent: 0,
     cashDiscount: 0, 
     selectedTerms: [], 
     serviceBaseRate: 0, 
@@ -340,16 +340,23 @@ export function QuoteForm({ deal, company, lineItems, dealOwner, onFormChange, p
         quantity: item.quantity, 
         model: item.model || item.sku || '', 
         description: item.description || item.name || '', 
-        price: item.price 
+        cost: item.cost || 0,
+        markupPercent: 0,
+        price: item.price || 0,
       })), 
       retailPrice: dealAmount
     };
 
     // If we have saved config, merge it with HubSpot data
     if (savedConfig) {
-      const discountPercent = savedConfig.cashDiscountPercent ?? 5;
       // Use saved retailPrice if available, otherwise fall back to HubSpot deal amount
       const retailPriceToUse = savedConfig.retailPrice || hubspotData.retailPrice;
+      // Ensure saved line items have cost/markupPercent fields (backward compat)
+      const savedLineItems = (savedConfig.lineItems?.length > 0 ? savedConfig.lineItems : hubspotData.lineItems).map((item: any) => ({
+        ...item,
+        cost: item.cost ?? 0,
+        markupPercent: item.markupPercent ?? 0,
+      }));
       setFormData(prev => ({ 
         ...prev, 
         ...savedConfig,
@@ -365,10 +372,8 @@ export function QuoteForm({ deal, company, lineItems, dealOwner, onFormChange, p
         state: hubspotData.state || savedConfig.state,
         zip: hubspotData.zip || savedConfig.zip,
         phone: hubspotData.phone || savedConfig.phone,
-        lineItems: savedConfig.lineItems?.length > 0 ? savedConfig.lineItems : hubspotData.lineItems,
+        lineItems: savedLineItems,
         retailPrice: retailPriceToUse,
-        cashDiscountPercent: discountPercent,
-        cashDiscount: retailPriceToUse * (1 - discountPercent / 100),
         calculatedPayments: savedConfig.calculatedPayments || {},
       }));
       
@@ -380,12 +385,9 @@ export function QuoteForm({ deal, company, lineItems, dealOwner, onFormChange, p
       if (savedConfig.returnShipping > 0) setReturnShippingText(String(savedConfig.returnShipping));
       if (savedConfig.paymentAmount > 0) setPaymentAmountText(String(savedConfig.paymentAmount));
     } else {
-      const discountPercent = 5;
       setFormData(prev => ({ 
         ...prev, 
         ...hubspotData,
-        cashDiscountPercent: discountPercent,
-        cashDiscount: hubspotData.retailPrice * (1 - discountPercent / 100)
       }));
     }
 
@@ -398,20 +400,11 @@ export function QuoteForm({ deal, company, lineItems, dealOwner, onFormChange, p
     const total = formData.lineItems.reduce((sum, item) => sum + (item.price * item.quantity), 0);
     setFormData(prev => {
       if (Math.abs(total - prev.retailPrice) > 0.01) {
-        const discountPercent = prev.cashDiscountPercent;
-        return { ...prev, retailPrice: total, cashDiscount: total * (1 - discountPercent / 100) };
+        return { ...prev, retailPrice: total };
       }
       return prev;
     });
   }, [formData.lineItems]);
-
-  // Auto-calculate cash discount when retail price or discount percent changes
-  useEffect(() => {
-    const calculatedCashDiscount = formData.retailPrice * (1 - formData.cashDiscountPercent / 100);
-    if (Math.abs(calculatedCashDiscount - formData.cashDiscount) > 0.01) {
-      setFormData(prev => ({ ...prev, cashDiscount: calculatedCashDiscount }));
-    }
-  }, [formData.retailPrice, formData.cashDiscountPercent]);
 
   // Auto-calculate base rate when service values change (if not manually set)
   useEffect(() => {
@@ -426,8 +419,20 @@ export function QuoteForm({ deal, company, lineItems, dealOwner, onFormChange, p
   useEffect(() => { onFormChange(formData); }, [formData, onFormChange]);
 
   const updateField = <K extends keyof QuoteFormData>(field: K, value: QuoteFormData[K]) => { setFormData(prev => ({ ...prev, [field]: value })); };
-  const updateLineItem = (index: number, field: keyof QuoteLineItem, value: string | number) => { setFormData(prev => { const newItems = [...prev.lineItems]; newItems[index] = { ...newItems[index], [field]: value }; return { ...prev, lineItems: newItems }; }); };
-  const addLineItem = () => { setFormData(prev => ({ ...prev, lineItems: [...prev.lineItems, { id: `new-${Date.now()}`, quantity: 1, model: '', description: '', price: 0 }] })); };
+  const updateLineItem = (index: number, field: keyof QuoteLineItem, value: string | number) => { 
+    setFormData(prev => { 
+      const newItems = [...prev.lineItems]; 
+      newItems[index] = { ...newItems[index], [field]: value };
+      // Auto-recalculate sell price when cost or markupPercent changes
+      if (field === 'cost' || field === 'markupPercent') {
+        const cost = field === 'cost' ? (value as number) : newItems[index].cost;
+        const markup = field === 'markupPercent' ? (value as number) : newItems[index].markupPercent;
+        newItems[index].price = Math.round(cost * (1 + markup / 100) * 100) / 100;
+      }
+      return { ...prev, lineItems: newItems }; 
+    }); 
+  };
+  const addLineItem = () => { setFormData(prev => ({ ...prev, lineItems: [...prev.lineItems, { id: `new-${Date.now()}`, quantity: 1, model: '', description: '', price: 0, cost: 0, markupPercent: 0 }] })); };
   const removeLineItem = (index: number) => { setFormData(prev => { const newItems = prev.lineItems.filter((_, i) => i !== index); return { ...prev, lineItems: newItems }; }); };
   
   const toggleTerm = (term: number) => { 
@@ -498,8 +503,49 @@ export function QuoteForm({ deal, company, lineItems, dealOwner, onFormChange, p
         </CardHeader>
         <CardContent>
           <div className="space-y-2">
-            <div className="grid grid-cols-12 gap-2 text-xs font-medium text-muted-foreground px-2"><div className="col-span-1">Qty</div><div className="col-span-3">Model</div><div className="col-span-5">Description</div><div className="col-span-2">Price</div><div className="col-span-1"></div></div>
-            {formData.lineItems.map((item, idx) => (<div key={item.id} className="grid grid-cols-12 gap-2 items-center"><div className="col-span-1"><Input type="number" min="1" value={item.quantity} onChange={e => updateLineItem(idx, 'quantity', parseInt(e.target.value) || 1)} className="h-8 text-sm" /></div><div className="col-span-3"><Input value={item.model} onChange={e => updateLineItem(idx, 'model', e.target.value)} className="h-8 text-sm" /></div><div className="col-span-5"><Input value={item.description} onChange={e => updateLineItem(idx, 'description', e.target.value)} className="h-8 text-sm" /></div><div className="col-span-2"><div className="relative"><span className="absolute left-2 top-1/2 -translate-y-1/2 text-muted-foreground text-sm">$</span><Input type="number" min="0" step="0.01" value={item.price} onChange={e => updateLineItem(idx, 'price', parseFloat(e.target.value) || 0)} className="h-8 text-sm pl-5" /></div></div><div className="col-span-1"><Button type="button" variant="ghost" size="sm" onClick={() => removeLineItem(idx)} className="h-8 w-8 p-0 text-destructive"><Trash2 className="h-3.5 w-3.5" /></Button></div></div>))}
+            <div className="grid grid-cols-12 gap-2 text-xs font-medium text-muted-foreground px-2">
+              <div className="col-span-1">Qty</div>
+              <div className="col-span-2">Model</div>
+              <div className="col-span-3">Description</div>
+              <div className="col-span-2">Rep Cost</div>
+              <div className="col-span-1">Markup %</div>
+              <div className="col-span-2">Your Price</div>
+              <div className="col-span-1"></div>
+            </div>
+            {formData.lineItems.map((item, idx) => (
+              <div key={item.id} className="grid grid-cols-12 gap-2 items-center">
+                <div className="col-span-1">
+                  <Input type="number" min="1" value={item.quantity} onChange={e => updateLineItem(idx, 'quantity', parseInt(e.target.value) || 1)} className="h-8 text-sm" />
+                </div>
+                <div className="col-span-2">
+                  <Input value={item.model} onChange={e => updateLineItem(idx, 'model', e.target.value)} className="h-8 text-sm" />
+                </div>
+                <div className="col-span-3">
+                  <Input value={item.description} onChange={e => updateLineItem(idx, 'description', e.target.value)} className="h-8 text-sm" />
+                </div>
+                <div className="col-span-2">
+                  <div className="relative">
+                    <span className="absolute left-2 top-1/2 -translate-y-1/2 text-muted-foreground text-sm">$</span>
+                    <Input type="number" min="0" step="0.01" value={item.cost} onChange={e => updateLineItem(idx, 'cost', parseFloat(e.target.value) || 0)} className="h-8 text-sm pl-5" />
+                  </div>
+                </div>
+                <div className="col-span-1">
+                  <div className="relative">
+                    <Input type="number" min="0" step="1" value={item.markupPercent} onChange={e => updateLineItem(idx, 'markupPercent', parseFloat(e.target.value) || 0)} className="h-8 text-sm pr-6" />
+                    <span className="absolute right-2 top-1/2 -translate-y-1/2 text-muted-foreground text-xs">%</span>
+                  </div>
+                </div>
+                <div className="col-span-2">
+                  <div className="relative">
+                    <span className="absolute left-2 top-1/2 -translate-y-1/2 text-muted-foreground text-sm">$</span>
+                    <Input type="text" value={formatCurrency(item.price)} readOnly className="h-8 text-sm pl-5 bg-muted/50" />
+                  </div>
+                </div>
+                <div className="col-span-1">
+                  <Button type="button" variant="ghost" size="sm" onClick={() => removeLineItem(idx)} className="h-8 w-8 p-0 text-destructive"><Trash2 className="h-3.5 w-3.5" /></Button>
+                </div>
+              </div>
+            ))}
             {formData.lineItems.length === 0 && <p className="text-sm text-muted-foreground text-center py-4">No equipment. Click Add Item.</p>}
           </div>
         </CardContent>
@@ -579,7 +625,7 @@ export function QuoteForm({ deal, company, lineItems, dealOwner, onFormChange, p
           <div className="grid grid-cols-2 gap-4">
             <div className="space-y-3">
               <div>
-                <Label className="text-xs">Retail Price</Label>
+                <Label className="text-xs">Total Sell Price</Label>
                 <div className="relative">
                   <span className="absolute left-2 top-1/2 -translate-y-1/2 text-muted-foreground text-sm">$</span>
                   <Input 
@@ -587,33 +633,6 @@ export function QuoteForm({ deal, company, lineItems, dealOwner, onFormChange, p
                     value={formatCurrency(formData.retailPrice)} 
                     onChange={e => updateField('retailPrice', parseCurrency(e.target.value))} 
                     className="h-8 text-sm pl-5" 
-                  />
-                </div>
-              </div>
-              <div>
-                <Label className="text-xs">Discount</Label>
-                <div className="relative">
-                  <Input 
-                    type="number" 
-                    min="0"
-                    max="100"
-                    step="0.1"
-                    value={formData.cashDiscountPercent} 
-                    onChange={e => updateField('cashDiscountPercent', parseFloat(e.target.value) || 0)} 
-                    className="h-8 text-sm pr-7" 
-                  />
-                  <span className="absolute right-2 top-1/2 -translate-y-1/2 text-muted-foreground text-sm">%</span>
-                </div>
-              </div>
-              <div>
-                <Label className="text-xs">Cash Discount Price</Label>
-                <div className="relative">
-                  <span className="absolute left-2 top-1/2 -translate-y-1/2 text-muted-foreground text-sm">$</span>
-                  <Input 
-                    type="text" 
-                    value={formatCurrency(formData.cashDiscount)} 
-                    readOnly
-                    className="h-8 text-sm pl-5 bg-muted/50" 
                   />
                 </div>
               </div>
