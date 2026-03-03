@@ -429,6 +429,10 @@ export default function AdminSettings() {
               <FilePlus className="h-4 w-4 mr-2" />
               Custom Documents
             </TabsTrigger>
+            <TabsTrigger value="pricing-tiers">
+              <DollarSign className="h-4 w-4 mr-2" />
+              Pricing Tiers
+            </TabsTrigger>
             <TabsTrigger value="leasing" asChild>
               <Link to={`/admin/leasing?portalId=${portalId || ''}`}>
                 <CreditCard className="h-4 w-4 mr-2" />
