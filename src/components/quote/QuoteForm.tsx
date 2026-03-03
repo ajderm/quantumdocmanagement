@@ -875,7 +875,7 @@ export function QuoteForm({ deal, company, lineItems, dealOwner, onFormChange, p
                 />
               </div>
               <div>
-                <Label className="text-xs">Included Color</Label>
+                <Label className="text-xs">{getLabel(formCustomization, 'includedColorCopies', 'Included Color')}</Label>
                 <Input 
                   type="number"
                   min="0" 
