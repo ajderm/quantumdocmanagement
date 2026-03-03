@@ -344,7 +344,8 @@ export function QuoteForm({ deal, company, lineItems, dealOwner, onFormChange, p
         markupPercent: 0,
         price: item.price || 0,
         msrp: item.price || 0,
-      })), 
+        dealerSource: item.dealer || item.properties?.dealer || item.properties?.manufacturer || item.properties?.vendor || '',
+      })),
       retailPrice: dealAmount
     };
 
