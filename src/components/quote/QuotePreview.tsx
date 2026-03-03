@@ -115,6 +115,7 @@ export const QuotePreview = forwardRef<HTMLDivElement, QuotePreviewProps>(
         )}
 
         {/* Equipment Table */}
+        {isSectionVisible(formCustomization, 'equipment') && (
         <div className="mb-6">
           <p className="font-bold mb-2">EQUIPMENT</p>
           <table className="w-full border-collapse text-[9px]">
@@ -156,6 +157,7 @@ export const QuotePreview = forwardRef<HTMLDivElement, QuotePreviewProps>(
             </tbody>
           </table>
         </div>
+        )}
 
         {/* Combined Pricing Table - Purchase | Lease | Service Agreement */}
         <div className="mb-4">
