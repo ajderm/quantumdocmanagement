@@ -210,8 +210,8 @@ export function ProductSearchModal({
                     className="flex items-center justify-between p-3 rounded-md border hover:bg-accent/50 transition-colors"
                   >
                     <div className="flex-1 min-w-0">
-                      <div className="flex items-center gap-2">
-                        <span className="font-medium text-sm truncate">{product.name}</span>
+                      <div className="flex items-center gap-2 min-w-0">
+                        <span className="font-medium text-sm truncate max-w-[280px]">{product.name}</span>
                         <Badge
                           variant={product.hasOverride ? 'default' : 'outline'}
                           className="text-[10px] shrink-0"
