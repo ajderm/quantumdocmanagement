@@ -505,45 +505,52 @@ export function QuoteForm({ deal, company, lineItems, dealOwner, onFormChange, p
         </CardHeader>
         <CardContent>
           <div className="space-y-2">
-            <div className="grid grid-cols-12 gap-2 text-xs font-medium text-muted-foreground px-2">
-              <div className="col-span-1">Qty</div>
-              <div className="col-span-2">Model</div>
-              <div className="col-span-3">Description</div>
-              <div className="col-span-2">Rep Cost</div>
-              <div className="col-span-1">Markup %</div>
-              <div className="col-span-2">Your Price</div>
-              <div className="col-span-1"></div>
+            <div className="grid grid-cols-[50px_1fr_1.5fr_100px_100px_70px_100px_40px] gap-2 text-xs font-medium text-muted-foreground px-2">
+              <div>Qty</div>
+              <div>Model</div>
+              <div>Description</div>
+              <div>MSRP</div>
+              <div>Rep Cost</div>
+              <div>Markup %</div>
+              <div>Your Price</div>
+              <div></div>
             </div>
             {formData.lineItems.map((item, idx) => (
-              <div key={item.id} className="grid grid-cols-12 gap-2 items-center">
-                <div className="col-span-1">
+              <div key={item.id} className="grid grid-cols-[50px_1fr_1.5fr_100px_100px_70px_100px_40px] gap-2 items-center">
+                <div>
                   <Input type="number" min="1" value={item.quantity} onChange={e => updateLineItem(idx, 'quantity', parseInt(e.target.value) || 1)} className="h-8 text-sm" />
                 </div>
-                <div className="col-span-2">
+                <div>
                   <Input value={item.model} onChange={e => updateLineItem(idx, 'model', e.target.value)} className="h-8 text-sm" />
                 </div>
-                <div className="col-span-3">
+                <div>
                   <Input value={item.description} onChange={e => updateLineItem(idx, 'description', e.target.value)} className="h-8 text-sm" />
                 </div>
-                <div className="col-span-2">
+                <div>
+                  <div className="relative">
+                    <span className="absolute left-2 top-1/2 -translate-y-1/2 text-muted-foreground text-sm">$</span>
+                    <Input type="text" value={formatCurrency(item.msrp || 0)} readOnly className="h-8 text-sm pl-5 bg-muted/50" />
+                  </div>
+                </div>
+                <div>
                   <div className="relative">
                     <span className="absolute left-2 top-1/2 -translate-y-1/2 text-muted-foreground text-sm">$</span>
                     <Input type="number" min="0" step="0.01" value={item.cost} onChange={e => updateLineItem(idx, 'cost', parseFloat(e.target.value) || 0)} className="h-8 text-sm pl-5" />
                   </div>
                 </div>
-                <div className="col-span-1">
+                <div>
                   <div className="relative">
                     <Input type="number" min="0" step="1" value={item.markupPercent} onChange={e => updateLineItem(idx, 'markupPercent', parseFloat(e.target.value) || 0)} className="h-8 text-sm pr-6" />
                     <span className="absolute right-2 top-1/2 -translate-y-1/2 text-muted-foreground text-xs">%</span>
                   </div>
                 </div>
-                <div className="col-span-2">
+                <div>
                   <div className="relative">
                     <span className="absolute left-2 top-1/2 -translate-y-1/2 text-muted-foreground text-sm">$</span>
                     <Input type="text" value={formatCurrency(item.price)} readOnly className="h-8 text-sm pl-5 bg-muted/50" />
                   </div>
                 </div>
-                <div className="col-span-1">
+                <div>
                   <Button type="button" variant="ghost" size="sm" onClick={() => removeLineItem(idx)} className="h-8 w-8 p-0 text-destructive"><Trash2 className="h-3.5 w-3.5" /></Button>
                 </div>
               </div>
