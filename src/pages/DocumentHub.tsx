@@ -98,6 +98,7 @@ interface DealerSettings {
   };
   proposal_template_url?: string;
   proposal_template_name?: string;
+  form_customization?: FormCustomizationMap;
 }
 
 interface DocumentTerms {
