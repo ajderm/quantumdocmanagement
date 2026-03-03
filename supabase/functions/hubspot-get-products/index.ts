@@ -102,7 +102,7 @@ Deno.serve(async (req) => {
       filterGroups: [],
       properties: [
         'name', 'hs_sku', 'description', 'price',
-        'hs_cost_of_goods_sold', 'hs_product_type',
+        'hs_cost_of_goods_sold', 'unit_cost', 'hs_product_type',
         'hs_images', 'hs_recurring_billing_period',
       ],
       limit: 100,
