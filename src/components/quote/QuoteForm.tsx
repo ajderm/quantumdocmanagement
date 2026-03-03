@@ -4,9 +4,10 @@ import { Label } from '@/components/ui/label';
 import { Button } from '@/components/ui/button';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Plus, Trash2, AlertTriangle, X } from 'lucide-react';
+import { Plus, Trash2, AlertTriangle, X, Package } from 'lucide-react';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { supabase } from '@/integrations/supabase/client';
+import { ProductSearchModal, HubSpotProduct } from './ProductSearchModal';
 
 export interface QuoteLineItem { id: string; quantity: number; model: string; description: string; price: number; cost: number; markupPercent: number; msrp: number; dealerSource: string; }
 export interface QuoteFormData { 
