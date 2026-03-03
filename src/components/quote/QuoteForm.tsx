@@ -96,7 +96,7 @@ export function QuoteForm({ deal, company, lineItems, dealOwner, onFormChange, p
     phone: '', 
     lineItems: [], 
     retailPrice: 0, 
-    cashDiscountPercent: 5,
+    cashDiscountPercent: 0,
     cashDiscount: 0, 
     selectedTerms: [], 
     serviceBaseRate: 0, 
