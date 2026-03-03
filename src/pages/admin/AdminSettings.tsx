@@ -466,6 +466,10 @@ export default function AdminSettings() {
               <DollarSign className="h-4 w-4 mr-2" />
               Pricing Tiers
             </TabsTrigger>
+            <TabsTrigger value="form-customization">
+              <Settings2 className="h-4 w-4 mr-2" />
+              Form Customization
+            </TabsTrigger>
             <TabsTrigger value="leasing" asChild>
               <Link to={`/admin/leasing?portalId=${portalId || ''}`}>
                 <CreditCard className="h-4 w-4 mr-2" />
