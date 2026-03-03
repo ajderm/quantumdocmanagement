@@ -646,7 +646,21 @@ export function QuoteForm({ deal, company, lineItems, dealOwner, onFormChange, p
           <CardTitle className="text-sm">Configuration</CardTitle>
         </CardHeader>
         <CardContent>
-          <div className="grid grid-cols-4 gap-4">
+          <div className="grid grid-cols-5 gap-4">
+            <div>
+              <Label className="text-xs">Special Pricing</Label>
+              <Select value={formData.specialPricingTier || 'Standard'} onValueChange={handlePricingTierChange}>
+                <SelectTrigger className="h-8 text-sm">
+                  <SelectValue placeholder="Standard" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="Standard">Standard</SelectItem>
+                  {pricingTiers.map(tier => (
+                    <SelectItem key={tier.id} value={tier.name}>{tier.name}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
             <div>
               <Label className="text-xs">Leasing Company</Label>
               <Select value={formData.leasingCompanyId} onValueChange={(v) => updateField('leasingCompanyId', v)}>
