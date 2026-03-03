@@ -569,7 +569,6 @@ export function QuoteForm({ deal, company, lineItems, dealOwner, onFormChange, p
               <div><Label className="text-xs">{getLabel(formCustomization, 'quoteNumber', 'Quote Number')}</Label><Input value={formData.quoteNumber} onChange={e => updateField('quoteNumber', e.target.value)} className="h-8 text-sm" /></div>
               <div><Label className="text-xs">{getLabel(formCustomization, 'quoteDate', 'Quote Date')}</Label><Input type="date" value={formData.quoteDate} onChange={e => updateField('quoteDate', e.target.value)} className="h-8 text-sm" /></div>
               <div><Label className="text-xs">{getLabel(formCustomization, 'preparedBy', 'Prepared By')}</Label><Input value={formData.preparedBy} onChange={e => updateField('preparedBy', e.target.value)} className="h-8 text-sm" /></div>
-              <div><Label className="text-xs">Prepared By</Label><Input value={formData.preparedBy} onChange={e => updateField('preparedBy', e.target.value)} className="h-8 text-sm" /></div>
             </div>
             <div className="space-y-3">
               <div><Label className="text-xs">Sales Rep Email</Label><Input type="email" value={formData.preparedByEmail} onChange={e => updateField('preparedByEmail', e.target.value)} className="h-8 text-sm" /></div>
@@ -815,7 +814,7 @@ export function QuoteForm({ deal, company, lineItems, dealOwner, onFormChange, p
                     <div key={t} className="flex items-center gap-2 text-sm bg-muted/50 rounded px-3 py-2">
                       <span className="min-w-[70px]">{t} months</span>
                       <span className={`font-medium min-w-[90px] ${hasOverride ? 'text-muted-foreground line-through' : ''}`}>
-                        ${calculatedPayment.toLocaleString()}/mo
+                        ${(calculatedPayment ?? 0).toLocaleString()}/mo
                       </span>
                       <div className="flex items-center gap-1 ml-auto">
                         <span className="text-xs text-muted-foreground">Override:</span>
@@ -825,7 +824,7 @@ export function QuoteForm({ deal, company, lineItems, dealOwner, onFormChange, p
                             type="text"
                             value={paymentOverrideTexts[t] || ''}
                             onChange={(e) => handlePaymentOverrideChange(t, e.target.value)}
-                            placeholder={calculatedPayment.toLocaleString()}
+                            placeholder={(calculatedPayment ?? 0).toLocaleString()}
                             className="h-7 text-xs pl-5 pr-7"
                           />
                           {hasOverride && (
@@ -840,7 +839,7 @@ export function QuoteForm({ deal, company, lineItems, dealOwner, onFormChange, p
                         </div>
                         {hasOverride && (
                           <span className="font-medium text-primary min-w-[80px]">
-                            ${effectivePayment.toLocaleString()}/mo
+                            ${(effectivePayment ?? 0).toLocaleString()}/mo
                           </span>
                         )}
                       </div>

@@ -35,7 +35,7 @@ export const QuotePreview = forwardRef<HTMLDivElement, QuotePreviewProps>(
     };
 
     const formatCurrency = (value: number) => {
-      return value.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+      return (value ?? 0).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
     };
 
     const hasServiceAgreement = formData.serviceBaseRate > 0 || formData.includedBWCopies > 0 || formData.includedColorCopies > 0;
@@ -216,7 +216,7 @@ export const QuotePreview = forwardRef<HTMLDivElement, QuotePreviewProps>(
                   <>
                     <td className="py-1">{formData.selectedTerms[0]} months</td>
                     <td className="py-1 text-right font-semibold pr-3">
-                      ${getLeasePayment(formData.selectedTerms[0]).toLocaleString()}/mo
+                      ${(getLeasePayment(formData.selectedTerms[0]) ?? 0).toLocaleString()}/mo
                     </td>
                   </>
                 )}
@@ -235,11 +235,11 @@ export const QuotePreview = forwardRef<HTMLDivElement, QuotePreviewProps>(
                             <tr>
                               <td className="font-bold pr-2 py-[1px] pt-1" rowSpan={2}>INCLUDES</td>
                               <td className="py-[1px] pt-1">B/W COPIES</td>
-                              <td className="text-right py-[1px] pt-1">{formData.includedBWCopies.toLocaleString()}</td>
+                              <td className="text-right py-[1px] pt-1">{(formData.includedBWCopies ?? 0).toLocaleString()}</td>
                             </tr>
                             <tr>
                               <td className="py-[1px]">COLOR COPIES</td>
-                              <td className="text-right py-[1px]">{formData.includedColorCopies.toLocaleString()}</td>
+                              <td className="text-right py-[1px]">{(formData.includedColorCopies ?? 0).toLocaleString()}</td>
                             </tr>
                           </>
                         )}
@@ -266,7 +266,7 @@ export const QuotePreview = forwardRef<HTMLDivElement, QuotePreviewProps>(
                 <tr key={term} className={idx === formData.selectedTerms.length - 2 ? '' : 'border-b border-gray-300'}>
                   <td className="py-1">{term} months</td>
                   <td className="py-1 text-right font-semibold pr-3">
-                    ${getLeasePayment(term).toLocaleString()}/mo
+                    ${(getLeasePayment(term) ?? 0).toLocaleString()}/mo
                   </td>
                 </tr>
               ))}

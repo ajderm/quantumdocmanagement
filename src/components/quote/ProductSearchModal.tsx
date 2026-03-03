@@ -224,13 +224,13 @@ export function ProductSearchModal({
                       </div>
                       <div className="flex items-center gap-3 text-xs text-muted-foreground mt-0.5">
                         {product.sku && <span>SKU: {product.sku}</span>}
-                        <span>MSRP: ${product.price.toLocaleString('en-US', { minimumFractionDigits: 2 })}</span>
+                        <span>MSRP: ${(product.price ?? 0).toLocaleString('en-US', { minimumFractionDigits: 2 })}</span>
                         {tierCost !== undefined ? (
                           <span className="text-primary font-medium">
                             Tier Cost: ${tierCost.toLocaleString('en-US', { minimumFractionDigits: 2 })}
                           </span>
                         ) : (
-                          <span>Cost: ${product.cost.toLocaleString('en-US', { minimumFractionDigits: 2 })}</span>
+                          <span>Cost: ${(product.cost ?? 0).toLocaleString('en-US', { minimumFractionDigits: 2 })}</span>
                         )}
                       </div>
                     </div>
