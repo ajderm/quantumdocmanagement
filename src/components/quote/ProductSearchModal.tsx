@@ -230,7 +230,7 @@ export function ProductSearchModal({
                             Tier Cost: ${tierCost.toLocaleString('en-US', { minimumFractionDigits: 2 })}
                           </span>
                         ) : (
-                          <span>Cost: ${product.cost.toLocaleString('en-US', { minimumFractionDigits: 2 })}</span>
+                          <span>Cost: ${(product.cost ?? 0).toLocaleString('en-US', { minimumFractionDigits: 2 })}</span>
                         )}
                       </div>
                     </div>

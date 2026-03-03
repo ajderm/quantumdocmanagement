@@ -304,7 +304,7 @@ export default function LeasingPartners() {
                 <div className="flex items-center gap-2">
                   <FileText className="h-4 w-4 text-muted-foreground" />
                   <div>
-                    <p className="text-sm font-medium">{rateData.rateSheet.rowCount.toLocaleString()} rates</p>
+                    <p className="text-sm font-medium">{(rateData.rateSheet.rowCount ?? 0).toLocaleString()} rates</p>
                     <p className="text-xs text-muted-foreground">Imported</p>
                   </div>
                 </div>

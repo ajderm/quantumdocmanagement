@@ -839,7 +839,7 @@ export function QuoteForm({ deal, company, lineItems, dealOwner, onFormChange, p
                         </div>
                         {hasOverride && (
                           <span className="font-medium text-primary min-w-[80px]">
-                            ${effectivePayment.toLocaleString()}/mo
+                            ${(effectivePayment ?? 0).toLocaleString()}/mo
                           </span>
                         )}
                       </div>
