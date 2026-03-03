@@ -888,7 +888,7 @@ export function QuoteForm({ deal, company, lineItems, dealOwner, onFormChange, p
             </div>
             <div className="grid grid-cols-2 gap-2">
               <div>
-                <Label className="text-xs">Overage B/W Rate</Label>
+                <Label className="text-xs">{getLabel(formCustomization, 'overageBWRate', 'Overage B/W Rate')}</Label>
                 <div className="relative">
                   <span className="absolute left-2 top-1/2 -translate-y-1/2 text-muted-foreground text-sm">$</span>
                   <Input 
