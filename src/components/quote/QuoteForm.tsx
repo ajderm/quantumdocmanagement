@@ -852,8 +852,10 @@ export function QuoteForm({ deal, company, lineItems, dealOwner, onFormChange, p
           </div>
         </CardContent>
       </Card>
+      )}
 
       {/* Service Agreement */}
+      {isSectionVisible(formCustomization, 'serviceAgreement') && (
       <Card>
         <CardHeader className="py-3">
           <CardTitle className="text-sm">Service Agreement</CardTitle>
