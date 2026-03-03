@@ -89,7 +89,7 @@ const parseCurrency = (value: string): number => {
 // Default fallback rate factors if no rate sheet uploaded
 const DEFAULT_RATE_FACTORS: Record<number, number> = { 12: 0.088, 24: 0.046, 36: 0.032, 48: 0.026, 60: 0.022, 72: 0.019 };
 
-export function QuoteForm({ deal, company, lineItems, dealOwner, onFormChange, portalId, savedConfig }: QuoteFormProps) {
+export function QuoteForm({ deal, company, lineItems, dealOwner, onFormChange, portalId, savedConfig, formCustomization }: QuoteFormProps) {
   const hasInitializedRef = useRef(false);
   const savedConfigRef = useRef(savedConfig);
   const leasingCompanyIdRef = useRef('');
