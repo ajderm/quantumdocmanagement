@@ -140,6 +140,10 @@ export function QuoteForm({ deal, company, lineItems, dealOwner, onFormChange, p
   const [leasingCompanies, setLeasingCompanies] = useState<string[]>([]);
   const [hasRateSheet, setHasRateSheet] = useState(false);
 
+  // Pricing tiers
+  const [pricingTiers, setPricingTiers] = useState<Array<{ id: string; name: string; prices: Array<{ product_model: string; rep_cost: number }> }>>([]);
+  const [originalCosts, setOriginalCosts] = useState<Record<string, number>>({});
+
   // Keep refs in sync for stale closure prevention
   useEffect(() => { savedConfigRef.current = savedConfig; }, [savedConfig]);
   useEffect(() => { leasingCompanyIdRef.current = formData.leasingCompanyId; }, [formData.leasingCompanyId]);
