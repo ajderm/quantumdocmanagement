@@ -67,6 +67,9 @@ export default function AdminSettings() {
   // Form visibility settings
   const [enabledForms, setEnabledForms] = useState<string[]>(ALL_FORM_TYPES.map(f => f.code));
   
+  // Form customization (field labels, hidden sections)
+  const [formCustomization, setFormCustomization] = useState<FormCustomizationMap>({});
+  
   // Document styles
   const [docStyleFontFamily, setDocStyleFontFamily] = useState('Arial, sans-serif');
   const [docStyleFontColor, setDocStyleFontColor] = useState('#000000');
