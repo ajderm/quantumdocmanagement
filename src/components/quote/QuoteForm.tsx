@@ -597,7 +597,10 @@ export function QuoteForm({ deal, company, lineItems, dealOwner, onFormChange, p
         <CardHeader className="py-3">
           <CardTitle className="text-sm flex items-center justify-between">
             <span>Equipment</span>
-            <Button type="button" variant="outline" size="sm" onClick={addLineItem}><Plus className="h-3 w-3 mr-1" />Add Item</Button>
+            <div className="flex gap-2">
+              <Button type="button" variant="default" size="sm" onClick={() => setProductSearchOpen(true)}><Package className="h-3 w-3 mr-1" />Add Product</Button>
+              <Button type="button" variant="outline" size="sm" onClick={addLineItem}><Plus className="h-3 w-3 mr-1" />Manual Entry</Button>
+            </div>
           </CardTitle>
         </CardHeader>
         <CardContent>
