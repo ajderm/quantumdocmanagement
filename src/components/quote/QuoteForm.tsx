@@ -8,7 +8,7 @@ import { Plus, Trash2, AlertTriangle, X } from 'lucide-react';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { supabase } from '@/integrations/supabase/client';
 
-export interface QuoteLineItem { id: string; quantity: number; model: string; description: string; price: number; cost: number; markupPercent: number; }
+export interface QuoteLineItem { id: string; quantity: number; model: string; description: string; price: number; cost: number; markupPercent: number; msrp: number; }
 export interface QuoteFormData { 
   quoteNumber: string; 
   quoteDate: string; 
@@ -343,6 +343,7 @@ export function QuoteForm({ deal, company, lineItems, dealOwner, onFormChange, p
         cost: item.cost || 0,
         markupPercent: 0,
         price: item.price || 0,
+        msrp: item.price || 0,
       })), 
       retailPrice: dealAmount
     };
@@ -356,6 +357,7 @@ export function QuoteForm({ deal, company, lineItems, dealOwner, onFormChange, p
         ...item,
         cost: item.cost ?? 0,
         markupPercent: item.markupPercent ?? 0,
+        msrp: item.msrp ?? item.price ?? 0,
       }));
       setFormData(prev => ({ 
         ...prev, 
@@ -432,7 +434,7 @@ export function QuoteForm({ deal, company, lineItems, dealOwner, onFormChange, p
       return { ...prev, lineItems: newItems }; 
     }); 
   };
-  const addLineItem = () => { setFormData(prev => ({ ...prev, lineItems: [...prev.lineItems, { id: `new-${Date.now()}`, quantity: 1, model: '', description: '', price: 0, cost: 0, markupPercent: 0 }] })); };
+  const addLineItem = () => { setFormData(prev => ({ ...prev, lineItems: [...prev.lineItems, { id: `new-${Date.now()}`, quantity: 1, model: '', description: '', price: 0, cost: 0, markupPercent: 0, msrp: 0 }] })); };
   const removeLineItem = (index: number) => { setFormData(prev => { const newItems = prev.lineItems.filter((_, i) => i !== index); return { ...prev, lineItems: newItems }; }); };
   
   const toggleTerm = (term: number) => { 
