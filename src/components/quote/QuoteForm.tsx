@@ -824,7 +824,7 @@ export function QuoteForm({ deal, company, lineItems, dealOwner, onFormChange, p
                             type="text"
                             value={paymentOverrideTexts[t] || ''}
                             onChange={(e) => handlePaymentOverrideChange(t, e.target.value)}
-                            placeholder={calculatedPayment.toLocaleString()}
+                            placeholder={(calculatedPayment ?? 0).toLocaleString()}
                             className="h-7 text-xs pl-5 pr-7"
                           />
                           {hasOverride && (
