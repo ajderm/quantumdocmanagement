@@ -65,7 +65,7 @@ export interface QuoteFormData {
   totalBuyoutOverride?: number;
 }
 
-interface QuoteFormProps { deal: any; company: any; contacts: any[]; lineItems: any[]; dealOwner: any; onFormChange: (data: QuoteFormData) => void; portalId?: string; savedConfig?: QuoteFormData; }
+interface QuoteFormProps { deal: any; company: any; contacts: any[]; lineItems: any[]; dealOwner: any; onFormChange: (data: QuoteFormData) => void; portalId?: string; savedConfig?: QuoteFormData; formCustomization?: FormCustomizationConfig; }
 
 interface RateFactor {
   id: string;
