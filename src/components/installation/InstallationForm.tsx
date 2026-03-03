@@ -115,6 +115,15 @@ export interface InstallationFormData {
   removalInstructions: string;
 }
 
+interface QuoteLineItemRef {
+  id: string;
+  model: string;
+  description: string;
+  quantity: number;
+  productType?: string;
+  parentLineItemId?: string;
+}
+
 interface InstallationFormProps {
   deal: any;
   company: any;
@@ -127,6 +136,7 @@ interface InstallationFormProps {
   onLineItemSwitch?: (newLineItemId: string, currentFormData: InstallationFormData) => void;
   savedConfig?: InstallationFormData;
   labeledContacts?: LabeledContacts;
+  quoteLineItems?: QuoteLineItemRef[];
 }
 
 const MAX_REMOVED_EQUIPMENT = 10;
