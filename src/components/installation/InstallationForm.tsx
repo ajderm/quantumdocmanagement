@@ -229,6 +229,7 @@ export function InstallationForm({
     meterContactEmail: '',
     removedEquipment: [],
     removalInstructions: '',
+    linkedAccessories: [],
   });
 
   // Load saved config
