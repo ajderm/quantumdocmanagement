@@ -195,6 +195,9 @@ export const QuotePreview = forwardRef<HTMLDivElement, QuotePreviewProps>(
               <tr className="border-b border-gray-300">
                 {showPurchase && (
                   <td className="py-1 align-top" rowSpan={Math.max(formData.selectedTerms.length, 1)}>
+                    {showMSRPStrikethrough && (
+                      <span className="text-gray-500 line-through text-[9px] mr-2">${formatCurrency(totalMSRP)}</span>
+                    )}
                     <span className="font-bold">${formatCurrency(formData.retailPrice)}</span>
                   </td>
                 )}

@@ -356,6 +356,7 @@ export function QuoteForm({ deal, company, lineItems, dealOwner, onFormChange, p
         ...item,
         cost: item.cost ?? 0,
         markupPercent: item.markupPercent ?? 0,
+        msrp: item.msrp ?? item.price ?? 0,
       }));
       setFormData(prev => ({ 
         ...prev, 
