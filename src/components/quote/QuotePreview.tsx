@@ -282,7 +282,7 @@ export const QuotePreview = forwardRef<HTMLDivElement, QuotePreviewProps>(
         )}
 
         {/* Terms & Conditions */}
-        {dealerInfo?.termsAndConditions && (
+        {isSectionVisible(formCustomization, 'termsAndConditions') && dealerInfo?.termsAndConditions && (
           <div className="mb-6 text-[10px]">
             <p className="font-bold mb-1">Terms & Conditions:</p>
             <p className="whitespace-pre-wrap">{dealerInfo.termsAndConditions}</p>
