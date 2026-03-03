@@ -153,6 +153,7 @@ export function InstallationForm({
   onLineItemSwitch,
   savedConfig,
   labeledContacts,
+  quoteLineItems,
 }: InstallationFormProps) {
   // Filter line items to show only hardware (hs_product_type = "Hardware")
   const baseHardwareLineItems = lineItems.filter(
