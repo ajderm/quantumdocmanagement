@@ -38,6 +38,10 @@ export const QuotePreview = forwardRef<HTMLDivElement, QuotePreviewProps>(
 
     const hasServiceAgreement = formData.serviceBaseRate > 0 || formData.includedBWCopies > 0 || formData.includedColorCopies > 0;
     
+    // Calculate total MSRP for strikethrough display
+    const totalMSRP = formData.lineItems.reduce((sum, item) => sum + ((item.msrp || 0) * item.quantity), 0);
+    const showMSRPStrikethrough = totalMSRP > 0 && Math.abs(totalMSRP - formData.retailPrice) > 0.01;
+    
     // Configuration-based visibility
     const showPurchase = formData.priceDisplay === 'both' || formData.priceDisplay === 'purchase_only';
     const showLease = formData.priceDisplay === 'both' || formData.priceDisplay === 'lease_only';
