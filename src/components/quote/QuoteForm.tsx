@@ -578,23 +578,26 @@ export function QuoteForm({ deal, company, lineItems, dealOwner, onFormChange, p
           </div>
         </CardContent>
       </Card>
+      )}
 
       {/* Prepared For */}
+      {isSectionVisible(formCustomization, 'customerInfo') && (
       <Card>
         <CardHeader className="py-3">
           <CardTitle className="text-sm">Prepared For</CardTitle>
         </CardHeader>
         <CardContent>
           <div className="grid grid-cols-2 gap-3">
-            <div className="col-span-2"><Label className="text-xs">Company Name</Label><Input value={formData.companyName} onChange={e => updateField('companyName', e.target.value)} className="h-8 text-sm" /></div>
-            <div className="col-span-2"><Label className="text-xs">Address</Label><Input value={formData.address} onChange={e => updateField('address', e.target.value)} className="h-8 text-sm" /></div>
+            <div className="col-span-2"><Label className="text-xs">{getLabel(formCustomization, 'companyName', 'Company Name')}</Label><Input value={formData.companyName} onChange={e => updateField('companyName', e.target.value)} className="h-8 text-sm" /></div>
+            <div className="col-span-2"><Label className="text-xs">{getLabel(formCustomization, 'address', 'Address')}</Label><Input value={formData.address} onChange={e => updateField('address', e.target.value)} className="h-8 text-sm" /></div>
             <div className="col-span-2"><Label className="text-xs">Address Line 2</Label><Input value={formData.address2} onChange={e => updateField('address2', e.target.value)} className="h-8 text-sm" /></div>
             <div><Label className="text-xs">City</Label><Input value={formData.city} onChange={e => updateField('city', e.target.value)} className="h-8 text-sm" /></div>
             <div className="grid grid-cols-2 gap-2"><div><Label className="text-xs">State</Label><Input value={formData.state} onChange={e => updateField('state', e.target.value)} className="h-8 text-sm" /></div><div><Label className="text-xs">Zip</Label><Input value={formData.zip} onChange={e => updateField('zip', e.target.value)} className="h-8 text-sm" /></div></div>
-            <div className="col-span-2"><Label className="text-xs">Phone</Label><Input value={formData.phone} onChange={e => updateField('phone', e.target.value)} className="h-8 text-sm" /></div>
+            <div className="col-span-2"><Label className="text-xs">{getLabel(formCustomization, 'phone', 'Phone')}</Label><Input value={formData.phone} onChange={e => updateField('phone', e.target.value)} className="h-8 text-sm" /></div>
           </div>
         </CardContent>
       </Card>
+      )}
 
       {/* Equipment */}
       <Card>
