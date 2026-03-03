@@ -47,3 +47,9 @@ verify_jwt = false
 
 [functions.hubspot-get-owners]
 verify_jwt = false
+
+[functions.pricing-tiers-get]
+verify_jwt = false
+
+[functions.pricing-tiers-save]
+verify_jwt = false
