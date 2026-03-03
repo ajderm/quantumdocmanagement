@@ -616,8 +616,9 @@ export function QuoteForm({ deal, company, lineItems, dealOwner, onFormChange, p
         </CardHeader>
         <CardContent>
           <div className="space-y-2">
-            <div className="grid grid-cols-[50px_1fr_1.2fr_100px_100px_100px_70px_100px_40px] gap-2 text-xs font-medium text-muted-foreground px-2">
+            <div className="grid grid-cols-[50px_80px_1fr_1fr_100px_100px_100px_70px_100px_110px_40px] gap-2 text-xs font-medium text-muted-foreground px-2">
               <div>Qty</div>
+              <div>Type</div>
               <div>Model</div>
               <div>Description</div>
               <div>Dealer</div>
@@ -625,12 +626,29 @@ export function QuoteForm({ deal, company, lineItems, dealOwner, onFormChange, p
               <div>Rep Cost</div>
               <div>Markup %</div>
               <div>Your Price</div>
+              <div>Linked To</div>
               <div></div>
             </div>
-            {formData.lineItems.map((item, idx) => (
-              <div key={item.id} className="grid grid-cols-[50px_1fr_1.2fr_100px_100px_100px_70px_100px_40px] gap-2 items-center">
+            {formData.lineItems.map((item, idx) => {
+              const hardwareItems = formData.lineItems.filter(li => li.productType?.toLowerCase() === 'hardware');
+              const isHardware = item.productType?.toLowerCase() === 'hardware';
+              return (
+              <div key={item.id} className={`grid grid-cols-[50px_80px_1fr_1fr_100px_100px_100px_70px_100px_110px_40px] gap-2 items-center ${item.parentLineItemId ? 'ml-4 border-l-2 border-primary/20 pl-2' : ''}`}>
                 <div>
                   <Input type="number" min="1" value={item.quantity} onChange={e => updateLineItem(idx, 'quantity', parseInt(e.target.value) || 1)} className="h-8 text-sm" />
+                </div>
+                <div>
+                  <Select value={item.productType || ''} onValueChange={(v) => updateLineItem(idx, 'productType', v)}>
+                    <SelectTrigger className="h-8 text-xs">
+                      <SelectValue placeholder="Type" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="Hardware">Hardware</SelectItem>
+                      <SelectItem value="Accessory">Accessory</SelectItem>
+                      <SelectItem value="Software">Software</SelectItem>
+                      <SelectItem value="Service">Service</SelectItem>
+                    </SelectContent>
+                  </Select>
                 </div>
                 <div>
                   <Input value={item.model} onChange={e => updateLineItem(idx, 'model', e.target.value)} className="h-8 text-sm" />
@@ -666,10 +684,28 @@ export function QuoteForm({ deal, company, lineItems, dealOwner, onFormChange, p
                   </div>
                 </div>
                 <div>
+                  {!isHardware && hardwareItems.length > 0 ? (
+                    <Select value={item.parentLineItemId || ''} onValueChange={(v) => updateLineItem(idx, 'parentLineItemId', v === 'none' ? '' : v)}>
+                      <SelectTrigger className="h-8 text-xs">
+                        <SelectValue placeholder="—" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="none">None</SelectItem>
+                        {hardwareItems.map(hw => (
+                          <SelectItem key={hw.id} value={hw.id}>{hw.model || hw.description}</SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  ) : (
+                    <span className="text-xs text-muted-foreground px-2">—</span>
+                  )}
+                </div>
+                <div>
                   <Button type="button" variant="ghost" size="sm" onClick={() => removeLineItem(idx)} className="h-8 w-8 p-0 text-destructive"><Trash2 className="h-3.5 w-3.5" /></Button>
                 </div>
               </div>
-            ))}
+              );
+            })}
             {formData.lineItems.length === 0 && <p className="text-sm text-muted-foreground text-center py-4">No equipment. Click Add Item.</p>}
           </div>
         </CardContent>
