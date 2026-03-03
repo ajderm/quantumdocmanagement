@@ -4,8 +4,10 @@ import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { ScrollArea } from '@/components/ui/scroll-area';
-import { Loader2, Search, Plus, Package } from 'lucide-react';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Loader2, Search, Plus, Package, Tag } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
+import { toast } from 'sonner';
 
 export interface HubSpotProduct {
   id: string;
@@ -15,6 +17,8 @@ export interface HubSpotProduct {
   price: number;
   cost: number;
   productType: string;
+  originalType?: string;
+  hasOverride?: boolean;
 }
 
 interface PricingTier {
@@ -32,6 +36,8 @@ interface ProductSearchModalProps {
   onAddProduct: (product: HubSpotProduct, tierCost?: number) => void;
 }
 
+const PRODUCT_TYPES = ['Hardware', 'Accessory', 'Service', 'Software'];
+
 export function ProductSearchModal({
   open,
   onOpenChange,
@@ -47,6 +53,7 @@ export function ProductSearchModal({
   const [hasMore, setHasMore] = useState(false);
   const [afterCursor, setAfterCursor] = useState<string | null>(null);
   const [searchTimeout, setSearchTimeout] = useState<ReturnType<typeof setTimeout> | null>(null);
+  const [reclassifying, setReclassifying] = useState<string | null>(null);
 
   const tier = pricingTiers.find(t => t.name === selectedTier);
 
@@ -81,7 +88,6 @@ export function ProductSearchModal({
     }
   }, [portalId]);
 
-  // Fetch on open
   useEffect(() => {
     if (open) {
       setSearch('');
@@ -91,7 +97,6 @@ export function ProductSearchModal({
     }
   }, [open, fetchProducts]);
 
-  // Debounced search
   const handleSearchChange = (value: string) => {
     setSearch(value);
     if (searchTimeout) clearTimeout(searchTimeout);
@@ -115,12 +120,33 @@ export function ProductSearchModal({
     }
   };
 
-  // Filter products by pricing tier if applicable
+  const handleReclassify = async (product: HubSpotProduct, newType: string) => {
+    setReclassifying(product.id);
+    try {
+      const { error } = await supabase.functions.invoke('product-type-override-save', {
+        body: { portalId, hsProductId: product.id, productType: newType },
+      });
+      if (error) throw error;
+
+      // Update local state
+      setProducts(prev => prev.map(p =>
+        p.id === product.id
+          ? { ...p, productType: newType, hasOverride: true }
+          : p
+      ));
+      toast.success(`Reclassified "${product.name}" as ${newType}`);
+    } catch (err) {
+      console.error('Reclassify error:', err);
+      toast.error('Failed to reclassify product');
+    } finally {
+      setReclassifying(null);
+    }
+  };
+
   const filteredProducts = (() => {
     if (!tier || !selectedTier || selectedTier === 'Standard') {
       return products;
     }
-    // Only show products whose SKU matches an entry in the tier's price list
     const tierSkus = new Set(tier.prices.map(p => p.product_model.toLowerCase()));
     return products.filter(p => tierSkus.has(p.sku.toLowerCase()) || tierSkus.has(p.name.toLowerCase()));
   })();
@@ -145,7 +171,6 @@ export function ProductSearchModal({
         </DialogHeader>
 
         <div className="space-y-3">
-          {/* Search */}
           <div className="relative">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
             <Input
@@ -156,10 +181,9 @@ export function ProductSearchModal({
             />
           </div>
 
-          {/* Type filter */}
-          <div className="flex gap-2 items-center">
+          <div className="flex gap-2 items-center flex-wrap">
             <span className="text-xs text-muted-foreground">Filter:</span>
-            {['Hardware', 'Accessory', 'Service'].map(type => (
+            {PRODUCT_TYPES.map(type => (
               <Badge
                 key={type}
                 variant={productTypeFilter === type ? 'default' : 'outline'}
@@ -176,7 +200,6 @@ export function ProductSearchModal({
             )}
           </div>
 
-          {/* Product list */}
           <ScrollArea className="h-[400px]">
             <div className="space-y-1">
               {filteredProducts.map(product => {
@@ -189,10 +212,14 @@ export function ProductSearchModal({
                     <div className="flex-1 min-w-0">
                       <div className="flex items-center gap-2">
                         <span className="font-medium text-sm truncate">{product.name}</span>
-                        {product.productType && (
-                          <Badge variant="outline" className="text-[10px] shrink-0">
-                            {product.productType}
-                          </Badge>
+                        <Badge
+                          variant={product.hasOverride ? 'default' : 'outline'}
+                          className="text-[10px] shrink-0"
+                        >
+                          {product.productType || 'Unclassified'}
+                        </Badge>
+                        {product.hasOverride && (
+                          <span className="text-[10px] text-muted-foreground">(overridden)</span>
                         )}
                       </div>
                       <div className="flex items-center gap-3 text-xs text-muted-foreground mt-0.5">
@@ -207,15 +234,32 @@ export function ProductSearchModal({
                         )}
                       </div>
                     </div>
-                    <Button
-                      size="sm"
-                      variant="outline"
-                      onClick={() => onAddProduct(product, tierCost)}
-                      className="shrink-0 ml-2"
-                    >
-                      <Plus className="h-3 w-3 mr-1" />
-                      Add
-                    </Button>
+                    <div className="flex items-center gap-1 shrink-0 ml-2">
+                      <Select
+                        value={product.productType || ''}
+                        onValueChange={(val) => handleReclassify(product, val)}
+                        disabled={reclassifying === product.id}
+                      >
+                        <SelectTrigger className="h-7 w-7 p-0 border-none [&>svg]:hidden" title="Reclassify product type">
+                          <Tag className="h-3 w-3 text-muted-foreground" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {PRODUCT_TYPES.map(type => (
+                            <SelectItem key={type} value={type} className="text-xs">
+                              {type}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        onClick={() => onAddProduct(product, tierCost)}
+                      >
+                        <Plus className="h-3 w-3 mr-1" />
+                        Add
+                      </Button>
+                    </div>
                   </div>
                 );
               })}

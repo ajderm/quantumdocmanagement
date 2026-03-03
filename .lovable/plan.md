@@ -1,78 +1,131 @@
 
 
-# Audit & Fix Product Classification Logic
+# Fix: Race Condition in Form Initialization Across All Document Types
 
-## Problem
+## Problem Summary
 
-The app relies entirely on HubSpot's `hs_product_type` property to classify products as Hardware, Accessory, Service, etc. The edge function (`hubspot-get-products`) passes the `productType` filter as an exact-match `EQ` filter to HubSpot's search API, and the `ProductSearchModal` displays whatever `hs_product_type` value HubSpot returns. There is **no normalization, validation, or override** in the pipeline.
+Saved form data is overwritten by HubSpot defaults on page reload because forms initialize before the database-saved configurations have loaded. Two parallel async operations -- HubSpot data fetch and Supabase config bulk load -- complete at different times, but forms begin rendering as soon as HubSpot data arrives.
 
-This means:
-1. If HubSpot products have inconsistent `hs_product_type` values (e.g., "hardware" vs "Hardware", blank, or wrong values), the app faithfully passes them through — causing misclassification in the Hardware vs Accessory filter tabs.
-2. The filter badges use exact strings `"Hardware"`, `"Accessory"`, `"Service"` — any casing or naming mismatch means products silently disappear from filtered views or show up in the wrong category.
-3. There is no mechanism for admins to correct a product's type without going back to HubSpot.
+## Root Causes
+
+### Race Condition (All Document Types)
+1. `useHubSpot()` fetches deal data. When it completes, `loading` becomes `false` and `DocumentHubContent` renders all forms.
+2. `loadAllConfigs` (bulk Supabase fetch) runs in a separate `useEffect`. It depends on `deal?.hsObjectId`, which is only available after HubSpot loads.
+3. Forms mount and initialize with HubSpot defaults before `savedConfig` arrives from the bulk load.
+4. When `savedConfig` finally arrives, some forms (like ServiceAgreement) have already set `hasInitializedRef = true`, so they ignore the saved data entirely.
+
+### retailPrice Override (Quote)
+The Quote init effect always sets `retailPrice = deal.amount`, even when `savedConfig` exists. If the user edited line item prices or manually adjusted the retail price, those edits are lost on every reload.
+
+### No hasInitializedRef Guard (Quote)
+Unlike other forms, the Quote init `useEffect` does NOT use `hasInitializedRef` as a guard. It re-runs on every `deal`, `company`, `dealOwner`, `lineItems`, or `savedConfig` change, repeatedly overwriting form state.
+
+---
 
 ## Solution
 
-### 1. Add product type override table (database)
+### Step 1: Add `configsLoaded` Gate in DocumentHub
 
-Create `product_type_overrides` table allowing per-portal overrides of product classifications:
-
-| Column | Type | Notes |
-|--------|------|-------|
-| id | uuid PK | |
-| portal_id | text NOT NULL | Tenant isolation |
-| hs_product_id | text NOT NULL | HubSpot product ID |
-| product_type | text NOT NULL | Corrected type: Hardware, Accessory, Service, Software |
-| created_at | timestamptz | |
-
-Unique constraint on `(portal_id, hs_product_id)`. RLS: service_role only.
-
-### 2. Update `hubspot-get-products` edge function
-
-After fetching products from HubSpot:
-- Query `product_type_overrides` for the portal
-- For each product, if an override exists, replace `productType` with the override value
-- Normalize `hs_product_type` values: trim whitespace, title-case (e.g., "hardware" → "Hardware", "ACCESSORY" → "Accessory")
-- When a `productType` filter is passed, apply it **after** normalization + overrides (client-side filter), not solely via HubSpot's `EQ` filter — this ensures overridden products appear in the correct category
-
-### 3. Update `ProductSearchModal` 
-
-- Show a small "reclassify" action on each product row (e.g., a dropdown or icon) so admins can correct the type inline
-- When reclassified, save to `product_type_overrides` via a new edge function call
-- Display the effective type (override > normalized HubSpot value)
-
-### 4. New edge function: `product-type-override-save`
-
-- Input: `{ portalId, hsProductId, productType }`
-- Upserts into `product_type_overrides`
-- Used by the product search modal reclassify action
-
-### 5. Admin visibility (optional enhancement in AdminSettings)
-
-- Add a "Product Overrides" section showing all overridden products for the portal, with ability to remove overrides
-
-## Files Modified/Created
-
-| File | Change |
-|------|--------|
-| **Database migration** | Create `product_type_overrides` table |
-| `supabase/functions/hubspot-get-products/index.ts` | Add normalization + override lookup after HubSpot fetch |
-| `supabase/functions/product-type-override-save/index.ts` | **New** — upsert product type overrides |
-| `src/components/quote/ProductSearchModal.tsx` | Add reclassify dropdown per product row, call override save |
-| `supabase/config.toml` | Register new edge function |
-
-## Key Implementation Detail
-
-The normalization mapping applied server-side:
+Add a `configsLoaded` boolean state that starts as `false` and becomes `true` only after the `loadAllConfigs` call completes (whether it finds data or not). Gate the rendering of all form content on BOTH `!loading` (HubSpot done) AND `configsLoaded` (Supabase done). While either is pending, show a loading skeleton.
 
 ```text
-Normalize hs_product_type:
-  - Trim whitespace
-  - Title-case first letter
-  - Map known variants: "hw" → "Hardware", "acc" → "Accessory", etc.
-  - Then apply any portal-specific override from product_type_overrides
-  - Then apply productType filter (if requested) on the normalized value
+// New state
+const [configsLoaded, setConfigsLoaded] = useState(false);
+
+// In loadAllConfigs effect:
+// Set to true in finally block, even if there's an error
+// This ensures forms never render before we know whether saved data exists
+
+// In the render:
+if (loading || !configsLoaded) {
+  return <LoadingSkeleton />;
+}
 ```
 
-This ensures consistent classification regardless of how products are tagged in HubSpot, while giving admins a correction mechanism for genuinely misclassified items.
+### Step 2: Fix QuoteForm retailPrice Logic
+
+Change QuoteForm init effect (lines 319-394):
+- Add `hasInitializedRef` guard (same pattern as other forms)
+- When `savedConfig` exists: use `savedConfig.retailPrice` instead of `deal.amount`
+- The existing line-item recalculation effect (lines 396-403) will still reactively update `retailPrice` when the user edits line items
+
+```text
+// Current (broken):
+const retailPriceToUse = hubspotData.retailPrice; // Always deal.amount
+
+// Fixed:
+const retailPriceToUse = savedConfig.retailPrice || hubspotData.retailPrice;
+```
+
+### Step 3: Add hasInitializedRef Guard to QuoteForm
+
+Add the same `if (hasInitializedRef.current) return;` guard at the top of the Quote init effect, matching the pattern used by ServiceAgreement, LeaseReturn, and other forms.
+
+### Step 4: Add Autosave Status Indicator
+
+Add a small "Saving..." / "Saved" text indicator near each save button. This uses existing auto-save infrastructure -- just surface the state visually.
+
+---
+
+## Technical Details
+
+### DocumentHub.tsx Changes
+
+```text
+New state variable:
+  const [configsLoaded, setConfigsLoaded] = useState(false);
+
+In loadAllConfigs effect (around line 468):
+  - Wrap the async function body in try/finally
+  - Add setConfigsLoaded(true) in the finally block
+  - Also set configsLoaded = true if the early return fires (no portalId/dealId)
+
+In the loading check (around line 2690):
+  Change: if (loading) { return <Loader /> }
+  To:     if (loading || !configsLoaded) { return <Loader /> }
+
+Add save status indicator near each Save button:
+  - Show "Saving..." text while auto-save is in progress
+  - Show "Saved" text briefly after successful save
+  - Uses existing hasUnsavedChanges / lastSavedData state
+```
+
+### QuoteForm.tsx Changes
+
+```text
+Init effect (lines 319-394):
+  1. Add guard: if (hasInitializedRef.current) return;
+  2. Change retailPrice logic:
+     - If savedConfig exists: retailPriceToUse = savedConfig.retailPrice || hubspotData.retailPrice
+     - If no savedConfig: retailPriceToUse = hubspotData.retailPrice (current behavior)
+  3. Set hasInitializedRef.current = true at end of both branches
+```
+
+### ServiceAgreementForm.tsx -- No Changes Needed
+
+The existing `hasInitializedRef` guard is correct. The race condition fix in DocumentHub (gating on `configsLoaded`) ensures `savedConfig` is available before the form mounts, so the guard works as intended.
+
+### Other Forms -- No Changes Needed
+
+LeaseReturnForm, CommissionForm, InterterritorialForm, FMVLeaseForm, LoiForm, NewCustomerForm, RelocationForm, RemovalForm, InstallationForm, LeaseFundingForm all use `hasInitializedRef` or receive data directly via props from DocumentHub. The `configsLoaded` gate in DocumentHub fixes all of them simultaneously.
+
+---
+
+## Files Modified
+
+| File | Changes |
+|------|---------|
+| `src/pages/DocumentHub.tsx` | Add `configsLoaded` state, set it in `loadAllConfigs`, gate form rendering, add save status indicators |
+| `src/components/quote/QuoteForm.tsx` | Add `hasInitializedRef` guard to init effect, fix `retailPrice` to use saved value when available |
+
+## What This Does NOT Change
+
+- Save/auto-save logic (already working correctly)
+- Edge functions (no changes)
+- Database schema (no changes)
+- Other form components (fixed by the DocumentHub gate)
+
+## Why This Works
+
+By preventing forms from mounting until both data sources are ready, we eliminate the race condition at the architectural level. Every form's init effect will see the correct `savedConfig` on its first (and only) run. The `hasInitializedRef` guard then prevents re-initialization if props change later.
 

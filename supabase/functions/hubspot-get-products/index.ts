@@ -7,6 +7,29 @@ const corsHeaders = {
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version',
 };
 
+// Normalization map for common hs_product_type variants
+const TYPE_ALIASES: Record<string, string> = {
+  'hw': 'Hardware',
+  'hardware': 'Hardware',
+  'acc': 'Accessory',
+  'accessory': 'Accessory',
+  'accessories': 'Accessory',
+  'service': 'Service',
+  'svc': 'Service',
+  'software': 'Software',
+  'sw': 'Software',
+};
+
+function normalizeProductType(raw: string | null | undefined): string {
+  if (!raw) return '';
+  const trimmed = raw.trim();
+  if (!trimmed) return '';
+  const lower = trimmed.toLowerCase();
+  if (TYPE_ALIASES[lower]) return TYPE_ALIASES[lower];
+  // Title-case: first letter uppercase, rest lowercase
+  return trimmed.charAt(0).toUpperCase() + trimmed.slice(1).toLowerCase();
+}
+
 async function getValidAccessToken(supabase: any, portalId: string): Promise<string> {
   const { data, error } = await supabase
     .from('hubspot_tokens')
@@ -74,23 +97,9 @@ Deno.serve(async (req) => {
 
     const accessToken = await getValidAccessToken(supabase, portalId);
 
-    // Build HubSpot product search request
-    const filters: any[] = [];
-
-    if (productType) {
-      filters.push({
-        propertyName: 'hs_product_type',
-        operator: 'EQ',
-        value: productType,
-      });
-    }
-
-    if (search) {
-      // HubSpot search API uses a "query" parameter for text search
-    }
-
+    // Don't filter by productType at HubSpot level — we normalize + override after fetch
     const searchBody: any = {
-      filterGroups: filters.length > 0 ? [{ filters }] : [],
+      filterGroups: [],
       properties: [
         'name', 'hs_sku', 'description', 'price',
         'hs_cost_of_goods_sold', 'hs_product_type',
@@ -108,6 +117,7 @@ Deno.serve(async (req) => {
       searchBody.after = after;
     }
 
+    // Fetch products from HubSpot
     const response = await fetch('https://api.hubapi.com/crm/v3/objects/products/search', {
       method: 'POST',
       headers: {
@@ -125,15 +135,42 @@ Deno.serve(async (req) => {
 
     const data = await response.json();
 
-    const products = (data.results || []).map((p: any) => ({
-      id: p.id,
-      name: p.properties.name || '',
-      sku: p.properties.hs_sku || '',
-      description: p.properties.description || '',
-      price: parseFloat(p.properties.price) || 0,
-      cost: parseFloat(p.properties.hs_cost_of_goods_sold) || 0,
-      productType: p.properties.hs_product_type || '',
-    }));
+    // Fetch portal-level product type overrides
+    const { data: overrides } = await supabase
+      .from('product_type_overrides')
+      .select('hs_product_id, product_type')
+      .eq('portal_id', portalId);
+
+    const overrideMap = new Map<string, string>();
+    if (overrides) {
+      for (const o of overrides) {
+        overrideMap.set(o.hs_product_id, o.product_type);
+      }
+    }
+
+    // Map + normalize + apply overrides
+    let products = (data.results || []).map((p: any) => {
+      const override = overrideMap.get(p.id);
+      const normalizedType = normalizeProductType(p.properties.hs_product_type);
+      const effectiveType = override || normalizedType;
+
+      return {
+        id: p.id,
+        name: p.properties.name || '',
+        sku: p.properties.hs_sku || '',
+        description: p.properties.description || '',
+        price: parseFloat(p.properties.price) || 0,
+        cost: parseFloat(p.properties.hs_cost_of_goods_sold) || 0,
+        productType: effectiveType,
+        originalType: normalizedType,
+        hasOverride: !!override,
+      };
+    });
+
+    // Apply productType filter AFTER normalization + overrides
+    if (productType) {
+      products = products.filter((p: any) => p.productType === productType);
+    }
 
     return createJsonResponse({
       products,

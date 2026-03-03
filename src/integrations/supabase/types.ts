@@ -939,6 +939,30 @@ export type Database = {
         }
         Relationships: []
       }
+      product_type_overrides: {
+        Row: {
+          created_at: string
+          hs_product_id: string
+          id: string
+          portal_id: string
+          product_type: string
+        }
+        Insert: {
+          created_at?: string
+          hs_product_id: string
+          id?: string
+          portal_id: string
+          product_type: string
+        }
+        Update: {
+          created_at?: string
+          hs_product_id?: string
+          id?: string
+          portal_id?: string
+          product_type?: string
+        }
+        Relationships: []
+      }
       profiles: {
         Row: {
           created_at: string
