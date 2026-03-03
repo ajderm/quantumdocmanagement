@@ -160,7 +160,7 @@ Deno.serve(async (req) => {
         sku: p.properties.hs_sku || '',
         description: p.properties.description || '',
         price: parseFloat(p.properties.price) || 0,
-        cost: parseFloat(p.properties.hs_cost_of_goods_sold) || 0,
+        cost: parseFloat(p.properties.unit_cost) || parseFloat(p.properties.hs_cost_of_goods_sold) || 0,
         productType: effectiveType,
         originalType: normalizedType,
         hasOverride: !!override,

@@ -570,7 +570,7 @@ Deno.serve(async (req) => {
             condition: lineItemResponse.properties.condition || lineItemResponse.properties.hs_product_condition || '',
             dealer: lineItemResponse.properties.dealer || lineItemResponse.properties.manufacturer || lineItemResponse.properties.vendor || lineItemResponse.properties.hs_line_item_dealer || '',
             machineType: lineItemResponse.properties.color_mono || lineItemResponse.properties.machine_type || 'Color',
-            cost: parseFloat(lineItemResponse.properties.hs_cost_of_goods_sold) || 0,
+            cost: parseFloat(lineItemResponse.properties.unit_cost) || parseFloat(lineItemResponse.properties.hs_cost_of_goods_sold) || 0,
             properties: lineItemResponse.properties, // Include raw properties
           };
         });
