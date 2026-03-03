@@ -131,7 +131,10 @@ export function CommissionForm({ deal, company, lineItems, dealOwner, portalId, 
   const [leasingCompanies, setLeasingCompanies] = useState<string[]>([]);
   const [rateFactors, setRateFactors] = useState<Array<{ leasing_company: string; term_months: number; rate_factor: number }>>([]);
   const [loadingCompanies, setLoadingCompanies] = useState(false);
-
+  
+  // Pricing tiers
+  const [pricingTiers, setPricingTiers] = useState<Array<{ id: string; name: string; prices: Array<{ product_model: string; rep_cost: number }> }>>([]);
+  const [originalRepCosts, setOriginalRepCosts] = useState<Record<string, number>>({});
   // Local text states for currency inputs
   const [buyoutText, setBuyoutText] = useState("");
   const [shippingText, setShippingText] = useState("170");
