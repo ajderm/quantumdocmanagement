@@ -514,6 +514,25 @@ export function QuoteForm({ deal, company, lineItems, dealOwner, onFormChange, p
   };
   const addLineItem = () => { setFormData(prev => ({ ...prev, lineItems: [...prev.lineItems, { id: `new-${Date.now()}`, quantity: 1, model: '', description: '', price: 0, cost: 0, markupPercent: 0, msrp: 0, dealerSource: '' }] })); };
   const removeLineItem = (index: number) => { setFormData(prev => { const newItems = prev.lineItems.filter((_, i) => i !== index); return { ...prev, lineItems: newItems }; }); };
+
+  const handleAddProductFromLibrary = (product: HubSpotProduct, tierCost?: number) => {
+    const cost = tierCost ?? product.cost;
+    const newItem = {
+      id: `hs-${product.id}-${Date.now()}`,
+      quantity: 1,
+      model: product.sku || product.name,
+      description: product.name,
+      price: cost > 0 && formData.lineItems.length > 0 && formData.lineItems[0]?.markupPercent > 0
+        ? Math.round(cost * (1 + formData.lineItems[0].markupPercent / 100) * 100) / 100
+        : product.price,
+      cost,
+      markupPercent: formData.lineItems.length > 0 ? formData.lineItems[0]?.markupPercent || 0 : 0,
+      msrp: product.price,
+      dealerSource: '',
+      hs_product_id: product.id,
+    };
+    setFormData(prev => ({ ...prev, lineItems: [...prev.lineItems, newItem as any] }));
+  };
   
   const toggleTerm = (term: number) => { 
     setFormData(prev => { 
