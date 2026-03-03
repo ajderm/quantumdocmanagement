@@ -3652,7 +3652,7 @@ function DocumentHubContent() {
       {/* Hidden preview for Quote PDF generation */}
       <div className="hidden">
         {formData && (
-          <QuotePreview ref={previewRef} formData={formData} dealerInfo={dealerInfo || undefined} documentStyles={dealerSettings.document_styles} />
+          <QuotePreview ref={previewRef} formData={formData} dealerInfo={dealerInfo || undefined} documentStyles={dealerSettings.document_styles} formCustomization={dealerSettings.form_customization?.quote} />
         )}
       </div>
 
