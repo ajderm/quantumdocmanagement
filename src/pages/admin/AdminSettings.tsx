@@ -81,6 +81,10 @@ export default function AdminSettings() {
   const [newCommissionUserName, setNewCommissionUserName] = useState('');
   const [newCommissionPercentage, setNewCommissionPercentage] = useState('40');
   const [fetchingOwners, setFetchingOwners] = useState(false);
+
+  // Pricing tiers state
+  const [pricingTiers, setPricingTiers] = useState<Array<{ name: string; prices: Array<{ product_model: string; rep_cost: string }> }>>([]);
+  const [savingTiers, setSavingTiers] = useState(false);
   
   // Form state
   const [formData, setFormData] = useState({
