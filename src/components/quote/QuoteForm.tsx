@@ -554,6 +554,7 @@ export function QuoteForm({ deal, company, lineItems, dealOwner, onFormChange, p
   };
 
   return (
+    <>
     <div className="space-y-4">
       {/* Quote Details */}
       <Card>
