@@ -103,6 +103,7 @@ export const QuotePreview = forwardRef<HTMLDivElement, QuotePreviewProps>(
         </div>
 
         {/* Prepared For */}
+        {isSectionVisible(formCustomization, 'customerInfo') && (
         <div className="mb-6">
           <p className="font-bold mb-1">Prepared For:</p>
           <p className="font-semibold">{formData.companyName}</p>
@@ -111,6 +112,7 @@ export const QuotePreview = forwardRef<HTMLDivElement, QuotePreviewProps>(
           <p>{formData.city}, {formData.state} {formData.zip}</p>
           {formData.phone && <p>{formData.phone}</p>}
         </div>
+        )}
 
         {/* Equipment Table */}
         <div className="mb-6">
