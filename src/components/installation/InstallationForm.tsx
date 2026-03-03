@@ -339,15 +339,32 @@ export function InstallationForm({
       // Use hardwareLineItems to find expanded items (e.g., id_1, id_2 for qty > 1)
       const selectedItem = hardwareLineItems.find(item => item.id === formData.selectedLineItemId);
       if (selectedItem) {
+        // Find linked accessories from quote line items
+        // For expanded items (id_1, id_2), match on the base ID (before the underscore)
+        const baseId = formData.selectedLineItemId.includes('_') 
+          ? formData.selectedLineItemId.split('_').slice(0, -1).join('_')
+          : formData.selectedLineItemId;
+        
+        const accessories: LinkedAccessoryItem[] = (quoteLineItems || [])
+          .filter(ql => ql.parentLineItemId === baseId || ql.parentLineItemId === formData.selectedLineItemId)
+          .map(ql => ({
+            id: ql.id,
+            model: ql.model,
+            description: ql.description,
+            quantity: ql.quantity,
+            productType: ql.productType || '',
+          }));
+
         setFormData(prev => ({
           ...prev,
           installedQty: selectedItem.quantity || 1,
           installedModel: selectedItem.model || selectedItem.sku || '',
           installedDescription: selectedItem.description || selectedItem.name || '',
+          linkedAccessories: accessories,
         }));
       }
     }
-  }, [formData.selectedLineItemId, lineItems]);
+  }, [formData.selectedLineItemId, lineItems, quoteLineItems]);
 
   // Notify parent of changes
   useEffect(() => {
