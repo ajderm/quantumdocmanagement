@@ -877,6 +877,68 @@ export type Database = {
         }
         Relationships: []
       }
+      pricing_tier_prices: {
+        Row: {
+          created_at: string
+          id: string
+          pricing_tier_id: string
+          product_model: string
+          rep_cost: number
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          pricing_tier_id: string
+          product_model: string
+          rep_cost: number
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          pricing_tier_id?: string
+          product_model?: string
+          rep_cost?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "pricing_tier_prices_pricing_tier_id_fkey"
+            columns: ["pricing_tier_id"]
+            isOneToOne: false
+            referencedRelation: "pricing_tiers"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      pricing_tiers: {
+        Row: {
+          created_at: string
+          id: string
+          is_active: boolean | null
+          name: string
+          portal_id: string
+          sort_order: number | null
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          is_active?: boolean | null
+          name: string
+          portal_id: string
+          sort_order?: number | null
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          is_active?: boolean | null
+          name?: string
+          portal_id?: string
+          sort_order?: number | null
+          updated_at?: string
+        }
+        Relationships: []
+      }
       profiles: {
         Row: {
           created_at: string
