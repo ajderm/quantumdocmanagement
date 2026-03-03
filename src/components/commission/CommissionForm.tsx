@@ -318,6 +318,7 @@ export function CommissionForm({ deal, company, lineItems, dealOwner, portalId, 
       // Ensure new fields have defaults if missing from old config
       if (merged.splitPercentage === undefined) merged.splitPercentage = 0;
       if (merged.splitRepName === undefined) merged.splitRepName = "";
+      if (merged.specialPricingTier === undefined) merged.specialPricingTier = "";
       
       // Backward compatibility: migrate promoDiscounts from number to string
       if (typeof merged.promoDiscounts === 'number') {
