@@ -8,7 +8,7 @@ import { Plus, Trash2, AlertTriangle, X } from 'lucide-react';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { supabase } from '@/integrations/supabase/client';
 
-export interface QuoteLineItem { id: string; quantity: number; model: string; description: string; price: number; }
+export interface QuoteLineItem { id: string; quantity: number; model: string; description: string; price: number; cost: number; markupPercent: number; }
 export interface QuoteFormData { 
   quoteNumber: string; 
   quoteDate: string; 
