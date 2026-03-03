@@ -503,8 +503,49 @@ export function QuoteForm({ deal, company, lineItems, dealOwner, onFormChange, p
         </CardHeader>
         <CardContent>
           <div className="space-y-2">
-            <div className="grid grid-cols-12 gap-2 text-xs font-medium text-muted-foreground px-2"><div className="col-span-1">Qty</div><div className="col-span-3">Model</div><div className="col-span-5">Description</div><div className="col-span-2">Price</div><div className="col-span-1"></div></div>
-            {formData.lineItems.map((item, idx) => (<div key={item.id} className="grid grid-cols-12 gap-2 items-center"><div className="col-span-1"><Input type="number" min="1" value={item.quantity} onChange={e => updateLineItem(idx, 'quantity', parseInt(e.target.value) || 1)} className="h-8 text-sm" /></div><div className="col-span-3"><Input value={item.model} onChange={e => updateLineItem(idx, 'model', e.target.value)} className="h-8 text-sm" /></div><div className="col-span-5"><Input value={item.description} onChange={e => updateLineItem(idx, 'description', e.target.value)} className="h-8 text-sm" /></div><div className="col-span-2"><div className="relative"><span className="absolute left-2 top-1/2 -translate-y-1/2 text-muted-foreground text-sm">$</span><Input type="number" min="0" step="0.01" value={item.price} onChange={e => updateLineItem(idx, 'price', parseFloat(e.target.value) || 0)} className="h-8 text-sm pl-5" /></div></div><div className="col-span-1"><Button type="button" variant="ghost" size="sm" onClick={() => removeLineItem(idx)} className="h-8 w-8 p-0 text-destructive"><Trash2 className="h-3.5 w-3.5" /></Button></div></div>))}
+            <div className="grid grid-cols-12 gap-2 text-xs font-medium text-muted-foreground px-2">
+              <div className="col-span-1">Qty</div>
+              <div className="col-span-2">Model</div>
+              <div className="col-span-3">Description</div>
+              <div className="col-span-2">Rep Cost</div>
+              <div className="col-span-1">Markup %</div>
+              <div className="col-span-2">Your Price</div>
+              <div className="col-span-1"></div>
+            </div>
+            {formData.lineItems.map((item, idx) => (
+              <div key={item.id} className="grid grid-cols-12 gap-2 items-center">
+                <div className="col-span-1">
+                  <Input type="number" min="1" value={item.quantity} onChange={e => updateLineItem(idx, 'quantity', parseInt(e.target.value) || 1)} className="h-8 text-sm" />
+                </div>
+                <div className="col-span-2">
+                  <Input value={item.model} onChange={e => updateLineItem(idx, 'model', e.target.value)} className="h-8 text-sm" />
+                </div>
+                <div className="col-span-3">
+                  <Input value={item.description} onChange={e => updateLineItem(idx, 'description', e.target.value)} className="h-8 text-sm" />
+                </div>
+                <div className="col-span-2">
+                  <div className="relative">
+                    <span className="absolute left-2 top-1/2 -translate-y-1/2 text-muted-foreground text-sm">$</span>
+                    <Input type="number" min="0" step="0.01" value={item.cost} onChange={e => updateLineItem(idx, 'cost', parseFloat(e.target.value) || 0)} className="h-8 text-sm pl-5" />
+                  </div>
+                </div>
+                <div className="col-span-1">
+                  <div className="relative">
+                    <Input type="number" min="0" step="1" value={item.markupPercent} onChange={e => updateLineItem(idx, 'markupPercent', parseFloat(e.target.value) || 0)} className="h-8 text-sm pr-6" />
+                    <span className="absolute right-2 top-1/2 -translate-y-1/2 text-muted-foreground text-xs">%</span>
+                  </div>
+                </div>
+                <div className="col-span-2">
+                  <div className="relative">
+                    <span className="absolute left-2 top-1/2 -translate-y-1/2 text-muted-foreground text-sm">$</span>
+                    <Input type="text" value={formatCurrency(item.price)} readOnly className="h-8 text-sm pl-5 bg-muted/50" />
+                  </div>
+                </div>
+                <div className="col-span-1">
+                  <Button type="button" variant="ghost" size="sm" onClick={() => removeLineItem(idx)} className="h-8 w-8 p-0 text-destructive"><Trash2 className="h-3.5 w-3.5" /></Button>
+                </div>
+              </div>
+            ))}
             {formData.lineItems.length === 0 && <p className="text-sm text-muted-foreground text-center py-4">No equipment. Click Add Item.</p>}
           </div>
         </CardContent>
