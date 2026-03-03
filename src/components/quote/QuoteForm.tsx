@@ -600,6 +600,7 @@ export function QuoteForm({ deal, company, lineItems, dealOwner, onFormChange, p
       )}
 
       {/* Equipment */}
+      {isSectionVisible(formCustomization, 'equipment') && (
       <Card>
         <CardHeader className="py-3">
           <CardTitle className="text-sm flex items-center justify-between">
