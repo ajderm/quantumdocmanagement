@@ -117,18 +117,33 @@ export const QuotePreview = forwardRef<HTMLDivElement, QuotePreviewProps>(
             <thead>
               <tr className="border-b-2 border-black">
                 <th className="text-left py-1 pb-2 w-12">Qty.</th>
-                <th className="text-left py-1 pb-2 w-48">Model</th>
+                <th className="text-left py-1 pb-2 w-36">Model</th>
                 <th className="text-left py-1 pb-2">Description</th>
+                <th className="text-right py-1 pb-2 w-24">Retail</th>
+                <th className="text-right py-1 pb-2 w-24">Your Price</th>
               </tr>
             </thead>
             <tbody>
-              {formData.lineItems.map((item) => (
-                <tr key={item.id} className="border-b border-gray-300">
-                  <td className="py-1">{item.quantity}</td>
-                  <td className="py-1">{item.model}</td>
-                  <td className="py-1">{item.description}</td>
-                </tr>
-              ))}
+              {formData.lineItems.map((item) => {
+                const itemMsrp = item.msrp || 0;
+                const itemPrice = item.price || 0;
+                const msrpDiffers = itemMsrp > 0 && Math.abs(itemMsrp - itemPrice) > 0.01;
+                return (
+                  <tr key={item.id} className="border-b border-gray-300">
+                    <td className="py-1">{item.quantity}</td>
+                    <td className="py-1">{item.model}</td>
+                    <td className="py-1">{item.description}</td>
+                    <td className="py-1 text-right">
+                      {msrpDiffers ? (
+                        <span className="text-gray-500 line-through">${formatCurrency(itemMsrp)}</span>
+                      ) : (
+                        <span className="text-gray-400">—</span>
+                      )}
+                    </td>
+                    <td className="py-1 text-right font-semibold">${formatCurrency(itemPrice)}</td>
+                  </tr>
+                );
+              })}
               {formData.lineItems.length === 0 && (
                 <tr>
                   <td colSpan={3} className="py-2 text-gray-400 text-center">No equipment items</td>
