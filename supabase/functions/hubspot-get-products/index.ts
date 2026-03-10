@@ -168,6 +168,9 @@ Deno.serve(async (req) => {
       };
     });
 
+    // Collect distinct dealer values BEFORE filtering (so dropdown shows all options)
+    const dealerValues = [...new Set(products.map((p: any) => p.dealer).filter(Boolean))].sort();
+
     // Apply productType filter AFTER normalization + overrides
     if (productType) {
       products = products.filter((p: any) => p.productType === productType);
@@ -177,9 +180,6 @@ Deno.serve(async (req) => {
     if (dealerFilter) {
       products = products.filter((p: any) => p.dealer === dealerFilter);
     }
-
-    // Collect distinct dealer values for filter dropdown
-    const dealerValues = [...new Set(products.map((p: any) => p.dealer).filter(Boolean))].sort();
 
     return createJsonResponse({
       products,

@@ -85,9 +85,12 @@ export function ProductSearchModal({
       }
       setHasMore(data.hasMore || false);
       setAfterCursor(data.after || null);
-      // Update dealer options from the first non-filtered fetch
-      if (data.dealerValues && !dealer && !cursor) {
-        setDealerOptions(data.dealerValues);
+      // Always accumulate dealer options from responses
+      if (data.dealerValues?.length > 0) {
+        setDealerOptions(prev => {
+          const merged = new Set([...prev, ...data.dealerValues]);
+          return [...merged].sort();
+        });
       }
     } catch (err) {
       console.error('Product fetch error:', err);
@@ -178,7 +181,7 @@ export function ProductSearchModal({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-3xl max-h-[80vh]">
+      <DialogContent className="max-w-3xl max-h-[80vh] flex flex-col overflow-hidden">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
             <Package className="h-5 w-5" />
@@ -186,7 +189,7 @@ export function ProductSearchModal({
           </DialogTitle>
         </DialogHeader>
 
-        <div className="space-y-3">
+        <div className="space-y-3 flex-1 min-h-0 flex flex-col">
           <div className="relative">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
             <Input
@@ -229,7 +232,7 @@ export function ProductSearchModal({
             )}
           </div>
 
-          <ScrollArea className="h-[400px]">
+          <ScrollArea className="flex-1 min-h-0">
             <div className="space-y-1">
               {filteredProducts.map(product => {
                 const tierCost = getTierCost(product);
