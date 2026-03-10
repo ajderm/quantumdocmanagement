@@ -194,7 +194,7 @@ function DocumentHubContent() {
   const [leaseReturnHasUnsavedChanges, setLeaseReturnHasUnsavedChanges] = useState(false);
   const [leaseReturnLastSavedData, setLeaseReturnLastSavedData] = useState<string | null>(null);
   const leaseReturnPreviewRef = useRef<HTMLDivElement>(null);
-  const leaseReturnAutoSaveTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const leaseReturnAutoSaveTimeoutRef = useRef<TimerId | null>(null);
   const leaseReturnFormDataRef = useRef<LeaseReturnFormData | null>(null);
 
   // Interterritorial state
