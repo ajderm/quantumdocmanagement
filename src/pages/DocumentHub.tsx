@@ -218,7 +218,7 @@ function DocumentHubContent() {
   const [newCustomerHasUnsavedChanges, setNewCustomerHasUnsavedChanges] = useState(false);
   const [newCustomerLastSavedData, setNewCustomerLastSavedData] = useState<string | null>(null);
   const newCustomerPreviewRef = useRef<HTMLDivElement>(null);
-  const newCustomerAutoSaveTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const newCustomerAutoSaveTimeoutRef = useRef<TimerId | null>(null);
   const newCustomerFormDataRef = useRef<NewCustomerFormData | null>(null);
 
   // Relocation state
