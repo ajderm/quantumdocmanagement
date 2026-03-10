@@ -425,8 +425,9 @@ export function CommissionForm({ deal, company, lineItems, dealOwner, portalId, 
   const totalRepCost = formData.lineItems.reduce((sum, item) => sum + (item.repCost * item.quantity), 0);
 
   const totalRepCostWithCosts = totalRepCost +
+    formData.buyoutTradeUp +
     formData.shippingCosts + formData.setupCost + formData.deliveryCost +
-    formData.connectivity + formData.itProfessionalServices +
+    formData.connectivity +
     formData.leadFee + formData.otherSalesFees;
 
   // Lease calculations -- promoDiscounts is now a text note, not subtracted
@@ -437,7 +438,7 @@ export function CommissionForm({ deal, company, lineItems, dealOwner, portalId, 
   // Commission with split
   const baseCommission = equipmentAGP * (formData.commissionPercentage / 100);
   const splitMultiplier = formData.splitPercentage > 0 ? formData.splitPercentage / 100 : 1;
-  const totalCommission = (baseCommission * splitMultiplier) + formData.connectedCommission;
+  const totalCommission = baseCommission * splitMultiplier;
 
   const isPurchase = formData.transactionType === "Purchase";
 
@@ -531,7 +532,7 @@ export function CommissionForm({ deal, company, lineItems, dealOwner, portalId, 
               <span>Rep Cost</span>
               <span>Type</span>
               <span>Condition</span>
-              <span>Dealer Source</span>
+              <span>Pricing Source</span>
             </div>
             {formData.lineItems.map((item, index) => (
               <div key={item.id} className="grid grid-cols-[1fr_80px_80px_80px_80px_100px] gap-2">
@@ -586,8 +587,7 @@ export function CommissionForm({ deal, company, lineItems, dealOwner, portalId, 
               { label: "Shipping Costs", field: "shippingCosts" as const, text: shippingText, setText: setShippingText },
               { label: "Setup Cost", field: "setupCost" as const, text: setupCostText, setText: setSetupCostText },
               { label: "Delivery Cost", field: "deliveryCost" as const, text: deliveryCostText, setText: setDeliveryCostText },
-              { label: "Connectivity", field: "connectivity" as const, text: connectivityText, setText: setConnectivityText },
-              { label: "IT Professional Services", field: "itProfessionalServices" as const, text: itText, setText: setItText },
+              { label: "Networking", field: "connectivity" as const, text: connectivityText, setText: setConnectivityText },
               { label: "Lead Fee", field: "leadFee" as const, text: leadFeeText, setText: setLeadFeeText },
               { label: "Other Sales Fees", field: "otherSalesFees" as const, text: otherText, setText: setOtherText },
             ].map(({ label, field, text, setText }) => (
@@ -719,27 +719,10 @@ export function CommissionForm({ deal, company, lineItems, dealOwner, portalId, 
           <CardTitle className="text-sm">Commission</CardTitle>
         </CardHeader>
         <CardContent>
-          <div className="grid grid-cols-3 gap-3">
+          <div className="grid grid-cols-1 gap-3">
             <div>
               <Label className="text-xs">Commission %</Label>
               <Input className="h-8 text-sm text-right bg-muted/50" readOnly value={formData.commissionPercentage || ""} />
-            </div>
-            <div>
-              <Label className="text-xs">Connected Amount</Label>
-              <Input
-                className="h-8 text-sm text-right"
-                value={connectedText || (formData.connectedAmount ? formatCurrency(formData.connectedAmount) : "")}
-                onChange={e => { setConnectedText(e.target.value); updateField("connectedAmount", parseCurrency(e.target.value)); }}
-                onBlur={() => { if (formData.connectedAmount) setConnectedText(formatCurrency(formData.connectedAmount)); }}
-              />
-            </div>
-            <div>
-              <Label className="text-xs">Connected Commission</Label>
-              <Input
-                className="h-8 text-sm text-right"
-                value={formData.connectedCommission ? formatCurrency(formData.connectedCommission) : ""}
-                onChange={e => updateField("connectedCommission", parseCurrency(e.target.value))}
-              />
             </div>
           </div>
           {formData.splitPercentage > 0 && (
@@ -754,26 +737,6 @@ export function CommissionForm({ deal, company, lineItems, dealOwner, portalId, 
         </CardContent>
       </Card>
 
-      {/* Signatures */}
-      <Card>
-        <CardHeader className="pb-2">
-          <CardTitle className="text-sm">Signatures</CardTitle>
-        </CardHeader>
-        <CardContent className="space-y-3">
-          <div>
-            <Label className="text-xs">Sales Rep Name</Label>
-            <Input className="h-8 text-sm" value={formData.salesRepSignature} onChange={e => updateField("salesRepSignature", e.target.value)} />
-          </div>
-          <div>
-            <Label className="text-xs">Sales Manager Name</Label>
-            <Input className="h-8 text-sm" value={formData.salesManagerSignature} onChange={e => updateField("salesManagerSignature", e.target.value)} />
-          </div>
-          <div>
-            <Label className="text-xs">President Name</Label>
-            <Input className="h-8 text-sm" value={formData.presidentSignature} onChange={e => updateField("presidentSignature", e.target.value)} />
-          </div>
-        </CardContent>
-      </Card>
     </div>
   );
 }

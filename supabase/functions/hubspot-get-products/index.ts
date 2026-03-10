@@ -85,7 +85,7 @@ Deno.serve(async (req) => {
   }
 
   try {
-    const { portalId, search, productType, after } = await req.json();
+    const { portalId, search, productType, dealerFilter, after } = await req.json();
 
     if (!validatePortalId(portalId)) {
       return createErrorResponse('Invalid portalId', 400, corsHeaders);
@@ -103,7 +103,7 @@ Deno.serve(async (req) => {
       properties: [
         'name', 'hs_sku', 'description', 'price',
         'hs_cost_of_goods_sold', 'unit_cost', 'hs_product_type',
-        'hs_images', 'hs_recurring_billing_period',
+        'hs_images', 'hs_recurring_billing_period', 'dealer',
       ],
       limit: 100,
       sorts: [{ propertyName: 'name', direction: 'ASCENDING' }],
@@ -164,6 +164,7 @@ Deno.serve(async (req) => {
         productType: effectiveType,
         originalType: normalizedType,
         hasOverride: !!override,
+        dealer: p.properties.dealer || '',
       };
     });
 
@@ -172,11 +173,20 @@ Deno.serve(async (req) => {
       products = products.filter((p: any) => p.productType === productType);
     }
 
+    // Apply dealer/pricing source filter
+    if (dealerFilter) {
+      products = products.filter((p: any) => p.dealer === dealerFilter);
+    }
+
+    // Collect distinct dealer values for filter dropdown
+    const dealerValues = [...new Set(products.map((p: any) => p.dealer).filter(Boolean))].sort();
+
     return createJsonResponse({
       products,
       hasMore: !!data.paging?.next,
       after: data.paging?.next?.after || null,
       total: data.total || products.length,
+      dealerValues,
     }, corsHeaders);
   } catch (error) {
     console.error('hubspot-get-products error:', error);

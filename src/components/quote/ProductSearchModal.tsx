@@ -19,6 +19,7 @@ export interface HubSpotProduct {
   productType: string;
   originalType?: string;
   hasOverride?: boolean;
+  dealer?: string;
 }
 
 interface PricingTier {
@@ -48,6 +49,8 @@ export function ProductSearchModal({
 }: ProductSearchModalProps) {
   const [search, setSearch] = useState('');
   const [productTypeFilter, setProductTypeFilter] = useState<string>('');
+  const [dealerFilter, setDealerFilter] = useState<string>('');
+  const [dealerOptions, setDealerOptions] = useState<string[]>([]);
   const [products, setProducts] = useState<HubSpotProduct[]>([]);
   const [loading, setLoading] = useState(false);
   const [hasMore, setHasMore] = useState(false);
@@ -57,7 +60,7 @@ export function ProductSearchModal({
 
   const tier = pricingTiers.find(t => t.name === selectedTier);
 
-  const fetchProducts = useCallback(async (searchQuery: string, typeFilter: string, cursor?: string | null) => {
+  const fetchProducts = useCallback(async (searchQuery: string, typeFilter: string, cursor?: string | null, dealer?: string) => {
     setLoading(true);
     try {
       const { data, error } = await supabase.functions.invoke('hubspot-get-products', {
@@ -65,6 +68,7 @@ export function ProductSearchModal({
           portalId,
           search: searchQuery || undefined,
           productType: typeFilter || undefined,
+          dealerFilter: dealer || undefined,
           after: cursor || undefined,
         },
       });
@@ -81,6 +85,10 @@ export function ProductSearchModal({
       }
       setHasMore(data.hasMore || false);
       setAfterCursor(data.after || null);
+      // Update dealer options from the first non-filtered fetch
+      if (data.dealerValues && !dealer && !cursor) {
+        setDealerOptions(data.dealerValues);
+      }
     } catch (err) {
       console.error('Product fetch error:', err);
     } finally {
@@ -92,6 +100,7 @@ export function ProductSearchModal({
     if (open) {
       setSearch('');
       setProductTypeFilter('');
+      setDealerFilter('');
       setProducts([]);
       fetchProducts('', '');
     }
@@ -102,7 +111,7 @@ export function ProductSearchModal({
     if (searchTimeout) clearTimeout(searchTimeout);
     const timeout = setTimeout(() => {
       setAfterCursor(null);
-      fetchProducts(value, productTypeFilter);
+      fetchProducts(value, productTypeFilter, null, dealerFilter);
     }, 400);
     setSearchTimeout(timeout);
   };
@@ -111,12 +120,19 @@ export function ProductSearchModal({
     const newType = type === productTypeFilter ? '' : type;
     setProductTypeFilter(newType);
     setAfterCursor(null);
-    fetchProducts(search, newType);
+    fetchProducts(search, newType, null, dealerFilter);
+  };
+
+  const handleDealerFilterChange = (dealer: string) => {
+    const newDealer = dealer === 'all' ? '' : dealer;
+    setDealerFilter(newDealer);
+    setAfterCursor(null);
+    fetchProducts(search, productTypeFilter, null, newDealer);
   };
 
   const handleLoadMore = () => {
     if (afterCursor) {
-      fetchProducts(search, productTypeFilter, afterCursor);
+      fetchProducts(search, productTypeFilter, afterCursor, dealerFilter);
     }
   };
 
@@ -193,6 +209,19 @@ export function ProductSearchModal({
                 {type}
               </Badge>
             ))}
+            {dealerOptions.length > 0 && (
+              <Select value={dealerFilter || 'all'} onValueChange={handleDealerFilterChange}>
+                <SelectTrigger className="h-7 text-xs w-44 ml-2">
+                  <SelectValue placeholder="All Pricing Sources" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">All Pricing Sources</SelectItem>
+                  {dealerOptions.map(d => (
+                    <SelectItem key={d} value={d}>{d}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            )}
             {selectedTier && selectedTier !== 'Standard' && (
               <Badge variant="secondary" className="text-xs ml-auto">
                 Tier: {selectedTier}
@@ -224,6 +253,7 @@ export function ProductSearchModal({
                       </div>
                       <div className="flex items-center gap-3 text-xs text-muted-foreground mt-0.5">
                         {product.sku && <span>SKU: {product.sku}</span>}
+                        {product.dealer && <span className="text-blue-600">Source: {product.dealer}</span>}
                         <span>MSRP: ${(product.price ?? 0).toLocaleString('en-US', { minimumFractionDigits: 2 })}</span>
                         {tierCost !== undefined ? (
                           <span className="text-primary font-medium">

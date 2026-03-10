@@ -38,10 +38,13 @@ export interface QuoteFormData {
   // Configuration fields
   leasingCompanyId: string;
   priceDisplay: 'both' | 'purchase_only' | 'lease_only';
+  equipmentDisplay: 'itemized' | 'total_only';
   leasingPriceType: 'without_buyout' | 'with_buyout';
   leaseProgram: 'fmv' | 'dollar_buyout';
   // Special Pricing Tier (deal-level)
   specialPricingTier: string;
+  // Contract number (shown on quote when populated)
+  contractNumber: string;
   // Buyout fields
   earlyTerminationFee: number;
   returnShipping: number;
@@ -112,9 +115,11 @@ export function QuoteForm({ deal, company, lineItems, dealOwner, onFormChange, p
     // Configuration defaults
     leasingCompanyId: '',
     priceDisplay: 'both',
+    equipmentDisplay: 'itemized',
     leasingPriceType: 'without_buyout',
     leaseProgram: 'fmv',
     specialPricingTier: '',
+    contractNumber: '',
     // Buyout defaults
     earlyTerminationFee: 0,
     returnShipping: 0,
@@ -216,6 +221,7 @@ export function QuoteForm({ deal, company, lineItems, dealOwner, onFormChange, p
       setFormData(prev => ({
         ...prev,
         specialPricingTier: tierName,
+        contractNumber: '',
         lineItems: prev.lineItems.map(item => {
           const origCost = originalCosts[item.id] ?? item.cost;
           const newPrice = origCost > 0 && item.markupPercent > 0
@@ -233,6 +239,7 @@ export function QuoteForm({ deal, company, lineItems, dealOwner, onFormChange, p
     setFormData(prev => ({
       ...prev,
       specialPricingTier: tierName,
+      contractNumber: '',
       lineItems: prev.lineItems.map(item => {
         const priceMatch = tier.prices.find(p =>
           item.model.toLowerCase() === p.product_model.toLowerCase()
@@ -531,7 +538,7 @@ export function QuoteForm({ deal, company, lineItems, dealOwner, onFormChange, p
       cost,
       markupPercent: formData.lineItems.length > 0 ? formData.lineItems[0]?.markupPercent || 0 : 0,
       msrp: product.price,
-      dealerSource: '',
+      dealerSource: product.dealer || '',
       hs_product_id: product.id,
       productType: product.productType || '',
       parentLineItemId: '',
@@ -621,7 +628,7 @@ export function QuoteForm({ deal, company, lineItems, dealOwner, onFormChange, p
               <div>Type</div>
               <div>Model</div>
               <div>Description</div>
-              <div>Dealer</div>
+              <div>Pricing Source</div>
               <div>MSRP</div>
               <div>Rep Cost</div>
               <div>Markup %</div>
@@ -657,7 +664,7 @@ export function QuoteForm({ deal, company, lineItems, dealOwner, onFormChange, p
                   <Input value={item.description} onChange={e => updateLineItem(idx, 'description', e.target.value)} className="h-8 text-sm" />
                 </div>
                 <div>
-                  <Input value={item.dealerSource} onChange={e => updateLineItem(idx, 'dealerSource', e.target.value)} className="h-8 text-sm" placeholder="Dealer" />
+                  <Input value={item.dealerSource} onChange={e => updateLineItem(idx, 'dealerSource', e.target.value)} className="h-8 text-sm" placeholder="Pricing Source" />
                 </div>
                 <div>
                   <div className="relative">
@@ -720,7 +727,7 @@ export function QuoteForm({ deal, company, lineItems, dealOwner, onFormChange, p
         <CardContent>
           <div className="grid grid-cols-5 gap-4">
             <div>
-              <Label className="text-xs">Special Pricing</Label>
+              <Label className="text-xs">Pricing Source</Label>
               <Select value={formData.specialPricingTier || 'Standard'} onValueChange={handlePricingTierChange}>
                 <SelectTrigger className="h-8 text-sm">
                   <SelectValue placeholder="Standard" />
@@ -732,6 +739,15 @@ export function QuoteForm({ deal, company, lineItems, dealOwner, onFormChange, p
                   ))}
                 </SelectContent>
               </Select>
+            </div>
+            <div>
+              <Label className="text-xs">Contract Number</Label>
+              <Input 
+                value={formData.contractNumber} 
+                onChange={e => updateField('contractNumber', e.target.value)} 
+                className="h-8 text-sm" 
+                placeholder="e.g., DIR-CPO-5428"
+              />
             </div>
             <div>
               <Label className="text-xs">Leasing Company</Label>
@@ -763,6 +779,20 @@ export function QuoteForm({ deal, company, lineItems, dealOwner, onFormChange, p
                 </SelectContent>
               </Select>
             </div>
+            <div>
+              <Label className="text-xs">Equipment Display</Label>
+              <Select value={formData.equipmentDisplay || 'itemized'} onValueChange={(v) => updateField('equipmentDisplay', v as 'itemized' | 'total_only')}>
+                <SelectTrigger className="h-8 text-sm">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="itemized">Show Itemized Pricing</SelectItem>
+                  <SelectItem value="total_only">Show Total Only</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+          </div>
+          <div className="grid grid-cols-5 gap-4 mt-3">
             <div>
               <Label className="text-xs">Leasing Price</Label>
               <Select value={formData.leasingPriceType} onValueChange={(v) => updateField('leasingPriceType', v as 'without_buyout' | 'with_buyout')}>

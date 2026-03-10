@@ -30,12 +30,11 @@ export const CommissionPreview = forwardRef<HTMLDivElement, CommissionPreviewPro
     const totalRepCost = formData.lineItems.reduce((s, i) => s + i.repCost * i.quantity, 0);
 
     const costRows = [
-      { label: "Buyout/TradeUp", billed: formData.buyoutTradeUp, repCost: 0 },
+      { label: "Buyout/TradeUp", billed: formData.buyoutTradeUp, repCost: formData.buyoutTradeUp },
       { label: "Shipping Costs", billed: formData.shippingCosts, repCost: formData.shippingCosts },
       { label: "Setup Cost", billed: formData.setupCost, repCost: formData.setupCost },
       { label: "Delivery Cost", billed: formData.deliveryCost, repCost: formData.deliveryCost },
-      { label: "Connectivity", billed: formData.connectivity, repCost: formData.connectivity },
-      { label: "IT Professional Services", billed: formData.itProfessionalServices, repCost: formData.itProfessionalServices },
+      { label: "Networking", billed: formData.connectivity, repCost: formData.connectivity },
       { label: "Lead Fee", billed: formData.leadFee, repCost: formData.leadFee },
       { label: "Other Sales Fees", billed: formData.otherSalesFees, repCost: formData.otherSalesFees },
     ];
@@ -48,7 +47,7 @@ export const CommissionPreview = forwardRef<HTMLDivElement, CommissionPreviewPro
     const equipmentAGP = netEquipRev - totalsRepCost;
     const baseCommission = equipmentAGP * (formData.commissionPercentage / 100);
     const splitMultiplier = formData.splitPercentage > 0 ? formData.splitPercentage / 100 : 1;
-    const totalCommission = (baseCommission * splitMultiplier) + formData.connectedCommission;
+    const totalCommission = baseCommission * splitMultiplier;
 
     const borderColor = documentStyles?.tableBorderColor || '#000000';
     const lineColor = documentStyles?.tableLineColor || '#d1d5db';
@@ -122,7 +121,7 @@ export const CommissionPreview = forwardRef<HTMLDivElement, CommissionPreviewPro
                     <th className="text-left py-0.5 font-bold">Billed</th>
                     <th className="text-right py-0.5 font-bold w-16">Rep Cost</th>
                     <th className="text-left py-0.5 font-bold w-20 pl-2">Condition</th>
-                    <th className="text-left py-0.5 font-bold w-20 pl-2">Dealer Source</th>
+                    <th className="text-left py-0.5 font-bold w-20 pl-2">Pricing Source</th>
                     <th className="text-left py-0.5 font-bold pl-2">Special Pricing</th>
                   </tr>
                 </thead>
@@ -190,11 +189,6 @@ export const CommissionPreview = forwardRef<HTMLDivElement, CommissionPreviewPro
           <div className="font-bold pb-1 mb-2" style={{ borderBottom: `2px solid ${borderColor}` }}>COMMISSION</div>
           <table className="text-[9px]">
             <tbody>
-              <tr>
-                <td className="pr-8 py-0.5 font-semibold">Commission Percentage</td>
-                <td className="pr-8"></td>
-                <td className="text-right">{formData.commissionPercentage}%</td>
-              </tr>
               {formData.splitPercentage > 0 && (
                 <tr>
                   <td className="pr-8 py-0.5 font-semibold">Split</td>
@@ -202,11 +196,6 @@ export const CommissionPreview = forwardRef<HTMLDivElement, CommissionPreviewPro
                   <td className="text-right">{formData.splitPercentage}%</td>
                 </tr>
               )}
-              <tr>
-                <td className="py-0.5 font-semibold">Connected</td>
-                <td className="text-right pr-8">${fmt(formData.connectedAmount)}</td>
-                <td className="text-right">${fmt(formData.connectedCommission)}</td>
-              </tr>
               <tr className="font-bold" style={{ borderTop: `2px solid ${borderColor}` }}>
                 <td className="py-0.5">Total Commission</td>
                 <td></td>
