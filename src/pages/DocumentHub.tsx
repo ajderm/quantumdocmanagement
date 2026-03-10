@@ -1,4 +1,6 @@
 import { useState, useRef, useCallback, useEffect } from 'react';
+
+type TimerId = ReturnType<typeof setTimeout>;
 import { HubSpotProvider, useHubSpot } from '@/hooks/useHubSpot';
 import { supabase } from '@/integrations/supabase/client';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
