@@ -727,20 +727,6 @@ export function QuoteForm({ deal, company, lineItems, dealOwner, onFormChange, p
         <CardContent>
           <div className="grid grid-cols-5 gap-4">
             <div>
-              <Label className="text-xs">Pricing Source</Label>
-              <Select value={formData.specialPricingTier || 'Standard'} onValueChange={handlePricingTierChange}>
-                <SelectTrigger className="h-8 text-sm">
-                  <SelectValue placeholder="Standard" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="Standard">Standard</SelectItem>
-                  {pricingTiers.map(tier => (
-                    <SelectItem key={tier.id} value={tier.name}>{tier.name}</SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-            <div>
               <Label className="text-xs">Contract Number</Label>
               <Input 
                 value={formData.contractNumber} 
@@ -791,8 +777,6 @@ export function QuoteForm({ deal, company, lineItems, dealOwner, onFormChange, p
                 </SelectContent>
               </Select>
             </div>
-          </div>
-          <div className="grid grid-cols-5 gap-4 mt-3">
             <div>
               <Label className="text-xs">Leasing Price</Label>
               <Select value={formData.leasingPriceType} onValueChange={(v) => updateField('leasingPriceType', v as 'without_buyout' | 'with_buyout')}>
@@ -805,6 +789,8 @@ export function QuoteForm({ deal, company, lineItems, dealOwner, onFormChange, p
                 </SelectContent>
               </Select>
             </div>
+          </div>
+          <div className="grid grid-cols-5 gap-4 mt-3">
             <div>
               <Label className="text-xs">Lease Program</Label>
               <Select value={formData.leaseProgram} onValueChange={(v) => updateField('leaseProgram', v as 'fmv' | 'dollar_buyout')}>

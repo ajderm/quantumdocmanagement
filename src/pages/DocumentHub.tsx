@@ -1854,35 +1854,8 @@ function DocumentHubContent() {
       const fileName = `Quote_${sanitizedCompanyName}_${dateStr}_${timeStr}.pdf`;
 
       let finalPdfBytes: ArrayBuffer;
-      const proposalUrl = dealerSettings.proposal_template_url;
-
-      if (proposalUrl) {
-        try {
-          // Fetch proposal PDF and merge with quote
-          const proposalResponse = await fetch(proposalUrl);
-          if (!proposalResponse.ok) throw new Error('Failed to fetch proposal template');
-          const proposalBytes = await proposalResponse.arrayBuffer();
-          const proposalPdfDoc = await PDFDocument.load(proposalBytes);
-          const quotePdfBytes = quotePdf.output('arraybuffer');
-          const quotePdfDoc = await PDFDocument.load(quotePdfBytes);
-          
-          const mergedPdf = await PDFDocument.create();
-          // Copy proposal pages first
-          const proposalPages = await mergedPdf.copyPages(proposalPdfDoc, proposalPdfDoc.getPageIndices());
-          proposalPages.forEach(p => mergedPdf.addPage(p));
-          // Then quote pages
-          const quotePages = await mergedPdf.copyPages(quotePdfDoc, quotePdfDoc.getPageIndices());
-          quotePages.forEach(p => mergedPdf.addPage(p));
-          
-          finalPdfBytes = await mergedPdf.save() as unknown as ArrayBuffer;
-        } catch (mergeErr) {
-          console.error('Failed to merge proposal PDF, using quote only:', mergeErr);
-          toast.error('Could not merge proposal template, generating quote only');
-          finalPdfBytes = quotePdf.output('arraybuffer');
-        }
-      } else {
-        finalPdfBytes = quotePdf.output('arraybuffer');
-      }
+      // Proposal template merge is disabled — generate quote PDF only
+      finalPdfBytes = quotePdf.output('arraybuffer');
 
       // Download the final PDF
       const blob = new Blob([finalPdfBytes], { type: 'application/pdf' });
@@ -3695,9 +3668,6 @@ function DocumentHubContent() {
           <DialogHeader className="p-4 pb-0">
             <DialogTitle className="flex items-center gap-2">
               Quote Preview
-              {dealerSettings.proposal_template_url && (
-                <Badge variant="secondary" className="text-xs">Proposal will be prepended in PDF</Badge>
-              )}
             </DialogTitle>
           </DialogHeader>
           <ScrollArea className="max-h-[calc(90vh-80px)]">
