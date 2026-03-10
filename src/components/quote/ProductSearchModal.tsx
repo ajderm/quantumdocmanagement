@@ -181,7 +181,7 @@ export function ProductSearchModal({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-3xl max-h-[80vh] flex flex-col overflow-hidden">
+      <DialogContent className="max-w-3xl max-h-[80vh] flex flex-col">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
             <Package className="h-5 w-5" />
@@ -189,7 +189,7 @@ export function ProductSearchModal({
           </DialogTitle>
         </DialogHeader>
 
-        <div className="space-y-3 flex-1 min-h-0 flex flex-col">
+        <div className="space-y-3 flex-1 min-h-0 flex flex-col overflow-hidden">
           <div className="relative">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
             <Input
@@ -232,7 +232,7 @@ export function ProductSearchModal({
             )}
           </div>
 
-          <ScrollArea className="flex-1 min-h-0">
+          <ScrollArea className="h-[50vh]">
             <div className="space-y-1">
               {filteredProducts.map(product => {
                 const tierCost = getTierCost(product);
