@@ -242,7 +242,7 @@ function DocumentHubContent() {
   const [removalHasUnsavedChanges, setRemovalHasUnsavedChanges] = useState(false);
   const [removalLastSavedData, setRemovalLastSavedData] = useState<string | null>(null);
   const removalPreviewRef = useRef<HTMLDivElement>(null);
-  const removalAutoSaveTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const removalAutoSaveTimeoutRef = useRef<TimerId | null>(null);
   const removalFormDataRef = useRef<RemovalFormData | null>(null);
 
   // Commission state
