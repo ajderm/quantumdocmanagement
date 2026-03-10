@@ -1,4 +1,6 @@
 import { useState, useRef, useCallback, useEffect } from 'react';
+
+type TimerId = ReturnType<typeof setTimeout>;
 import { HubSpotProvider, useHubSpot } from '@/hooks/useHubSpot';
 import { supabase } from '@/integrations/supabase/client';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
@@ -120,7 +122,7 @@ function DocumentHubContent() {
   const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false);
   const [lastSavedData, setLastSavedData] = useState<string | null>(null);
   const previewRef = useRef<HTMLDivElement>(null);
-  const autoSaveTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const autoSaveTimeoutRef = useRef<TimerId | null>(null);
   const formDataRef = useRef<QuoteFormData | null>(null);
 
   // Installation state
@@ -132,7 +134,7 @@ function DocumentHubContent() {
   const [installationHasUnsavedChanges, setInstallationHasUnsavedChanges] = useState(false);
   const [installationLastSavedData, setInstallationLastSavedData] = useState<string | null>(null);
   const installationPreviewRef = useRef<HTMLDivElement>(null);
-  const installationAutoSaveTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const installationAutoSaveTimeoutRef = useRef<TimerId | null>(null);
   const installationFormDataRef = useRef<InstallationFormData | null>(null);
 
   // Service Agreement state
@@ -144,7 +146,7 @@ function DocumentHubContent() {
   const [serviceAgreementHasUnsavedChanges, setServiceAgreementHasUnsavedChanges] = useState(false);
   const [serviceAgreementLastSavedData, setServiceAgreementLastSavedData] = useState<string | null>(null);
   const serviceAgreementPreviewRef = useRef<HTMLDivElement>(null);
-  const serviceAgreementAutoSaveTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const serviceAgreementAutoSaveTimeoutRef = useRef<TimerId | null>(null);
   const serviceAgreementFormDataRef = useRef<ServiceAgreementFormData | null>(null);
 
   // FMV Lease state
@@ -156,7 +158,7 @@ function DocumentHubContent() {
   const [fmvLeaseHasUnsavedChanges, setFmvLeaseHasUnsavedChanges] = useState(false);
   const [fmvLeaseLastSavedData, setFmvLeaseLastSavedData] = useState<string | null>(null);
   const fmvLeasePreviewRef = useRef<HTMLDivElement>(null);
-  const fmvLeaseAutoSaveTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const fmvLeaseAutoSaveTimeoutRef = useRef<TimerId | null>(null);
   const fmvLeaseFormDataRef = useRef<FMVLeaseFormData | null>(null);
 
   // Lease Funding state (per-line-item like Installation)
@@ -168,7 +170,7 @@ function DocumentHubContent() {
   const [leaseFundingHasUnsavedChanges, setLeaseFundingHasUnsavedChanges] = useState(false);
   const [leaseFundingLastSavedData, setLeaseFundingLastSavedData] = useState<string | null>(null);
   const leaseFundingPreviewRef = useRef<HTMLDivElement>(null);
-  const leaseFundingAutoSaveTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const leaseFundingAutoSaveTimeoutRef = useRef<TimerId | null>(null);
   const leaseFundingFormDataRef = useRef<LeaseFundingFormData | null>(null);
 
   // LOI state
@@ -180,7 +182,7 @@ function DocumentHubContent() {
   const [loiHasUnsavedChanges, setLoiHasUnsavedChanges] = useState(false);
   const [loiLastSavedData, setLoiLastSavedData] = useState<string | null>(null);
   const loiPreviewRef = useRef<HTMLDivElement>(null);
-  const loiAutoSaveTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const loiAutoSaveTimeoutRef = useRef<TimerId | null>(null);
   const loiFormDataRef = useRef<LoiFormData | null>(null);
 
   // Lease Return state
@@ -192,7 +194,7 @@ function DocumentHubContent() {
   const [leaseReturnHasUnsavedChanges, setLeaseReturnHasUnsavedChanges] = useState(false);
   const [leaseReturnLastSavedData, setLeaseReturnLastSavedData] = useState<string | null>(null);
   const leaseReturnPreviewRef = useRef<HTMLDivElement>(null);
-  const leaseReturnAutoSaveTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const leaseReturnAutoSaveTimeoutRef = useRef<TimerId | null>(null);
   const leaseReturnFormDataRef = useRef<LeaseReturnFormData | null>(null);
 
   // Interterritorial state
@@ -204,7 +206,7 @@ function DocumentHubContent() {
   const [interterritorialHasUnsavedChanges, setInterterritorialHasUnsavedChanges] = useState(false);
   const [interterritorialLastSavedData, setInterterritorialLastSavedData] = useState<string | null>(null);
   const interterritorialPreviewRef = useRef<HTMLDivElement>(null);
-  const interterritorialAutoSaveTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const interterritorialAutoSaveTimeoutRef = useRef<TimerId | null>(null);
   const interterritorialFormDataRef = useRef<InterterritorialFormData | null>(null);
 
   // New Customer state
@@ -216,7 +218,7 @@ function DocumentHubContent() {
   const [newCustomerHasUnsavedChanges, setNewCustomerHasUnsavedChanges] = useState(false);
   const [newCustomerLastSavedData, setNewCustomerLastSavedData] = useState<string | null>(null);
   const newCustomerPreviewRef = useRef<HTMLDivElement>(null);
-  const newCustomerAutoSaveTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const newCustomerAutoSaveTimeoutRef = useRef<TimerId | null>(null);
   const newCustomerFormDataRef = useRef<NewCustomerFormData | null>(null);
 
   // Relocation state
@@ -228,7 +230,7 @@ function DocumentHubContent() {
   const [relocationHasUnsavedChanges, setRelocationHasUnsavedChanges] = useState(false);
   const [relocationLastSavedData, setRelocationLastSavedData] = useState<string | null>(null);
   const relocationPreviewRef = useRef<HTMLDivElement>(null);
-  const relocationAutoSaveTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const relocationAutoSaveTimeoutRef = useRef<TimerId | null>(null);
   const relocationFormDataRef = useRef<RelocationFormData | null>(null);
 
   // Removal state
@@ -240,7 +242,7 @@ function DocumentHubContent() {
   const [removalHasUnsavedChanges, setRemovalHasUnsavedChanges] = useState(false);
   const [removalLastSavedData, setRemovalLastSavedData] = useState<string | null>(null);
   const removalPreviewRef = useRef<HTMLDivElement>(null);
-  const removalAutoSaveTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const removalAutoSaveTimeoutRef = useRef<TimerId | null>(null);
   const removalFormDataRef = useRef<RemovalFormData | null>(null);
 
   // Commission state
@@ -252,7 +254,7 @@ function DocumentHubContent() {
   const [commissionHasUnsavedChanges, setCommissionHasUnsavedChanges] = useState(false);
   const [commissionLastSavedData, setCommissionLastSavedData] = useState<string | null>(null);
   const commissionPreviewRef = useRef<HTMLDivElement>(null);
-  const commissionAutoSaveTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const commissionAutoSaveTimeoutRef = useRef<TimerId | null>(null);
   const commissionFormDataRef = useRef<CommissionFormData | null>(null);
 
   // Dealer info and settings
