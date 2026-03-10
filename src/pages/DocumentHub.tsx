@@ -206,7 +206,7 @@ function DocumentHubContent() {
   const [interterritorialHasUnsavedChanges, setInterterritorialHasUnsavedChanges] = useState(false);
   const [interterritorialLastSavedData, setInterterritorialLastSavedData] = useState<string | null>(null);
   const interterritorialPreviewRef = useRef<HTMLDivElement>(null);
-  const interterritorialAutoSaveTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const interterritorialAutoSaveTimeoutRef = useRef<TimerId | null>(null);
   const interterritorialFormDataRef = useRef<InterterritorialFormData | null>(null);
 
   // New Customer state
