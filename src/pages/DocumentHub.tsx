@@ -170,7 +170,7 @@ function DocumentHubContent() {
   const [leaseFundingHasUnsavedChanges, setLeaseFundingHasUnsavedChanges] = useState(false);
   const [leaseFundingLastSavedData, setLeaseFundingLastSavedData] = useState<string | null>(null);
   const leaseFundingPreviewRef = useRef<HTMLDivElement>(null);
-  const leaseFundingAutoSaveTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const leaseFundingAutoSaveTimeoutRef = useRef<TimerId | null>(null);
   const leaseFundingFormDataRef = useRef<LeaseFundingFormData | null>(null);
 
   // LOI state
