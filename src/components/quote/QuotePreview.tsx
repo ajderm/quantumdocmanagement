@@ -145,10 +145,7 @@ export const QuotePreview = forwardRef<HTMLDivElement, QuotePreviewProps>(
                     <td className="py-1">{item.description}</td>
                     <td className="py-1 text-right">
                       {msrpDiffers ? (
-                        <span className="text-gray-400 relative inline-block">
-                          <span>${formatCurrency(itemMsrp)}</span>
-                          <span className="absolute left-0 right-0 top-1/2 border-t border-gray-400" style={{ transform: 'translateY(-50%)' }}></span>
-                        </span>
+                        <span style={{ color: '#9ca3af', backgroundImage: 'linear-gradient(transparent 45%, #9ca3af 45%, #9ca3af 55%, transparent 55%)', backgroundRepeat: 'no-repeat', backgroundSize: '100% 100%' }}>${formatCurrency(itemMsrp)}</span>
                       ) : (
                         <span className="text-gray-400">—</span>
                       )}
@@ -163,10 +160,7 @@ export const QuotePreview = forwardRef<HTMLDivElement, QuotePreviewProps>(
                   <td className="py-1" colSpan={2}>Equipment Package</td>
                   <td className="py-1 text-right">
                     {showMSRPStrikethrough && (
-                      <span className="text-gray-400 relative inline-block">
-                        <span>${formatCurrency(totalMSRP)}</span>
-                        <span className="absolute left-0 right-0 top-1/2 border-t border-gray-400" style={{ transform: 'translateY(-50%)' }}></span>
-                      </span>
+                      <span style={{ color: '#9ca3af', backgroundImage: 'linear-gradient(transparent 45%, #9ca3af 45%, #9ca3af 55%, transparent 55%)', backgroundRepeat: 'no-repeat', backgroundSize: '100% 100%' }}>${formatCurrency(totalMSRP)}</span>
                     )}
                   </td>
                   <td className="py-1 text-right font-semibold">${formatCurrency(formData.retailPrice)}</td>
@@ -229,10 +223,7 @@ export const QuotePreview = forwardRef<HTMLDivElement, QuotePreviewProps>(
                     </div>
                     {showMSRPStrikethrough && (
                       <div>
-                        <span className="text-gray-400 text-[8px] relative inline-block">
-                          <span>Retail: ${formatCurrency(totalMSRP)}</span>
-                          <span className="absolute left-0 right-0 top-1/2 border-t border-gray-400" style={{ transform: 'translateY(-50%)' }}></span>
-                        </span>
+                        <span className="text-[8px]" style={{ color: '#9ca3af', backgroundImage: 'linear-gradient(transparent 45%, #9ca3af 45%, #9ca3af 55%, transparent 55%)', backgroundRepeat: 'no-repeat', backgroundSize: '100% 100%' }}>Retail: ${formatCurrency(totalMSRP)}</span>
                       </div>
                     )}
                   </td>
