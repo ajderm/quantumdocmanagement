@@ -92,15 +92,12 @@ export const CommissionPreview = forwardRef<HTMLDivElement, CommissionPreviewPro
         </div>
 
         {/* Customer/Sale Type */}
-        {(formData.transactionType || formData.promoDiscounts || formData.specialPricingTier) && (
+        {(formData.transactionType || formData.promoDiscounts) && (
           <div className="mb-3">
             <div className="font-bold pb-1 mb-2" style={{ borderBottom: `2px solid ${borderColor}` }}>CUSTOMER/SALE TYPE</div>
             <div className="text-[9px] space-y-0.5">
               {formData.transactionType && (
                 <div><span className="font-semibold">Transaction Type: </span>{formData.transactionType}</div>
-              )}
-              {formData.specialPricingTier && formData.specialPricingTier !== 'Standard' && (
-                <div><span className="font-semibold">Special Pricing: </span>{formData.specialPricingTier}</div>
               )}
               {formData.promoDiscounts && (
                 <div><span className="font-semibold">Promo / Discount: </span>{formData.promoDiscounts}</div>
@@ -122,14 +119,12 @@ export const CommissionPreview = forwardRef<HTMLDivElement, CommissionPreviewPro
                     <th className="text-right py-0.5 font-bold w-16">Rep Cost</th>
                     <th className="text-left py-0.5 font-bold w-20 pl-2">Condition</th>
                     <th className="text-left py-0.5 font-bold w-20 pl-2">Pricing Source</th>
-                    <th className="text-left py-0.5 font-bold pl-2">Special Pricing</th>
                   </tr>
                 </thead>
                 <tbody>
                   <tr style={{ borderBottom: `1px solid ${lineColor}` }}>
                     <td className="py-0.5 font-semibold">Total Billed Revenue</td>
                     <td className="py-0.5 text-right">${fmt(totalRepCost)}</td>
-                    <td></td>
                     <td></td>
                     <td></td>
                   </tr>
@@ -139,7 +134,6 @@ export const CommissionPreview = forwardRef<HTMLDivElement, CommissionPreviewPro
                       <td className="py-0.5 text-right"></td>
                       <td className="py-0.5 pl-2">{item.condition}</td>
                       <td className="py-0.5 pl-2">{item.dealerSource}</td>
-                      <td className="py-0.5 pl-2">{item.specialPricing}</td>
                     </tr>
                   ))}
                   {/* Cost breakdown rows */}
@@ -149,13 +143,11 @@ export const CommissionPreview = forwardRef<HTMLDivElement, CommissionPreviewPro
                       <td className="py-0.5 text-right">${fmt(row.repCost)}</td>
                       <td></td>
                       <td></td>
-                      <td></td>
                     </tr>
                   ))}
                   <tr className="font-bold" style={{ borderTop: `2px solid ${borderColor}` }}>
                     <td className="py-0.5">Totals  ${fmt(totalsBilled)}</td>
                     <td className="py-0.5 text-right">${fmt(totalsRepCost)}</td>
-                    <td></td>
                     <td></td>
                     <td></td>
                   </tr>

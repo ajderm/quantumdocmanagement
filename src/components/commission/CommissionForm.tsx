@@ -506,23 +506,7 @@ export function CommissionForm({ deal, company, lineItems, dealOwner, portalId, 
       {/* Line Items */}
       <Card>
         <CardHeader className="pb-2">
-          <CardTitle className="text-sm flex items-center justify-between">
-            <span>Equipment Items</span>
-            <div className="flex items-center gap-2">
-              <Label className="text-xs font-normal text-muted-foreground">Special Pricing Tier</Label>
-              <Select value={formData.specialPricingTier || 'Standard'} onValueChange={handlePricingTierChange}>
-                <SelectTrigger className="h-8 text-sm w-40">
-                  <SelectValue placeholder="Standard" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="Standard">Standard</SelectItem>
-                  {pricingTiers.map(tier => (
-                    <SelectItem key={tier.id} value={tier.name}>{tier.name}</SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-          </CardTitle>
+          <CardTitle className="text-sm">Equipment Items</CardTitle>
         </CardHeader>
         <CardContent>
           <div className="space-y-2">
