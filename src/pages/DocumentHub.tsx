@@ -182,7 +182,7 @@ function DocumentHubContent() {
   const [loiHasUnsavedChanges, setLoiHasUnsavedChanges] = useState(false);
   const [loiLastSavedData, setLoiLastSavedData] = useState<string | null>(null);
   const loiPreviewRef = useRef<HTMLDivElement>(null);
-  const loiAutoSaveTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const loiAutoSaveTimeoutRef = useRef<TimerId | null>(null);
   const loiFormDataRef = useRef<LoiFormData | null>(null);
 
   // Lease Return state
