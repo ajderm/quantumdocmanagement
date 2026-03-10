@@ -3571,7 +3571,7 @@ function DocumentHubContent() {
                   portalId={portalId}
                   onFormChange={handleCommissionFormChange}
                   savedConfig={commissionSavedConfig}
-                  quoteConfig={savedConfig}
+                  quoteConfig={formData || savedConfig}
                   commissionUsers={commissionUsers}
                 />
                 <div className="flex gap-2 pt-4 border-t">

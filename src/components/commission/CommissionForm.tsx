@@ -379,6 +379,53 @@ export function CommissionForm({ deal, company, lineItems, dealOwner, portalId, 
     hasInitializedRef.current = true;
   }, [deal, company, dealOwner, lineItems, savedConfig, quoteConfig]);
 
+  // Sync line items from quote form when quote data changes (after initial load)
+  useEffect(() => {
+    if (!hasInitializedRef.current) return;
+    if (!quoteConfig?.lineItems?.length) return;
+
+    const quoteLineItems = quoteConfig.lineItems.map((item: any) => ({
+      id: item.id || `li-${Date.now()}-${Math.random()}`,
+      quantity: item.quantity || 1,
+      description: `${item.quantity || 1} - ${item.description || item.model || ""}`,
+      billed: item.price || 0,
+      repCost: item.cost || 0,
+      condition: item.condition || "New",
+      dealerSource: item.dealerSource || "",
+      specialPricing: "",
+      machineType: item.machineType || "Color",
+    }));
+
+    // Only update if line items actually changed
+    const currentDesc = formData.lineItems.map(li => `${li.description}|${li.billed}|${li.repCost}`).join(',');
+    const newDesc = quoteLineItems.map((li: any) => `${li.description}|${li.billed}|${li.repCost}`).join(',');
+    
+    if (currentDesc !== newDesc) {
+      setFormData(prev => ({
+        ...prev,
+        lineItems: quoteLineItems,
+        approvalAmount: quoteConfig.retailPrice || prev.approvalAmount,
+      }));
+    }
+  }, [quoteConfig?.lineItems, quoteConfig?.retailPrice]);
+
+  // Sync buyout from quote when it changes
+  useEffect(() => {
+    if (!hasInitializedRef.current || !quoteConfig) return;
+    
+    let buyoutFromQuote = 0;
+    if (quoteConfig.paymentAmount && quoteConfig.paymentsRemaining) {
+      buyoutFromQuote = (quoteConfig.paymentAmount * quoteConfig.paymentsRemaining)
+        + (quoteConfig.earlyTerminationFee || 0)
+        + (quoteConfig.returnShipping || 0);
+    }
+    
+    if (buyoutFromQuote > 0 && buyoutFromQuote !== formData.buyoutTradeUp) {
+      setFormData(prev => ({ ...prev, buyoutTradeUp: buyoutFromQuote }));
+      setBuyoutText(String(buyoutFromQuote));
+    }
+  }, [quoteConfig?.paymentAmount, quoteConfig?.paymentsRemaining, quoteConfig?.earlyTerminationFee, quoteConfig?.returnShipping]);
+
   useEffect(() => {
     onFormChange(formData);
   }, [formData, onFormChange]);
