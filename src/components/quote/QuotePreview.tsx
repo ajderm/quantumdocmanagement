@@ -145,7 +145,7 @@ export const QuotePreview = forwardRef<HTMLDivElement, QuotePreviewProps>(
                     <td className="py-1">{item.description}</td>
                     <td className="py-1 text-right">
                       {msrpDiffers ? (
-                        <span className="text-gray-500 line-through">${formatCurrency(itemMsrp)}</span>
+                        <span className="text-gray-400" style={{ textDecoration: 'line-through' }}>${formatCurrency(itemMsrp)}</span>
                       ) : (
                         <span className="text-gray-400">—</span>
                       )}
@@ -160,7 +160,7 @@ export const QuotePreview = forwardRef<HTMLDivElement, QuotePreviewProps>(
                   <td className="py-1" colSpan={2}>Equipment Package</td>
                   <td className="py-1 text-right">
                     {showMSRPStrikethrough && (
-                      <span className="text-gray-500 line-through">${formatCurrency(totalMSRP)}</span>
+                      <span className="text-gray-400" style={{ textDecoration: 'line-through' }}>${formatCurrency(totalMSRP)}</span>
                     )}
                   </td>
                   <td className="py-1 text-right font-semibold">${formatCurrency(formData.retailPrice)}</td>
@@ -218,10 +218,14 @@ export const QuotePreview = forwardRef<HTMLDivElement, QuotePreviewProps>(
               <tr className="border-b border-gray-300">
                 {showPurchase && (
                   <td className="py-1 align-top" rowSpan={Math.max(formData.selectedTerms.length, 1)}>
+                    <div>
+                      <span className="font-bold">${formatCurrency(formData.retailPrice)}</span>
+                    </div>
                     {showMSRPStrikethrough && (
-                      <span className="text-gray-500 line-through text-[9px] mr-2">${formatCurrency(totalMSRP)}</span>
+                      <div>
+                        <span className="text-gray-400 text-[8px]" style={{ textDecoration: 'line-through' }}>Retail: ${formatCurrency(totalMSRP)}</span>
+                      </div>
                     )}
-                    <span className="font-bold">${formatCurrency(formData.retailPrice)}</span>
                   </td>
                 )}
                 {showPurchase && showLease && (
