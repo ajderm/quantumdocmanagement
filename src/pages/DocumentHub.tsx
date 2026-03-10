@@ -146,7 +146,7 @@ function DocumentHubContent() {
   const [serviceAgreementHasUnsavedChanges, setServiceAgreementHasUnsavedChanges] = useState(false);
   const [serviceAgreementLastSavedData, setServiceAgreementLastSavedData] = useState<string | null>(null);
   const serviceAgreementPreviewRef = useRef<HTMLDivElement>(null);
-  const serviceAgreementAutoSaveTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const serviceAgreementAutoSaveTimeoutRef = useRef<TimerId | null>(null);
   const serviceAgreementFormDataRef = useRef<ServiceAgreementFormData | null>(null);
 
   // FMV Lease state
