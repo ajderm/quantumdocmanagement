@@ -134,7 +134,7 @@ function DocumentHubContent() {
   const [installationHasUnsavedChanges, setInstallationHasUnsavedChanges] = useState(false);
   const [installationLastSavedData, setInstallationLastSavedData] = useState<string | null>(null);
   const installationPreviewRef = useRef<HTMLDivElement>(null);
-  const installationAutoSaveTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const installationAutoSaveTimeoutRef = useRef<TimerId | null>(null);
   const installationFormDataRef = useRef<InstallationFormData | null>(null);
 
   // Service Agreement state
