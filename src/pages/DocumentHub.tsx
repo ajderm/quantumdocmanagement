@@ -230,7 +230,7 @@ function DocumentHubContent() {
   const [relocationHasUnsavedChanges, setRelocationHasUnsavedChanges] = useState(false);
   const [relocationLastSavedData, setRelocationLastSavedData] = useState<string | null>(null);
   const relocationPreviewRef = useRef<HTMLDivElement>(null);
-  const relocationAutoSaveTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const relocationAutoSaveTimeoutRef = useRef<TimerId | null>(null);
   const relocationFormDataRef = useRef<RelocationFormData | null>(null);
 
   // Removal state
