@@ -122,7 +122,7 @@ function DocumentHubContent() {
   const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false);
   const [lastSavedData, setLastSavedData] = useState<string | null>(null);
   const previewRef = useRef<HTMLDivElement>(null);
-  const autoSaveTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const autoSaveTimeoutRef = useRef<TimerId | null>(null);
   const formDataRef = useRef<QuoteFormData | null>(null);
 
   // Installation state
