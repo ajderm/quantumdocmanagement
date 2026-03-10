@@ -158,7 +158,7 @@ function DocumentHubContent() {
   const [fmvLeaseHasUnsavedChanges, setFmvLeaseHasUnsavedChanges] = useState(false);
   const [fmvLeaseLastSavedData, setFmvLeaseLastSavedData] = useState<string | null>(null);
   const fmvLeasePreviewRef = useRef<HTMLDivElement>(null);
-  const fmvLeaseAutoSaveTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const fmvLeaseAutoSaveTimeoutRef = useRef<TimerId | null>(null);
   const fmvLeaseFormDataRef = useRef<FMVLeaseFormData | null>(null);
 
   // Lease Funding state (per-line-item like Installation)
