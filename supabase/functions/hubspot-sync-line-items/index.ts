@@ -152,6 +152,21 @@ Deno.serve(async (req) => {
           properties.hs_product_id = item.hs_product_id;
         }
 
+        // Sync dealer/pricing source
+        if (item.dealer) {
+          properties.dealer = item.dealer;
+        }
+
+        // Sync product type
+        if (item.productType) {
+          properties.hs_product_type = item.productType;
+        }
+
+        // Sync MSRP as unit_cost if available
+        if (item.msrp) {
+          properties.unit_cost = String(item.msrp);
+        }
+
         return { properties };
       });
 

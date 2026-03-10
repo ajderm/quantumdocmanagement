@@ -1636,6 +1636,9 @@ function DocumentHubContent() {
                 quantity: item.quantity,
                 price: item.price,
                 cost: item.cost,
+                dealer: item.dealerSource || '',
+                productType: item.productType || '',
+                msrp: item.msrp || 0,
               })),
             }
           });
