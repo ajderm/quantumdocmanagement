@@ -254,7 +254,7 @@ function DocumentHubContent() {
   const [commissionHasUnsavedChanges, setCommissionHasUnsavedChanges] = useState(false);
   const [commissionLastSavedData, setCommissionLastSavedData] = useState<string | null>(null);
   const commissionPreviewRef = useRef<HTMLDivElement>(null);
-  const commissionAutoSaveTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const commissionAutoSaveTimeoutRef = useRef<TimerId | null>(null);
   const commissionFormDataRef = useRef<CommissionFormData | null>(null);
 
   // Dealer info and settings
