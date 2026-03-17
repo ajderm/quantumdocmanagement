@@ -1,5 +1,6 @@
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
 import { encryptToken, decryptToken } from '../_shared/crypto.ts';
+import { validatePortalId } from '../_shared/validation.ts';
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -88,16 +89,18 @@ Deno.serve(async (req) => {
     const body = await req.json();
     const { portalId, dealId, fileName, fileBase64 } = body;
 
-    console.log('hubspot-attach-file: Request data:', { 
-      portalId, 
-      dealId, 
-      fileName, 
-      fileBase64Length: fileBase64?.length || 0 
-    });
+    console.log('hubspot-attach-file: Processing request for portal:', portalId);
 
     if (!portalId || !dealId || !fileName || !fileBase64) {
       console.error('hubspot-attach-file: Missing required fields');
       return new Response(JSON.stringify({ error: 'Missing required fields' }), {
+        status: 400,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      });
+    }
+
+    if (!validatePortalId(portalId)) {
+      return new Response(JSON.stringify({ error: 'Invalid portalId format' }), {
         status: 400,
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       });

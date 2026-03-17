@@ -81,7 +81,23 @@ export function HubSpotProvider({ children }: { children: ReactNode }) {
     const { portalId: portalIdFromUrl, userId: userIdFromUrl, dealId } = readHubSpotParams();
 
     // Persist portal/user for later (e.g. settings tab opened without params)
-    if (portalIdFromUrl) window.localStorage.setItem(STORAGE_KEYS.portalId, portalIdFromUrl);
+    if (portalIdFromUrl) {
+      // If portal changed, clear stale data from previous portal
+      const previousPortalId = window.localStorage.getItem(STORAGE_KEYS.portalId);
+      if (previousPortalId && previousPortalId !== portalIdFromUrl) {
+        // Clear all portal-scoped backup keys from the old portal
+        const keysToRemove: string[] = [];
+        for (let i = 0; i < window.localStorage.length; i++) {
+          const key = window.localStorage.key(i);
+          if (key && key.includes(`_${previousPortalId}_`)) {
+            keysToRemove.push(key);
+          }
+        }
+        keysToRemove.forEach(key => window.localStorage.removeItem(key));
+        console.log(`Portal changed from ${previousPortalId} to ${portalIdFromUrl}, cleared ${keysToRemove.length} stale backup keys`);
+      }
+      window.localStorage.setItem(STORAGE_KEYS.portalId, portalIdFromUrl);
+    }
     if (userIdFromUrl) window.localStorage.setItem(STORAGE_KEYS.userId, userIdFromUrl);
 
     const effectivePortalId = portalIdFromUrl || window.localStorage.getItem(STORAGE_KEYS.portalId);

@@ -72,7 +72,7 @@ async function refreshAccessToken(
   const expiresAt = new Date(Date.now() + data.expires_in * 1000).toISOString();
 
   // Encrypt new tokens before storing
-  console.log('Encrypting refreshed tokens...');
+  // Token encryption log removed for security
   const encryptedAccessToken = await encryptToken(data.access_token);
   const encryptedRefreshToken = await encryptToken(data.refresh_token);
 
@@ -111,7 +111,7 @@ async function getValidAccessToken(
   console.log('Token found, expires at:', data.expires_at);
 
   // Tokens are stored encrypted-at-rest (ciphertext in access_token/refresh_token)
-  console.log('Decrypting tokens...');
+  // Token decryption log removed for security
   const accessToken = await decryptToken(data.access_token);
   const refreshToken = await decryptToken(data.refresh_token);
   console.log('Tokens decrypted successfully');
@@ -449,7 +449,7 @@ Deno.serve(async (req) => {
         );
         
         // Debug: Log raw company properties to identify correct AP address field names
-        console.log('Raw company properties:', JSON.stringify(companyResponse.properties));
+        // Raw properties log removed for PII safety
         
         // Helper to validate if a value looks like a valid ZIP code (not a 2-letter state)
         const isValidZip = (val: string | null | undefined): boolean => {
@@ -498,7 +498,7 @@ Deno.serve(async (req) => {
           apState: companyResponse.properties.state__ap_ || '',
           apZip: companyResponse.properties.zip_code__ap_ || '',
         };
-        console.log('Company fetched:', company.name, 'customerNumber:', company.customerNumber, 'deliveryAddress:', company.deliveryAddress, 'apAddress:', company.apAddress);
+        console.log('Company fetched for portal');
 
         // Fetch labeled contacts from company (pass additional labels from field mappings)
         const contactsResult = await fetchLabeledContacts(accessToken, companyId, Array.from(companyContactLabels));

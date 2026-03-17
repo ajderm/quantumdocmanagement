@@ -28,6 +28,48 @@ export function validateLineItemId(lineItemId: unknown): lineItemId is string {
 }
 
 /**
+ * Verifies that a portal has a valid HubSpot token (proves it's a real, authenticated portal).
+ * This is the core multi-tenancy gate: if a portalId doesn't have a token, 
+ * it means the org never completed OAuth and can't access data.
+ */
+export async function verifyPortalAccess(
+  supabase: any,
+  portalId: string,
+  corsHeaders: Record<string, string>
+): Promise<Response | null> {
+  const { data: token, error: tokenError } = await supabase
+    .from('hubspot_tokens')
+    .select('portal_id')
+    .eq('portal_id', portalId)
+    .maybeSingle();
+
+  if (tokenError) {
+    console.error('Portal access verification error:', tokenError);
+    return createErrorResponse('Failed to verify portal access', 500, corsHeaders);
+  }
+
+  if (!token) {
+    return createErrorResponse('Portal not authenticated. Please complete HubSpot OAuth.', 403, corsHeaders);
+  }
+
+  // Portal has a valid token — access granted
+  return null;
+}
+
+/**
+ * Get CORS headers with configurable allowed origin.
+ * Set ALLOWED_ORIGIN env var to restrict (e.g., 'https://yourapp.lovable.app').
+ * Defaults to '*' for backward compatibility.
+ */
+export function getCorsHeaders(): Record<string, string> {
+  const allowedOrigin = Deno.env.get('ALLOWED_ORIGIN') || '*';
+  return {
+    'Access-Control-Allow-Origin': allowedOrigin,
+    'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version',
+  };
+}
+
+/**
  * Creates a standardized error response with CORS headers
  */
 export function createErrorResponse(

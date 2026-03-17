@@ -1492,6 +1492,33 @@ function DocumentHubContent() {
     const dealId = deal?.hsObjectId;
     if (!currentPortalId || !dealId) return;
 
+    // Clean up stale backups older than 24 hours (from any portal/deal)
+    try {
+      const cutoff = Date.now() - 24 * 60 * 60 * 1000;
+      const keysToRemove: string[] = [];
+      for (let i = 0; i < localStorage.length; i++) {
+        const key = localStorage.key(i);
+        if (key && key.includes('_backup_')) {
+          try {
+            const raw = localStorage.getItem(key);
+            if (raw) {
+              const parsed = JSON.parse(raw);
+              if (parsed?.updatedAt) {
+                const updatedAt = new Date(parsed.updatedAt).getTime();
+                if (updatedAt < cutoff) {
+                  keysToRemove.push(key);
+                }
+              }
+            }
+          } catch { /* skip unparseable entries */ }
+        }
+      }
+      keysToRemove.forEach(key => localStorage.removeItem(key));
+      if (keysToRemove.length > 0) {
+        console.log(`Cleaned up ${keysToRemove.length} stale backup keys`);
+      }
+    } catch { /* ignore cleanup errors */ }
+
     const readBackup = <T,>(key: string): T | null => {
       const raw = localStorage.getItem(key);
       if (!raw) return null;
