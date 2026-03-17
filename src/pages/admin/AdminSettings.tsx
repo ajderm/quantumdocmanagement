@@ -18,7 +18,10 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import type { FormCustomizationMap } from '@/lib/formCustomization';
 
 const DOCUMENT_TYPES = [
-  { code: 'quote', name: 'Quote' },
+  { code: 'quote', name: 'Quote (Default)' },
+  { code: 'quote_fmv', name: 'Quote: FMV Lease' },
+  { code: 'quote_dollar_buyout', name: 'Quote: $1 Buyout Lease' },
+  { code: 'quote_rental', name: 'Quote: Rental' },
   { code: 'service_agreement', name: 'Service Agreement' },
   { code: 'fmv_lease', name: 'FMV Lease' },
   { code: 'installation_removal_receipt', name: 'Installation: Removal Receipt' },

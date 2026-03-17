@@ -15,10 +15,11 @@ interface QuotePreviewProps {
   };
   documentStyles?: DocumentStyles;
   formCustomization?: FormCustomizationConfig;
+  documentTerms?: Record<string, string>;
 }
 
 export const QuotePreview = forwardRef<HTMLDivElement, QuotePreviewProps>(
-  ({ formData, dealerInfo, documentStyles, formCustomization }, ref) => {
+  ({ formData, dealerInfo, documentStyles, formCustomization, documentTerms }, ref) => {
     // Use pre-calculated payments from formData, respecting overrides
     const getLeasePayment = (term: number): number => {
       const override = formData.paymentOverrides?.[term];
@@ -329,12 +330,22 @@ export const QuotePreview = forwardRef<HTMLDivElement, QuotePreviewProps>(
         )}
 
         {/* Terms & Conditions */}
-        {isSectionVisible(formCustomization, 'termsAndConditions') && dealerInfo?.termsAndConditions && (
-          <div className="mb-6 text-[10px]">
-            <p className="font-bold mb-1">Terms & Conditions:</p>
-            <p className="whitespace-pre-wrap">{dealerInfo.termsAndConditions}</p>
-          </div>
-        )}
+        {isSectionVisible(formCustomization, 'termsAndConditions') && (() => {
+          // Pick T&C based on lease program: quote_fmv, quote_dollar_buyout, quote_rental, or default quote
+          const leaseProgramKey = formData.leaseProgram === 'fmv' ? 'quote_fmv'
+            : formData.leaseProgram === 'dollar_buyout' ? 'quote_dollar_buyout'
+            : formData.leaseProgram === 'rental' ? 'quote_rental'
+            : null;
+          const tcText = (leaseProgramKey && documentTerms?.[leaseProgramKey])
+            || dealerInfo?.termsAndConditions
+            || '';
+          return tcText ? (
+            <div className="mb-6 text-[10px]">
+              <p className="font-bold mb-1">Terms & Conditions:</p>
+              <p className="whitespace-pre-wrap">{tcText}</p>
+            </div>
+          ) : null;
+        })()}
 
         {/* Signature */}
         <div className="mb-6">

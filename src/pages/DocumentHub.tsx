@@ -3797,7 +3797,7 @@ function DocumentHubContent() {
       {/* Hidden preview for Quote PDF generation */}
       <div className="hidden">
         {formData && (
-          <QuotePreview ref={previewRef} formData={formData} dealerInfo={dealerInfo || undefined} documentStyles={dealerSettings.document_styles} formCustomization={dealerSettings.form_customization?.quote} />
+          <QuotePreview ref={previewRef} formData={formData} dealerInfo={dealerInfo || undefined} documentStyles={dealerSettings.document_styles} formCustomization={dealerSettings.form_customization?.quote} documentTerms={documentTerms} />
         )}
       </div>
 
@@ -3833,7 +3833,7 @@ function DocumentHubContent() {
             <div className="p-4 flex justify-center">
               {formData && (
                 <div className="shadow-lg border">
-                  <QuotePreview formData={formData} dealerInfo={dealerInfo || undefined} documentStyles={dealerSettings.document_styles} formCustomization={dealerSettings.form_customization?.quote} />
+                  <QuotePreview formData={formData} dealerInfo={dealerInfo || undefined} documentStyles={dealerSettings.document_styles} formCustomization={dealerSettings.form_customization?.quote} documentTerms={documentTerms} />
                 </div>
               )}
             </div>

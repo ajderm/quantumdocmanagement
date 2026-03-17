@@ -117,7 +117,7 @@ export function QuoteForm({ deal, company, lineItems, dealOwner, onFormChange, p
     // Configuration defaults
     leasingCompanyId: '',
     priceDisplay: 'both',
-    equipmentDisplay: 'itemized',
+    equipmentDisplay: 'total_only',
     leasingPriceType: 'without_buyout',
     leaseProgram: 'fmv',
     specialPricingTier: '',
@@ -807,7 +807,7 @@ export function QuoteForm({ deal, company, lineItems, dealOwner, onFormChange, p
             </div>
             <div>
               <Label className="text-xs">Equipment Display</Label>
-              <Select value={formData.equipmentDisplay || 'itemized'} onValueChange={(v) => updateField('equipmentDisplay', v as 'itemized' | 'total_only')}>
+              <Select value={formData.equipmentDisplay || 'total_only'} onValueChange={(v) => updateField('equipmentDisplay', v as 'itemized' | 'total_only')}>
                 <SelectTrigger className="h-8 text-sm">
                   <SelectValue />
                 </SelectTrigger>
