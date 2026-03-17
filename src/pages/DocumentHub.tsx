@@ -1680,30 +1680,32 @@ function DocumentHubContent() {
         }
       }
 
-      if (formData.buyoutFinancingAmount > 0) {
-        try {
-          const { error: hubspotError } = await supabase.functions.invoke('hubspot-update-deal', {
-            body: {
-              portalId: currentPortalId,
-              dealId: dealId,
-              properties: {
-                financing_amount: formData.buyoutFinancingAmount.toString()
-              }
-            }
-          });
-
-          if (hubspotError) {
-            console.error('HubSpot update error:', hubspotError);
-            toast.success('Configuration saved (HubSpot sync partial)');
-          } else {
-            toast.success('Configuration saved & synced to HubSpot');
-          }
-        } catch (hsErr) {
-          console.error('HubSpot sync error:', hsErr);
-          toast.success('Configuration saved (HubSpot sync partial)');
+      // Update deal properties in HubSpot (amount + financing)
+      try {
+        const dealProperties: Record<string, string> = {
+          amount: formData.retailPrice.toString(),
+        };
+        if (formData.buyoutFinancingAmount > 0) {
+          dealProperties.financing_amount = formData.buyoutFinancingAmount.toString();
         }
-      } else {
-        toast.success('Configuration saved & line items synced');
+
+        const { error: hubspotError } = await supabase.functions.invoke('hubspot-update-deal', {
+          body: {
+            portalId: currentPortalId,
+            dealId: dealId,
+            properties: dealProperties
+          }
+        });
+
+        if (hubspotError) {
+          console.error('HubSpot deal update error:', hubspotError);
+          toast.success('Configuration saved (deal amount sync failed)');
+        } else {
+          toast.success('Configuration saved & synced to HubSpot');
+        }
+      } catch (hsErr) {
+        console.error('HubSpot sync error:', hsErr);
+        toast.success('Configuration saved (HubSpot sync partial)');
       }
     } catch (err) {
       console.error('Save error:', err);
