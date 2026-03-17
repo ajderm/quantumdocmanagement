@@ -155,13 +155,19 @@ export function InstallationForm({
   labeledContacts,
   quoteLineItems,
 }: InstallationFormProps) {
+  // Helper: check if a line item is hardware
+  const isHardware = (item: any): boolean => {
+    const type = (item.productType || item.category || item.product_type || item.hs_product_type || '').toLowerCase().trim();
+    return type === 'hardware' || type === 'hw';
+  };
+
   // Filter line items to show only hardware
   // Prefer quoteLineItems (live quote data) over raw HubSpot lineItems
   const baseHardwareLineItems = (() => {
     if (quoteLineItems && quoteLineItems.length > 0) {
       // Use quote line items — productType is the field name
       return quoteLineItems
-        .filter(item => item.productType?.toLowerCase() === 'hardware')
+        .filter(item => isHardware(item))
         .map(item => ({
           ...item,
           name: item.description,
@@ -169,10 +175,8 @@ export function InstallationForm({
           category: item.productType,
         }));
     }
-    // Fall back to HubSpot line items — category is the field name
-    return lineItems.filter(
-      (item) => item.category?.toLowerCase() === 'hardware' || item.productType?.toLowerCase() === 'hardware'
-    );
+    // Fall back to HubSpot line items
+    return lineItems.filter(item => isHardware(item));
   })();
 
   // Expand hardware line items by quantity - each unit gets its own installation doc
