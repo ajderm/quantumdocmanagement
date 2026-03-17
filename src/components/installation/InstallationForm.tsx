@@ -155,10 +155,25 @@ export function InstallationForm({
   labeledContacts,
   quoteLineItems,
 }: InstallationFormProps) {
-  // Filter line items to show only hardware (hs_product_type = "Hardware")
-  const baseHardwareLineItems = lineItems.filter(
-    (item) => item.category?.toLowerCase() === 'hardware'
-  );
+  // Filter line items to show only hardware
+  // Prefer quoteLineItems (live quote data) over raw HubSpot lineItems
+  const baseHardwareLineItems = (() => {
+    if (quoteLineItems && quoteLineItems.length > 0) {
+      // Use quote line items — productType is the field name
+      return quoteLineItems
+        .filter(item => item.productType?.toLowerCase() === 'hardware')
+        .map(item => ({
+          ...item,
+          name: item.description,
+          sku: item.model,
+          category: item.productType,
+        }));
+    }
+    // Fall back to HubSpot line items — category is the field name
+    return lineItems.filter(
+      (item) => item.category?.toLowerCase() === 'hardware' || item.productType?.toLowerCase() === 'hardware'
+    );
+  })();
 
   // Expand hardware line items by quantity - each unit gets its own installation doc
   // E.g., "Canon Printer qty:2" becomes "Canon Printer (1 of 2)" and "Canon Printer (2 of 2)"
