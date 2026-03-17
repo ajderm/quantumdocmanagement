@@ -6,6 +6,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
+import { Label } from '@/components/ui/label';
 import { Button } from '@/components/ui/button';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { ScrollArea } from '@/components/ui/scroll-area';
@@ -111,7 +112,7 @@ interface DocumentTerms {
 const AUTO_SAVE_DELAY = 3000;
 
 function DocumentHubContent() {
-  const { deal, company, contacts, lineItems, dealOwner, labeledContacts, companyContacts, properties, loading, error, portalId } = useHubSpot();
+  const { deal, company, contacts, lineItems, dealOwner, labeledContacts, companyContacts, properties, loading, error, portalId, userId } = useHubSpot();
   
   // Quote state
   const [generating, setGenerating] = useState(false);
