@@ -155,16 +155,26 @@ export const QuotePreview = forwardRef<HTMLDivElement, QuotePreviewProps>(
                 );
               })}
               {formData.equipmentDisplay === 'total_only' && (
-                <tr className="border-b border-gray-300">
-                  <td className="py-1">{formData.lineItems.reduce((sum, item) => sum + item.quantity, 0)}</td>
-                  <td className="py-1" colSpan={2}>Equipment Package</td>
-                  <td className="py-1 text-right">
-                    {showMSRPStrikethrough && (
-                      <span style={{ color: '#9ca3af', backgroundImage: 'linear-gradient(transparent 45%, #9ca3af 45%, #9ca3af 55%, transparent 55%)', backgroundRepeat: 'no-repeat', backgroundSize: '100% 100%' }}>${formatCurrency(totalMSRP)}</span>
-                    )}
-                  </td>
-                  <td className="py-1 text-right font-semibold">${formatCurrency(formData.retailPrice)}</td>
-                </tr>
+                <>
+                  {formData.lineItems.map((item) => (
+                    <tr key={item.id} className="border-b border-gray-300">
+                      <td className="py-1">{item.quantity}</td>
+                      <td className="py-1">{item.model}</td>
+                      <td className="py-1">{item.description}</td>
+                      <td className="py-1 text-right"></td>
+                      <td className="py-1 text-right"></td>
+                    </tr>
+                  ))}
+                  <tr className="border-t-2 border-black">
+                    <td className="py-1 font-bold" colSpan={3}>Equipment Package Total</td>
+                    <td className="py-1 text-right">
+                      {showMSRPStrikethrough && (
+                        <span style={{ color: '#9ca3af', backgroundImage: 'linear-gradient(transparent 45%, #9ca3af 45%, #9ca3af 55%, transparent 55%)', backgroundRepeat: 'no-repeat', backgroundSize: '100% 100%' }}>${formatCurrency(totalMSRP)}</span>
+                      )}
+                    </td>
+                    <td className="py-1 text-right font-bold">${formatCurrency(formData.retailPrice)}</td>
+                  </tr>
+                </>
               )}
               {formData.lineItems.length === 0 && (
                 <tr>
