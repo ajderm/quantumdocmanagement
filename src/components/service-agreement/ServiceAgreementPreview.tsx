@@ -245,11 +245,11 @@ export const ServiceAgreementPreview = forwardRef<HTMLDivElement, ServiceAgreeme
               </tr>
               <tr className="border-b border-gray-300">
                 <th className="py-1 text-left"><span className="underline">Model</span></th>
+                <th className="py-1 text-center"><span className="underline">Base Rate</span></th>
                 <th className="py-1 text-center"><span className="underline">Includes (B/W)</span></th>
                 <th className="py-1 text-center"><span className="underline">Includes (Color)</span></th>
                 <th className="py-1 text-center"><span className="underline">Overages (B/W)</span></th>
                 <th className="py-1 text-center"><span className="underline">Overages (Color)</span></th>
-                <th className="py-1 text-center"><span className="underline">Base Rate</span></th>
               </tr>
             </thead>
             <tbody>
@@ -263,11 +263,11 @@ export const ServiceAgreementPreview = forwardRef<HTMLDivElement, ServiceAgreeme
                   return (
                     <tr key={item.id} className="border-b border-gray-300">
                       <td className="py-1">{item.name}</td>
+                      <td className="py-1 text-center">{rates.baseRate ? formatCurrency(rates.baseRate) : '-'}</td>
                       <td className="py-1 text-center">{rates.includesBW || '-'}</td>
                       <td className="py-1 text-center">{rates.includesColor || '-'}</td>
                       <td className="py-1 text-center">{rates.overagesBW ? formatCurrency(rates.overagesBW) : '-'}</td>
                       <td className="py-1 text-center">{rates.overagesColor ? formatCurrency(rates.overagesColor) : '-'}</td>
-                      <td className="py-1 text-center">{rates.baseRate ? formatCurrency(rates.baseRate) : '-'}</td>
                     </tr>
                   );
                 })
