@@ -62,3 +62,6 @@ verify_jwt = false
 
 [functions.product-type-override-save]
 verify_jwt = false
+
+[functions.quote-versions]
+verify_jwt = false
