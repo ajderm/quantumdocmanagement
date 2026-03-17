@@ -1,4 +1,5 @@
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
+import { auditLog } from '../_shared/audit-log.ts';
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -157,6 +158,13 @@ Deno.serve(async (req) => {
     }
 
     console.log(`Saved ${configType} configuration for portal ${portalId}, deal ${dealId}`);
+
+    // Audit log the save (fire and forget)
+    auditLog(supabase, portalId, 'configuration_saved', configType, dealId, {
+      configType,
+      lineItemId: lineItemId || undefined,
+      customDocumentId: customDocumentId || undefined,
+    });
 
     return new Response(
       JSON.stringify({ success: true }),
