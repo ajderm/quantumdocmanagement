@@ -166,7 +166,7 @@ export function InstallationForm({
   const baseHardwareLineItems = (() => {
     if (quoteLineItems && quoteLineItems.length > 0) {
       // Use quote line items — productType is the field name
-      return quoteLineItems
+      const hwItems = quoteLineItems
         .filter(item => isHardware(item))
         .map(item => ({
           ...item,
@@ -174,9 +174,32 @@ export function InstallationForm({
           sku: item.model,
           category: item.productType,
         }));
+      // If no items are explicitly typed as hardware, treat ALL items as installable
+      // This handles the case where products from HubSpot don't have hs_product_type set
+      if (hwItems.length === 0) {
+        return quoteLineItems.map(item => ({
+          ...item,
+          name: item.description,
+          sku: item.model,
+          category: item.productType || 'Untyped',
+        }));
+      }
+      return hwItems;
     }
     // Fall back to HubSpot line items
-    return lineItems.filter(item => isHardware(item));
+    const hwItems = lineItems.filter(item => isHardware(item));
+    if (hwItems.length === 0 && lineItems.length > 0) {
+      return lineItems; // Show all if none are typed as hardware
+    }
+    return hwItems;
+  })();
+
+  // Track whether we're showing all items vs just hardware
+  const showingAllItems = (() => {
+    if (quoteLineItems && quoteLineItems.length > 0) {
+      return quoteLineItems.filter(item => isHardware(item)).length === 0 && quoteLineItems.length > 0;
+    }
+    return lineItems.filter(item => isHardware(item)).length === 0 && lineItems.length > 0;
   })();
 
   // Expand hardware line items by quantity - each unit gets its own installation doc
@@ -449,11 +472,14 @@ export function InstallationForm({
         <CardHeader className="py-3">
           <CardTitle className="text-sm flex items-center gap-2">
             <Package className="h-4 w-4" />
-            Select Hardware Item
+            {showingAllItems ? 'Select Line Item' : 'Select Hardware Item'}
             <Badge variant="secondary" className="ml-auto">
-              {hardwareLineItems.length} hardware item{hardwareLineItems.length !== 1 ? 's' : ''}
+              {hardwareLineItems.length} {showingAllItems ? 'item' : 'hardware item'}{hardwareLineItems.length !== 1 ? 's' : ''}
             </Badge>
           </CardTitle>
+          {showingAllItems && (
+            <p className="text-xs text-amber-600 mt-1">Tip: Set the Type column to "Hardware" on the Quote tab to separate hardware from accessories for grouped install docs.</p>
+          )}
         </CardHeader>
         <CardContent className="py-3">
           <Select
