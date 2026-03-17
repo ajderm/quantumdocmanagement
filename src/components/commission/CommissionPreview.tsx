@@ -36,7 +36,7 @@ export const CommissionPreview = forwardRef<HTMLDivElement, CommissionPreviewPro
       { label: "Delivery Cost", billed: formData.deliveryCost, repCost: formData.deliveryCost },
       { label: "Networking", billed: formData.connectivity, repCost: formData.connectivity },
       { label: "Lead Fee", billed: formData.leadFee, repCost: formData.leadFee },
-      { label: "Other Sales Fees", billed: formData.otherSalesFees, repCost: formData.otherSalesFees },
+      { label: formData.otherSalesFeesNote ? `Other Sales Fees (${formData.otherSalesFeesNote})` : "Other Sales Fees", billed: formData.otherSalesFees, repCost: formData.otherSalesFees },
     ];
 
     const additionalCosts = costRows.reduce((s, r) => s + r.repCost, 0);

@@ -49,6 +49,7 @@ export interface CommissionFormData {
   splitPercentage: number;
   splitRepName: string;
   otherSalesFees: number;
+  otherSalesFeesNote: string;
 
   // Lease Information
   leaseCompany: string;
@@ -111,6 +112,7 @@ export function getDefaultCommissionFormData(): CommissionFormData {
     splitPercentage: 0,
     splitRepName: "",
     otherSalesFees: 0,
+    otherSalesFeesNote: "",
     leaseCompany: "",
     leaseTerm: 0,
     approvalAmount: 0,
@@ -651,6 +653,18 @@ export function CommissionForm({ deal, company, lineItems, dealOwner, portalId, 
                 />
               </div>
             ))}
+            {/* Other Sales Fees Note -- shown when otherSalesFees > 0 */}
+            {formData.otherSalesFees > 0 && (
+              <div className="flex items-center gap-2">
+                <Label className="text-xs flex-1 min-w-[140px]">Fee Description</Label>
+                <Input
+                  className="h-7 text-sm w-28"
+                  placeholder="What is the fee for?"
+                  value={formData.otherSalesFeesNote}
+                  onChange={e => updateField("otherSalesFeesNote", e.target.value)}
+                />
+              </div>
+            )}
             {/* Split Percentage */}
             <div className="flex items-center gap-2">
               <Label className="text-xs flex-1 min-w-[140px]">Split %</Label>
