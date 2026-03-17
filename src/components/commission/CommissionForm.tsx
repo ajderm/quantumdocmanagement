@@ -1,5 +1,6 @@
 import { useState, useEffect, useRef } from "react";
 import { Input } from "@/components/ui/input";
+import { CurrencyInput } from "@/components/ui/currency-input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
@@ -588,8 +589,8 @@ export function CommissionForm({ deal, company, lineItems, dealOwner, portalId, 
             {formData.lineItems.map((item, index) => (
               <div key={item.id} className="grid grid-cols-[1fr_80px_80px_60px_80px_80px_100px] gap-2">
                 <Input className="h-8 text-sm" value={item.description} onChange={e => updateLineItem(index, "description", e.target.value)} />
-                <Input className="h-8 text-sm text-right" value={item.billed ? formatCurrency(item.billed) : ""} onChange={e => updateLineItem(index, "billed", parseCurrency(e.target.value))} />
-                <Input className="h-8 text-sm text-right" value={item.repCost ? formatCurrency(item.repCost) : ""} onChange={e => updateLineItem(index, "repCost", parseCurrency(e.target.value))} />
+                <CurrencyInput className="h-8 text-sm text-right" value={item.billed} onChange={v => updateLineItem(index, "billed", v)} />
+                <CurrencyInput className="h-8 text-sm text-right" value={item.repCost} onChange={v => updateLineItem(index, "repCost", v)} />
                 <Input className="h-8 text-sm text-right" value={item.commissionPercent !== undefined ? String(item.commissionPercent) : String(formData.commissionPercentage)} onChange={e => updateLineItem(index, "commissionPercent", parseFloat(e.target.value) || 0)} placeholder={String(formData.commissionPercentage)} />
                 <Select value={item.machineType || "Color"} onValueChange={v => updateLineItem(index, "machineType", v)}>
                   <SelectTrigger className="h-8 text-xs">
@@ -746,7 +747,7 @@ export function CommissionForm({ deal, company, lineItems, dealOwner, portalId, 
               </div>
               <div>
                 <Label className="text-xs">Approval Amount</Label>
-                <Input className="h-7 text-sm text-right" value={formData.approvalAmount ? formatCurrency(formData.approvalAmount) : ""} onChange={e => updateField("approvalAmount", parseCurrency(e.target.value))} />
+                <CurrencyInput className="h-7 text-sm text-right" value={formData.approvalAmount} onChange={v => updateField("approvalAmount", v)} />
               </div>
             </div>
             <div className="grid grid-cols-2 gap-2">
@@ -765,7 +766,7 @@ export function CommissionForm({ deal, company, lineItems, dealOwner, portalId, 
             </div>
             <div>
               <Label className="text-xs">Lease Payment</Label>
-              <Input className="h-7 text-sm text-right" value={formData.leasePayment ? formatCurrency(formData.leasePayment) : ""} onChange={e => updateField("leasePayment", parseCurrency(e.target.value))} />
+              <CurrencyInput className="h-7 text-sm text-right" value={formData.leasePayment} onChange={v => updateField("leasePayment", v)} />
             </div>
 
             <div className="pt-2 border-t space-y-1 text-xs">

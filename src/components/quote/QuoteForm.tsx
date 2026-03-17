@@ -1,5 +1,6 @@
 import { useState, useEffect, useMemo, useRef } from 'react';
 import { Input } from '@/components/ui/input';
+import { CurrencyInput } from '@/components/ui/currency-input';
 import { Label } from '@/components/ui/label';
 import { Button } from '@/components/ui/button';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
@@ -859,15 +860,12 @@ export function QuoteForm({ deal, company, lineItems, dealOwner, onFormChange, p
             <div className="space-y-3">
               <div>
                 <Label className="text-xs">{getLabel(formCustomization, 'retailPrice', 'Total Sell Price')}</Label>
-                <div className="relative">
-                  <span className="absolute left-2 top-1/2 -translate-y-1/2 text-muted-foreground text-sm">$</span>
-                  <Input 
-                    type="text" 
-                    value={formatCurrency(formData.retailPrice)} 
-                    onChange={e => updateField('retailPrice', parseCurrency(e.target.value))} 
-                    className="h-8 text-sm pl-5" 
+                  <CurrencyInput 
+                    value={formData.retailPrice} 
+                    onChange={v => updateField('retailPrice', v)} 
+                    className="h-8 text-sm" 
+                    prefix={true}
                   />
-                </div>
               </div>
             </div>
             <div>
