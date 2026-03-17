@@ -263,6 +263,12 @@ function DocumentHubContent() {
   const [documentTerms, setDocumentTerms] = useState<DocumentTerms>({});
   const [commissionUsers, setCommissionUsers] = useState<Array<{ hubspot_user_name: string; hubspot_user_id?: string; commission_percentage: number }>>([]);
 
+  // Quote versioning
+  const [quoteVersions, setQuoteVersions] = useState<Array<{ id: string; version_number: number; quote_number: string; label: string; created_by: string; created_at: string }>>([]);
+  const [currentQuoteNumber, setCurrentQuoteNumber] = useState<string | null>(null);
+  const [currentVersionId, setCurrentVersionId] = useState<string | null>(null);
+  const [loadingVersions, setLoadingVersions] = useState(false);
+
   // configsLoaded gate: prevents forms from rendering before saved configs are fetched
   const [configsLoaded, setConfigsLoaded] = useState(false);
 
@@ -583,6 +589,13 @@ function DocumentHubContent() {
 
     if (deal?.hsObjectId) {
       loadAllConfigs();
+    }
+  }, [portalId, deal?.hsObjectId]);
+
+  // Load quote versions when deal is available
+  useEffect(() => {
+    if (deal?.hsObjectId && portalId) {
+      loadQuoteVersions();
     }
   }, [portalId, deal?.hsObjectId]);
 
@@ -1866,6 +1879,78 @@ function DocumentHubContent() {
     return pdf;
   };
 
+  // Quote versioning functions
+  const loadQuoteVersions = async () => {
+    const currentPortalId = portalId || localStorage.getItem('hs_portal_id');
+    const currentDealId = deal?.hsObjectId;
+    if (!currentPortalId || !currentDealId) return;
+
+    setLoadingVersions(true);
+    try {
+      const { data, error } = await supabase.functions.invoke('quote-versions', {
+        body: { action: 'list_versions', portalId: currentPortalId, dealId: currentDealId }
+      });
+      if (!error && data) {
+        setQuoteVersions(data.versions || []);
+        setCurrentQuoteNumber(data.currentQuoteNumber || null);
+        setCurrentVersionId(data.currentVersionId || null);
+      }
+    } catch (err) {
+      console.error('Failed to load quote versions:', err);
+    } finally {
+      setLoadingVersions(false);
+    }
+  };
+
+  const saveQuoteVersion = async (config: any, label?: string): Promise<string | null> => {
+    const currentPortalId = portalId || localStorage.getItem('hs_portal_id');
+    const currentDealId = deal?.hsObjectId;
+    if (!currentPortalId || !currentDealId) return null;
+
+    try {
+      const { data, error } = await supabase.functions.invoke('quote-versions', {
+        body: {
+          action: 'save_version',
+          portalId: currentPortalId,
+          dealId: currentDealId,
+          configuration: config,
+          label,
+          userId: userId || undefined,
+        }
+      });
+      if (!error && data?.quoteNumber) {
+        await loadQuoteVersions();
+        return data.quoteNumber;
+      }
+    } catch (err) {
+      console.error('Failed to save quote version:', err);
+    }
+    return null;
+  };
+
+  const restoreQuoteVersion = async (versionId: string) => {
+    const currentPortalId = portalId || localStorage.getItem('hs_portal_id');
+    const currentDealId = deal?.hsObjectId;
+    if (!currentPortalId || !currentDealId) return;
+
+    try {
+      const { data, error } = await supabase.functions.invoke('quote-versions', {
+        body: { action: 'restore_version', portalId: currentPortalId, dealId: currentDealId, versionId, userId: userId || undefined }
+      });
+      if (!error && data?.configuration) {
+        setSavedConfig(data.configuration);
+        setFormData(data.configuration);
+        setCurrentQuoteNumber(data.quoteNumber);
+        setCurrentVersionId(versionId);
+        setHasUnsavedChanges(false);
+        toast.success(`Restored ${data.quoteNumber}`);
+      }
+    } catch (err) {
+      console.error('Failed to restore version:', err);
+      toast.error('Failed to restore version');
+    }
+  };
+
   const handleGeneratePDF = async () => {
     if (!previewRef.current || !formData) {
       toast.error('Please fill in the quote details first');
@@ -1874,6 +1959,16 @@ function DocumentHubContent() {
 
     setGenerating(true);
     try {
+      // Save a new version and get the new quote number
+      const newQuoteNumber = await saveQuoteVersion(formData);
+      if (newQuoteNumber && formData.quoteNumber !== newQuoteNumber) {
+        // Update the formData with the new quote number so the PDF renders it
+        const updatedFormData = { ...formData, quoteNumber: newQuoteNumber };
+        setFormData(updatedFormData);
+        // Small delay to let React re-render the preview with the new quote number
+        await new Promise(resolve => setTimeout(resolve, 200));
+      }
+
       const quotePdf = await generateMultiPagePDF(previewRef.current);
       
       const sanitizedCompanyName = (formData.companyName || 'Draft').replace(/[^a-zA-Z0-9\s]/g, '').replace(/\s+/g, '_');
@@ -2889,6 +2984,33 @@ function DocumentHubContent() {
                   savedConfig={savedConfig || undefined}
                   formCustomization={dealerSettings.form_customization?.quote}
                 />
+
+                {/* Quote Version History */}
+                {quoteVersions.length > 0 && (
+                  <div className="pt-3 border-t">
+                    <div className="flex items-center justify-between mb-2">
+                      <Label className="text-xs font-medium text-muted-foreground">Quote Versions</Label>
+                      {currentQuoteNumber && (
+                        <span className="text-xs text-muted-foreground">Current: {currentQuoteNumber}</span>
+                      )}
+                    </div>
+                    <div className="flex flex-wrap gap-1">
+                      {quoteVersions.map((v) => (
+                        <Button
+                          key={v.id}
+                          variant={v.id === currentVersionId ? "default" : "outline"}
+                          size="sm"
+                          className="text-xs h-7"
+                          onClick={() => restoreQuoteVersion(v.id)}
+                          disabled={v.id === currentVersionId}
+                          title={`Created: ${new Date(v.created_at).toLocaleString()}`}
+                        >
+                          {v.quote_number}
+                        </Button>
+                      ))}
+                    </div>
+                  </div>
+                )}
 
                 {/* Actions */}
                 <div className="flex gap-2 pt-4 border-t">
