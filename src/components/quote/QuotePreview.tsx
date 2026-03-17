@@ -38,6 +38,12 @@ export const QuotePreview = forwardRef<HTMLDivElement, QuotePreviewProps>(
       return (value ?? 0).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
     };
 
+    // Unicode strikethrough: inserts combining long stroke overlay (U+0336) after each character
+    // This renders as actual text glyphs — guaranteed to work in html2canvas/PDF
+    const strikethrough = (text: string): string => {
+      return text.split('').map(char => char + '\u0336').join('');
+    };
+
     const hasServiceAgreement = formData.serviceBaseRate > 0 || formData.includedBWCopies > 0 || formData.includedColorCopies > 0;
     
     // Calculate total MSRP for strikethrough display
@@ -147,7 +153,7 @@ export const QuotePreview = forwardRef<HTMLDivElement, QuotePreviewProps>(
                     {!isRental && (
                       <td className="py-1 text-right">
                         {msrpDiffers ? (
-                          <span style={{ color: '#9ca3af', backgroundImage: 'linear-gradient(transparent 45%, #9ca3af 45%, #9ca3af 55%, transparent 55%)', backgroundRepeat: 'no-repeat', backgroundSize: '100% 100%' }}>${formatCurrency(itemMsrp)}</span>
+                          <span className="text-gray-400">{strikethrough('$' + formatCurrency(itemMsrp))}</span>
                         ) : (
                           <span className="text-gray-400">—</span>
                         )}
@@ -173,7 +179,7 @@ export const QuotePreview = forwardRef<HTMLDivElement, QuotePreviewProps>(
                       <td className="py-1 font-bold" colSpan={3}>Equipment Package Total</td>
                       <td className="py-1 text-right">
                         {showMSRPStrikethrough && (
-                          <span style={{ color: '#9ca3af', backgroundImage: 'linear-gradient(transparent 45%, #9ca3af 45%, #9ca3af 55%, transparent 55%)', backgroundRepeat: 'no-repeat', backgroundSize: '100% 100%' }}>${formatCurrency(totalMSRP)}</span>
+                          <span className="text-gray-400">{strikethrough('$' + formatCurrency(totalMSRP))}</span>
                         )}
                       </td>
                       <td className="py-1 text-right font-bold">${formatCurrency(formData.retailPrice)}</td>
@@ -238,7 +244,7 @@ export const QuotePreview = forwardRef<HTMLDivElement, QuotePreviewProps>(
                     </div>
                     {showMSRPStrikethrough && (
                       <div>
-                        <span className="text-[8px]" style={{ color: '#9ca3af', backgroundImage: 'linear-gradient(transparent 45%, #9ca3af 45%, #9ca3af 55%, transparent 55%)', backgroundRepeat: 'no-repeat', backgroundSize: '100% 100%' }}>Retail: ${formatCurrency(totalMSRP)}</span>
+                        <span className="text-gray-400 text-[8px]">{strikethrough('Retail: $' + formatCurrency(totalMSRP))}</span>
                       </div>
                     )}
                   </td>
