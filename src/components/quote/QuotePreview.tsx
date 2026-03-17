@@ -45,15 +45,16 @@ export const QuotePreview = forwardRef<HTMLDivElement, QuotePreviewProps>(
     const showMSRPStrikethrough = totalMSRP > 0 && Math.abs(totalMSRP - formData.retailPrice) > 0.01;
     
     // Configuration-based visibility
-    const showPurchase = formData.priceDisplay === 'both' || formData.priceDisplay === 'purchase_only';
-    const showLease = formData.priceDisplay === 'both' || formData.priceDisplay === 'lease_only';
+    const isRental = formData.leaseProgram === 'rental';
+    const showPurchase = !isRental && (formData.priceDisplay === 'both' || formData.priceDisplay === 'purchase_only');
+    const showLease = formData.priceDisplay === 'both' || formData.priceDisplay === 'lease_only' || isRental;
     
     // Calculate total buyout if applicable
     const totalBuyout = (formData.paymentAmount * formData.paymentsRemaining) + formData.earlyTerminationFee + formData.returnShipping;
     const showBuyout = formData.leasingPriceType === 'with_buyout' && totalBuyout > 0;
 
     // Get lease program display name
-    const leaseTypeName = formData.leaseProgram === 'fmv' ? 'FMV Lease' : '$1 Buyout Lease';
+    const leaseTypeName = isRental ? 'Monthly Rental' : formData.leaseProgram === 'fmv' ? 'FMV Lease' : '$1 Buyout Lease';
 
     return (
       <div 
@@ -129,8 +130,8 @@ export const QuotePreview = forwardRef<HTMLDivElement, QuotePreviewProps>(
                 <th className="text-left py-1 pb-2 w-12">Qty.</th>
                 <th className="text-left py-1 pb-2 w-36">Model</th>
                 <th className="text-left py-1 pb-2">Description</th>
-                <th className="text-right py-1 pb-2 w-24">Retail Total</th>
-                <th className="text-right py-1 pb-2 w-24">Your Total</th>
+                {!isRental && <th className="text-right py-1 pb-2 w-24">Retail Total</th>}
+                {!isRental && <th className="text-right py-1 pb-2 w-24">Your Total</th>}
               </tr>
             </thead>
             <tbody>
@@ -143,14 +144,16 @@ export const QuotePreview = forwardRef<HTMLDivElement, QuotePreviewProps>(
                     <td className="py-1">{item.quantity}</td>
                     <td className="py-1">{item.model}</td>
                     <td className="py-1">{item.description}</td>
-                    <td className="py-1 text-right">
-                      {msrpDiffers ? (
-                        <span style={{ color: '#9ca3af', backgroundImage: 'linear-gradient(transparent 45%, #9ca3af 45%, #9ca3af 55%, transparent 55%)', backgroundRepeat: 'no-repeat', backgroundSize: '100% 100%' }}>${formatCurrency(itemMsrp)}</span>
-                      ) : (
-                        <span className="text-gray-400">—</span>
-                      )}
-                    </td>
-                    <td className="py-1 text-right font-semibold">${formatCurrency(itemPrice)}</td>
+                    {!isRental && (
+                      <td className="py-1 text-right">
+                        {msrpDiffers ? (
+                          <span style={{ color: '#9ca3af', backgroundImage: 'linear-gradient(transparent 45%, #9ca3af 45%, #9ca3af 55%, transparent 55%)', backgroundRepeat: 'no-repeat', backgroundSize: '100% 100%' }}>${formatCurrency(itemMsrp)}</span>
+                        ) : (
+                          <span className="text-gray-400">—</span>
+                        )}
+                      </td>
+                    )}
+                    {!isRental && <td className="py-1 text-right font-semibold">${formatCurrency(itemPrice)}</td>}
                   </tr>
                 );
               })}
@@ -161,24 +164,26 @@ export const QuotePreview = forwardRef<HTMLDivElement, QuotePreviewProps>(
                       <td className="py-1">{item.quantity}</td>
                       <td className="py-1">{item.model}</td>
                       <td className="py-1">{item.description}</td>
-                      <td className="py-1 text-right"></td>
-                      <td className="py-1 text-right"></td>
+                      {!isRental && <td className="py-1 text-right"></td>}
+                      {!isRental && <td className="py-1 text-right"></td>}
                     </tr>
                   ))}
-                  <tr className="border-t-2 border-black">
-                    <td className="py-1 font-bold" colSpan={3}>Equipment Package Total</td>
-                    <td className="py-1 text-right">
-                      {showMSRPStrikethrough && (
-                        <span style={{ color: '#9ca3af', backgroundImage: 'linear-gradient(transparent 45%, #9ca3af 45%, #9ca3af 55%, transparent 55%)', backgroundRepeat: 'no-repeat', backgroundSize: '100% 100%' }}>${formatCurrency(totalMSRP)}</span>
-                      )}
-                    </td>
-                    <td className="py-1 text-right font-bold">${formatCurrency(formData.retailPrice)}</td>
-                  </tr>
+                  {!isRental && (
+                    <tr className="border-t-2 border-black">
+                      <td className="py-1 font-bold" colSpan={3}>Equipment Package Total</td>
+                      <td className="py-1 text-right">
+                        {showMSRPStrikethrough && (
+                          <span style={{ color: '#9ca3af', backgroundImage: 'linear-gradient(transparent 45%, #9ca3af 45%, #9ca3af 55%, transparent 55%)', backgroundRepeat: 'no-repeat', backgroundSize: '100% 100%' }}>${formatCurrency(totalMSRP)}</span>
+                        )}
+                      </td>
+                      <td className="py-1 text-right font-bold">${formatCurrency(formData.retailPrice)}</td>
+                    </tr>
+                  )}
                 </>
               )}
               {formData.lineItems.length === 0 && (
                 <tr>
-                  <td colSpan={5} className="py-2 text-gray-400 text-center">No equipment items</td>
+                  <td colSpan={isRental ? 3 : 5} className="py-2 text-gray-400 text-center">No equipment items</td>
                 </tr>
               )}
             </tbody>
@@ -214,7 +219,7 @@ export const QuotePreview = forwardRef<HTMLDivElement, QuotePreviewProps>(
                 {showPurchase && showLease && <th className="text-center py-1 font-semibold text-[9px]"></th>}
                 {showLease && (
                   <>
-                    <th className="text-left py-1 font-semibold text-[9px]">TERM</th>
+                    <th className="text-left py-1 font-semibold text-[9px]">{isRental ? '' : 'TERM'}</th>
                     <th className="text-right py-1 font-semibold text-[9px] pr-3">PAYMENT</th>
                   </>
                 )}

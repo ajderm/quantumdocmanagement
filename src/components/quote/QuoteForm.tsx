@@ -40,7 +40,7 @@ export interface QuoteFormData {
   priceDisplay: 'both' | 'purchase_only' | 'lease_only';
   equipmentDisplay: 'itemized' | 'total_only';
   leasingPriceType: 'without_buyout' | 'with_buyout';
-  leaseProgram: 'fmv' | 'dollar_buyout';
+  leaseProgram: 'fmv' | 'dollar_buyout' | 'rental';
   // Special Pricing Tier (deal-level)
   specialPricingTier: string;
   // Contract number (shown on quote when populated)
@@ -258,6 +258,11 @@ export function QuoteForm({ deal, company, lineItems, dealOwner, onFormChange, p
 
   // Get available terms for selected company and program
   const availableTerms = useMemo(() => {
+    // Rental is always month-to-month - offer common rental terms
+    if (formData.leaseProgram === 'rental') {
+      return [1, 3, 6, 12, 24, 36];
+    }
+
     if (!hasRateSheet || !formData.leasingCompanyId) {
       return [12, 24, 36, 48, 60, 72]; // Default terms
     }
@@ -272,6 +277,7 @@ export function QuoteForm({ deal, company, lineItems, dealOwner, onFormChange, p
 
   // Check if the selected company has any rates for the selected program
   const hasRatesForSelection = useMemo(() => {
+    if (formData.leaseProgram === 'rental') return true; // Rental doesn't need rate sheets
     if (!hasRateSheet || !formData.leasingCompanyId) return true; // No warning needed if no rate sheet
     return availableTerms.length > 0;
   }, [hasRateSheet, formData.leasingCompanyId, availableTerms]);
@@ -793,13 +799,14 @@ export function QuoteForm({ deal, company, lineItems, dealOwner, onFormChange, p
           <div className="grid grid-cols-5 gap-4 mt-3">
             <div>
               <Label className="text-xs">Lease Program</Label>
-              <Select value={formData.leaseProgram} onValueChange={(v) => updateField('leaseProgram', v as 'fmv' | 'dollar_buyout')}>
+              <Select value={formData.leaseProgram} onValueChange={(v) => updateField('leaseProgram', v as 'fmv' | 'dollar_buyout' | 'rental')}>
                 <SelectTrigger className="h-8 text-sm">
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="fmv">FMV (Fair Market Value)</SelectItem>
                   <SelectItem value="dollar_buyout">$1 Buyout</SelectItem>
+                  <SelectItem value="rental">Rental (Month-to-Month)</SelectItem>
                 </SelectContent>
               </Select>
             </div>
@@ -831,7 +838,7 @@ export function QuoteForm({ deal, company, lineItems, dealOwner, onFormChange, p
             </div>
             <div>
               <Label className="text-xs mb-2 block">
-                {formData.leaseProgram === 'fmv' ? 'FMV' : '$1 Buyout'} Lease Terms (up to 3)
+                {formData.leaseProgram === 'fmv' ? 'FMV' : formData.leaseProgram === 'rental' ? 'Rental' : '$1 Buyout'} {formData.leaseProgram === 'rental' ? 'Term' : 'Lease Terms (up to 3)'}
               </Label>
               
               {/* Warning when no rates available for company + program combination */}
@@ -839,7 +846,7 @@ export function QuoteForm({ deal, company, lineItems, dealOwner, onFormChange, p
                 <Alert className="mb-3 bg-amber-50 border-amber-200">
                   <AlertTriangle className="h-4 w-4 text-amber-600" />
                   <AlertDescription className="text-amber-800 text-xs">
-                    No rates available for <strong>{formData.leasingCompanyId}</strong> with <strong>{formData.leaseProgram === 'fmv' ? 'FMV' : '$1 Buyout'}</strong> program. 
+                    No rates available for <strong>{formData.leasingCompanyId}</strong> with <strong>{formData.leaseProgram === 'fmv' ? 'FMV' : formData.leaseProgram === 'rental' ? 'Rental' : '$1 Buyout'}</strong> program. 
                     Please select a different leasing company or lease program.
                   </AlertDescription>
                 </Alert>
