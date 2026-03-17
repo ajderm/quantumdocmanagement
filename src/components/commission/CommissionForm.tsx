@@ -15,6 +15,7 @@ export interface CommissionLineItem {
   dealerSource: string;
   specialPricing: string;
   machineType: "Color" | "Mono";
+  commissionPercent?: number;
 }
 
 export interface CommissionFormData {
@@ -471,19 +472,35 @@ export function CommissionForm({ deal, company, lineItems, dealOwner, portalId, 
   const totalBilled = formData.lineItems.reduce((sum, item) => sum + (item.billed * item.quantity), 0);
   const totalRepCost = formData.lineItems.reduce((sum, item) => sum + (item.repCost * item.quantity), 0);
 
-  const totalRepCostWithCosts = totalRepCost +
+  const additionalCosts =
     formData.buyoutTradeUp +
     formData.shippingCosts + formData.setupCost + formData.deliveryCost +
     formData.connectivity +
     formData.leadFee + formData.otherSalesFees;
+
+  const totalRepCostWithCosts = totalRepCost + additionalCosts;
 
   // Lease calculations -- promoDiscounts is now a text note, not subtracted
   const leaseEquipRev = formData.approvalAmount || totalBilled;
   const netEquipRev = leaseEquipRev;
   const equipmentAGP = netEquipRev - totalRepCostWithCosts;
 
+  // Per-item commission: each item's profit * its commission %
+  const perItemCommission = formData.lineItems.reduce((sum, item) => {
+    const itemProfit = (item.billed - item.repCost) * item.quantity;
+    const itemCommPct = item.commissionPercent !== undefined ? item.commissionPercent : formData.commissionPercentage;
+    return sum + (itemProfit * (itemCommPct / 100));
+  }, 0);
+
+  // If all items use the same commission %, fall back to the flat calculation for backward compat
+  const allSamePercent = formData.lineItems.every(item =>
+    item.commissionPercent === undefined || item.commissionPercent === formData.commissionPercentage
+  );
+  const baseCommission = allSamePercent
+    ? equipmentAGP * (formData.commissionPercentage / 100)
+    : perItemCommission - (additionalCosts * (formData.commissionPercentage / 100));
+
   // Commission with split
-  const baseCommission = equipmentAGP * (formData.commissionPercentage / 100);
   const splitMultiplier = formData.splitPercentage > 0 ? formData.splitPercentage / 100 : 1;
   const totalCommission = baseCommission * splitMultiplier;
 
@@ -557,19 +574,21 @@ export function CommissionForm({ deal, company, lineItems, dealOwner, portalId, 
         </CardHeader>
         <CardContent>
           <div className="space-y-2">
-            <div className="grid grid-cols-[1fr_80px_80px_80px_80px_100px] gap-2 text-xs font-medium text-muted-foreground px-1">
+            <div className="grid grid-cols-[1fr_80px_80px_60px_80px_80px_100px] gap-2 text-xs font-medium text-muted-foreground px-1">
               <span>Description</span>
               <span>Billed</span>
               <span>Rep Cost</span>
+              <span>Comm %</span>
               <span>Type</span>
               <span>Condition</span>
               <span>Pricing Source</span>
             </div>
             {formData.lineItems.map((item, index) => (
-              <div key={item.id} className="grid grid-cols-[1fr_80px_80px_80px_80px_100px] gap-2">
+              <div key={item.id} className="grid grid-cols-[1fr_80px_80px_60px_80px_80px_100px] gap-2">
                 <Input className="h-8 text-sm" value={item.description} onChange={e => updateLineItem(index, "description", e.target.value)} />
                 <Input className="h-8 text-sm text-right" value={item.billed ? formatCurrency(item.billed) : ""} onChange={e => updateLineItem(index, "billed", parseCurrency(e.target.value))} />
                 <Input className="h-8 text-sm text-right" value={item.repCost ? formatCurrency(item.repCost) : ""} onChange={e => updateLineItem(index, "repCost", parseCurrency(e.target.value))} />
+                <Input className="h-8 text-sm text-right" value={item.commissionPercent !== undefined ? String(item.commissionPercent) : String(formData.commissionPercentage)} onChange={e => updateLineItem(index, "commissionPercent", parseFloat(e.target.value) || 0)} placeholder={String(formData.commissionPercentage)} />
                 <Select value={item.machineType || "Color"} onValueChange={v => updateLineItem(index, "machineType", v)}>
                   <SelectTrigger className="h-8 text-xs">
                     <SelectValue />
@@ -583,7 +602,7 @@ export function CommissionForm({ deal, company, lineItems, dealOwner, portalId, 
                 <Input className="h-8 text-sm" value={item.dealerSource} onChange={e => updateLineItem(index, "dealerSource", e.target.value)} />
               </div>
             ))}
-            <div className="grid grid-cols-[1fr_80px_80px_80px_80px_100px] gap-2 text-xs font-bold px-1 pt-1 border-t">
+            <div className="grid grid-cols-[1fr_80px_80px_60px_80px_80px_100px] gap-2 text-xs font-bold px-1 pt-1 border-t">
               <span>Total Equipment</span>
               <span className="text-right">${formatCurrency(totalBilled)}</span>
               <span className="text-right">${formatCurrency(totalRepCost)}</span>

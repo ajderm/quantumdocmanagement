@@ -126,9 +126,14 @@ export const QuotePreview = forwardRef<HTMLDivElement, QuotePreviewProps>(
         <div className="mb-6">
           <div className="flex justify-between items-baseline mb-2">
             <p className="font-bold">EQUIPMENT</p>
-            {formData.contractNumber && (
-              <p className="text-[10px]"><span className="font-semibold">Contract #:</span> {formData.contractNumber}</p>
-            )}
+            <div className="flex gap-4">
+              {formData.rfpNumber && (
+                <p className="text-[10px]"><span className="font-semibold">RFP #:</span> {formData.rfpNumber}</p>
+              )}
+              {formData.contractNumber && (
+                <p className="text-[10px]"><span className="font-semibold">Contract #:</span> {formData.contractNumber}</p>
+              )}
+            </div>
           </div>
           <table className="w-full border-collapse text-[9px]">
             <thead>

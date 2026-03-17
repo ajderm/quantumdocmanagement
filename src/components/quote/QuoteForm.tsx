@@ -45,6 +45,8 @@ export interface QuoteFormData {
   specialPricingTier: string;
   // Contract number (shown on quote when populated)
   contractNumber: string;
+  // RFP number (shown on quote/proposal cover when populated)
+  rfpNumber: string;
   // Buyout fields
   earlyTerminationFee: number;
   returnShipping: number;
@@ -120,6 +122,7 @@ export function QuoteForm({ deal, company, lineItems, dealOwner, onFormChange, p
     leaseProgram: 'fmv',
     specialPricingTier: '',
     contractNumber: '',
+    rfpNumber: '',
     // Buyout defaults
     earlyTerminationFee: 0,
     returnShipping: 0,
@@ -222,6 +225,7 @@ export function QuoteForm({ deal, company, lineItems, dealOwner, onFormChange, p
         ...prev,
         specialPricingTier: tierName,
         contractNumber: '',
+    rfpNumber: '',
         lineItems: prev.lineItems.map(item => {
           const origCost = originalCosts[item.id] ?? item.cost;
           const newPrice = origCost > 0 && item.markupPercent > 0
@@ -240,6 +244,7 @@ export function QuoteForm({ deal, company, lineItems, dealOwner, onFormChange, p
       ...prev,
       specialPricingTier: tierName,
       contractNumber: '',
+    rfpNumber: '',
       lineItems: prev.lineItems.map(item => {
         const priceMatch = tier.prices.find(p =>
           item.model.toLowerCase() === p.product_model.toLowerCase()
@@ -739,6 +744,15 @@ export function QuoteForm({ deal, company, lineItems, dealOwner, onFormChange, p
                 onChange={e => updateField('contractNumber', e.target.value)} 
                 className="h-8 text-sm" 
                 placeholder="e.g., DIR-CPO-5428"
+              />
+            </div>
+            <div>
+              <Label className="text-xs">RFP Number</Label>
+              <Input 
+                value={formData.rfpNumber} 
+                onChange={e => updateField('rfpNumber', e.target.value)} 
+                className="h-8 text-sm" 
+                placeholder="e.g., RFP-2568"
               />
             </div>
             <div>

@@ -39,13 +39,28 @@ export const CommissionPreview = forwardRef<HTMLDivElement, CommissionPreviewPro
       { label: "Other Sales Fees", billed: formData.otherSalesFees, repCost: formData.otherSalesFees },
     ];
 
+    const additionalCosts = costRows.reduce((s, r) => s + r.repCost, 0);
     const totalsBilled = totalBilled + costRows.reduce((s, r) => s + r.billed, 0);
-    const totalsRepCost = totalRepCost + costRows.reduce((s, r) => s + r.repCost, 0);
+    const totalsRepCost = totalRepCost + additionalCosts;
 
     const leaseEquipRev = formData.approvalAmount || totalBilled;
     const netEquipRev = leaseEquipRev;
     const equipmentAGP = netEquipRev - totalsRepCost;
-    const baseCommission = equipmentAGP * (formData.commissionPercentage / 100);
+
+    // Per-item commission calculation
+    const perItemCommission = formData.lineItems.reduce((sum, item) => {
+      const itemProfit = (item.billed - item.repCost) * item.quantity;
+      const itemCommPct = item.commissionPercent !== undefined ? item.commissionPercent : formData.commissionPercentage;
+      return sum + (itemProfit * (itemCommPct / 100));
+    }, 0);
+
+    const allSamePercent = formData.lineItems.every(item =>
+      item.commissionPercent === undefined || item.commissionPercent === formData.commissionPercentage
+    );
+    const baseCommission = allSamePercent
+      ? equipmentAGP * (formData.commissionPercentage / 100)
+      : perItemCommission - (additionalCosts * (formData.commissionPercentage / 100));
+
     const splitMultiplier = formData.splitPercentage > 0 ? formData.splitPercentage / 100 : 1;
     const totalCommission = baseCommission * splitMultiplier;
 
@@ -117,6 +132,7 @@ export const CommissionPreview = forwardRef<HTMLDivElement, CommissionPreviewPro
                   <tr style={{ borderBottom: `1px solid ${borderColor}` }}>
                     <th className="text-left py-0.5 font-bold">Billed</th>
                     <th className="text-right py-0.5 font-bold w-16">Rep Cost</th>
+                    <th className="text-center py-0.5 font-bold w-12">Comm %</th>
                     <th className="text-left py-0.5 font-bold w-20 pl-2">Condition</th>
                     <th className="text-left py-0.5 font-bold w-20 pl-2">Pricing Source</th>
                   </tr>
@@ -127,11 +143,13 @@ export const CommissionPreview = forwardRef<HTMLDivElement, CommissionPreviewPro
                     <td className="py-0.5 text-right">${fmt(totalRepCost)}</td>
                     <td></td>
                     <td></td>
+                    <td></td>
                   </tr>
                   {formData.lineItems.map((item, i) => (
                     <tr key={item.id || i} style={{ borderBottom: `1px solid ${lineColor}` }}>
                       <td className="py-0.5 pl-2">{item.description} <span style={{ color: '#6b7280' }}>${fmt(item.billed)}</span></td>
                       <td className="py-0.5 text-right"></td>
+                      <td className="py-0.5 text-center">{item.commissionPercent !== undefined ? item.commissionPercent : formData.commissionPercentage}%</td>
                       <td className="py-0.5 pl-2">{item.condition}</td>
                       <td className="py-0.5 pl-2">{item.dealerSource}</td>
                     </tr>
@@ -181,6 +199,31 @@ export const CommissionPreview = forwardRef<HTMLDivElement, CommissionPreviewPro
           <div className="font-bold pb-1 mb-2" style={{ borderBottom: `2px solid ${borderColor}` }}>COMMISSION</div>
           <table className="text-[9px]">
             <tbody>
+              <tr>
+                <td className="pr-8 py-0.5 font-semibold">Equipment Revenue</td>
+                <td></td>
+                <td className="text-right">${fmt(netEquipRev)}</td>
+              </tr>
+              <tr>
+                <td className="pr-8 py-0.5 font-semibold">Total Rep Cost</td>
+                <td></td>
+                <td className="text-right">${fmt(totalsRepCost)}</td>
+              </tr>
+              <tr style={{ borderTop: `1px solid ${lineColor}` }}>
+                <td className="pr-8 py-0.5 font-bold">Equipment Gross Profit</td>
+                <td></td>
+                <td className="text-right font-bold">${fmt(equipmentAGP)}</td>
+              </tr>
+              <tr>
+                <td className="pr-8 py-0.5 font-semibold">Commission Rate</td>
+                <td></td>
+                <td className="text-right">{formData.commissionPercentage}%</td>
+              </tr>
+              <tr>
+                <td className="pr-8 py-0.5 font-semibold">Commission Amount</td>
+                <td></td>
+                <td className="text-right">${fmt(baseCommission)}</td>
+              </tr>
               {formData.splitPercentage > 0 && (
                 <tr>
                   <td className="pr-8 py-0.5 font-semibold">Split</td>
