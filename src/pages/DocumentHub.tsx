@@ -111,7 +111,7 @@ interface DocumentTerms {
 const AUTO_SAVE_DELAY = 3000;
 
 function DocumentHubContent() {
-  const { deal, company, contacts, lineItems, dealOwner, labeledContacts, companyContacts, properties, loading, error, portalId } = useHubSpot();
+  const { deal, company, contacts, lineItems, dealOwner, labeledContacts, companyContacts, properties, loading, error, portalId, userId } = useHubSpot();
   
   // Quote state
   const [generating, setGenerating] = useState(false);
