@@ -1062,6 +1062,8 @@ export type Database = {
         Row: {
           configuration: Json
           created_at: string
+          current_quote_number: string | null
+          current_version_id: string | null
           deal_id: string
           id: string
           portal_id: string
@@ -1070,6 +1072,8 @@ export type Database = {
         Insert: {
           configuration: Json
           created_at?: string
+          current_quote_number?: string | null
+          current_version_id?: string | null
           deal_id: string
           id?: string
           portal_id: string
@@ -1078,10 +1082,56 @@ export type Database = {
         Update: {
           configuration?: Json
           created_at?: string
+          current_quote_number?: string | null
+          current_version_id?: string | null
           deal_id?: string
           id?: string
           portal_id?: string
           updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "quote_configurations_current_version_id_fkey"
+            columns: ["current_version_id"]
+            isOneToOne: false
+            referencedRelation: "quote_versions"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      quote_versions: {
+        Row: {
+          configuration: Json
+          created_at: string
+          created_by: string | null
+          deal_id: string
+          id: string
+          label: string | null
+          portal_id: string
+          quote_number: string
+          version_number: number
+        }
+        Insert: {
+          configuration?: Json
+          created_at?: string
+          created_by?: string | null
+          deal_id: string
+          id?: string
+          label?: string | null
+          portal_id: string
+          quote_number: string
+          version_number: number
+        }
+        Update: {
+          configuration?: Json
+          created_at?: string
+          created_by?: string | null
+          deal_id?: string
+          id?: string
+          label?: string | null
+          portal_id?: string
+          quote_number?: string
+          version_number?: number
         }
         Relationships: []
       }
