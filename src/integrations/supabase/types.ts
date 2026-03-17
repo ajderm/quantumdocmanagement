@@ -14,6 +14,60 @@ export type Database = {
   }
   public: {
     Tables: {
+      api_rate_limits: {
+        Row: {
+          created_at: string
+          function_name: string
+          id: string
+          portal_id: string
+        }
+        Insert: {
+          created_at?: string
+          function_name: string
+          id?: string
+          portal_id: string
+        }
+        Update: {
+          created_at?: string
+          function_name?: string
+          id?: string
+          portal_id?: string
+        }
+        Relationships: []
+      }
+      audit_log: {
+        Row: {
+          action: string
+          created_at: string
+          details: Json | null
+          id: string
+          portal_id: string
+          resource_id: string | null
+          resource_type: string | null
+          user_id: string | null
+        }
+        Insert: {
+          action: string
+          created_at?: string
+          details?: Json | null
+          id?: string
+          portal_id: string
+          resource_id?: string | null
+          resource_type?: string | null
+          user_id?: string | null
+        }
+        Update: {
+          action?: string
+          created_at?: string
+          details?: Json | null
+          id?: string
+          portal_id?: string
+          resource_id?: string | null
+          resource_type?: string | null
+          user_id?: string | null
+        }
+        Relationships: []
+      }
       commission_configurations: {
         Row: {
           configuration: Json
