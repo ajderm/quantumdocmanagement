@@ -1,6 +1,6 @@
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.49.1';
-import { decryptToken } from '../_shared/crypto.ts';
 import { validatePortalId, createErrorResponse, createJsonResponse } from '../_shared/validation.ts';
+import { getValidAccessToken } from '../_shared/hubspot-token.ts';
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -28,55 +28,6 @@ function normalizeProductType(raw: string | null | undefined): string {
   if (TYPE_ALIASES[lower]) return TYPE_ALIASES[lower];
   // Title-case: first letter uppercase, rest lowercase
   return trimmed.charAt(0).toUpperCase() + trimmed.slice(1).toLowerCase();
-}
-
-async function getValidAccessToken(supabase: any, portalId: string): Promise<string> {
-  const { data, error } = await supabase
-    .from('hubspot_tokens')
-    .select('*')
-    .eq('portal_id', portalId)
-    .single();
-
-  if (error || !data) throw new Error('No token found for portal');
-
-  const accessToken = await decryptToken(data.access_token);
-  const refreshToken = await decryptToken(data.refresh_token);
-
-  const expiresAt = new Date(data.expires_at);
-  const now = new Date();
-  if (expiresAt.getTime() - 5 * 60 * 1000 < now.getTime()) {
-    const clientId = Deno.env.get('HUBSPOT_CLIENT_ID')!;
-    const clientSecret = Deno.env.get('HUBSPOT_CLIENT_SECRET')!;
-
-    const response = await fetch('https://api.hubapi.com/oauth/v1/token', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-      body: new URLSearchParams({
-        grant_type: 'refresh_token',
-        client_id: clientId,
-        client_secret: clientSecret,
-        refresh_token: refreshToken,
-      }),
-    });
-
-    if (!response.ok) throw new Error('Failed to refresh token');
-    const tokenData = await response.json();
-
-    const { encryptToken } = await import('../_shared/crypto.ts');
-    const encAccessToken = await encryptToken(tokenData.access_token);
-    const encRefreshToken = await encryptToken(tokenData.refresh_token);
-    const newExpiresAt = new Date(Date.now() + tokenData.expires_in * 1000).toISOString();
-
-    await supabase.from('hubspot_tokens').update({
-      access_token: encAccessToken,
-      refresh_token: encRefreshToken,
-      expires_at: newExpiresAt,
-    }).eq('portal_id', portalId);
-
-    return tokenData.access_token;
-  }
-
-  return accessToken;
 }
 
 Deno.serve(async (req) => {
