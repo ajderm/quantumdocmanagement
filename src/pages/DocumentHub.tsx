@@ -2986,32 +2986,39 @@ function DocumentHubContent() {
                   formCustomization={dealerSettings.form_customization?.quote}
                 />
 
-                {/* Quote Version History */}
-                {quoteVersions.length > 0 && (
-                  <div className="pt-3 border-t">
-                    <div className="flex items-center justify-between mb-2">
-                      <Label className="text-xs font-medium text-muted-foreground">Quote Versions</Label>
-                      {currentQuoteNumber && (
-                        <span className="text-xs text-muted-foreground">Current: {currentQuoteNumber}</span>
-                      )}
+                {/* Quote Version & Number */}
+                <div className="pt-3 border-t">
+                  <div className="flex items-center justify-between mb-2">
+                    <div className="flex items-center gap-2">
+                      <Label className="text-sm font-semibold">Quote Number:</Label>
+                      <span className="text-sm font-bold text-primary">{currentQuoteNumber || formData?.quoteNumber || '—'}</span>
                     </div>
-                    <div className="flex flex-wrap gap-1">
+                    {quoteVersions.length > 0 && (
+                      <span className="text-xs text-muted-foreground">{quoteVersions.length} version{quoteVersions.length !== 1 ? 's' : ''}</span>
+                    )}
+                  </div>
+                  {quoteVersions.length > 0 && (
+                    <div className="flex flex-wrap gap-2">
                       {quoteVersions.map((v) => (
                         <Button
                           key={v.id}
                           variant={v.id === currentVersionId ? "default" : "outline"}
                           size="sm"
-                          className="text-xs h-7"
+                          className="text-xs h-8"
                           onClick={() => restoreQuoteVersion(v.id)}
                           disabled={v.id === currentVersionId}
                           title={`Created: ${new Date(v.created_at).toLocaleString()}`}
                         >
                           {v.quote_number}
+                          <span className="ml-1 opacity-60">({new Date(v.created_at).toLocaleDateString()})</span>
                         </Button>
                       ))}
                     </div>
-                  </div>
-                )}
+                  )}
+                  {quoteVersions.length === 0 && (
+                    <p className="text-xs text-muted-foreground">A new quote number will be assigned when you Generate PDF.</p>
+                  )}
+                </div>
 
                 {/* Actions */}
                 <div className="flex gap-2 pt-4 border-t">

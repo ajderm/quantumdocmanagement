@@ -4,7 +4,7 @@ import { Label } from '@/components/ui/label';
 import { Button } from '@/components/ui/button';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Plus, Trash2, AlertTriangle, X, Package } from 'lucide-react';
+import { Plus, Trash2, AlertTriangle, X, Package, Scissors } from 'lucide-react';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { supabase } from '@/integrations/supabase/client';
 import { ProductSearchModal, HubSpotProduct } from './ProductSearchModal';
@@ -447,22 +447,23 @@ export function QuoteForm({ deal, company, lineItems, dealOwner, onFormChange, p
     if (savedConfig) {
       // Use saved retailPrice if available, otherwise fall back to HubSpot deal amount
       const retailPriceToUse = savedConfig.retailPrice || hubspotData.retailPrice;
-      // Ensure saved line items have cost/markupPercent fields (backward compat)
-      const savedLineItems = (savedConfig.lineItems?.length > 0 ? savedConfig.lineItems : hubspotData.lineItems).map((item: any, idx: number) => {
-        const freshItem = hubspotData.lineItems[idx];
+      // Use saved line items directly — don't merge by index with HubSpot items
+      // since versions may have completely different line items
+      const savedLineItems = (savedConfig.lineItems?.length > 0 ? savedConfig.lineItems : hubspotData.lineItems).map((item: any) => {
         return {
           ...item,
           cost: item.cost ?? 0,
           markupPercent: item.markupPercent ?? 0,
           msrp: item.msrp ?? item.price ?? 0,
-          dealerSource: freshItem?.dealerSource || item.dealerSource || '',
+          dealerSource: item.dealerSource || '',
         };
       });
       setFormData(prev => ({ 
         ...prev, 
         ...savedConfig,
-        // Override with fresh HubSpot data for CRM-identity fields
-        quoteNumber: hubspotData.quoteNumber || savedConfig.quoteNumber,
+        // Override with fresh HubSpot data for CRM-identity fields EXCEPT quoteNumber
+        // (quoteNumber is managed by versioning system now)
+        quoteNumber: savedConfig.quoteNumber || hubspotData.quoteNumber,
         preparedBy: hubspotData.preparedBy || savedConfig.preparedBy,
         preparedByEmail: hubspotData.preparedByEmail || savedConfig.preparedByEmail,
         preparedByPhone: hubspotData.preparedByPhone || savedConfig.preparedByPhone,
@@ -536,6 +537,23 @@ export function QuoteForm({ deal, company, lineItems, dealOwner, onFormChange, p
   const addLineItem = () => { setFormData(prev => ({ ...prev, lineItems: [...prev.lineItems, { id: `new-${Date.now()}`, quantity: 1, model: '', description: '', price: 0, cost: 0, markupPercent: 0, msrp: 0, dealerSource: '', productType: '', parentLineItemId: '' }] })); };
   const removeLineItem = (index: number) => { setFormData(prev => { const newItems = prev.lineItems.filter((_, i) => i !== index); return { ...prev, lineItems: newItems }; }); };
 
+  // Split a multi-quantity line item into individual units so each can be linked to different hardware
+  const splitLineItem = (index: number) => {
+    setFormData(prev => {
+      const item = prev.lineItems[index];
+      if (!item || item.quantity <= 1) return prev;
+      const splitItems: QuoteLineItem[] = Array.from({ length: item.quantity }, (_, i) => ({
+        ...item,
+        id: `${item.id}-split-${i + 1}-${Date.now()}`,
+        quantity: 1,
+        parentLineItemId: '',
+      }));
+      const newItems = [...prev.lineItems];
+      newItems.splice(index, 1, ...splitItems);
+      return { ...prev, lineItems: newItems };
+    });
+  };
+
   const handleAddProductFromLibrary = (product: HubSpotProduct, tierCost?: number) => {
     const cost = tierCost ?? product.cost;
     const newItem: QuoteLineItem = {
@@ -588,7 +606,6 @@ export function QuoteForm({ deal, company, lineItems, dealOwner, onFormChange, p
         <CardContent>
           <div className="grid grid-cols-2 gap-4">
             <div className="space-y-3">
-              <div><Label className="text-xs">{getLabel(formCustomization, 'quoteNumber', 'Quote Number')}</Label><Input value={formData.quoteNumber} onChange={e => updateField('quoteNumber', e.target.value)} className="h-8 text-sm" /></div>
               <div><Label className="text-xs">{getLabel(formCustomization, 'quoteDate', 'Quote Date')}</Label><Input type="date" value={formData.quoteDate} onChange={e => updateField('quoteDate', e.target.value)} className="h-8 text-sm" /></div>
               <div><Label className="text-xs">{getLabel(formCustomization, 'preparedBy', 'Prepared By')}</Label><Input value={formData.preparedBy} onChange={e => updateField('preparedBy', e.target.value)} className="h-8 text-sm" /></div>
             </div>
@@ -634,7 +651,7 @@ export function QuoteForm({ deal, company, lineItems, dealOwner, onFormChange, p
         </CardHeader>
         <CardContent>
           <div className="space-y-2">
-            <div className="grid grid-cols-[50px_80px_1fr_1fr_100px_100px_100px_70px_100px_110px_40px] gap-2 text-xs font-medium text-muted-foreground px-2">
+            <div className="grid grid-cols-[50px_80px_1fr_1fr_100px_100px_100px_70px_100px_110px_70px] gap-2 text-xs font-medium text-muted-foreground px-2">
               <div>Qty</div>
               <div>Type</div>
               <div>Model</div>
@@ -651,7 +668,7 @@ export function QuoteForm({ deal, company, lineItems, dealOwner, onFormChange, p
               const hardwareItems = formData.lineItems.filter(li => li.productType?.toLowerCase() === 'hardware');
               const isHardware = item.productType?.toLowerCase() === 'hardware';
               return (
-              <div key={item.id} className={`grid grid-cols-[50px_80px_1fr_1fr_100px_100px_100px_70px_100px_110px_40px] gap-2 items-center ${item.parentLineItemId ? 'ml-4 border-l-2 border-primary/20 pl-2' : ''}`}>
+              <div key={item.id} className={`grid grid-cols-[50px_80px_1fr_1fr_100px_100px_100px_70px_100px_110px_70px] gap-2 items-center ${item.parentLineItemId ? 'ml-4 border-l-2 border-primary/20 pl-2' : ''}`}>
                 <div>
                   <Input type="number" min="1" value={item.quantity} onChange={e => updateLineItem(idx, 'quantity', parseInt(e.target.value) || 1)} className="h-8 text-sm" />
                 </div>
@@ -718,7 +735,10 @@ export function QuoteForm({ deal, company, lineItems, dealOwner, onFormChange, p
                     <span className="text-xs text-muted-foreground px-2">—</span>
                   )}
                 </div>
-                <div>
+                <div className="flex gap-0.5">
+                  {!isHardware && item.quantity > 1 && hardwareItems.length > 1 && (
+                    <Button type="button" variant="ghost" size="sm" onClick={() => splitLineItem(idx)} className="h-8 w-8 p-0 text-primary" title="Split into individual units for linking to different hardware"><Scissors className="h-3.5 w-3.5" /></Button>
+                  )}
                   <Button type="button" variant="ghost" size="sm" onClick={() => removeLineItem(idx)} className="h-8 w-8 p-0 text-destructive"><Trash2 className="h-3.5 w-3.5" /></Button>
                 </div>
               </div>
