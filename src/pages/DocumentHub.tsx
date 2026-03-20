@@ -35,7 +35,9 @@ import {
   Eye,
   Save,
   FileSignature,
-  Calculator
+  Calculator,
+  BookTemplate,
+  FolderOpen
 } from 'lucide-react';
 import { QuoteForm, QuoteFormData } from '@/components/quote/QuoteForm';
 import { QuotePreview } from '@/components/quote/QuotePreview';
@@ -269,6 +271,13 @@ function DocumentHubContent() {
   const [currentQuoteNumber, setCurrentQuoteNumber] = useState<string | null>(null);
   const [currentVersionId, setCurrentVersionId] = useState<string | null>(null);
   const [loadingVersions, setLoadingVersions] = useState(false);
+
+  // Quote templates
+  const [quoteTemplates, setQuoteTemplates] = useState<Array<{ id: string; name: string; description: string; shared: boolean; created_by: string; created_by_name: string; created_at: string }>>([]);
+  const [showTemplateDialog, setShowTemplateDialog] = useState(false);
+  const [showSaveTemplateDialog, setShowSaveTemplateDialog] = useState(false);
+  const [templateName, setTemplateName] = useState('');
+  const [templateShared, setTemplateShared] = useState(true);
 
   // configsLoaded gate: prevents forms from rendering before saved configs are fetched
   const [configsLoaded, setConfigsLoaded] = useState(false);
@@ -597,6 +606,7 @@ function DocumentHubContent() {
   useEffect(() => {
     if (deal?.hsObjectId && portalId) {
       loadQuoteVersions();
+      loadQuoteTemplates();
     }
   }, [portalId, deal?.hsObjectId]);
 
@@ -1954,6 +1964,112 @@ function DocumentHubContent() {
     }
   };
 
+  // Quote template functions
+  const loadQuoteTemplates = async () => {
+    const currentPortalId = portalId || localStorage.getItem('hs_portal_id');
+    if (!currentPortalId) return;
+    try {
+      const { data, error } = await supabase.functions.invoke('quote-templates', {
+        body: { action: 'list_templates', portalId: currentPortalId, userId: userId || undefined }
+      });
+      if (!error && data?.templates) {
+        setQuoteTemplates(data.templates);
+      }
+    } catch (err) {
+      console.error('Failed to load templates:', err);
+    }
+  };
+
+  const saveQuoteTemplate = async () => {
+    if (!formData || !templateName.trim()) {
+      toast.error('Please enter a template name');
+      return;
+    }
+    const currentPortalId = portalId || localStorage.getItem('hs_portal_id');
+    if (!currentPortalId) return;
+
+    try {
+      const { error } = await supabase.functions.invoke('quote-templates', {
+        body: {
+          action: 'save_template',
+          portalId: currentPortalId,
+          name: templateName.trim(),
+          configuration: formData,
+          shared: templateShared,
+          userId: userId || undefined,
+          userName: formData.preparedBy || undefined,
+        }
+      });
+      if (!error) {
+        toast.success(`Template "${templateName}" saved`);
+        setShowSaveTemplateDialog(false);
+        setTemplateName('');
+        await loadQuoteTemplates();
+      } else {
+        toast.error('Failed to save template');
+      }
+    } catch (err) {
+      console.error('Failed to save template:', err);
+      toast.error('Failed to save template');
+    }
+  };
+
+  const loadQuoteTemplate = async (templateId: string) => {
+    const currentPortalId = portalId || localStorage.getItem('hs_portal_id');
+    if (!currentPortalId) return;
+
+    try {
+      const { data, error } = await supabase.functions.invoke('quote-templates', {
+        body: { action: 'load_template', portalId: currentPortalId, templateId }
+      });
+      if (!error && data?.configuration) {
+        // Merge template config with current customer-specific fields
+        const customerFields = {
+          quoteNumber: formData?.quoteNumber || '',
+          quoteDate: formData?.quoteDate || new Date().toISOString().split('T')[0],
+          companyName: formData?.companyName || '',
+          address: formData?.address || '',
+          address2: formData?.address2 || '',
+          city: formData?.city || '',
+          state: formData?.state || '',
+          zip: formData?.zip || '',
+          phone: formData?.phone || '',
+          preparedBy: formData?.preparedBy || '',
+          preparedByEmail: formData?.preparedByEmail || '',
+          preparedByPhone: formData?.preparedByPhone || '',
+          rfpNumber: formData?.rfpNumber || '',
+          contractNumber: formData?.contractNumber || '',
+        };
+        const merged = { ...data.configuration, ...customerFields };
+        setFormData(merged);
+        setSavedConfig(null);
+        setHasUnsavedChanges(true);
+        setShowTemplateDialog(false);
+        toast.success(`Loaded template "${data.template.name}"`);
+      }
+    } catch (err) {
+      console.error('Failed to load template:', err);
+      toast.error('Failed to load template');
+    }
+  };
+
+  const deleteQuoteTemplate = async (templateId: string) => {
+    const currentPortalId = portalId || localStorage.getItem('hs_portal_id');
+    if (!currentPortalId) return;
+
+    try {
+      const { error } = await supabase.functions.invoke('quote-templates', {
+        body: { action: 'delete_template', portalId: currentPortalId, templateId }
+      });
+      if (!error) {
+        toast.success('Template deleted');
+        await loadQuoteTemplates();
+      }
+    } catch (err) {
+      console.error('Failed to delete template:', err);
+    }
+  };
+
   const handleGeneratePDF = async () => {
     if (!previewRef.current || !formData) {
       toast.error('Please fill in the quote details first');
@@ -3045,6 +3161,70 @@ function DocumentHubContent() {
                     Preview
                   </Button>
                 </div>
+                <div className="flex gap-2 pt-2">
+                  <Button variant="outline" size="sm" className="flex-1 text-xs" onClick={() => setShowTemplateDialog(true)}>
+                    <FolderOpen className="h-3.5 w-3.5 mr-1" />
+                    Load Template
+                  </Button>
+                  <Button variant="outline" size="sm" className="flex-1 text-xs" onClick={() => { setTemplateName(''); setTemplateShared(true); setShowSaveTemplateDialog(true); }}>
+                    <BookTemplate className="h-3.5 w-3.5 mr-1" />
+                    Save as Template
+                  </Button>
+                </div>
+
+                {/* Save Template Dialog */}
+                {showSaveTemplateDialog && (
+                  <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50">
+                    <div className="bg-white rounded-lg shadow-lg p-6 w-96 space-y-4">
+                      <h3 className="text-sm font-semibold">Save as Quote Template</h3>
+                      <p className="text-xs text-muted-foreground">Saves the current line items, pricing, markups, accessories, relationships, and lease settings. Customer-specific info (name, address, contact) is excluded.</p>
+                      <div>
+                        <Label className="text-xs">Template Name</Label>
+                        <Input value={templateName} onChange={e => setTemplateName(e.target.value)} placeholder="e.g., Canon C5560i + Tray + Finisher" className="h-8 text-sm" />
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <input type="checkbox" id="templateShared" checked={templateShared} onChange={e => setTemplateShared(e.target.checked)} />
+                        <Label htmlFor="templateShared" className="text-xs">Share with all reps</Label>
+                      </div>
+                      <div className="flex gap-2 justify-end">
+                        <Button variant="outline" size="sm" onClick={() => setShowSaveTemplateDialog(false)}>Cancel</Button>
+                        <Button size="sm" onClick={saveQuoteTemplate} disabled={!templateName.trim()}>Save Template</Button>
+                      </div>
+                    </div>
+                  </div>
+                )}
+
+                {/* Load Template Dialog */}
+                {showTemplateDialog && (
+                  <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50">
+                    <div className="bg-white rounded-lg shadow-lg p-6 w-[500px] max-h-[70vh] flex flex-col">
+                      <h3 className="text-sm font-semibold mb-3">Load Quote Template</h3>
+                      <p className="text-xs text-muted-foreground mb-3">Select a template to pre-fill line items, pricing, and configuration. Your customer info will be preserved.</p>
+                      <div className="overflow-y-auto flex-1 space-y-2">
+                        {quoteTemplates.length === 0 && (
+                          <p className="text-sm text-muted-foreground text-center py-8">No templates saved yet. Use "Save as Template" to create one.</p>
+                        )}
+                        {quoteTemplates.map(t => (
+                          <div key={t.id} className="flex items-center gap-2 p-2 border rounded hover:bg-muted/50">
+                            <div className="flex-1">
+                              <p className="text-sm font-medium">{t.name}</p>
+                              <p className="text-xs text-muted-foreground">
+                                {t.shared ? 'Shared' : 'Personal'} · by {t.created_by_name || 'Unknown'} · {new Date(t.created_at).toLocaleDateString()}
+                              </p>
+                            </div>
+                            <Button size="sm" className="text-xs" onClick={() => loadQuoteTemplate(t.id)}>Load</Button>
+                            {(t.created_by === userId || !t.created_by) && (
+                              <Button variant="ghost" size="sm" className="text-xs text-destructive" onClick={() => deleteQuoteTemplate(t.id)}>Delete</Button>
+                            )}
+                          </div>
+                        ))}
+                      </div>
+                      <div className="flex justify-end pt-3 border-t mt-3">
+                        <Button variant="outline" size="sm" onClick={() => setShowTemplateDialog(false)}>Close</Button>
+                      </div>
+                    </div>
+                  </div>
+                )}
               </CardContent>
             </Card>
           </TabsContent>
