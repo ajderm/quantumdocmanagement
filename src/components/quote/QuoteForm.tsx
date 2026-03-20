@@ -497,9 +497,10 @@ export function QuoteForm({ deal, company, lineItems, dealOwner, onFormChange, p
     hasInitializedRef.current = true;
   }, [deal, company, dealOwner, lineItems, savedConfig]);
 
-  // Auto-recalculate retailPrice when line items change
+  // Auto-recalculate retailPrice when line items change (skip for rentals — total is unknown)
   useEffect(() => {
     if (!formData.lineItems || formData.lineItems.length === 0) return;
+    if (formData.leaseProgram === 'rental') return;
     const total = formData.lineItems.reduce((sum, item) => sum + (item.price * item.quantity), 0);
     setFormData(prev => {
       if (Math.abs(total - prev.retailPrice) > 0.01) {
@@ -507,7 +508,7 @@ export function QuoteForm({ deal, company, lineItems, dealOwner, onFormChange, p
       }
       return prev;
     });
-  }, [formData.lineItems]);
+  }, [formData.lineItems, formData.leaseProgram]);
 
   // Auto-calculate base rate when service values change (if not manually set)
   useEffect(() => {
@@ -859,12 +860,17 @@ export function QuoteForm({ deal, company, lineItems, dealOwner, onFormChange, p
           <div className="grid grid-cols-2 gap-4">
             <div className="space-y-3">
               <div>
-                <Label className="text-xs">{getLabel(formCustomization, 'retailPrice', 'Total Sell Price')}</Label>
+                <Label className="text-xs">
+                  {formData.leaseProgram === 'rental'
+                    ? 'Total Sell Price (optional for rentals)'
+                    : getLabel(formCustomization, 'retailPrice', 'Total Sell Price')}
+                </Label>
                   <CurrencyInput 
                     value={formData.retailPrice} 
                     onChange={v => updateField('retailPrice', v)} 
                     className="h-8 text-sm" 
                     prefix={true}
+                    placeholder={formData.leaseProgram === 'rental' ? 'Enter after rental ends' : undefined}
                   />
               </div>
             </div>

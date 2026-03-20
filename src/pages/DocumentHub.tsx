@@ -1696,9 +1696,11 @@ function DocumentHubContent() {
 
       // Update deal properties in HubSpot (amount + financing)
       try {
-        const dealProperties: Record<string, string> = {
-          amount: formData.retailPrice.toString(),
-        };
+        const dealProperties: Record<string, string> = {};
+        // Only push deal amount for non-rental quotes (rental total is unknown upfront)
+        if (formData.leaseProgram !== 'rental' && formData.retailPrice > 0) {
+          dealProperties.amount = formData.retailPrice.toString();
+        }
         if (formData.buyoutFinancingAmount > 0) {
           dealProperties.financing_amount = formData.buyoutFinancingAmount.toString();
         }
