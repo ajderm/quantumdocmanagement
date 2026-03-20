@@ -1677,6 +1677,42 @@ function DocumentHubContent() {
 
       // Sync line items to HubSpot (replace all)
       if (formData.lineItems && formData.lineItems.length > 0) {
+        // Create HubSpot products for manually-added items (id starts with "new-")
+        // that have a model or description filled in
+        const manualItems = formData.lineItems.filter(item =>
+          item.id.startsWith('new-') && (item.model || item.description) && !(item as any).hs_product_id
+        );
+        if (manualItems.length > 0) {
+          const updatedLineItems = [...formData.lineItems];
+          for (const item of manualItems) {
+            try {
+              const { data: productData } = await supabase.functions.invoke('hubspot-create-product', {
+                body: {
+                  portalId: currentPortalId,
+                  name: item.description || item.model,
+                  sku: item.model,
+                  description: item.description,
+                  price: item.msrp || item.price,
+                  unitCost: item.cost,
+                  productType: item.productType || '',
+                  dealer: item.dealerSource || '',
+                }
+              });
+              if (productData?.productId) {
+                // Update the line item with the HubSpot product ID
+                const idx = updatedLineItems.findIndex(li => li.id === item.id);
+                if (idx >= 0) {
+                  updatedLineItems[idx] = { ...updatedLineItems[idx], hs_product_id: productData.productId } as any;
+                }
+              }
+            } catch (err) {
+              console.error('Failed to create product in HubSpot for:', item.model, err);
+            }
+          }
+          // Update formData with new hs_product_ids
+          setFormData(prev => ({ ...prev, lineItems: updatedLineItems }));
+        }
+
         try {
           const { error: syncError } = await supabase.functions.invoke('hubspot-sync-line-items', {
             body: {
