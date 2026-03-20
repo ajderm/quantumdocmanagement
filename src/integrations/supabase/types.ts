@@ -1099,6 +1099,45 @@ export type Database = {
           },
         ]
       }
+      quote_templates: {
+        Row: {
+          configuration: Json
+          created_at: string
+          created_by: string | null
+          created_by_name: string | null
+          description: string | null
+          id: string
+          name: string
+          portal_id: string
+          shared: boolean
+          updated_at: string
+        }
+        Insert: {
+          configuration?: Json
+          created_at?: string
+          created_by?: string | null
+          created_by_name?: string | null
+          description?: string | null
+          id?: string
+          name: string
+          portal_id: string
+          shared?: boolean
+          updated_at?: string
+        }
+        Update: {
+          configuration?: Json
+          created_at?: string
+          created_by?: string | null
+          created_by_name?: string | null
+          description?: string | null
+          id?: string
+          name?: string
+          portal_id?: string
+          shared?: boolean
+          updated_at?: string
+        }
+        Relationships: []
+      }
       quote_versions: {
         Row: {
           configuration: Json
