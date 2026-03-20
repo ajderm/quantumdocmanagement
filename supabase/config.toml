@@ -68,3 +68,6 @@ verify_jwt = false
 
 [functions.hubspot-create-product]
 verify_jwt = false
+
+[functions.quote-templates]
+verify_jwt = false
