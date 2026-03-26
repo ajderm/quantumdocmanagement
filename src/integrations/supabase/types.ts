@@ -35,6 +35,48 @@ export type Database = {
         }
         Relationships: []
       }
+      app_feedback: {
+        Row: {
+          admin_response: string | null
+          created_at: string
+          description: string | null
+          id: string
+          portal_id: string
+          status: string
+          submitted_by: string | null
+          submitted_by_name: string | null
+          title: string
+          type: string
+          updated_at: string
+        }
+        Insert: {
+          admin_response?: string | null
+          created_at?: string
+          description?: string | null
+          id?: string
+          portal_id: string
+          status?: string
+          submitted_by?: string | null
+          submitted_by_name?: string | null
+          title: string
+          type?: string
+          updated_at?: string
+        }
+        Update: {
+          admin_response?: string | null
+          created_at?: string
+          description?: string | null
+          id?: string
+          portal_id?: string
+          status?: string
+          submitted_by?: string | null
+          submitted_by_name?: string | null
+          title?: string
+          type?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       audit_log: {
         Row: {
           action: string
