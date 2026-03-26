@@ -3212,35 +3212,35 @@ function DocumentHubContent() {
 
                 {/* Quote Version & Number */}
                 <div className="pt-3 border-t">
-                  <div className="flex items-center justify-between mb-2">
+                  <div className="flex items-center justify-between mb-3">
                     <div className="flex items-center gap-2">
-                      <Label className="text-sm font-semibold">Quote Number:</Label>
-                      <span className="text-sm font-bold text-primary">{currentQuoteNumber || formData?.quoteNumber || '—'}</span>
+                      <Label className="text-sm font-semibold text-muted-foreground">Quote #</Label>
+                      <span className="text-sm font-bold text-primary bg-primary/5 px-2 py-0.5 rounded">{currentQuoteNumber || formData?.quoteNumber || '—'}</span>
                     </div>
                     {quoteVersions.length > 0 && (
-                      <span className="text-xs text-muted-foreground">{quoteVersions.length} version{quoteVersions.length !== 1 ? 's' : ''}</span>
+                      <Badge variant="secondary" className="text-[10px]">{quoteVersions.length} version{quoteVersions.length !== 1 ? 's' : ''}</Badge>
                     )}
                   </div>
                   {quoteVersions.length > 0 && (
-                    <div className="flex flex-wrap gap-2">
+                    <div className="flex flex-wrap gap-1.5">
                       {quoteVersions.map((v) => (
                         <Button
                           key={v.id}
                           variant={v.id === currentVersionId ? "default" : "outline"}
                           size="sm"
-                          className="text-xs h-8"
+                          className={`text-xs h-7 transition-all ${v.id === currentVersionId ? 'shadow-sm' : 'hover:border-primary/50'}`}
                           onClick={() => restoreQuoteVersion(v.id)}
                           disabled={v.id === currentVersionId}
                           title={`Created: ${new Date(v.created_at).toLocaleString()}`}
                         >
                           {v.quote_number}
-                          <span className="ml-1 opacity-60">({new Date(v.created_at).toLocaleDateString()})</span>
+                          <span className="ml-1 opacity-50 text-[10px]">{new Date(v.created_at).toLocaleDateString()}</span>
                         </Button>
                       ))}
                     </div>
                   )}
                   {quoteVersions.length === 0 && (
-                    <p className="text-xs text-muted-foreground">A new quote number will be assigned when you Generate PDF.</p>
+                    <p className="text-xs text-muted-foreground italic">A new quote number will be assigned when you Generate PDF.</p>
                   )}
                 </div>
 
@@ -3268,11 +3268,11 @@ function DocumentHubContent() {
                   </Button>
                 </div>
                 <div className="flex gap-2 pt-2">
-                  <Button variant="outline" size="sm" className="flex-1 text-xs" onClick={() => setShowTemplateDialog(true)}>
+                  <Button variant="outline" size="sm" className="flex-1 text-xs hover:border-primary/50 transition-colors" onClick={() => setShowTemplateDialog(true)}>
                     <FolderOpen className="h-3.5 w-3.5 mr-1" />
                     Load Template
                   </Button>
-                  <Button variant="outline" size="sm" className="flex-1 text-xs" onClick={() => { setTemplateName(''); setTemplateShared(true); setShowSaveTemplateDialog(true); }}>
+                  <Button variant="outline" size="sm" className="flex-1 text-xs hover:border-primary/50 transition-colors" onClick={() => { setTemplateName(''); setTemplateShared(true); setShowSaveTemplateDialog(true); }}>
                     <BookTemplate className="h-3.5 w-3.5 mr-1" />
                     Save as Template
                   </Button>
@@ -3280,8 +3280,8 @@ function DocumentHubContent() {
 
                 {/* Save Template Dialog */}
                 {showSaveTemplateDialog && (
-                  <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50">
-                    <div className="bg-white rounded-lg shadow-lg p-6 w-96 space-y-4">
+                  <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm">
+                    <div className="bg-white rounded-xl shadow-2xl p-6 w-96 space-y-4 border animate-in fade-in zoom-in-95 duration-200">
                       <h3 className="text-sm font-semibold">Save as Quote Template</h3>
                       <p className="text-xs text-muted-foreground">Saves the current line items, pricing, markups, accessories, relationships, and lease settings. Customer-specific info (name, address, contact) is excluded.</p>
                       <div>
@@ -3302,8 +3302,8 @@ function DocumentHubContent() {
 
                 {/* Load Template Dialog */}
                 {showTemplateDialog && (
-                  <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50">
-                    <div className="bg-white rounded-lg shadow-lg p-6 w-[500px] max-h-[70vh] flex flex-col">
+                  <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm">
+                    <div className="bg-white rounded-xl shadow-2xl p-6 w-[500px] max-h-[70vh] flex flex-col border animate-in fade-in zoom-in-95 duration-200">
                       <h3 className="text-sm font-semibold mb-3">Load Quote Template</h3>
                       <p className="text-xs text-muted-foreground mb-3">Select a template to pre-fill line items, pricing, and configuration. Your customer info will be preserved.</p>
                       <div className="overflow-y-auto flex-1 space-y-2">
