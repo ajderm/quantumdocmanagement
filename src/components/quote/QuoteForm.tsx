@@ -501,6 +501,52 @@ export function QuoteForm({ deal, company, lineItems, dealOwner, onFormChange, p
     hasInitializedRef.current = true;
   }, [deal, company, dealOwner, lineItems, savedConfig]);
 
+  // Apply savedConfig changes AFTER initialization (template loads, version restores)
+  // The init useEffect above only runs once (hasInitializedRef guard), so subsequent
+  // savedConfig changes (from loadQuoteTemplate/restoreQuoteVersion) need this effect.
+  const prevSavedConfigRef = useRef<string | null>(null);
+  useEffect(() => {
+    if (!hasInitializedRef.current || !savedConfig) return;
+    
+    const configKey = JSON.stringify(savedConfig.lineItems?.map((li: any) => li.id));
+    // Skip if this is the same savedConfig we already applied
+    if (prevSavedConfigRef.current === configKey) return;
+    prevSavedConfigRef.current = configKey;
+
+    // Apply the full savedConfig to internal formData
+    const savedLineItems = (savedConfig.lineItems?.length > 0 ? savedConfig.lineItems : formData.lineItems).map((item: any) => ({
+      ...item,
+      cost: item.cost ?? 0,
+      markupPercent: item.markupPercent ?? 0,
+      msrp: item.msrp ?? item.price ?? 0,
+      dealerSource: item.dealerSource || '',
+    }));
+
+    setFormData(prev => ({
+      ...prev,
+      ...savedConfig,
+      lineItems: savedLineItems,
+      // Preserve customer fields from current deal context
+      companyName: prev.companyName || savedConfig.companyName,
+      address: prev.address || savedConfig.address,
+      city: prev.city || savedConfig.city,
+      state: prev.state || savedConfig.state,
+      zip: prev.zip || savedConfig.zip,
+      phone: prev.phone || savedConfig.phone,
+      preparedBy: prev.preparedBy || savedConfig.preparedBy,
+      preparedByEmail: prev.preparedByEmail || savedConfig.preparedByEmail,
+      preparedByPhone: prev.preparedByPhone || savedConfig.preparedByPhone,
+    }));
+
+    // Restore text states for currency inputs
+    if (savedConfig.overageBWRate > 0) setOverageBWText(String(savedConfig.overageBWRate));
+    if (savedConfig.overageColorRate > 0) setOverageColorText(String(savedConfig.overageColorRate));
+    if (savedConfig.buyoutFinancingAmount > 0) setBuyoutFinancingText(String(savedConfig.buyoutFinancingAmount));
+    if (savedConfig.earlyTerminationFee > 0) setEarlyTerminationFeeText(String(savedConfig.earlyTerminationFee));
+    if (savedConfig.returnShipping > 0) setReturnShippingText(String(savedConfig.returnShipping));
+    if (savedConfig.paymentAmount > 0) setPaymentAmountText(String(savedConfig.paymentAmount));
+  }, [savedConfig]);
+
   // Auto-recalculate retailPrice when line items change (skip for rentals — total is unknown)
   useEffect(() => {
     if (!formData.lineItems || formData.lineItems.length === 0) return;
