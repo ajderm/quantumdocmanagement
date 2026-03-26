@@ -53,7 +53,7 @@ async function sendEmailNotification(feedback: Record<string, unknown>) {
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({
-        from: 'Quantum App <notifications@thequantumleap.business>',
+        from: 'Quantum App <notifications@notifications.thequantumleap.business>',
         to: [ADMIN_EMAIL],
         subject: `[QDM] ${typeEmoji}: ${title}`,
         html: htmlBody,
