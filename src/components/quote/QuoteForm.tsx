@@ -537,6 +537,14 @@ export function QuoteForm({ deal, company, lineItems, dealOwner, onFormChange, p
         const markup = field === 'markupPercent' ? (value as number) : newItems[index].markupPercent;
         newItems[index].price = Math.round(cost * (1 + markup / 100) * 100) / 100;
       }
+      // Reverse: back-calculate markup % when price is manually set
+      if (field === 'price') {
+        const cost = newItems[index].cost;
+        if (cost > 0) {
+          const calcMarkup = Math.round((((value as number) / cost) - 1) * 10000) / 100;
+          newItems[index].markupPercent = calcMarkup > 0 ? calcMarkup : 0;
+        }
+      }
       return { ...prev, lineItems: newItems }; 
     }); 
   };
@@ -715,12 +723,7 @@ export function QuoteForm({ deal, company, lineItems, dealOwner, onFormChange, p
                 <div>
                   <div className="relative">
                     <Input type="number" min="0" step="1" value={item.markupPercent} onChange={e => {
-                      const markup = parseFloat(e.target.value) || 0;
-                      updateLineItem(idx, 'markupPercent', markup);
-                      // Recalculate price from cost + markup
-                      if (item.cost > 0) {
-                        updateLineItem(idx, 'price', Math.round(item.cost * (1 + markup / 100) * 100) / 100);
-                      }
+                      updateLineItem(idx, 'markupPercent', parseFloat(e.target.value) || 0);
                     }} className="h-8 text-sm pr-6" />
                     <span className="absolute right-2 top-1/2 -translate-y-1/2 text-muted-foreground text-xs">%</span>
                   </div>
@@ -729,13 +732,7 @@ export function QuoteForm({ deal, company, lineItems, dealOwner, onFormChange, p
                   <div className="relative">
                     <span className="absolute left-2 top-1/2 -translate-y-1/2 text-muted-foreground text-sm">$</span>
                     <Input type="number" min="0" step="0.01" value={item.price} onChange={e => {
-                      const newPrice = parseFloat(e.target.value) || 0;
-                      updateLineItem(idx, 'price', newPrice);
-                      // Back-calculate markup % from cost and new price
-                      if (item.cost > 0) {
-                        const calcMarkup = Math.round(((newPrice / item.cost) - 1) * 10000) / 100;
-                        updateLineItem(idx, 'markupPercent', calcMarkup > 0 ? calcMarkup : 0);
-                      }
+                      updateLineItem(idx, 'price', parseFloat(e.target.value) || 0);
                     }} className="h-8 text-sm pl-5" />
                   </div>
                 </div>
