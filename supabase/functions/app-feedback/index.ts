@@ -9,23 +9,63 @@ const corsHeaders = {
 const ADMIN_EMAIL = 'marko@thequantumleap.business';
 
 async function sendEmailNotification(feedback: Record<string, unknown>) {
-  // Use Supabase's built-in email or a simple fetch to an email service
-  // For now, use the HubSpot single-send API if available, or log for manual pickup
   try {
-    const webhookUrl = Deno.env.get('FEEDBACK_WEBHOOK_URL');
-    if (webhookUrl) {
-      await fetch(webhookUrl, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          to: ADMIN_EMAIL,
-          subject: `[App Feedback] ${feedback.type === 'bug' ? '🐛' : '💡'} ${feedback.title}`,
-          body: `New ${feedback.type} submitted by ${feedback.submitted_by_name || 'Unknown'}\n\nPortal: ${feedback.portal_id}\nTitle: ${feedback.title}\nDescription: ${feedback.description || 'No description'}\n\nSubmitted: ${feedback.created_at}`,
-        }),
-      });
+    const resendKey = Deno.env.get('RESEND_API_KEY');
+    if (!resendKey) {
+      console.warn('RESEND_API_KEY not set — skipping email notification');
+      console.log(`📧 Feedback (no email sent): [${feedback.type}] ${feedback.title} from ${feedback.submitted_by_name}`);
+      return;
     }
-    // Also log to console for Supabase dashboard visibility
-    console.log(`📧 Feedback notification: [${feedback.type}] ${feedback.title} from ${feedback.submitted_by_name}`);
+
+    const typeEmoji = feedback.type === 'bug' ? '🐛 Bug Report' : '💡 Feature Request';
+    const submitter = (feedback.submitted_by_name as string) || 'Unknown';
+    const portalId = (feedback.portal_id as string) || 'Unknown';
+    const title = feedback.title as string;
+    const description = (feedback.description as string) || 'No description provided';
+    const createdAt = new Date(feedback.created_at as string).toLocaleString('en-US', {
+      timeZone: 'America/Chicago',
+      year: 'numeric', month: 'short', day: 'numeric',
+      hour: '2-digit', minute: '2-digit',
+    });
+
+    const htmlBody = `
+      <div style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; max-width: 560px; margin: 0 auto;">
+        <div style="background: #1b2a4d; color: white; padding: 16px 20px; border-radius: 8px 8px 0 0;">
+          <h2 style="margin: 0; font-size: 16px;">${typeEmoji}</h2>
+        </div>
+        <div style="border: 1px solid #e5e7eb; border-top: none; padding: 20px; border-radius: 0 0 8px 8px;">
+          <h3 style="margin: 0 0 12px 0; font-size: 15px; color: #1b2a4d;">${title}</h3>
+          <p style="margin: 0 0 16px 0; color: #4b5563; font-size: 14px; line-height: 1.5;">${description.replace(/\n/g, '<br>')}</p>
+          <hr style="border: none; border-top: 1px solid #e5e7eb; margin: 16px 0;">
+          <table style="font-size: 13px; color: #6b7280;">
+            <tr><td style="padding: 2px 12px 2px 0; font-weight: 600;">Submitted by</td><td>${submitter}</td></tr>
+            <tr><td style="padding: 2px 12px 2px 0; font-weight: 600;">Portal</td><td>${portalId}</td></tr>
+            <tr><td style="padding: 2px 12px 2px 0; font-weight: 600;">Date</td><td>${createdAt}</td></tr>
+          </table>
+        </div>
+      </div>
+    `;
+
+    const response = await fetch('https://api.resend.com/emails', {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${resendKey}`,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        from: 'Quantum App <notifications@thequantumleap.business>',
+        to: [ADMIN_EMAIL],
+        subject: `[QDM] ${typeEmoji}: ${title}`,
+        html: htmlBody,
+      }),
+    });
+
+    if (!response.ok) {
+      const errText = await response.text();
+      console.error('Resend API error:', response.status, errText);
+    } else {
+      console.log(`📧 Email sent for: [${feedback.type}] ${title}`);
+    }
   } catch (err) {
     console.warn('Email notification failed:', err);
   }
@@ -78,8 +118,8 @@ Deno.serve(async (req) => {
           return createErrorResponse('Failed to submit feedback', 500, corsHeaders);
         }
 
-        // Send email notification
-        await sendEmailNotification(saved);
+        // Send email notification (fire-and-forget — don't block the response)
+        sendEmailNotification(saved).catch(err => console.warn('Notification error:', err));
 
         return createJsonResponse({ success: true, feedback: saved }, corsHeaders);
       }
