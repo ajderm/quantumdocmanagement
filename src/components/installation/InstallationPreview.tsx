@@ -118,8 +118,8 @@ export const InstallationPreview = forwardRef<HTMLDivElement, InstallationPrevie
             <thead>
               <tr className="border-b border-black">
                 <th className="text-left py-1 pb-2 w-8">Qty</th>
-                <th className="text-left py-1 pb-2 w-40">Model</th>
-                <th className="text-left py-1 pb-2 pl-2">Description</th>
+                <th className="text-left py-1 pb-2 w-40">Item Number</th>
+                <th className="text-left py-1 pb-2 pl-2">Model / Description</th>
                 <th className="text-left py-1 pb-2 w-20">Serial #</th>
                 <th className="text-left py-1 pb-2 w-20">MAC Address</th>
                 <th className="text-left py-1 pb-2 w-16">IP Address</th>

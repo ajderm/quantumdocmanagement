@@ -48,6 +48,7 @@ export interface QuoteFormData {
   contractNumber: string;
   // RFP number (shown on quote/proposal cover when populated)
   rfpNumber: string;
+  showFinancingProvider: boolean;
   // Buyout fields
   earlyTerminationFee: number;
   returnShipping: number;
@@ -124,6 +125,7 @@ export function QuoteForm({ deal, company, lineItems, dealOwner, onFormChange, p
     specialPricingTier: '',
     contractNumber: '',
     rfpNumber: '',
+    showFinancingProvider: true,
     // Buyout defaults
     earlyTerminationFee: 0,
     returnShipping: 0,
@@ -227,6 +229,7 @@ export function QuoteForm({ deal, company, lineItems, dealOwner, onFormChange, p
         specialPricingTier: tierName,
         contractNumber: '',
     rfpNumber: '',
+    showFinancingProvider: true,
         lineItems: prev.lineItems.map(item => {
           const origCost = originalCosts[item.id] ?? item.cost;
           const newPrice = origCost > 0 && item.markupPercent > 0
@@ -246,6 +249,7 @@ export function QuoteForm({ deal, company, lineItems, dealOwner, onFormChange, p
       specialPricingTier: tierName,
       contractNumber: '',
     rfpNumber: '',
+    showFinancingProvider: true,
       lineItems: prev.lineItems.map(item => {
         const priceMatch = tier.prices.find(p =>
           item.model.toLowerCase() === p.product_model.toLowerCase()
@@ -699,7 +703,7 @@ export function QuoteForm({ deal, company, lineItems, dealOwner, onFormChange, p
                 <div>
                   <div className="relative">
                     <span className="absolute left-2 top-1/2 -translate-y-1/2 text-muted-foreground text-sm">$</span>
-                    <Input type="text" value={formatCurrency(item.msrp || 0)} readOnly className="h-8 text-sm pl-5 bg-muted/50" />
+                    <Input type="number" min="0" step="0.01" value={item.msrp || 0} onChange={e => updateLineItem(idx, 'msrp', parseFloat(e.target.value) || 0)} className="h-8 text-sm pl-5" />
                   </div>
                 </div>
                 <div>
@@ -710,14 +714,29 @@ export function QuoteForm({ deal, company, lineItems, dealOwner, onFormChange, p
                 </div>
                 <div>
                   <div className="relative">
-                    <Input type="number" min="0" step="1" value={item.markupPercent} onChange={e => updateLineItem(idx, 'markupPercent', parseFloat(e.target.value) || 0)} className="h-8 text-sm pr-6" />
+                    <Input type="number" min="0" step="1" value={item.markupPercent} onChange={e => {
+                      const markup = parseFloat(e.target.value) || 0;
+                      updateLineItem(idx, 'markupPercent', markup);
+                      // Recalculate price from cost + markup
+                      if (item.cost > 0) {
+                        updateLineItem(idx, 'price', Math.round(item.cost * (1 + markup / 100) * 100) / 100);
+                      }
+                    }} className="h-8 text-sm pr-6" />
                     <span className="absolute right-2 top-1/2 -translate-y-1/2 text-muted-foreground text-xs">%</span>
                   </div>
                 </div>
                 <div>
                   <div className="relative">
                     <span className="absolute left-2 top-1/2 -translate-y-1/2 text-muted-foreground text-sm">$</span>
-                    <Input type="text" value={formatCurrency(item.price)} readOnly className="h-8 text-sm pl-5 bg-muted/50" />
+                    <Input type="number" min="0" step="0.01" value={item.price} onChange={e => {
+                      const newPrice = parseFloat(e.target.value) || 0;
+                      updateLineItem(idx, 'price', newPrice);
+                      // Back-calculate markup % from cost and new price
+                      if (item.cost > 0) {
+                        const calcMarkup = Math.round(((newPrice / item.cost) - 1) * 10000) / 100;
+                        updateLineItem(idx, 'markupPercent', calcMarkup > 0 ? calcMarkup : 0);
+                      }
+                    }} className="h-8 text-sm pl-5" />
                   </div>
                 </div>
                 <div>
@@ -818,6 +837,10 @@ export function QuoteForm({ deal, company, lineItems, dealOwner, onFormChange, p
                   <SelectItem value="total_only">Show Total Only</SelectItem>
                 </SelectContent>
               </Select>
+            </div>
+            <div className="flex items-center gap-2 pt-5">
+              <input type="checkbox" id="showFinancingProvider" checked={formData.showFinancingProvider} onChange={e => updateField('showFinancingProvider', e.target.checked)} />
+              <Label htmlFor="showFinancingProvider" className="text-xs">Show "Financing provided by" on document</Label>
             </div>
             <div>
               <Label className="text-xs">Leasing Price</Label>
