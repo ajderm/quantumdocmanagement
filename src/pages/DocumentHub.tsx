@@ -1744,6 +1744,7 @@ function DocumentHubContent() {
                 dealer: item.dealerSource || '',
                 productType: item.productType || '',
                 msrp: item.msrp || 0,
+                itemNumber: item.itemNumber || '',
               })),
             }
           });

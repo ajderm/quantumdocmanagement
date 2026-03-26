@@ -54,7 +54,7 @@ Deno.serve(async (req) => {
       properties: [
         'name', 'hs_sku', 'description', 'price',
         'hs_cost_of_goods_sold', 'unit_cost', 'hs_product_type',
-        'hs_images', 'hs_recurring_billing_period', 'dealer',
+        'hs_images', 'hs_recurring_billing_period', 'dealer', 'item_number',
       ],
       limit: 100,
       sorts: [{ propertyName: 'name', direction: 'ASCENDING' }],
@@ -116,6 +116,7 @@ Deno.serve(async (req) => {
         originalType: normalizedType,
         hasOverride: !!override,
         dealer: p.properties.dealer || '',
+        itemNumber: p.properties.item_number || '',
       };
     });
 

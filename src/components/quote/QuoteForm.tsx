@@ -11,7 +11,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { ProductSearchModal, HubSpotProduct } from './ProductSearchModal';
 import { getLabel, isSectionVisible, type FormCustomizationConfig } from '@/lib/formCustomization';
 
-export interface QuoteLineItem { id: string; quantity: number; model: string; description: string; price: number; cost: number; markupPercent: number; msrp: number; dealerSource: string; hs_product_id?: string; productType?: string; parentLineItemId?: string; }
+export interface QuoteLineItem { id: string; quantity: number; model: string; description: string; price: number; cost: number; markupPercent: number; msrp: number; dealerSource: string; hs_product_id?: string; productType?: string; parentLineItemId?: string; itemNumber?: string; }
 export interface QuoteFormData { 
   quoteNumber: string; 
   quoteDate: string; 
@@ -444,6 +444,7 @@ export function QuoteForm({ deal, company, lineItems, dealOwner, onFormChange, p
         dealerSource: item.dealer || item.properties?.dealer || item.properties?.manufacturer || item.properties?.vendor || '',
         productType: item.category || '',
         parentLineItemId: '',
+        itemNumber: item.itemNumber || item.properties?.item_number || '',
       })),
       retailPrice: dealAmount
     };
@@ -594,7 +595,7 @@ export function QuoteForm({ deal, company, lineItems, dealOwner, onFormChange, p
       return { ...prev, lineItems: newItems }; 
     }); 
   };
-  const addLineItem = () => { setFormData(prev => ({ ...prev, lineItems: [...prev.lineItems, { id: `new-${Date.now()}`, quantity: 1, model: '', description: '', price: 0, cost: 0, markupPercent: 0, msrp: 0, dealerSource: '', productType: '', parentLineItemId: '' }] })); };
+  const addLineItem = () => { setFormData(prev => ({ ...prev, lineItems: [...prev.lineItems, { id: `new-${Date.now()}`, quantity: 1, model: '', description: '', price: 0, cost: 0, markupPercent: 0, msrp: 0, dealerSource: '', productType: '', parentLineItemId: '', itemNumber: '' }] })); };
   const removeLineItem = (index: number) => { setFormData(prev => { const newItems = prev.lineItems.filter((_, i) => i !== index); return { ...prev, lineItems: newItems }; }); };
 
   // Split a multi-quantity line item into individual units so each can be linked to different hardware
@@ -631,6 +632,7 @@ export function QuoteForm({ deal, company, lineItems, dealOwner, onFormChange, p
       hs_product_id: product.id,
       productType: product.productType || '',
       parentLineItemId: '',
+      itemNumber: (product as any).itemNumber || '',
     };
     setFormData(prev => ({ ...prev, lineItems: [...prev.lineItems, newItem] }));
   };

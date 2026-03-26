@@ -113,6 +113,11 @@ Deno.serve(async (req) => {
           properties.hs_product_type = item.productType;
         }
 
+        // Sync item number
+        if (item.itemNumber) {
+          properties.item_number = item.itemNumber;
+        }
+
         // Sync MSRP as unit_cost if available
         if (item.msrp) {
           properties.unit_cost = String(item.msrp);

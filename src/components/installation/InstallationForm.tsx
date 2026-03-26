@@ -38,6 +38,7 @@ export interface LinkedAccessoryItem {
   description: string;
   quantity: number;
   productType: string;
+  itemNumber?: string;
 }
 
 export interface InstallationFormData {
@@ -79,6 +80,7 @@ export interface InstallationFormData {
   installedQty: number;
   installedModel: string;
   installedDescription: string;
+  installedItemNumber: string;
   installedSerial: string;
   installedMacAddress: string;
   installedIpAddress: string;
@@ -250,6 +252,7 @@ export function InstallationForm({
     installedQty: 1,
     installedModel: '',
     installedDescription: '',
+    installedItemNumber: '',
     installedSerial: '',
     installedMacAddress: '',
     installedIpAddress: '',
@@ -395,6 +398,7 @@ export function InstallationForm({
             description: ql.description,
             quantity: ql.quantity,
             productType: ql.productType || '',
+            itemNumber: ql.itemNumber || '',
           }));
 
         setFormData(prev => ({
@@ -402,6 +406,7 @@ export function InstallationForm({
           installedQty: selectedItem.quantity || 1,
           installedModel: selectedItem.model || selectedItem.sku || '',
           installedDescription: selectedItem.description || selectedItem.name || '',
+          installedItemNumber: selectedItem.itemNumber || '',
           linkedAccessories: accessories,
         }));
       }

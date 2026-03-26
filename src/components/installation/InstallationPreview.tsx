@@ -128,7 +128,7 @@ export const InstallationPreview = forwardRef<HTMLDivElement, InstallationPrevie
             <tbody>
               <tr className="border-b border-gray-300">
                 <td className="py-1">{formData.installedQty}</td>
-                <td className="py-1">{formData.installedModel}</td>
+                <td className="py-1">{formData.installedItemNumber || formData.installedModel}</td>
                 <td className="py-1 pl-2">{formData.installedDescription}</td>
                 <td className="py-1">{formData.installedSerial}</td>
                 <td className="py-1">{formData.installedMacAddress}</td>
@@ -137,7 +137,7 @@ export const InstallationPreview = forwardRef<HTMLDivElement, InstallationPrevie
               {formData.linkedAccessories?.map((acc) => (
                 <tr key={acc.id} className="border-b border-gray-200 bg-gray-50">
                   <td className="py-1">{acc.quantity}</td>
-                  <td className="py-1">{acc.model}</td>
+                  <td className="py-1">{acc.itemNumber || acc.model}</td>
                   <td className="py-1 pl-2">{acc.description} <span className="text-[7px] text-gray-500">({acc.productType})</span></td>
                   <td className="py-1"></td>
                   <td className="py-1"></td>
