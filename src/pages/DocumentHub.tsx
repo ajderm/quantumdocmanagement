@@ -2076,10 +2076,13 @@ function DocumentHubContent() {
           preparedByPhone: formData?.preparedByPhone || '',
           rfpNumber: formData?.rfpNumber || '',
           contractNumber: formData?.contractNumber || '',
+          showFinancingProvider: formData?.showFinancingProvider ?? true,
         };
         const merged = { ...data.configuration, ...customerFields };
+        // Set both formData AND savedConfig so QuoteForm's initialization
+        // useEffect treats the template as the saved state (won't overwrite with HubSpot data)
         setFormData(merged);
-        setSavedConfig(null);
+        setSavedConfig(merged);
         setHasUnsavedChanges(true);
         setShowTemplateDialog(false);
         toast.success(`Loaded template "${data.template.name}"`);
