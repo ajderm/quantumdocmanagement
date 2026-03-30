@@ -72,6 +72,9 @@ interface LineItem {
   description?: string;
   category?: string;
   serial?: string;
+  model?: string;
+  itemNumber?: string;
+  parentLineItemId?: string;
 }
 
 interface LabeledContact {
@@ -139,10 +142,20 @@ export function ServiceAgreementForm({
 }: ServiceAgreementFormProps) {
   const meterMethods = dealerSettings?.meter_methods || ["FMAudit", "PrintFleet", "Manual Entry"];
   
-  // Filter hardware line items for rates table
-  const hardwareLineItems = lineItems.filter(
-    (item) => item.category?.toLowerCase() === 'hardware'
-  );
+  // Filter to main units only (exclude accessories) for the rates table
+  const hardwareLineItems = (() => {
+    const hw = lineItems.filter(
+      (item) => item.category?.toLowerCase() === 'hardware'
+    );
+    // If no items are explicitly typed as hardware, show all items that aren't accessories
+    if (hw.length === 0) {
+      const nonAccessories = lineItems.filter(
+        (item) => item.category?.toLowerCase() !== 'accessory' && !item.parentLineItemId
+      );
+      return nonAccessories.length > 0 ? nonAccessories : lineItems;
+    }
+    return hw;
+  })();
 
   // Track if we've done initial setup
   const hasInitializedRef = useRef(false);

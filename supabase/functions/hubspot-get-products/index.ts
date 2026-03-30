@@ -64,6 +64,17 @@ Deno.serve(async (req) => {
       searchBody.query = search;
     }
 
+    // Filter by dealer/pricing source at HubSpot API level for accurate results
+    if (dealerFilter) {
+      searchBody.filterGroups = [{
+        filters: [{
+          propertyName: 'dealer',
+          operator: 'EQ',
+          value: dealerFilter,
+        }],
+      }];
+    }
+
     if (after) {
       searchBody.after = after;
     }

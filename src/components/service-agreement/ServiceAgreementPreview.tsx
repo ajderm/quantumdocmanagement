@@ -10,6 +10,9 @@ interface LineItem {
   description?: string;
   category?: string;
   serial?: string;
+  model?: string;
+  itemNumber?: string;
+  parentLineItemId?: string;
 }
 
 interface DealerInfo {
@@ -35,9 +38,18 @@ interface ServiceAgreementPreviewProps {
 
 export const ServiceAgreementPreview = forwardRef<HTMLDivElement, ServiceAgreementPreviewProps>(
   ({ formData, dealerInfo, lineItems, termsAndConditions, documentStyles }, ref) => {
-    const hardwareLineItems = lineItems.filter(
-      (item) => item.category?.toLowerCase() === 'hardware'
-    );
+    const hardwareLineItems = (() => {
+      const hw = lineItems.filter(
+        (item) => item.category?.toLowerCase() === 'hardware'
+      );
+      if (hw.length === 0) {
+        const nonAccessories = lineItems.filter(
+          (item) => item.category?.toLowerCase() !== 'accessory' && !item.parentLineItemId
+        );
+        return nonAccessories.length > 0 ? nonAccessories : lineItems;
+      }
+      return hw;
+    })();
 
     const formatCurrency = (value: string | number) => {
       const num = typeof value === 'string' ? parseFloat(value) : value;
@@ -218,12 +230,12 @@ export const ServiceAgreementPreview = forwardRef<HTMLDivElement, ServiceAgreeme
               </tr>
             </thead>
             <tbody>
-              {lineItems.length === 0 ? (
+              {hardwareLineItems.length === 0 ? (
                 <tr>
                   <td colSpan={4} className="py-2 text-center text-gray-400">No equipment items</td>
                 </tr>
               ) : (
-                lineItems.map((item) => (
+                hardwareLineItems.map((item) => (
                   <tr key={item.id} className="border-b border-gray-300">
                     <td className="py-1">{item.quantity}</td>
                     <td className="py-1">{item.name}</td>
@@ -271,6 +283,25 @@ export const ServiceAgreementPreview = forwardRef<HTMLDivElement, ServiceAgreeme
                     </tr>
                   );
                 })
+              )}
+              {/* Total Base Rate row when multiple units */}
+              {hardwareLineItems.length > 1 && (
+                <tr className="border-t-2 border-black font-bold">
+                  <td className="py-1">Total</td>
+                  <td className="py-1 text-center">
+                    {(() => {
+                      const total = hardwareLineItems.reduce((sum, item) => {
+                        const rate = formData.rates[item.id]?.baseRate;
+                        return sum + (rate ? parseFloat(String(rate)) || 0 : 0);
+                      }, 0);
+                      return total > 0 ? formatCurrency(total) : '-';
+                    })()}
+                  </td>
+                  <td className="py-1"></td>
+                  <td className="py-1"></td>
+                  <td className="py-1"></td>
+                  <td className="py-1"></td>
+                </tr>
               )}
             </tbody>
           </table>

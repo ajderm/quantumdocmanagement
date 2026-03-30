@@ -3469,7 +3469,19 @@ function DocumentHubContent() {
                     state: company.state,
                     zip: company.zip,
                   } : null}
-                  lineItems={lineItems}
+                  lineItems={formData?.lineItems?.length ? formData.lineItems.map(li => ({
+                    id: li.id,
+                    name: li.description || li.model,
+                    model: li.model,
+                    description: li.description,
+                    quantity: li.quantity,
+                    price: li.price,
+                    cost: li.cost,
+                    sku: li.model,
+                    category: li.productType || '',
+                    itemNumber: li.itemNumber || '',
+                    parentLineItemId: li.parentLineItemId || '',
+                  })) : lineItems}
                   dealerSettings={dealerSettings}
                   savedConfig={serviceAgreementSavedConfig}
                   labeledContacts={labeledContacts || { shippingContact: null, apContact: null, itContact: null }}
