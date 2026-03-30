@@ -74,3 +74,6 @@ verify_jwt = false
 
 [functions.app-feedback]
 verify_jwt = false
+
+[functions.hubspot-get-equipment]
+verify_jwt = false
