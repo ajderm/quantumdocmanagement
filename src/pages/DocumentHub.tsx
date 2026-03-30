@@ -3362,6 +3362,7 @@ function DocumentHubContent() {
                   dealOwner={dealOwner}
                   meterMethods={dealerSettings.meter_methods || []}
                   ccaValue={dealerSettings.cca_value || ''}
+                  portalId={portalId || localStorage.getItem('hs_portal_id') || ''}
                   onFormChange={handleInstallationFormChange}
                   onLineItemSwitch={handleInstallationLineItemSwitch}
                   savedConfig={getCurrentInstallationSavedConfig()}

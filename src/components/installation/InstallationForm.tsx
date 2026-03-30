@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Separator } from '@/components/ui/separator';
@@ -7,7 +7,9 @@ import { Textarea } from '@/components/ui/textarea';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { Plus, Trash2, Package } from 'lucide-react';
+import { Plus, Trash2, Package, Download, Loader2 } from 'lucide-react';
+import { supabase } from '@/integrations/supabase/client';
+import { toast } from 'sonner';
 
 export interface RemovedEquipmentItem {
   id: string;
@@ -135,6 +137,7 @@ interface InstallationFormProps {
   dealOwner: any;
   meterMethods: string[];
   ccaValue: string;
+  portalId: string;
   onFormChange: (data: InstallationFormData) => void;
   onLineItemSwitch?: (newLineItemId: string, currentFormData: InstallationFormData) => void;
   savedConfig?: InstallationFormData;
@@ -152,6 +155,7 @@ export function InstallationForm({
   dealOwner,
   meterMethods,
   ccaValue,
+  portalId,
   onFormChange,
   onLineItemSwitch,
   savedConfig,
@@ -220,6 +224,67 @@ export function InstallationForm({
       quantity: 1, // Each instance represents 1 unit
     }));
   });
+
+  // Equipment pull from HubSpot
+  const [equipmentAvailable, setEquipmentAvailable] = useState<boolean | null>(null);
+  const [pullingEquipment, setPullingEquipment] = useState(false);
+  const equipmentCheckedRef = useRef(false);
+
+  // Check if equipment custom object exists on first render
+  useEffect(() => {
+    if (equipmentCheckedRef.current || !portalId) return;
+    equipmentCheckedRef.current = true;
+    
+    (async () => {
+      try {
+        const { data } = await supabase.functions.invoke('hubspot-get-equipment', {
+          body: { action: 'check', portalId }
+        });
+        setEquipmentAvailable(data?.available || false);
+      } catch {
+        setEquipmentAvailable(false);
+      }
+    })();
+  }, [portalId]);
+
+  const pullEquipmentFromHubSpot = async () => {
+    const companyId = company?.hsObjectId || company?.id;
+    if (!companyId || !portalId) return;
+
+    setPullingEquipment(true);
+    try {
+      const { data, error } = await supabase.functions.invoke('hubspot-get-equipment', {
+        body: { action: 'get_company_equipment', portalId, companyId }
+      });
+
+      if (error || !data?.equipment?.length) {
+        toast.info(data?.equipment?.length === 0 ? 'No active equipment found for this customer' : 'Failed to pull equipment');
+        return;
+      }
+
+      // Map HubSpot equipment records to RemovedEquipmentItem format
+      const items: RemovedEquipmentItem[] = data.equipment.map((eq: any) => ({
+        id: `hs-eq-${eq.id}-${Date.now()}`,
+        qty: 1,
+        itemNumber: eq.equipmentNumber || '',
+        makeModelDescription: [eq.make, eq.model].filter(Boolean).join(' ') || eq.type || '',
+        serial: eq.serial || '',
+        meterBW: '',
+        meterColor: '',
+      }));
+
+      setFormData(prev => ({
+        ...prev,
+        removedEquipment: [...prev.removedEquipment, ...items].slice(0, MAX_REMOVED_EQUIPMENT),
+      }));
+      toast.success(`Pulled ${items.length} equipment record${items.length !== 1 ? 's' : ''} from HubSpot`);
+    } catch (err) {
+      console.error('Equipment pull error:', err);
+      toast.error('Failed to pull equipment from HubSpot');
+    } finally {
+      setPullingEquipment(false);
+    }
+  };
 
   const [formData, setFormData] = useState<InstallationFormData>({
     selectedLineItemId: '',
@@ -931,6 +996,18 @@ export function InstallationForm({
                   <span className="text-xs text-muted-foreground">
                     {formData.removedEquipment.length}/{MAX_REMOVED_EQUIPMENT}
                   </span>
+                  {equipmentAvailable && (
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="sm"
+                      onClick={pullEquipmentFromHubSpot}
+                      disabled={pullingEquipment || formData.removedEquipment.length >= MAX_REMOVED_EQUIPMENT}
+                    >
+                      {pullingEquipment ? <Loader2 className="h-4 w-4 mr-1 animate-spin" /> : <Download className="h-4 w-4 mr-1" />}
+                      Pull from HubSpot
+                    </Button>
+                  )}
                   <Button 
                     type="button" 
                     variant="outline" 
