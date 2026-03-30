@@ -3076,17 +3076,15 @@ function DocumentHubContent() {
   return (
     <div className="min-h-screen bg-background">
       {/* Header */}
-      <header className="sticky top-0 z-50 border-b bg-card/95 backdrop-blur supports-[backdrop-filter]:bg-card/80">
-        <div className="flex items-center justify-between h-14 px-4">
-          <div className="flex items-center gap-3">
-            <div className="h-8 w-8 rounded-lg bg-primary flex items-center justify-center">
-              <FileText className="h-4 w-4 text-primary-foreground" />
+      <header className="sticky top-0 z-50 border-b border-border/60 bg-card/98 backdrop-blur-md">
+        <div className="flex items-center justify-between h-12 px-4">
+          <div className="flex items-center gap-2.5">
+            <div className="h-7 w-7 rounded-lg bg-primary flex items-center justify-center">
+              <FileText className="h-3.5 w-3.5 text-primary-foreground" />
             </div>
-            <div>
-              <h1 className="text-sm font-semibold">Quantum Document Management</h1>
-            </div>
+            <span className="text-sm font-semibold tracking-tight">Quantum Document Management</span>
           </div>
-          <Button variant="ghost" size="sm" asChild>
+          <Button variant="ghost" size="sm" className="text-muted-foreground hover:text-foreground h-8 text-xs" asChild>
             <a
               href={`/admin?portalId=${encodeURIComponent(
                 portalId || window.localStorage.getItem('hs_portal_id') || ''
@@ -3101,58 +3099,53 @@ function DocumentHubContent() {
         </div>
       </header>
 
-      <div className="p-4">
+      <div className="px-4 pt-3 pb-2">
 
-        {/* Deal Context Card */}
+        {/* Deal Context */}
         {deal && (
-          <Card className="mb-4">
-            <CardHeader className="py-3 px-4">
-              <div className="flex items-start justify-between">
-                <div>
-                  <CardTitle className="text-base">{deal.dealName}</CardTitle>
-                  <CardDescription className="flex items-center gap-2 mt-1">
-                    <Badge variant="secondary" className="text-xs">
-                      {deal.stage}
-                    </Badge>
-                    {deal.amount && (
-                      <span className="text-xs">
-                        ${deal.amount.toLocaleString()}
-                      </span>
-                    )}
-                  </CardDescription>
-                </div>
+          <div className="mb-3 px-1">
+            <div className="flex items-center justify-between mb-2">
+              <div className="flex items-center gap-3">
+                <h2 className="text-base font-semibold tracking-tight">{deal.dealName}</h2>
+                <Badge variant="secondary" className="text-[10px] font-medium px-2 py-0.5 rounded-md">
+                  {deal.stage}
+                </Badge>
               </div>
-            </CardHeader>
-            <CardContent className="py-0 px-4 pb-3">
-              <div className="grid grid-cols-4 gap-3 text-xs">
-                <div className="flex items-center gap-2">
-                  <Building2 className="h-3.5 w-3.5 text-muted-foreground" />
-                  <span className="truncate">{company?.name || 'No company'}</span>
-                </div>
-                <div className="flex items-center gap-2">
-                  <UserCircle className="h-3.5 w-3.5 text-muted-foreground" />
-                  <span className="truncate">
-                    {dealOwner ? `${dealOwner.firstName} ${dealOwner.lastName}` : 'No owner'}
-                  </span>
-                </div>
-                <div className="flex items-center gap-2">
-                  <User className="h-3.5 w-3.5 text-muted-foreground" />
-                  <span className="truncate">
-                    {contacts[0] ? `${contacts[0].firstName} ${contacts[0].lastName}` : 'No contact'}
-                  </span>
-                </div>
-                <div className="flex items-center gap-2">
-                  <Package className="h-3.5 w-3.5 text-muted-foreground" />
-                  <span>{lineItems.length} items</span>
-                </div>
+              {deal.amount && (
+                <span className="text-sm font-semibold text-primary tabular-nums">
+                  ${deal.amount.toLocaleString()}
+                </span>
+              )}
+            </div>
+            <div className="flex items-center gap-4 text-xs text-muted-foreground">
+              <div className="flex items-center gap-1.5">
+                <Building2 className="h-3 w-3" />
+                <span>{company?.name || 'No company'}</span>
               </div>
-            </CardContent>
-          </Card>
+              <div className="flex items-center gap-1.5">
+                <UserCircle className="h-3 w-3" />
+                <span>
+                  {dealOwner ? `${dealOwner.firstName} ${dealOwner.lastName}` : 'No owner'}
+                </span>
+              </div>
+              <div className="flex items-center gap-1.5">
+                <User className="h-3 w-3" />
+                <span>
+                  {contacts[0] ? `${contacts[0].firstName} ${contacts[0].lastName}` : 'No contact'}
+                </span>
+              </div>
+              <div className="flex items-center gap-1.5">
+                <Package className="h-3 w-3" />
+                <span>{lineItems.length} item{lineItems.length !== 1 ? 's' : ''}</span>
+              </div>
+            </div>
+          </div>
         )}
 
         {/* Document Type Tabs */}
         <Tabs defaultValue="quote" className="w-full">
-          <TabsList className="w-full h-auto flex-wrap justify-start gap-1 bg-transparent p-0 mb-4">
+          <div className="border-b border-border/60 mb-4">
+            <TabsList className="w-full h-auto flex-wrap justify-start gap-0 bg-transparent p-0">
             {documentTypes
               .filter(doc => !dealerSettings.enabled_forms || dealerSettings.enabled_forms.length === 0 || dealerSettings.enabled_forms.includes(doc.code))
               .map((doc) => {
@@ -3161,7 +3154,7 @@ function DocumentHubContent() {
                 <TabsTrigger
                   key={doc.code}
                   value={doc.code}
-                  className="data-[state=active]:bg-primary data-[state=active]:text-primary-foreground px-3 py-1.5 text-xs"
+                  className="relative rounded-none border-b-2 border-transparent data-[state=active]:border-primary data-[state=active]:bg-transparent data-[state=active]:text-primary data-[state=active]:shadow-none px-3 py-2.5 text-xs text-muted-foreground hover:text-foreground transition-colors"
                 >
                   <Icon className="h-3.5 w-3.5 mr-1.5" />
                   {doc.name}
@@ -3185,20 +3178,18 @@ function DocumentHubContent() {
               </TabsTrigger>
             ))}
           </TabsList>
+          </div>
 
           {/* Quote Tab Content */}
           <TabsContent value="quote" className="mt-0">
-            <Card>
-              <CardHeader className="pb-3">
-                <CardTitle className="text-lg flex items-center gap-2">
-                  <FileText className="h-5 w-5" />
-                  Generate Quote
-                </CardTitle>
-                <CardDescription>
-                  Review and customize quote details before generating
-                </CardDescription>
-              </CardHeader>
-              <CardContent className="space-y-4">
+            <div className="space-y-4">
+              <div className="flex items-center justify-between">
+                <div>
+                  <h3 className="text-sm font-semibold tracking-tight">Quote Builder</h3>
+                  <p className="text-xs text-muted-foreground mt-0.5">Configure pricing, equipment, and lease options</p>
+                </div>
+              </div>
+              <div className="space-y-4">
                 <QuoteForm
                   deal={deal}
                   company={company}
@@ -3332,8 +3323,8 @@ function DocumentHubContent() {
                     </div>
                   </div>
                 )}
-              </CardContent>
-            </Card>
+              </div>
+            </div>
           </TabsContent>
 
           {/* Installation Tab Content */}
