@@ -3237,37 +3237,39 @@ function DocumentHubContent() {
                 </div>
 
                 {/* Actions */}
-                <div className="flex gap-2 pt-4 border-t">
-                  <Button variant="outline" onClick={handleSave} disabled={saving}>
-                    {saving ? (
-                      <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                    ) : (
-                      <Save className="h-4 w-4 mr-2" />
-                    )}
-                    {saving ? 'Saving...' : 'Save'}
-                  </Button>
-                  <Button className="flex-1" onClick={handleGeneratePDF} disabled={generating}>
-                    {generating ? (
-                      <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                    ) : (
-                      <Download className="h-4 w-4 mr-2" />
-                    )}
-                    {generating ? 'Generating...' : 'Generate PDF'}
-                  </Button>
-                  <Button variant="outline" onClick={handlePreview}>
-                    <Eye className="h-4 w-4 mr-2" />
-                    Preview
-                  </Button>
-                </div>
-                <div className="flex gap-2 pt-2">
-                  <Button variant="outline" size="sm" className="flex-1 text-xs hover:border-primary/50 transition-colors" onClick={() => setShowTemplateDialog(true)}>
-                    <FolderOpen className="h-3.5 w-3.5 mr-1" />
-                    Load Template
-                  </Button>
-                  <Button variant="outline" size="sm" className="flex-1 text-xs hover:border-primary/50 transition-colors" onClick={() => { setTemplateName(''); setTemplateShared(true); setShowSaveTemplateDialog(true); }}>
-                    <BookTemplate className="h-3.5 w-3.5 mr-1" />
-                    Save as Template
-                  </Button>
+                <div className="pt-4 border-t border-border/60 space-y-3">
+                  <div className="flex gap-2">
+                    <Button onClick={handleGeneratePDF} disabled={generating} className="flex-1">
+                      {generating ? (
+                        <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                      ) : (
+                        <Download className="h-4 w-4 mr-2" />
+                      )}
+                      {generating ? 'Generating...' : 'Generate PDF'}
+                    </Button>
+                    <Button variant="outline" onClick={handleSave} disabled={saving}>
+                      {saving ? (
+                        <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                      ) : (
+                        <Save className="h-4 w-4 mr-2" />
+                      )}
+                      {saving ? 'Saving...' : 'Save'}
+                    </Button>
+                    <Button variant="outline" onClick={handlePreview}>
+                      <Eye className="h-4 w-4 mr-2" />
+                      Preview
+                    </Button>
+                  </div>
+                  <div className="flex gap-2">
+                    <Button variant="ghost" size="sm" className="flex-1 text-xs" onClick={() => setShowTemplateDialog(true)}>
+                      <FolderOpen className="h-3.5 w-3.5 mr-1" />
+                      Load Template
+                    </Button>
+                    <Button variant="ghost" size="sm" className="flex-1 text-xs" onClick={() => { setTemplateName(''); setTemplateShared(true); setShowSaveTemplateDialog(true); }}>
+                      <BookTemplate className="h-3.5 w-3.5 mr-1" />
+                      Save as Template
+                    </Button>
+                  </div>
                 </div>
 
                 {/* Save Template Dialog */}
