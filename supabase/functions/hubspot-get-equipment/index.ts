@@ -202,19 +202,16 @@ Deno.serve(async (req) => {
 
       // Re-discover the equipment object (force refresh)
       case 'rediscover': {
-        // Clear cached value
-        await supabase
-          .from('dealer_settings')
-          .update({ equipment_object_id: null })
-          .eq('portal_id', portalId);
-
         const objectId = await discoverEquipmentObjectId(accessToken);
 
         // Re-cache
         await supabase
-          .from('dealer_settings')
-          .update({ equipment_object_id: objectId || 'none' })
-          .eq('portal_id', portalId);
+          .from('portal_equipment_cache')
+          .upsert({
+            portal_id: portalId,
+            equipment_object_id: objectId || 'none',
+            updated_at: new Date().toISOString(),
+          }, { onConflict: 'portal_id' });
 
         return createJsonResponse({
           available: !!objectId,
