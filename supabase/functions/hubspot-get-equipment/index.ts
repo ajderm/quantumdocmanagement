@@ -60,16 +60,16 @@ async function getEquipmentObjectId(
   portalId: string,
   accessToken: string
 ): Promise<string | null> {
-  // Check if we already have a cached object ID in dealer_settings
-  const { data: settings } = await supabase
-    .from('dealer_settings')
+  // Check if we already have a cached object ID
+  const { data: cached } = await supabase
+    .from('portal_equipment_cache')
     .select('equipment_object_id')
     .eq('portal_id', portalId)
     .single();
 
-  if (settings?.equipment_object_id) {
+  if (cached?.equipment_object_id) {
     // Return cached value (could be "none" meaning no equipment object exists)
-    return settings.equipment_object_id === 'none' ? null : settings.equipment_object_id;
+    return cached.equipment_object_id === 'none' ? null : cached.equipment_object_id;
   }
 
   // Discover from HubSpot schema API
@@ -77,9 +77,12 @@ async function getEquipmentObjectId(
 
   // Cache the result (store "none" if not found so we don't re-discover every time)
   await supabase
-    .from('dealer_settings')
-    .update({ equipment_object_id: objectId || 'none' })
-    .eq('portal_id', portalId);
+    .from('portal_equipment_cache')
+    .upsert({
+      portal_id: portalId,
+      equipment_object_id: objectId || 'none',
+      updated_at: new Date().toISOString(),
+    }, { onConflict: 'portal_id' });
 
   return objectId;
 }
@@ -199,19 +202,16 @@ Deno.serve(async (req) => {
 
       // Re-discover the equipment object (force refresh)
       case 'rediscover': {
-        // Clear cached value
-        await supabase
-          .from('dealer_settings')
-          .update({ equipment_object_id: null })
-          .eq('portal_id', portalId);
-
         const objectId = await discoverEquipmentObjectId(accessToken);
 
         // Re-cache
         await supabase
-          .from('dealer_settings')
-          .update({ equipment_object_id: objectId || 'none' })
-          .eq('portal_id', portalId);
+          .from('portal_equipment_cache')
+          .upsert({
+            portal_id: portalId,
+            equipment_object_id: objectId || 'none',
+            updated_at: new Date().toISOString(),
+          }, { onConflict: 'portal_id' });
 
         return createJsonResponse({
           available: !!objectId,

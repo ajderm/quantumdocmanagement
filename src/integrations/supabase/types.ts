@@ -973,6 +973,30 @@ export type Database = {
         }
         Relationships: []
       }
+      portal_equipment_cache: {
+        Row: {
+          created_at: string
+          equipment_object_id: string | null
+          id: string
+          portal_id: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          equipment_object_id?: string | null
+          id?: string
+          portal_id: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          equipment_object_id?: string | null
+          id?: string
+          portal_id?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       pricing_tier_prices: {
         Row: {
           created_at: string
