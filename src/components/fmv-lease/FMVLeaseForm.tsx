@@ -293,21 +293,21 @@ export function FMVLeaseForm({
                 <div key={item.lineItemId} className="border rounded-lg p-3 space-y-3">
                   <div className="grid grid-cols-12 gap-3">
                     <div className="col-span-1">
-                      <Label className="text-xs">Qty</Label>
+                      <Label>Qty</Label>
                       <Input type="number" value={item.quantity} onChange={(e) => updateEquipmentItem(index, "quantity", parseInt(e.target.value) || 1)} className="h-8 text-sm text-center" />
                     </div>
                     <div className="col-span-11">
-                      <Label className="text-xs">Make/Model/Description</Label>
+                      <Label>Make/Model/Description</Label>
                       <Input value={item.makeModelDescription} onChange={(e) => updateEquipmentItem(index, "makeModelDescription", e.target.value)} className="h-8 text-sm" />
                     </div>
                   </div>
                   <div className="grid grid-cols-2 gap-3">
                     <div>
-                      <Label className="text-xs">Serial Number</Label>
+                      <Label>Serial Number</Label>
                       <Input value={item.serialNumber} onChange={(e) => updateEquipmentItem(index, "serialNumber", e.target.value)} className="h-8 text-sm" placeholder="Enter serial number" />
                     </div>
                     <div>
-                      <Label className="text-xs">ID Number</Label>
+                      <Label>ID Number</Label>
                       <Input value={item.idNumber} onChange={(e) => updateEquipmentItem(index, "idNumber", e.target.value)} className="h-8 text-sm" placeholder="Enter ID number" />
                     </div>
                   </div>

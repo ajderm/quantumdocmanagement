@@ -354,43 +354,43 @@ export function NewCustomerForm({
         <CardContent className="space-y-4">
           <div className="grid grid-cols-2 gap-4">
             <div>
-              <Label className="text-xs">Company Legal Name</Label>
+              <Label>Company Legal Name</Label>
               <Input value={formData.companyName} onChange={e => updateField('companyName', e.target.value)} className="h-8 text-sm" />
             </div>
             <div>
-              <Label className="text-xs">Trade Name (DBA)</Label>
+              <Label>Trade Name (DBA)</Label>
               <Input value={formData.tradeName} onChange={e => updateField('tradeName', e.target.value)} className="h-8 text-sm" />
             </div>
           </div>
           <div>
-            <Label className="text-xs">Description of Business</Label>
+            <Label>Description of Business</Label>
             <Input value={formData.businessDescription} onChange={e => updateField('businessDescription', e.target.value)} className="h-8 text-sm" />
           </div>
           <div className="grid grid-cols-4 gap-4">
             <div>
-              <Label className="text-xs">Tax ID #</Label>
+              <Label>Tax ID #</Label>
               <Input value={formData.taxId} onChange={e => updateField('taxId', e.target.value)} className="h-8 text-sm" placeholder="XX-XXXXXXX" />
             </div>
             <div>
-              <Label className="text-xs">State</Label>
+              <Label>State</Label>
               <Input value={formData.taxIdState} onChange={e => updateField('taxIdState', e.target.value)} className="h-8 text-sm" />
             </div>
             <div>
-              <Label className="text-xs">Year Established</Label>
+              <Label>Year Established</Label>
               <Input value={formData.yearEstablished} onChange={e => updateField('yearEstablished', e.target.value)} className="h-8 text-sm" />
             </div>
             <div>
-              <Label className="text-xs">Years Owned</Label>
+              <Label>Years Owned</Label>
               <Input value={formData.yearsOwned} onChange={e => updateField('yearsOwned', e.target.value)} className="h-8 text-sm" />
             </div>
           </div>
           <div className="grid grid-cols-2 gap-4">
             <div>
-              <Label className="text-xs">Credit Requested</Label>
+              <Label>Credit Requested</Label>
               <Input value={formData.creditRequested} onChange={e => updateField('creditRequested', e.target.value)} className="h-8 text-sm" placeholder="$" />
             </div>
             <div>
-              <Label className="text-xs">Business Type</Label>
+              <Label>Business Type</Label>
               <Select value={formData.businessType} onValueChange={v => updateField('businessType', v as NewCustomerFormData['businessType'])}>
                 <SelectTrigger className="h-8 text-sm"><SelectValue placeholder="Select..." /></SelectTrigger>
                 <SelectContent>
@@ -410,18 +410,18 @@ export function NewCustomerForm({
             <CardTitle className="text-sm">Headquarters Address</CardTitle>
           </CardHeader>
           <CardContent className="space-y-3">
-            <div><Label className="text-xs">Address</Label><Input value={formData.hqAddress} onChange={e => updateField('hqAddress', e.target.value)} className="h-8 text-sm" /></div>
-            <div><Label className="text-xs">Address 2</Label><Input value={formData.hqAddress2} onChange={e => updateField('hqAddress2', e.target.value)} className="h-8 text-sm" /></div>
+            <div><Label>Address</Label><Input value={formData.hqAddress} onChange={e => updateField('hqAddress', e.target.value)} className="h-8 text-sm" /></div>
+            <div><Label>Address 2</Label><Input value={formData.hqAddress2} onChange={e => updateField('hqAddress2', e.target.value)} className="h-8 text-sm" /></div>
             <div className="grid grid-cols-3 gap-2">
               <Input value={formData.hqCity} onChange={e => updateField('hqCity', e.target.value)} className="h-8 text-sm" placeholder="City" />
               <Input value={formData.hqState} onChange={e => updateField('hqState', e.target.value)} className="h-8 text-sm" placeholder="State" />
               <Input value={formData.hqZip} onChange={e => updateField('hqZip', e.target.value)} className="h-8 text-sm" placeholder="ZIP" />
             </div>
             <div className="grid grid-cols-2 gap-2">
-              <div><Label className="text-xs">Phone</Label><Input value={formData.hqPhone} onChange={e => updateField('hqPhone', e.target.value)} className="h-8 text-sm" /></div>
-              <div><Label className="text-xs">Fax</Label><Input value={formData.hqFax} onChange={e => updateField('hqFax', e.target.value)} className="h-8 text-sm" /></div>
+              <div><Label>Phone</Label><Input value={formData.hqPhone} onChange={e => updateField('hqPhone', e.target.value)} className="h-8 text-sm" /></div>
+              <div><Label>Fax</Label><Input value={formData.hqFax} onChange={e => updateField('hqFax', e.target.value)} className="h-8 text-sm" /></div>
             </div>
-            <div><Label className="text-xs">Email</Label><Input value={formData.hqEmail} onChange={e => updateField('hqEmail', e.target.value)} className="h-8 text-sm" /></div>
+            <div><Label>Email</Label><Input value={formData.hqEmail} onChange={e => updateField('hqEmail', e.target.value)} className="h-8 text-sm" /></div>
           </CardContent>
         </Card>
 
@@ -437,18 +437,18 @@ export function NewCustomerForm({
             </CardTitle>
           </CardHeader>
           <CardContent className="space-y-3">
-            <div><Label className="text-xs">Address</Label><Input value={formData.branchAddress} onChange={e => updateField('branchAddress', e.target.value)} className="h-8 text-sm" disabled={formData.branchSameAsHq} /></div>
-            <div><Label className="text-xs">Address 2</Label><Input value={formData.branchAddress2} onChange={e => updateField('branchAddress2', e.target.value)} className="h-8 text-sm" disabled={formData.branchSameAsHq} /></div>
+            <div><Label>Address</Label><Input value={formData.branchAddress} onChange={e => updateField('branchAddress', e.target.value)} className="h-8 text-sm" disabled={formData.branchSameAsHq} /></div>
+            <div><Label>Address 2</Label><Input value={formData.branchAddress2} onChange={e => updateField('branchAddress2', e.target.value)} className="h-8 text-sm" disabled={formData.branchSameAsHq} /></div>
             <div className="grid grid-cols-3 gap-2">
               <Input value={formData.branchCity} onChange={e => updateField('branchCity', e.target.value)} className="h-8 text-sm" placeholder="City" disabled={formData.branchSameAsHq} />
               <Input value={formData.branchState} onChange={e => updateField('branchState', e.target.value)} className="h-8 text-sm" placeholder="State" disabled={formData.branchSameAsHq} />
               <Input value={formData.branchZip} onChange={e => updateField('branchZip', e.target.value)} className="h-8 text-sm" placeholder="ZIP" disabled={formData.branchSameAsHq} />
             </div>
             <div className="grid grid-cols-2 gap-2">
-              <div><Label className="text-xs">Phone</Label><Input value={formData.branchPhone} onChange={e => updateField('branchPhone', e.target.value)} className="h-8 text-sm" disabled={formData.branchSameAsHq} /></div>
-              <div><Label className="text-xs">Fax</Label><Input value={formData.branchFax} onChange={e => updateField('branchFax', e.target.value)} className="h-8 text-sm" disabled={formData.branchSameAsHq} /></div>
+              <div><Label>Phone</Label><Input value={formData.branchPhone} onChange={e => updateField('branchPhone', e.target.value)} className="h-8 text-sm" disabled={formData.branchSameAsHq} /></div>
+              <div><Label>Fax</Label><Input value={formData.branchFax} onChange={e => updateField('branchFax', e.target.value)} className="h-8 text-sm" disabled={formData.branchSameAsHq} /></div>
             </div>
-            <div><Label className="text-xs">Email</Label><Input value={formData.branchEmail} onChange={e => updateField('branchEmail', e.target.value)} className="h-8 text-sm" disabled={formData.branchSameAsHq} /></div>
+            <div><Label>Email</Label><Input value={formData.branchEmail} onChange={e => updateField('branchEmail', e.target.value)} className="h-8 text-sm" disabled={formData.branchSameAsHq} /></div>
           </CardContent>
         </Card>
 
@@ -466,18 +466,18 @@ export function NewCustomerForm({
             </CardTitle>
           </CardHeader>
           <CardContent className="space-y-3">
-            <div><Label className="text-xs">Address</Label><Input value={formData.billingAddress} onChange={e => updateField('billingAddress', e.target.value)} className="h-8 text-sm" disabled={formData.billingSameAsHq || formData.billingSameAsBranch} /></div>
-            <div><Label className="text-xs">Address 2</Label><Input value={formData.billingAddress2} onChange={e => updateField('billingAddress2', e.target.value)} className="h-8 text-sm" disabled={formData.billingSameAsHq || formData.billingSameAsBranch} /></div>
+            <div><Label>Address</Label><Input value={formData.billingAddress} onChange={e => updateField('billingAddress', e.target.value)} className="h-8 text-sm" disabled={formData.billingSameAsHq || formData.billingSameAsBranch} /></div>
+            <div><Label>Address 2</Label><Input value={formData.billingAddress2} onChange={e => updateField('billingAddress2', e.target.value)} className="h-8 text-sm" disabled={formData.billingSameAsHq || formData.billingSameAsBranch} /></div>
             <div className="grid grid-cols-3 gap-2">
               <Input value={formData.billingCity} onChange={e => updateField('billingCity', e.target.value)} className="h-8 text-sm" placeholder="City" disabled={formData.billingSameAsHq || formData.billingSameAsBranch} />
               <Input value={formData.billingState} onChange={e => updateField('billingState', e.target.value)} className="h-8 text-sm" placeholder="State" disabled={formData.billingSameAsHq || formData.billingSameAsBranch} />
               <Input value={formData.billingZip} onChange={e => updateField('billingZip', e.target.value)} className="h-8 text-sm" placeholder="ZIP" disabled={formData.billingSameAsHq || formData.billingSameAsBranch} />
             </div>
             <div className="grid grid-cols-2 gap-2">
-              <div><Label className="text-xs">Phone</Label><Input value={formData.billingPhone} onChange={e => updateField('billingPhone', e.target.value)} className="h-8 text-sm" disabled={formData.billingSameAsHq || formData.billingSameAsBranch} /></div>
-              <div><Label className="text-xs">Fax</Label><Input value={formData.billingFax} onChange={e => updateField('billingFax', e.target.value)} className="h-8 text-sm" disabled={formData.billingSameAsHq || formData.billingSameAsBranch} /></div>
+              <div><Label>Phone</Label><Input value={formData.billingPhone} onChange={e => updateField('billingPhone', e.target.value)} className="h-8 text-sm" disabled={formData.billingSameAsHq || formData.billingSameAsBranch} /></div>
+              <div><Label>Fax</Label><Input value={formData.billingFax} onChange={e => updateField('billingFax', e.target.value)} className="h-8 text-sm" disabled={formData.billingSameAsHq || formData.billingSameAsBranch} /></div>
             </div>
-            <div><Label className="text-xs">Email</Label><Input value={formData.billingEmail} onChange={e => updateField('billingEmail', e.target.value)} className="h-8 text-sm" disabled={formData.billingSameAsHq || formData.billingSameAsBranch} /></div>
+            <div><Label>Email</Label><Input value={formData.billingEmail} onChange={e => updateField('billingEmail', e.target.value)} className="h-8 text-sm" disabled={formData.billingSameAsHq || formData.billingSameAsBranch} /></div>
           </CardContent>
         </Card>
       </div>
@@ -492,26 +492,26 @@ export function NewCustomerForm({
             {/* Principal */}
             <div className="space-y-3">
               <h4 className="text-xs font-medium text-muted-foreground">Principal / Owner</h4>
-              <div><Label className="text-xs">Name</Label><Input value={formData.principalName} onChange={e => updateField('principalName', e.target.value)} className="h-8 text-sm" /></div>
-              <div><Label className="text-xs">Title</Label><Input value={formData.principalTitle} onChange={e => updateField('principalTitle', e.target.value)} className="h-8 text-sm" /></div>
-              <div><Label className="text-xs">Phone</Label><Input value={formData.principalPhone} onChange={e => updateField('principalPhone', e.target.value)} className="h-8 text-sm" /></div>
-              <div><Label className="text-xs">Email</Label><Input value={formData.principalEmail} onChange={e => updateField('principalEmail', e.target.value)} className="h-8 text-sm" /></div>
+              <div><Label>Name</Label><Input value={formData.principalName} onChange={e => updateField('principalName', e.target.value)} className="h-8 text-sm" /></div>
+              <div><Label>Title</Label><Input value={formData.principalTitle} onChange={e => updateField('principalTitle', e.target.value)} className="h-8 text-sm" /></div>
+              <div><Label>Phone</Label><Input value={formData.principalPhone} onChange={e => updateField('principalPhone', e.target.value)} className="h-8 text-sm" /></div>
+              <div><Label>Email</Label><Input value={formData.principalEmail} onChange={e => updateField('principalEmail', e.target.value)} className="h-8 text-sm" /></div>
             </div>
             {/* Equipment Contact */}
             <div className="space-y-3">
               <h4 className="text-xs font-medium text-muted-foreground">Equipment / Meter Contact</h4>
-              <div><Label className="text-xs">Name</Label><Input value={formData.equipmentContactName} onChange={e => updateField('equipmentContactName', e.target.value)} className="h-8 text-sm" /></div>
-              <div><Label className="text-xs">Title</Label><Input value={formData.equipmentContactTitle} onChange={e => updateField('equipmentContactTitle', e.target.value)} className="h-8 text-sm" /></div>
-              <div><Label className="text-xs">Phone</Label><Input value={formData.equipmentContactPhone} onChange={e => updateField('equipmentContactPhone', e.target.value)} className="h-8 text-sm" /></div>
-              <div><Label className="text-xs">Email</Label><Input value={formData.equipmentContactEmail} onChange={e => updateField('equipmentContactEmail', e.target.value)} className="h-8 text-sm" /></div>
+              <div><Label>Name</Label><Input value={formData.equipmentContactName} onChange={e => updateField('equipmentContactName', e.target.value)} className="h-8 text-sm" /></div>
+              <div><Label>Title</Label><Input value={formData.equipmentContactTitle} onChange={e => updateField('equipmentContactTitle', e.target.value)} className="h-8 text-sm" /></div>
+              <div><Label>Phone</Label><Input value={formData.equipmentContactPhone} onChange={e => updateField('equipmentContactPhone', e.target.value)} className="h-8 text-sm" /></div>
+              <div><Label>Email</Label><Input value={formData.equipmentContactEmail} onChange={e => updateField('equipmentContactEmail', e.target.value)} className="h-8 text-sm" /></div>
             </div>
             {/* AP Contact */}
             <div className="space-y-3">
               <h4 className="text-xs font-medium text-muted-foreground">Accounts Payable Contact</h4>
-              <div><Label className="text-xs">Name</Label><Input value={formData.apContactName} onChange={e => updateField('apContactName', e.target.value)} className="h-8 text-sm" /></div>
-              <div><Label className="text-xs">Title</Label><Input value={formData.apContactTitle} onChange={e => updateField('apContactTitle', e.target.value)} className="h-8 text-sm" /></div>
-              <div><Label className="text-xs">Phone</Label><Input value={formData.apContactPhone} onChange={e => updateField('apContactPhone', e.target.value)} className="h-8 text-sm" /></div>
-              <div><Label className="text-xs">Email</Label><Input value={formData.apContactEmail} onChange={e => updateField('apContactEmail', e.target.value)} className="h-8 text-sm" /></div>
+              <div><Label>Name</Label><Input value={formData.apContactName} onChange={e => updateField('apContactName', e.target.value)} className="h-8 text-sm" /></div>
+              <div><Label>Title</Label><Input value={formData.apContactTitle} onChange={e => updateField('apContactTitle', e.target.value)} className="h-8 text-sm" /></div>
+              <div><Label>Phone</Label><Input value={formData.apContactPhone} onChange={e => updateField('apContactPhone', e.target.value)} className="h-8 text-sm" /></div>
+              <div><Label>Email</Label><Input value={formData.apContactEmail} onChange={e => updateField('apContactEmail', e.target.value)} className="h-8 text-sm" /></div>
             </div>
           </div>
         </CardContent>
@@ -556,15 +556,15 @@ export function NewCustomerForm({
               <div key={ref.id} className="border rounded-lg p-3 space-y-2">
                 <div className="text-xs font-medium text-muted-foreground">Bank Reference {index + 1}</div>
                 <div className="grid grid-cols-2 gap-2">
-                  <div><Label className="text-xs">Bank Name</Label><Input value={ref.bankName} onChange={e => updateBankReference(index, 'bankName', e.target.value)} className="h-7 text-xs" /></div>
-                  <div><Label className="text-xs">Contact</Label><Input value={ref.contact} onChange={e => updateBankReference(index, 'contact', e.target.value)} className="h-7 text-xs" /></div>
+                  <div><Label>Bank Name</Label><Input value={ref.bankName} onChange={e => updateBankReference(index, 'bankName', e.target.value)} className="h-7 text-xs" /></div>
+                  <div><Label>Contact</Label><Input value={ref.contact} onChange={e => updateBankReference(index, 'contact', e.target.value)} className="h-7 text-xs" /></div>
                 </div>
-                <div><Label className="text-xs">Address</Label><Input value={ref.address} onChange={e => updateBankReference(index, 'address', e.target.value)} className="h-7 text-xs" /></div>
+                <div><Label>Address</Label><Input value={ref.address} onChange={e => updateBankReference(index, 'address', e.target.value)} className="h-7 text-xs" /></div>
                 <div className="grid grid-cols-2 gap-2">
-                  <div><Label className="text-xs">City, State, ZIP</Label><Input value={ref.cityStZip} onChange={e => updateBankReference(index, 'cityStZip', e.target.value)} className="h-7 text-xs" /></div>
-                  <div><Label className="text-xs">Phone</Label><Input value={ref.phone} onChange={e => updateBankReference(index, 'phone', e.target.value)} className="h-7 text-xs" /></div>
+                  <div><Label>City, State, ZIP</Label><Input value={ref.cityStZip} onChange={e => updateBankReference(index, 'cityStZip', e.target.value)} className="h-7 text-xs" /></div>
+                  <div><Label>Phone</Label><Input value={ref.phone} onChange={e => updateBankReference(index, 'phone', e.target.value)} className="h-7 text-xs" /></div>
                 </div>
-                <div><Label className="text-xs">Account #</Label><Input value={ref.accountNumber} onChange={e => updateBankReference(index, 'accountNumber', e.target.value)} className="h-7 text-xs" /></div>
+                <div><Label>Account #</Label><Input value={ref.accountNumber} onChange={e => updateBankReference(index, 'accountNumber', e.target.value)} className="h-7 text-xs" /></div>
               </div>
             ))}
           </CardContent>
@@ -580,14 +580,14 @@ export function NewCustomerForm({
               <div key={ref.id} className="border rounded-lg p-3 space-y-2">
                 <div className="text-xs font-medium text-muted-foreground">Business Reference {index + 1}</div>
                 <div className="grid grid-cols-2 gap-2">
-                  <div><Label className="text-xs">Company</Label><Input value={ref.company} onChange={e => updateBusinessReference(index, 'company', e.target.value)} className="h-7 text-xs" /></div>
-                  <div><Label className="text-xs">Contact</Label><Input value={ref.contact} onChange={e => updateBusinessReference(index, 'contact', e.target.value)} className="h-7 text-xs" /></div>
+                  <div><Label>Company</Label><Input value={ref.company} onChange={e => updateBusinessReference(index, 'company', e.target.value)} className="h-7 text-xs" /></div>
+                  <div><Label>Contact</Label><Input value={ref.contact} onChange={e => updateBusinessReference(index, 'contact', e.target.value)} className="h-7 text-xs" /></div>
                 </div>
                 <div className="grid grid-cols-2 gap-2">
-                  <div><Label className="text-xs">Title</Label><Input value={ref.title} onChange={e => updateBusinessReference(index, 'title', e.target.value)} className="h-7 text-xs" /></div>
-                  <div><Label className="text-xs">Phone</Label><Input value={ref.phone} onChange={e => updateBusinessReference(index, 'phone', e.target.value)} className="h-7 text-xs" /></div>
+                  <div><Label>Title</Label><Input value={ref.title} onChange={e => updateBusinessReference(index, 'title', e.target.value)} className="h-7 text-xs" /></div>
+                  <div><Label>Phone</Label><Input value={ref.phone} onChange={e => updateBusinessReference(index, 'phone', e.target.value)} className="h-7 text-xs" /></div>
                 </div>
-                <div><Label className="text-xs">Email</Label><Input value={ref.email} onChange={e => updateBusinessReference(index, 'email', e.target.value)} className="h-7 text-xs" /></div>
+                <div><Label>Email</Label><Input value={ref.email} onChange={e => updateBusinessReference(index, 'email', e.target.value)} className="h-7 text-xs" /></div>
               </div>
             ))}
           </CardContent>
@@ -603,7 +603,7 @@ export function NewCustomerForm({
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
             <div className="space-y-3">
               <div>
-                <Label className="text-xs">Invoice Delivery Method</Label>
+                <Label>Invoice Delivery Method</Label>
                 <Select value={formData.invoiceDelivery} onValueChange={v => updateField('invoiceDelivery', v as NewCustomerFormData['invoiceDelivery'])}>
                   <SelectTrigger className="h-8 text-sm"><SelectValue placeholder="Select..." /></SelectTrigger>
                   <SelectContent>
@@ -613,11 +613,11 @@ export function NewCustomerForm({
                   </SelectContent>
                 </Select>
               </div>
-              <div><Label className="text-xs">Invoice Email</Label><Input value={formData.invoiceEmail} onChange={e => updateField('invoiceEmail', e.target.value)} className="h-8 text-sm" /></div>
-              <div><Label className="text-xs">Secondary Email</Label><Input value={formData.invoiceSecondaryEmail} onChange={e => updateField('invoiceSecondaryEmail', e.target.value)} className="h-8 text-sm" /></div>
+              <div><Label>Invoice Email</Label><Input value={formData.invoiceEmail} onChange={e => updateField('invoiceEmail', e.target.value)} className="h-8 text-sm" /></div>
+              <div><Label>Secondary Email</Label><Input value={formData.invoiceSecondaryEmail} onChange={e => updateField('invoiceSecondaryEmail', e.target.value)} className="h-8 text-sm" /></div>
             </div>
             <div className="space-y-3">
-              <Label className="text-xs">Payment Method</Label>
+              <Label>Payment Method</Label>
               <div className="space-y-2">
                 <div className="flex items-center gap-2">
                   <Checkbox id="payCheck" checked={formData.paymentMethod === 'check'} onCheckedChange={c => c && updateField('paymentMethod', 'check')} />

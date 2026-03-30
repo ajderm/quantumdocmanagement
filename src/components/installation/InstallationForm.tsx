@@ -588,7 +588,7 @@ export function InstallationForm({
             <CardContent className="space-y-4">
               <div className="grid grid-cols-3 gap-3">
                 <div>
-                  <Label className="text-xs">Meter (Black)</Label>
+                  <Label>Meter (Black)</Label>
                   <Input
                     value={formData.meterBlack}
                     onChange={(e) => updateField('meterBlack', e.target.value)}
@@ -597,7 +597,7 @@ export function InstallationForm({
                   />
                 </div>
                 <div>
-                  <Label className="text-xs">Meter (Color)</Label>
+                  <Label>Meter (Color)</Label>
                   <Input
                     value={formData.meterColor}
                     onChange={(e) => updateField('meterColor', e.target.value)}
@@ -606,7 +606,7 @@ export function InstallationForm({
                   />
                 </div>
                 <div>
-                  <Label className="text-xs">Meter (Total)</Label>
+                  <Label>Meter (Total)</Label>
                   <Input
                     value={formData.meterTotal}
                     onChange={(e) => updateField('meterTotal', e.target.value)}
@@ -617,7 +617,7 @@ export function InstallationForm({
               </div>
               <div className="grid grid-cols-2 gap-3">
                 <div>
-                  <Label className="text-xs">ID Number</Label>
+                  <Label>ID Number</Label>
                   <Input
                     value={formData.idNumber}
                     onChange={(e) => updateField('idNumber', e.target.value)}
@@ -625,7 +625,7 @@ export function InstallationForm({
                   />
                 </div>
                 <div>
-                  <Label className="text-xs">Customer Number</Label>
+                  <Label>Customer Number</Label>
                   <Input
                     value={getEffectiveCustomerNumber() || ''}
                     onChange={(e) => updateField('customerNumberOverride', e.target.value)}
@@ -636,7 +636,7 @@ export function InstallationForm({
               </div>
               <div className="grid grid-cols-2 gap-3">
                 <div>
-                  <Label className="text-xs">Sales Rep</Label>
+                  <Label>Sales Rep</Label>
                   <Input
                     value={formData.salesRep}
                     onChange={(e) => updateField('salesRep', e.target.value)}
@@ -644,7 +644,7 @@ export function InstallationForm({
                   />
                 </div>
                 <div>
-                  <Label className="text-xs">Meter Method</Label>
+                  <Label>Meter Method</Label>
                   <Select
                     value={formData.meterMethod}
                     onValueChange={(value) => updateField('meterMethod', value)}
@@ -669,7 +669,7 @@ export function InstallationForm({
                 </div>
               </div>
               <div>
-                <Label className="text-xs">CCA</Label>
+                <Label>CCA</Label>
                 <Input
                   value={formData.cca}
                   onChange={(e) => updateField('cca', e.target.value)}
@@ -689,7 +689,7 @@ export function InstallationForm({
             <CardContent className="space-y-4">
               <div className="grid grid-cols-12 gap-3">
                 <div className="col-span-1">
-                  <Label className="text-xs">Qty</Label>
+                  <Label>Qty</Label>
                   <Input
                     type="number"
                     value={formData.installedQty}
@@ -698,7 +698,7 @@ export function InstallationForm({
                   />
                 </div>
                 <div className="col-span-3">
-                  <Label className="text-xs">Model</Label>
+                  <Label>Model</Label>
                   <Input
                     value={formData.installedModel}
                     onChange={(e) => updateField('installedModel', e.target.value)}
@@ -706,7 +706,7 @@ export function InstallationForm({
                   />
                 </div>
                 <div className="col-span-8">
-                  <Label className="text-xs">Description</Label>
+                  <Label>Description</Label>
                   <Input
                     value={formData.installedDescription}
                     onChange={(e) => updateField('installedDescription', e.target.value)}
@@ -716,7 +716,7 @@ export function InstallationForm({
               </div>
               <div className="grid grid-cols-3 gap-3">
                 <div>
-                  <Label className="text-xs">Serial #</Label>
+                  <Label>Serial #</Label>
                   <Input
                     value={formData.installedSerial}
                     onChange={(e) => updateField('installedSerial', e.target.value)}
@@ -724,7 +724,7 @@ export function InstallationForm({
                   />
                 </div>
                 <div>
-                  <Label className="text-xs">MAC Address</Label>
+                  <Label>MAC Address</Label>
                   <Input
                     value={formData.installedMacAddress}
                     onChange={(e) => updateField('installedMacAddress', e.target.value)}
@@ -732,7 +732,7 @@ export function InstallationForm({
                   />
                 </div>
                 <div>
-                  <Label className="text-xs">IP Address</Label>
+                  <Label>IP Address</Label>
                   <Input
                     value={formData.installedIpAddress}
                     onChange={(e) => updateField('installedIpAddress', e.target.value)}
@@ -774,11 +774,11 @@ export function InstallationForm({
                 <div className="space-y-3">
                   <h4 className="text-xs font-medium text-muted-foreground">Ship To</h4>
                   <div>
-                    <Label className="text-xs">Company</Label>
+                    <Label>Company</Label>
                     <Input value={formData.shipToCompany} onChange={(e) => updateField('shipToCompany', e.target.value)} className="h-8 text-sm" />
                   </div>
                   <div>
-                    <Label className="text-xs">Address</Label>
+                    <Label>Address</Label>
                     <Input value={formData.shipToAddress} onChange={(e) => updateField('shipToAddress', e.target.value)} className="h-8 text-sm" />
                   </div>
                   <div className="grid grid-cols-3 gap-2">
@@ -788,16 +788,16 @@ export function InstallationForm({
                   </div>
                   <div className="grid grid-cols-2 gap-2">
                     <div>
-                      <Label className="text-xs">ATTN</Label>
+                      <Label>ATTN</Label>
                       <Input value={formData.shipToAttn} onChange={(e) => updateField('shipToAttn', e.target.value)} className="h-8 text-sm" />
                     </div>
                     <div>
-                      <Label className="text-xs">Phone</Label>
+                      <Label>Phone</Label>
                       <Input value={formData.shipToPhone} onChange={(e) => updateField('shipToPhone', e.target.value)} className="h-8 text-sm" />
                     </div>
                   </div>
                   <div>
-                    <Label className="text-xs">Email</Label>
+                    <Label>Email</Label>
                     <Input value={formData.shipToEmail} onChange={(e) => updateField('shipToEmail', e.target.value)} className="h-8 text-sm" />
                   </div>
                 </div>
@@ -805,11 +805,11 @@ export function InstallationForm({
                 <div className="space-y-3">
                   <h4 className="text-xs font-medium text-muted-foreground">Bill To</h4>
                   <div>
-                    <Label className="text-xs">Company</Label>
+                    <Label>Company</Label>
                     <Input value={formData.billToCompany} onChange={(e) => updateField('billToCompany', e.target.value)} className="h-8 text-sm" />
                   </div>
                   <div>
-                    <Label className="text-xs">Address</Label>
+                    <Label>Address</Label>
                     <Input value={formData.billToAddress} onChange={(e) => updateField('billToAddress', e.target.value)} className="h-8 text-sm" />
                   </div>
                   <div className="grid grid-cols-3 gap-2">
@@ -819,16 +819,16 @@ export function InstallationForm({
                   </div>
                   <div className="grid grid-cols-2 gap-2">
                     <div>
-                      <Label className="text-xs">ATTN</Label>
+                      <Label>ATTN</Label>
                       <Input value={formData.billToAttn} onChange={(e) => updateField('billToAttn', e.target.value)} className="h-8 text-sm" />
                     </div>
                     <div>
-                      <Label className="text-xs">Phone</Label>
+                      <Label>Phone</Label>
                       <Input value={formData.billToPhone} onChange={(e) => updateField('billToPhone', e.target.value)} className="h-8 text-sm" />
                     </div>
                   </div>
                   <div>
-                    <Label className="text-xs">Email</Label>
+                    <Label>Email</Label>
                     <Input value={formData.billToEmail} onChange={(e) => updateField('billToEmail', e.target.value)} className="h-8 text-sm" />
                   </div>
                 </div>
@@ -850,7 +850,7 @@ export function InstallationForm({
                   <h4 className="text-xs font-medium text-muted-foreground">Dealer Setup - Print</h4>
                   <div className="grid grid-cols-2 gap-3">
                     <div>
-                      <Label className="text-xs">Dealer Setup Print</Label>
+                      <Label>Dealer Setup Print</Label>
                       <Select value={formData.dealerSetupPrint} onValueChange={(v) => updateField('dealerSetupPrint', v)}>
                         <SelectTrigger className="h-8 text-sm"><SelectValue placeholder="Select..." /></SelectTrigger>
                         <SelectContent>
@@ -860,7 +860,7 @@ export function InstallationForm({
                       </Select>
                     </div>
                     <div>
-                      <Label className="text-xs">Windows Computers</Label>
+                      <Label>Windows Computers</Label>
                       <Input 
                         type="number" 
                         min="0"
@@ -873,7 +873,7 @@ export function InstallationForm({
                   </div>
                   <div className="grid grid-cols-2 gap-3">
                     <div>
-                      <Label className="text-xs">Mac Computers</Label>
+                      <Label>Mac Computers</Label>
                       <Input 
                         type="number" 
                         min="0"
@@ -884,7 +884,7 @@ export function InstallationForm({
                       />
                     </div>
                     <div>
-                      <Label className="text-xs">Allow Print From USB</Label>
+                      <Label>Allow Print From USB</Label>
                       <Select value={formData.allowPrintFromUSB} onValueChange={(v) => updateField('allowPrintFromUSB', v)}>
                         <SelectTrigger className="h-8 text-sm"><SelectValue placeholder="Select..." /></SelectTrigger>
                         <SelectContent>
@@ -895,7 +895,7 @@ export function InstallationForm({
                     </div>
                   </div>
                   <div>
-                    <Label className="text-xs">Allow Mobile Print</Label>
+                    <Label>Allow Mobile Print</Label>
                     <Select value={formData.allowMobilePrint} onValueChange={(v) => updateField('allowMobilePrint', v)}>
                       <SelectTrigger className="h-8 text-sm"><SelectValue placeholder="Select..." /></SelectTrigger>
                       <SelectContent>
@@ -911,7 +911,7 @@ export function InstallationForm({
                   <h4 className="text-xs font-medium text-muted-foreground">Dealer Setup - Scan</h4>
                   <div className="grid grid-cols-2 gap-3">
                     <div>
-                      <Label className="text-xs">Dealer Setup Scan</Label>
+                      <Label>Dealer Setup Scan</Label>
                       <Select value={formData.dealerSetupScan} onValueChange={(v) => updateField('dealerSetupScan', v)}>
                         <SelectTrigger className="h-8 text-sm"><SelectValue placeholder="Select..." /></SelectTrigger>
                         <SelectContent>
@@ -921,7 +921,7 @@ export function InstallationForm({
                       </Select>
                     </div>
                     <div>
-                      <Label className="text-xs">Windows Computers</Label>
+                      <Label>Windows Computers</Label>
                       <Input 
                         type="number" 
                         min="0"
@@ -934,7 +934,7 @@ export function InstallationForm({
                   </div>
                   <div className="grid grid-cols-2 gap-3">
                     <div>
-                      <Label className="text-xs">Mac Computers</Label>
+                      <Label>Mac Computers</Label>
                       <Input 
                         type="number" 
                         min="0"
@@ -945,12 +945,12 @@ export function InstallationForm({
                       />
                     </div>
                     <div>
-                      <Label className="text-xs">Email Assigned to Copier</Label>
+                      <Label>Email Assigned to Copier</Label>
                       <Input value={formData.emailAssigned} onChange={(e) => updateField('emailAssigned', e.target.value)} className="h-8 text-sm" />
                     </div>
                   </div>
                   <div>
-                    <Label className="text-xs">Password</Label>
+                    <Label>Password</Label>
                     <Input value={formData.emailPassword} onChange={(e) => updateField('emailPassword', e.target.value)} className="h-8 text-sm" />
                   </div>
                 </div>
@@ -1029,28 +1029,28 @@ export function InstallationForm({
                   {formData.removedEquipment.map((item, index) => (
                     <div key={item.id} className="grid grid-cols-7 gap-2 items-end">
                       <div>
-                        <Label className="text-xs">Qty</Label>
+                        <Label>Qty</Label>
                         <Input type="number" value={item.qty} onChange={(e) => updateRemovedEquipment(index, 'qty', parseInt(e.target.value) || 1)} className="h-8 text-sm" />
                       </div>
                       <div>
-                        <Label className="text-xs">Item #</Label>
+                        <Label>Item #</Label>
                         <Input value={item.itemNumber} onChange={(e) => updateRemovedEquipment(index, 'itemNumber', e.target.value)} className="h-8 text-sm" />
                       </div>
                       <div className="col-span-2">
-                        <Label className="text-xs">Make/Model/Description</Label>
+                        <Label>Make/Model/Description</Label>
                         <Input value={item.makeModelDescription} onChange={(e) => updateRemovedEquipment(index, 'makeModelDescription', e.target.value)} className="h-8 text-sm" />
                       </div>
                       <div>
-                        <Label className="text-xs">Serial</Label>
+                        <Label>Serial</Label>
                         <Input value={item.serial} onChange={(e) => updateRemovedEquipment(index, 'serial', e.target.value)} className="h-8 text-sm" />
                       </div>
                       <div>
-                        <Label className="text-xs">Meter (BW)</Label>
+                        <Label>Meter (BW)</Label>
                         <Input value={item.meterBW} onChange={(e) => updateRemovedEquipment(index, 'meterBW', e.target.value)} className="h-8 text-sm" />
                       </div>
                       <div className="flex gap-1">
                         <div className="flex-1">
-                          <Label className="text-xs">Meter (COL)</Label>
+                          <Label>Meter (COL)</Label>
                           <Input value={item.meterColor} onChange={(e) => updateRemovedEquipment(index, 'meterColor', e.target.value)} className="h-8 text-sm" />
                         </div>
                         <Button type="button" variant="ghost" size="icon" className="h-8 w-8 mt-5 text-destructive" onClick={() => removeRemovedEquipment(index)}>

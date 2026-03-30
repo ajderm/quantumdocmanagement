@@ -4668,34 +4668,33 @@ function DocumentHubContent() {
       {/* Feedback Panel */}
       {showFeedbackPanel && (
         <div className="fixed inset-0 z-50 flex justify-end">
-          <div className="absolute inset-0 bg-black/30" onClick={() => setShowFeedbackPanel(false)} />
-          <div className="relative w-[420px] max-w-full bg-white shadow-2xl flex flex-col h-full">
+          <div className="absolute inset-0 bg-black/20 backdrop-blur-[2px]" onClick={() => setShowFeedbackPanel(false)} />
+          <div className="relative w-[400px] max-w-full bg-card border-l border-border/60 shadow-2xl flex flex-col h-full">
             {/* Header */}
-            <div className="flex items-center justify-between p-4 border-b bg-muted/30">
+            <div className="flex items-center justify-between px-4 py-3 border-b border-border/60">
               <div>
-                <h2 className="text-sm font-semibold">Feedback & Requests</h2>
-                <p className="text-xs text-muted-foreground">{feedbackList.length} item{feedbackList.length !== 1 ? 's' : ''}</p>
+                <h2 className="text-sm font-semibold tracking-tight">Feedback & Requests</h2>
+                <p className="text-[11px] text-muted-foreground mt-0.5">{feedbackList.length} item{feedbackList.length !== 1 ? 's' : ''}</p>
               </div>
-              <div className="flex items-center gap-2">
+              <div className="flex items-center gap-1.5">
                 <Button size="sm" onClick={() => setShowFeedbackForm(true)}>
                   <MessageSquarePlus className="h-3.5 w-3.5 mr-1" />
                   New
                 </Button>
-                <button onClick={() => setShowFeedbackPanel(false)} className="p-1 hover:bg-muted rounded">
-                  <X className="h-4 w-4" />
+                <button onClick={() => setShowFeedbackPanel(false)} className="p-1.5 hover:bg-muted rounded-lg transition-colors">
+                  <X className="h-4 w-4 text-muted-foreground" />
                 </button>
               </div>
             </div>
 
             {/* New Feedback Form */}
             {showFeedbackForm && (
-              <div className="p-4 border-b bg-blue-50/50 space-y-3">
-                <div className="flex gap-2">
+              <div className="p-4 border-b border-border/60 bg-muted/30 space-y-3">
+                <div className="flex gap-1.5">
                   <Button
                     size="sm"
                     variant={feedbackType === 'bug' ? 'default' : 'outline'}
                     onClick={() => setFeedbackType('bug')}
-                    className="text-xs"
                   >
                     <Bug className="h-3 w-3 mr-1" />Bug
                   </Button>
@@ -4703,7 +4702,6 @@ function DocumentHubContent() {
                     size="sm"
                     variant={feedbackType === 'feature' ? 'default' : 'outline'}
                     onClick={() => setFeedbackType('feature')}
-                    className="text-xs"
                   >
                     <Lightbulb className="h-3 w-3 mr-1" />Feature Request
                   </Button>
@@ -4712,15 +4710,15 @@ function DocumentHubContent() {
                   value={feedbackTitle}
                   onChange={e => setFeedbackTitle(e.target.value)}
                   placeholder="Brief title..."
-                  className="h-8 text-sm"
+                  className="h-8"
                 />
                 <textarea
                   value={feedbackDescription}
                   onChange={e => setFeedbackDescription(e.target.value)}
                   placeholder="Describe the issue or request in detail..."
-                  className="w-full h-20 text-sm border rounded-md p-2 resize-none focus:outline-none focus:ring-2 focus:ring-primary/20"
+                  className="w-full h-20 text-sm border border-border/80 rounded-lg p-2.5 resize-none focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary/40 transition-colors placeholder:text-muted-foreground/60"
                 />
-                <div className="flex gap-2 justify-end">
+                <div className="flex gap-1.5 justify-end">
                   <Button size="sm" variant="outline" onClick={() => { setShowFeedbackForm(false); setFeedbackTitle(''); setFeedbackDescription(''); }}>Cancel</Button>
                   <Button size="sm" onClick={submitFeedback} disabled={!feedbackTitle.trim()}>Submit</Button>
                 </div>
@@ -4730,30 +4728,34 @@ function DocumentHubContent() {
             {/* Feedback List */}
             <div className="flex-1 overflow-y-auto p-3 space-y-2">
               {feedbackList.length === 0 && (
-                <div className="text-center py-12 text-muted-foreground">
-                  <MessageSquarePlus className="h-8 w-8 mx-auto mb-2 opacity-30" />
-                  <p className="text-sm">No feedback submitted yet.</p>
-                  <p className="text-xs">Click "New" to submit the first one.</p>
+                <div className="text-center py-16 text-muted-foreground">
+                  <MessageSquarePlus className="h-6 w-6 mx-auto mb-3 opacity-20" />
+                  <p className="text-xs font-medium">No feedback yet</p>
+                  <p className="text-[11px] mt-0.5 opacity-70">Click "New" to submit the first one</p>
                 </div>
               )}
               {feedbackList.map(item => (
-                <div key={item.id} className="border rounded-lg p-3 hover:bg-muted/30 transition-colors">
-                  <div className="flex items-start gap-2">
-                    <div className="mt-0.5">
+                <div key={item.id} className="border border-border/60 rounded-xl p-3 hover:bg-muted/20 transition-colors">
+                  <div className="flex items-start gap-2.5">
+                    <div className="mt-0.5 shrink-0">
                       {item.type === 'bug' ? (
-                        <Bug className="h-3.5 w-3.5 text-red-500" />
+                        <div className="h-5 w-5 rounded-md bg-red-50 flex items-center justify-center">
+                          <Bug className="h-3 w-3 text-red-500" />
+                        </div>
                       ) : (
-                        <Lightbulb className="h-3.5 w-3.5 text-amber-500" />
+                        <div className="h-5 w-5 rounded-md bg-amber-50 flex items-center justify-center">
+                          <Lightbulb className="h-3 w-3 text-amber-500" />
+                        </div>
                       )}
                     </div>
                     <div className="flex-1 min-w-0">
                       <div className="flex items-center gap-2 mb-0.5">
-                        <span className="text-sm font-medium truncate">{item.title}</span>
-                        <span className={`text-[10px] px-1.5 py-0.5 rounded-full font-medium shrink-0 ${
-                          item.status === 'new' ? 'bg-blue-100 text-blue-700' :
-                          item.status === 'in_progress' ? 'bg-amber-100 text-amber-700' :
-                          item.status === 'resolved' ? 'bg-green-100 text-green-700' :
-                          'bg-gray-100 text-gray-600'
+                        <span className="text-[13px] font-medium truncate">{item.title}</span>
+                        <span className={`text-[10px] px-1.5 py-0.5 rounded-md font-medium shrink-0 ${
+                          item.status === 'new' ? 'bg-blue-50 text-blue-600' :
+                          item.status === 'in_progress' ? 'bg-amber-50 text-amber-600' :
+                          item.status === 'resolved' ? 'bg-green-50 text-green-600' :
+                          'bg-gray-50 text-gray-500'
                         }`}>
                           {item.status === 'new' ? 'New' :
                            item.status === 'in_progress' ? 'In Progress' :
@@ -4761,17 +4763,17 @@ function DocumentHubContent() {
                         </span>
                       </div>
                       {item.description && (
-                        <p className="text-xs text-muted-foreground line-clamp-2">{item.description}</p>
+                        <p className="text-xs text-muted-foreground line-clamp-2 mt-0.5">{item.description}</p>
                       )}
-                      <div className="flex items-center gap-2 mt-1.5 text-[10px] text-muted-foreground">
+                      <div className="flex items-center gap-1.5 mt-2 text-[10px] text-muted-foreground/70">
                         <span>{item.submitted_by_name || 'Unknown'}</span>
-                        <span>·</span>
+                        <span className="opacity-40">·</span>
                         <span>{new Date(item.created_at).toLocaleDateString()}</span>
                       </div>
                       {item.admin_response && (
-                        <div className="mt-2 p-2 bg-green-50 border border-green-200 rounded text-xs">
+                        <div className="mt-2 p-2.5 bg-green-50/80 border border-green-100 rounded-lg text-xs">
                           <span className="font-medium text-green-700">Response: </span>
-                          {item.admin_response}
+                          <span className="text-green-800">{item.admin_response}</span>
                         </div>
                       )}
                     </div>

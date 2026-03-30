@@ -519,41 +519,41 @@ export function CommissionForm({ deal, company, lineItems, dealOwner, portalId, 
         <CardContent className="space-y-3">
           <div className="grid grid-cols-2 gap-3">
             <div>
-              <Label className="text-xs">Sales Representative</Label>
+              <Label>Sales Representative</Label>
               <Input className="h-8 text-sm" value={formData.salesRepresentative} onChange={e => updateField("salesRepresentative", e.target.value)} />
             </div>
             <div>
-              <Label className="text-xs">Sold On Date</Label>
+              <Label>Sold On Date</Label>
               <Input className="h-8 text-sm" type="date" value={formData.soldOnDate} onChange={e => updateField("soldOnDate", e.target.value)} />
             </div>
           </div>
           <div className="grid grid-cols-2 gap-3">
             <div>
-              <Label className="text-xs">Customer</Label>
+              <Label>Customer</Label>
               <Input className="h-8 text-sm" value={formData.customer} onChange={e => updateField("customer", e.target.value)} />
             </div>
             <div>
-              <Label className="text-xs">Order Number</Label>
+              <Label>Order Number</Label>
               <Input className="h-8 text-sm" value={formData.orderNumber} onChange={e => updateField("orderNumber", e.target.value)} />
             </div>
           </div>
           <div className="grid grid-cols-2 gap-3">
             <div>
-              <Label className="text-xs">Address</Label>
+              <Label>Address</Label>
               <Input className="h-8 text-sm" value={formData.address} onChange={e => updateField("address", e.target.value)} />
             </div>
             <div>
-              <Label className="text-xs">City / State / Zip</Label>
+              <Label>City / State / Zip</Label>
               <Input className="h-8 text-sm" value={formData.cityStateZip} onChange={e => updateField("cityStateZip", e.target.value)} />
             </div>
           </div>
           <div className="grid grid-cols-2 gap-3">
             <div>
-              <Label className="text-xs">County</Label>
+              <Label>County</Label>
               <Input className="h-8 text-sm" value={formData.county} onChange={e => updateField("county", e.target.value)} />
             </div>
             <div>
-              <Label className="text-xs">Transaction Type</Label>
+              <Label>Transaction Type</Label>
               <Select value={formData.transactionType} onValueChange={handleTransactionTypeChange}>
                 <SelectTrigger className="h-8 text-sm">
                   <SelectValue placeholder="Select transaction type" />
@@ -702,7 +702,7 @@ export function CommissionForm({ deal, company, lineItems, dealOwner, portalId, 
           </CardHeader>
           <CardContent className="space-y-2">
             <div>
-              <Label className="text-xs">Lease Company</Label>
+              <Label>Lease Company</Label>
               {leasingCompanies.length > 0 ? (
                 <Select value={formData.leaseCompany} onValueChange={v => {
                   updateField("leaseCompany", v);
@@ -725,7 +725,7 @@ export function CommissionForm({ deal, company, lineItems, dealOwner, portalId, 
             </div>
             <div className="grid grid-cols-2 gap-2">
               <div>
-                <Label className="text-xs">Term (months)</Label>
+                <Label>Term (months)</Label>
                 {availableTerms.length > 0 ? (
                   <Select value={formData.leaseTerm ? String(formData.leaseTerm) : ""} onValueChange={v => {
                     const term = parseInt(v) || 0;
@@ -746,17 +746,17 @@ export function CommissionForm({ deal, company, lineItems, dealOwner, portalId, 
                 )}
               </div>
               <div>
-                <Label className="text-xs">Approval Amount</Label>
+                <Label>Approval Amount</Label>
                 <CurrencyInput className="h-7 text-sm text-right" value={formData.approvalAmount} onChange={v => updateField("approvalAmount", v)} />
               </div>
             </div>
             <div className="grid grid-cols-2 gap-2">
               <div>
-                <Label className="text-xs">Approval Date</Label>
+                <Label>Approval Date</Label>
                 <Input className="h-7 text-sm" type="date" value={formData.approvalDate} onChange={e => updateField("approvalDate", e.target.value)} />
               </div>
               <div>
-                <Label className="text-xs">Rate Used</Label>
+                <Label>Rate Used</Label>
                 <Input
                   className="h-7 text-sm text-right bg-muted/50"
                   readOnly
@@ -765,7 +765,7 @@ export function CommissionForm({ deal, company, lineItems, dealOwner, portalId, 
               </div>
             </div>
             <div>
-              <Label className="text-xs">Lease Payment</Label>
+              <Label>Lease Payment</Label>
               <CurrencyInput className="h-7 text-sm text-right" value={formData.leasePayment} onChange={v => updateField("leasePayment", v)} />
             </div>
 
@@ -786,7 +786,7 @@ export function CommissionForm({ deal, company, lineItems, dealOwner, portalId, 
         <CardContent>
           <div className="grid grid-cols-1 gap-3">
             <div>
-              <Label className="text-xs">Commission %</Label>
+              <Label>Commission %</Label>
               <Input className="h-8 text-sm text-right bg-muted/50" readOnly value={formData.commissionPercentage || ""} />
             </div>
           </div>

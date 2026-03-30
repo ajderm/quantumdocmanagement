@@ -359,7 +359,7 @@ export function InterterritorialForm({
           </CardHeader>
           <CardContent className="space-y-3">
             <div className="space-y-1">
-              <Label className="text-xs">Name</Label>
+              <Label>Name</Label>
               <Input
                 value={formData.originatingName}
                 onChange={(e) => updateField('originatingName', e.target.value)}
@@ -367,7 +367,7 @@ export function InterterritorialForm({
               />
             </div>
             <div className="space-y-1">
-              <Label className="text-xs">Bill To Address</Label>
+              <Label>Bill To Address</Label>
               <Input
                 value={formData.originatingBillTo}
                 onChange={(e) => updateField('originatingBillTo', e.target.value)}
@@ -375,7 +375,7 @@ export function InterterritorialForm({
               />
             </div>
             <div className="space-y-1">
-              <Label className="text-xs">Phone</Label>
+              <Label>Phone</Label>
               <Input
                 value={formData.originatingPhone}
                 onChange={(e) => updateField('originatingPhone', e.target.value)}
@@ -383,7 +383,7 @@ export function InterterritorialForm({
               />
             </div>
             <div className="space-y-1">
-              <Label className="text-xs">ATTN (Sales Rep)</Label>
+              <Label>ATTN (Sales Rep)</Label>
               <Input
                 value={formData.originatingAttn}
                 onChange={(e) => updateField('originatingAttn', e.target.value)}
@@ -391,7 +391,7 @@ export function InterterritorialForm({
               />
             </div>
             <div className="space-y-1">
-              <Label className="text-xs">Email</Label>
+              <Label>Email</Label>
               <Input
                 value={formData.originatingEmail}
                 onChange={(e) => updateField('originatingEmail', e.target.value)}
@@ -399,7 +399,7 @@ export function InterterritorialForm({
               />
             </div>
             <div className="space-y-1">
-              <Label className="text-xs">CCA</Label>
+              <Label>CCA</Label>
               <Input
                 value={formData.originatingCca}
                 onChange={(e) => updateField('originatingCca', e.target.value)}
@@ -416,7 +416,7 @@ export function InterterritorialForm({
           </CardHeader>
           <CardContent className="space-y-3">
             <div className="space-y-1">
-              <Label className="text-xs">Name</Label>
+              <Label>Name</Label>
               <Input
                 value={formData.installingName}
                 onChange={(e) => updateField('installingName', e.target.value)}
@@ -425,7 +425,7 @@ export function InterterritorialForm({
               />
             </div>
             <div className="space-y-1">
-              <Label className="text-xs">Address</Label>
+              <Label>Address</Label>
               <Input
                 value={formData.installingAddress}
                 onChange={(e) => updateField('installingAddress', e.target.value)}
@@ -434,7 +434,7 @@ export function InterterritorialForm({
               />
             </div>
             <div className="space-y-1">
-              <Label className="text-xs">Phone</Label>
+              <Label>Phone</Label>
               <Input
                 value={formData.installingPhone}
                 onChange={(e) => updateField('installingPhone', e.target.value)}
@@ -443,7 +443,7 @@ export function InterterritorialForm({
               />
             </div>
             <div className="space-y-1">
-              <Label className="text-xs">ATTN</Label>
+              <Label>ATTN</Label>
               <Input
                 value={formData.installingAttn}
                 onChange={(e) => updateField('installingAttn', e.target.value)}
@@ -452,7 +452,7 @@ export function InterterritorialForm({
               />
             </div>
             <div className="space-y-1">
-              <Label className="text-xs">Email</Label>
+              <Label>Email</Label>
               <Input
                 value={formData.installingEmail}
                 onChange={(e) => updateField('installingEmail', e.target.value)}
@@ -461,7 +461,7 @@ export function InterterritorialForm({
               />
             </div>
             <div className="space-y-1">
-              <Label className="text-xs">CCA</Label>
+              <Label>CCA</Label>
               <Input
                 value={formData.installingCca}
                 onChange={(e) => updateField('installingCca', e.target.value)}
@@ -479,7 +479,7 @@ export function InterterritorialForm({
           </CardHeader>
           <CardContent className="space-y-3">
             <div className="space-y-1">
-              <Label className="text-xs">Name</Label>
+              <Label>Name</Label>
               <Input
                 value={formData.customerName}
                 onChange={(e) => updateField('customerName', e.target.value)}
@@ -487,7 +487,7 @@ export function InterterritorialForm({
               />
             </div>
             <div className="space-y-1">
-              <Label className="text-xs">Address</Label>
+              <Label>Address</Label>
               <Input
                 value={formData.customerAddress}
                 onChange={(e) => updateField('customerAddress', e.target.value)}
@@ -495,7 +495,7 @@ export function InterterritorialForm({
               />
             </div>
             <div className="space-y-1">
-              <Label className="text-xs">Phone</Label>
+              <Label>Phone</Label>
               <Input
                 value={formData.customerPhone}
                 onChange={(e) => updateField('customerPhone', e.target.value)}
@@ -503,7 +503,7 @@ export function InterterritorialForm({
               />
             </div>
             <div className="space-y-1">
-              <Label className="text-xs">ATTN</Label>
+              <Label>ATTN</Label>
               <Input
                 value={formData.customerAttn}
                 onChange={(e) => updateField('customerAttn', e.target.value)}
@@ -511,7 +511,7 @@ export function InterterritorialForm({
               />
             </div>
             <div className="space-y-1">
-              <Label className="text-xs">Email</Label>
+              <Label>Email</Label>
               <Input
                 value={formData.customerEmail}
                 onChange={(e) => updateField('customerEmail', e.target.value)}
@@ -519,7 +519,7 @@ export function InterterritorialForm({
               />
             </div>
             <div className="space-y-1">
-              <Label className="text-xs">Fax</Label>
+              <Label>Fax</Label>
               <Input
                 value={formData.customerFax}
                 onChange={(e) => updateField('customerFax', e.target.value)}
@@ -580,7 +580,7 @@ export function InterterritorialForm({
                   </Button>
                   <div className="grid grid-cols-12 gap-2 pr-10">
                     <div className="col-span-1">
-                      <Label className="text-xs">Qty</Label>
+                      <Label>Qty</Label>
                       <Input
                         type="number"
                         value={item.qty}
@@ -589,7 +589,7 @@ export function InterterritorialForm({
                       />
                     </div>
                     <div className="col-span-3">
-                      <Label className="text-xs">Vendor Product Code</Label>
+                      <Label>Vendor Product Code</Label>
                       <Input
                         value={item.vendorProductCode}
                         onChange={(e) => updateEquipmentItem(index, 'vendorProductCode', e.target.value)}
@@ -597,7 +597,7 @@ export function InterterritorialForm({
                       />
                     </div>
                     <div className="col-span-4">
-                      <Label className="text-xs">Description</Label>
+                      <Label>Description</Label>
                       <Input
                         value={item.description}
                         onChange={(e) => updateEquipmentItem(index, 'description', e.target.value)}
@@ -605,7 +605,7 @@ export function InterterritorialForm({
                       />
                     </div>
                     <div className="col-span-1">
-                      <Label className="text-xs">Price</Label>
+                      <Label>Price</Label>
                       <Input
                         type="number"
                         step="0.01"
@@ -615,7 +615,7 @@ export function InterterritorialForm({
                       />
                     </div>
                     <div className="col-span-1">
-                      <Label className="text-xs">Cost</Label>
+                      <Label>Cost</Label>
                       <Input
                         type="number"
                         step="0.01"
@@ -625,7 +625,7 @@ export function InterterritorialForm({
                       />
                     </div>
                     <div className="col-span-2">
-                      <Label className="text-xs">Fee</Label>
+                      <Label>Fee</Label>
                       <Input
                         type="number"
                         step="0.01"
@@ -655,7 +655,7 @@ export function InterterritorialForm({
           <CardContent className="space-y-3">
             <div className="grid grid-cols-2 gap-2">
               <div className="space-y-1">
-                <Label className="text-xs">Base Charge</Label>
+                <Label>Base Charge</Label>
                 <Input
                   value={formData.serviceBaseCharge}
                   onChange={(e) => updateField('serviceBaseCharge', e.target.value)}
@@ -664,7 +664,7 @@ export function InterterritorialForm({
                 />
               </div>
               <div className="space-y-1">
-                <Label className="text-xs">Includes</Label>
+                <Label>Includes</Label>
                 <Input
                   value={formData.serviceIncludes}
                   onChange={(e) => updateField('serviceIncludes', e.target.value)}
@@ -675,7 +675,7 @@ export function InterterritorialForm({
             </div>
             <div className="grid grid-cols-2 gap-2">
               <div className="space-y-1">
-                <Label className="text-xs">CPC/Overage (Black)</Label>
+                <Label>CPC/Overage (Black)</Label>
                 <Input
                   value={formData.serviceOverageBW}
                   onChange={(e) => updateField('serviceOverageBW', e.target.value)}
@@ -684,7 +684,7 @@ export function InterterritorialForm({
                 />
               </div>
               <div className="space-y-1">
-                <Label className="text-xs">CPC/Overage (Color)</Label>
+                <Label>CPC/Overage (Color)</Label>
                 <Input
                   value={formData.serviceOverageColor}
                   onChange={(e) => updateField('serviceOverageColor', e.target.value)}
@@ -695,7 +695,7 @@ export function InterterritorialForm({
             </div>
             <div className="grid grid-cols-2 gap-2">
               <div className="space-y-1">
-                <Label className="text-xs">Frequency</Label>
+                <Label>Frequency</Label>
                 <Select
                   value={formData.serviceFrequency}
                   onValueChange={(value) => updateField('serviceFrequency', value)}
@@ -713,7 +713,7 @@ export function InterterritorialForm({
                 </Select>
               </div>
               <div className="space-y-1">
-                <Label className="text-xs">Bill To</Label>
+                <Label>Bill To</Label>
                 <Input
                   value={formData.serviceBillTo}
                   onChange={(e) => updateField('serviceBillTo', e.target.value)}
@@ -761,7 +761,7 @@ export function InterterritorialForm({
                     </Button>
                     <div className="grid grid-cols-12 gap-2 pr-8">
                       <div className="col-span-2">
-                        <Label className="text-xs">Qty</Label>
+                        <Label>Qty</Label>
                         <Input
                           type="number"
                           value={item.qty}
@@ -770,7 +770,7 @@ export function InterterritorialForm({
                         />
                       </div>
                       <div className="col-span-5">
-                        <Label className="text-xs">Description</Label>
+                        <Label>Description</Label>
                         <Input
                           value={item.description}
                           onChange={(e) => updateRemovalEquipment(index, 'description', e.target.value)}
@@ -778,7 +778,7 @@ export function InterterritorialForm({
                         />
                       </div>
                       <div className="col-span-3">
-                        <Label className="text-xs">Serial</Label>
+                        <Label>Serial</Label>
                         <Input
                           value={item.serial}
                           onChange={(e) => updateRemovalEquipment(index, 'serial', e.target.value)}
@@ -786,7 +786,7 @@ export function InterterritorialForm({
                         />
                       </div>
                       <div className="col-span-2">
-                        <Label className="text-xs">Meters</Label>
+                        <Label>Meters</Label>
                         <Input
                           value={item.meters}
                           onChange={(e) => updateRemovalEquipment(index, 'meters', e.target.value)}
@@ -795,7 +795,7 @@ export function InterterritorialForm({
                       </div>
                     </div>
                     <div className="space-y-1">
-                      <Label className="text-xs">Instructions</Label>
+                      <Label>Instructions</Label>
                       <Input
                         value={item.instructions}
                         onChange={(e) => updateRemovalEquipment(index, 'instructions', e.target.value)}

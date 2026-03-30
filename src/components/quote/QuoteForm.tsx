@@ -668,12 +668,12 @@ export function QuoteForm({ deal, company, lineItems, dealOwner, onFormChange, p
         <CardContent>
           <div className="grid grid-cols-2 gap-4">
             <div className="space-y-3">
-              <div><Label className="text-xs text-muted-foreground">{getLabel(formCustomization, 'quoteDate', 'Quote Date')}</Label><Input type="date" value={formData.quoteDate} onChange={e => updateField('quoteDate', e.target.value)} className="h-8 text-sm" /></div>
-              <div><Label className="text-xs text-muted-foreground">{getLabel(formCustomization, 'preparedBy', 'Prepared By')}</Label><Input value={formData.preparedBy} onChange={e => updateField('preparedBy', e.target.value)} className="h-8 text-sm" /></div>
+              <div><Label>{getLabel(formCustomization, 'quoteDate', 'Quote Date')}</Label><Input type="date" value={formData.quoteDate} onChange={e => updateField('quoteDate', e.target.value)} className="h-8 text-sm" /></div>
+              <div><Label>{getLabel(formCustomization, 'preparedBy', 'Prepared By')}</Label><Input value={formData.preparedBy} onChange={e => updateField('preparedBy', e.target.value)} className="h-8 text-sm" /></div>
             </div>
             <div className="space-y-3">
-              <div><Label className="text-xs text-muted-foreground">Sales Rep Email</Label><Input type="email" value={formData.preparedByEmail} onChange={e => updateField('preparedByEmail', e.target.value)} className="h-8 text-sm" /></div>
-              <div><Label className="text-xs text-muted-foreground">Sales Rep Phone</Label><Input value={formData.preparedByPhone} onChange={e => updateField('preparedByPhone', e.target.value)} className="h-8 text-sm" /></div>
+              <div><Label>Sales Rep Email</Label><Input type="email" value={formData.preparedByEmail} onChange={e => updateField('preparedByEmail', e.target.value)} className="h-8 text-sm" /></div>
+              <div><Label>Sales Rep Phone</Label><Input value={formData.preparedByPhone} onChange={e => updateField('preparedByPhone', e.target.value)} className="h-8 text-sm" /></div>
             </div>
           </div>
         </CardContent>
@@ -688,12 +688,12 @@ export function QuoteForm({ deal, company, lineItems, dealOwner, onFormChange, p
         </CardHeader>
         <CardContent>
           <div className="grid grid-cols-2 gap-3">
-            <div className="col-span-2"><Label className="text-xs text-muted-foreground">{getLabel(formCustomization, 'companyName', 'Company Name')}</Label><Input value={formData.companyName} onChange={e => updateField('companyName', e.target.value)} className="h-8 text-sm" /></div>
-            <div className="col-span-2"><Label className="text-xs text-muted-foreground">{getLabel(formCustomization, 'address', 'Address')}</Label><Input value={formData.address} onChange={e => updateField('address', e.target.value)} className="h-8 text-sm" /></div>
-            <div className="col-span-2"><Label className="text-xs text-muted-foreground">Address Line 2</Label><Input value={formData.address2} onChange={e => updateField('address2', e.target.value)} className="h-8 text-sm" /></div>
-            <div><Label className="text-xs text-muted-foreground">City</Label><Input value={formData.city} onChange={e => updateField('city', e.target.value)} className="h-8 text-sm" /></div>
-            <div className="grid grid-cols-2 gap-2"><div><Label className="text-xs text-muted-foreground">State</Label><Input value={formData.state} onChange={e => updateField('state', e.target.value)} className="h-8 text-sm" /></div><div><Label className="text-xs text-muted-foreground">Zip</Label><Input value={formData.zip} onChange={e => updateField('zip', e.target.value)} className="h-8 text-sm" /></div></div>
-            <div className="col-span-2"><Label className="text-xs text-muted-foreground">{getLabel(formCustomization, 'phone', 'Phone')}</Label><Input value={formData.phone} onChange={e => updateField('phone', e.target.value)} className="h-8 text-sm" /></div>
+            <div className="col-span-2"><Label>{getLabel(formCustomization, 'companyName', 'Company Name')}</Label><Input value={formData.companyName} onChange={e => updateField('companyName', e.target.value)} className="h-8 text-sm" /></div>
+            <div className="col-span-2"><Label>{getLabel(formCustomization, 'address', 'Address')}</Label><Input value={formData.address} onChange={e => updateField('address', e.target.value)} className="h-8 text-sm" /></div>
+            <div className="col-span-2"><Label>Address Line 2</Label><Input value={formData.address2} onChange={e => updateField('address2', e.target.value)} className="h-8 text-sm" /></div>
+            <div><Label>City</Label><Input value={formData.city} onChange={e => updateField('city', e.target.value)} className="h-8 text-sm" /></div>
+            <div className="grid grid-cols-2 gap-2"><div><Label>State</Label><Input value={formData.state} onChange={e => updateField('state', e.target.value)} className="h-8 text-sm" /></div><div><Label>Zip</Label><Input value={formData.zip} onChange={e => updateField('zip', e.target.value)} className="h-8 text-sm" /></div></div>
+            <div className="col-span-2"><Label>{getLabel(formCustomization, 'phone', 'Phone')}</Label><Input value={formData.phone} onChange={e => updateField('phone', e.target.value)} className="h-8 text-sm" /></div>
           </div>
         </CardContent>
       </Card>
@@ -825,7 +825,7 @@ export function QuoteForm({ deal, company, lineItems, dealOwner, onFormChange, p
           {/* Row 1: Deal References + Document Display */}
           <div className="grid grid-cols-4 gap-4">
             <div>
-              <Label className="text-xs text-muted-foreground">Contract Number</Label>
+              <Label>Contract Number</Label>
               <Input 
                 value={formData.contractNumber} 
                 onChange={e => updateField('contractNumber', e.target.value)} 
@@ -834,7 +834,7 @@ export function QuoteForm({ deal, company, lineItems, dealOwner, onFormChange, p
               />
             </div>
             <div>
-              <Label className="text-xs text-muted-foreground">RFP Number</Label>
+              <Label>RFP Number</Label>
               <Input 
                 value={formData.rfpNumber} 
                 onChange={e => updateField('rfpNumber', e.target.value)} 
@@ -843,7 +843,7 @@ export function QuoteForm({ deal, company, lineItems, dealOwner, onFormChange, p
               />
             </div>
             <div>
-              <Label className="text-xs text-muted-foreground">Price Display</Label>
+              <Label>Price Display</Label>
               <Select value={formData.priceDisplay} onValueChange={(v) => updateField('priceDisplay', v as 'both' | 'purchase_only' | 'lease_only')}>
                 <SelectTrigger className="h-8 text-sm">
                   <SelectValue />
@@ -856,7 +856,7 @@ export function QuoteForm({ deal, company, lineItems, dealOwner, onFormChange, p
               </Select>
             </div>
             <div>
-              <Label className="text-xs text-muted-foreground">Equipment Display</Label>
+              <Label>Equipment Display</Label>
               <Select value={formData.equipmentDisplay || 'total_only'} onValueChange={(v) => updateField('equipmentDisplay', v as 'itemized' | 'total_only')}>
                 <SelectTrigger className="h-8 text-sm">
                   <SelectValue />
@@ -872,7 +872,7 @@ export function QuoteForm({ deal, company, lineItems, dealOwner, onFormChange, p
           {/* Row 2: Leasing Configuration */}
           <div className="grid grid-cols-4 gap-4">
             <div>
-              <Label className="text-xs text-muted-foreground">Leasing Company</Label>
+              <Label>Leasing Company</Label>
               <Select value={formData.leasingCompanyId} onValueChange={(v) => updateField('leasingCompanyId', v)}>
                 <SelectTrigger className="h-8 text-sm">
                   <SelectValue placeholder="Select leasing company" />
@@ -889,7 +889,7 @@ export function QuoteForm({ deal, company, lineItems, dealOwner, onFormChange, p
               </Select>
             </div>
             <div>
-              <Label className="text-xs text-muted-foreground">Lease Program</Label>
+              <Label>Lease Program</Label>
               <Select value={formData.leaseProgram} onValueChange={(v) => updateField('leaseProgram', v as 'fmv' | 'dollar_buyout' | 'rental')}>
                 <SelectTrigger className="h-8 text-sm">
                   <SelectValue />
@@ -902,7 +902,7 @@ export function QuoteForm({ deal, company, lineItems, dealOwner, onFormChange, p
               </Select>
             </div>
             <div>
-              <Label className="text-xs text-muted-foreground">Leasing Price</Label>
+              <Label>Leasing Price</Label>
               <Select value={formData.leasingPriceType} onValueChange={(v) => updateField('leasingPriceType', v as 'without_buyout' | 'with_buyout')}>
                 <SelectTrigger className="h-8 text-sm">
                   <SelectValue />
@@ -931,7 +931,7 @@ export function QuoteForm({ deal, company, lineItems, dealOwner, onFormChange, p
           <div className="grid grid-cols-2 gap-4">
             <div className="space-y-3">
               <div>
-                <Label className="text-xs text-muted-foreground">
+                <Label>
                   {formData.leaseProgram === 'rental'
                     ? 'Total Sell Price (optional for rentals)'
                     : getLabel(formCustomization, 'retailPrice', 'Total Sell Price')}
@@ -1035,7 +1035,7 @@ export function QuoteForm({ deal, company, lineItems, dealOwner, onFormChange, p
           <div className="grid grid-cols-2 gap-4">
             <div className="grid grid-cols-2 gap-2">
               <div>
-                <Label className="text-xs text-muted-foreground">{getLabel(formCustomization, 'includedBWCopies', 'Included B/W')}</Label>
+                <Label>{getLabel(formCustomization, 'includedBWCopies', 'Included B/W')}</Label>
                 <Input 
                   type="number" 
                   min="0"
@@ -1046,7 +1046,7 @@ export function QuoteForm({ deal, company, lineItems, dealOwner, onFormChange, p
                 />
               </div>
               <div>
-                <Label className="text-xs text-muted-foreground">{getLabel(formCustomization, 'includedColorCopies', 'Included Color')}</Label>
+                <Label>{getLabel(formCustomization, 'includedColorCopies', 'Included Color')}</Label>
                 <Input 
                   type="number"
                   min="0" 
@@ -1059,7 +1059,7 @@ export function QuoteForm({ deal, company, lineItems, dealOwner, onFormChange, p
             </div>
             <div className="grid grid-cols-2 gap-2">
               <div>
-                <Label className="text-xs text-muted-foreground">{getLabel(formCustomization, 'overageBWRate', 'Overage B/W Rate')}</Label>
+                <Label>{getLabel(formCustomization, 'overageBWRate', 'Overage B/W Rate')}</Label>
                 <div className="relative">
                   <span className="absolute left-2 top-1/2 -translate-y-1/2 text-muted-foreground text-sm">$</span>
                   <Input 
@@ -1094,7 +1094,7 @@ export function QuoteForm({ deal, company, lineItems, dealOwner, onFormChange, p
                 </div>
               </div>
               <div>
-                <Label className="text-xs text-muted-foreground">{getLabel(formCustomization, 'overageColorRate', 'Overage Color Rate')}</Label>
+                <Label>{getLabel(formCustomization, 'overageColorRate', 'Overage Color Rate')}</Label>
                 <div className="relative">
                   <span className="absolute left-2 top-1/2 -translate-y-1/2 text-muted-foreground text-sm">$</span>
                   <Input 
@@ -1171,7 +1171,7 @@ export function QuoteForm({ deal, company, lineItems, dealOwner, onFormChange, p
           <div className="grid grid-cols-2 gap-4">
             <div className="grid grid-cols-2 gap-2">
               <div>
-                <Label className="text-xs text-muted-foreground">Payments Remaining</Label>
+                <Label>Payments Remaining</Label>
                 <Input 
                   type="number"
                   min="0"
@@ -1182,7 +1182,7 @@ export function QuoteForm({ deal, company, lineItems, dealOwner, onFormChange, p
                 />
               </div>
               <div>
-                <Label className="text-xs text-muted-foreground">Current Payment</Label>
+                <Label>Current Payment</Label>
                 <div className="relative">
                   <span className="absolute left-2 top-1/2 -translate-y-1/2 text-muted-foreground text-sm">$</span>
                   <Input 
@@ -1205,7 +1205,7 @@ export function QuoteForm({ deal, company, lineItems, dealOwner, onFormChange, p
             </div>
             <div className="grid grid-cols-2 gap-2">
               <div>
-                <Label className="text-xs text-muted-foreground">Early Term. Fee</Label>
+                <Label>Early Term. Fee</Label>
                 <div className="relative">
                   <span className="absolute left-2 top-1/2 -translate-y-1/2 text-muted-foreground text-sm">$</span>
                   <Input 
@@ -1226,7 +1226,7 @@ export function QuoteForm({ deal, company, lineItems, dealOwner, onFormChange, p
                 </div>
               </div>
               <div>
-                <Label className="text-xs text-muted-foreground">Return Shipping</Label>
+                <Label>Return Shipping</Label>
                 <div className="relative">
                   <span className="absolute left-2 top-1/2 -translate-y-1/2 text-muted-foreground text-sm">$</span>
                   <Input 
