@@ -713,7 +713,7 @@ export function QuoteForm({ deal, company, lineItems, dealOwner, onFormChange, p
         </CardHeader>
         <CardContent>
           <div className="space-y-2">
-            <div className="grid grid-cols-[50px_80px_1fr_1fr_100px_100px_100px_70px_100px_110px_70px] gap-2 text-xs font-medium text-muted-foreground px-2">
+            <div className="grid grid-cols-[45px_75px_1.2fr_1.5fr_110px_95px_95px_65px_95px_100px_40px] gap-2 text-xs font-medium text-muted-foreground px-2">
               <div>Qty</div>
               <div>Type</div>
               <div>Model</div>
@@ -730,7 +730,7 @@ export function QuoteForm({ deal, company, lineItems, dealOwner, onFormChange, p
               const hardwareItems = formData.lineItems.filter(li => li.productType?.toLowerCase() === 'hardware');
               const isHardware = item.productType?.toLowerCase() === 'hardware';
               return (
-              <div key={item.id} className={`grid grid-cols-[50px_80px_1fr_1fr_100px_100px_100px_70px_100px_110px_70px] gap-2 items-center ${item.parentLineItemId ? 'ml-4 border-l-2 border-primary/20 pl-2' : ''}`}>
+              <div key={item.id} className={`grid grid-cols-[45px_75px_1.2fr_1.5fr_110px_95px_95px_65px_95px_100px_40px] gap-2 items-center ${item.parentLineItemId ? 'ml-4 border-l-2 border-primary/20 pl-2' : ''}`}>
                 <div>
                   <Input type="number" min="1" value={item.quantity} onChange={e => updateLineItem(idx, 'quantity', parseInt(e.target.value) || 1)} className="h-8 text-sm" />
                 </div>

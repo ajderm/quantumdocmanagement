@@ -101,11 +101,14 @@ export function ProductSearchModal({
 
   useEffect(() => {
     if (open) {
-      setSearch('');
-      setProductTypeFilter('');
-      setDealerFilter('');
-      setProducts([]);
-      fetchProducts('', '');
+      // Only fetch if we don't already have products cached
+      // This avoids re-fetching ~80K products every time the modal opens
+      if (products.length === 0) {
+        setSearch('');
+        setProductTypeFilter('');
+        setDealerFilter('');
+        fetchProducts('', '');
+      }
     }
   }, [open, fetchProducts]);
 
