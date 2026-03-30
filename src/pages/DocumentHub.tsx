@@ -3331,8 +3331,8 @@ function DocumentHubContent() {
           <TabsContent value="installation" className="mt-0">
             <Card>
               <CardHeader className="pb-3">
-                <CardTitle className="text-lg flex items-center gap-2">
-                  <ClipboardList className="h-5 w-5" />
+                <CardTitle className="flex items-center gap-2">
+                  
                   Generate Installation Document
                   {hardwareLineItems.length > 0 && (
                     <Badge variant="secondary" className="ml-2">
@@ -3401,8 +3401,8 @@ function DocumentHubContent() {
           <TabsContent value="service_agreement" className="mt-0">
             <Card>
               <CardHeader className="pb-3">
-                <CardTitle className="text-lg flex items-center gap-2">
-                  <FileCheck className="h-5 w-5" />
+                <CardTitle className="flex items-center gap-2">
+                  
                   Generate Service Agreement
                 </CardTitle>
                 <CardDescription>
@@ -3517,7 +3517,7 @@ function DocumentHubContent() {
           <TabsContent value="fmv_lease" className="mt-0">
             <Card>
               <CardHeader className="pb-3">
-                <CardTitle className="text-lg flex items-center gap-2">
+                <CardTitle className="flex items-center gap-2">
                   <FileSpreadsheet className="h-5 w-5" />
                   Generate FMV Lease Agreement
                 </CardTitle>
@@ -3606,7 +3606,7 @@ function DocumentHubContent() {
           <TabsContent value="lease_funding" className="mt-0">
             <Card>
               <CardHeader className="pb-3">
-                <CardTitle className="text-lg flex items-center gap-2">
+                <CardTitle className="flex items-center gap-2">
                   <Receipt className="h-5 w-5" />
                   Generate Lease Funding Document
                   {hardwareLineItems.length > 0 && (
@@ -3683,8 +3683,8 @@ function DocumentHubContent() {
           <TabsContent value="loi" className="mt-0">
             <Card>
               <CardHeader className="pb-3">
-                <CardTitle className="text-lg flex items-center gap-2">
-                  <FileSignature className="h-5 w-5" />
+                <CardTitle className="flex items-center gap-2">
+                  
                   Letter of Intent
                 </CardTitle>
                 <CardDescription>
@@ -3743,7 +3743,7 @@ function DocumentHubContent() {
           <TabsContent value="lease_return" className="mt-0">
             <Card>
               <CardHeader className="pb-3">
-                <CardTitle className="text-lg flex items-center gap-2">
+                <CardTitle className="flex items-center gap-2">
                   <MailOpen className="h-5 w-5" />
                   Generate Lease Return Letter
                 </CardTitle>
@@ -3801,7 +3801,7 @@ function DocumentHubContent() {
           <TabsContent value="interterritorial" className="mt-0">
             <Card>
               <CardHeader className="pb-3">
-                <CardTitle className="text-lg flex items-center gap-2">
+                <CardTitle className="flex items-center gap-2">
                   <MapPin className="h-5 w-5" />
                   Interterritorial Equipment Placement Request
                 </CardTitle>
@@ -3901,7 +3901,7 @@ function DocumentHubContent() {
           <TabsContent value="new_customer" className="mt-0">
             <Card>
               <CardHeader className="pb-3">
-                <CardTitle className="text-lg flex items-center gap-2">
+                <CardTitle className="flex items-center gap-2">
                   <UserPlus className="h-5 w-5" />
                   New Customer Application
                 </CardTitle>
@@ -3936,8 +3936,8 @@ function DocumentHubContent() {
           <TabsContent value="relocation" className="mt-0">
             <Card>
               <CardHeader className="pb-3">
-                <CardTitle className="text-lg flex items-center gap-2">
-                  <Truck className="h-5 w-5" />
+                <CardTitle className="flex items-center gap-2">
+                  
                   Relocation Request
                 </CardTitle>
                 <CardDescription>Request equipment relocation to a new location</CardDescription>
@@ -3973,7 +3973,7 @@ function DocumentHubContent() {
           <TabsContent value="equipment_removal" className="mt-0">
             <Card>
               <CardHeader className="pb-3">
-                <CardTitle className="text-lg flex items-center gap-2">
+                <CardTitle className="flex items-center gap-2">
                   <Trash2 className="h-5 w-5" />
                   Equipment Removal
                 </CardTitle>
@@ -4007,8 +4007,8 @@ function DocumentHubContent() {
           <TabsContent value="commission" className="mt-0">
             <Card>
               <CardHeader className="pb-3">
-                <CardTitle className="text-lg flex items-center gap-2">
-                  <Calculator className="h-5 w-5" />
+                <CardTitle className="flex items-center gap-2">
+                  
                   Commission Worksheet
                 </CardTitle>
                 <CardDescription>Calculate sales commissions for this deal</CardDescription>
@@ -4046,7 +4046,7 @@ function DocumentHubContent() {
             <TabsContent key={customDoc.code} value={customDoc.code} className="mt-0">
               <Card>
                 <CardHeader className="pb-3">
-                  <CardTitle className="text-lg flex items-center gap-2">
+                  <CardTitle className="flex items-center gap-2">
                     <DynamicIcon name={customDoc.icon} className="h-5 w-5" />
                     {customDoc.name}
                   </CardTitle>
@@ -4659,7 +4659,7 @@ function DocumentHubContent() {
       {/* Feedback Floating Button */}
       <button
         onClick={() => { setShowFeedbackPanel(true); loadFeedback(); }}
-        className="fixed bottom-4 right-4 z-40 bg-primary text-white rounded-full p-3 shadow-lg hover:bg-primary/90 transition-all"
+        className="fixed bottom-4 right-4 z-40 bg-primary text-white rounded-xl p-2.5 shadow-md hover:bg-primary/90 hover:shadow-lg transition-all duration-200"
         title="Submit Feedback"
       >
         <MessageSquarePlus className="h-5 w-5" />
