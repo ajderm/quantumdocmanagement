@@ -123,6 +123,7 @@ interface QuoteLineItemRef {
   description: string;
   quantity: number;
   productType?: string;
+  itemNumber?: string;
   parentLineItemId?: string;
 }
 
