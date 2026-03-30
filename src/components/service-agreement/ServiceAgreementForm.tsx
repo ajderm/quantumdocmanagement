@@ -573,8 +573,8 @@ export function ServiceAgreementForm({
           <CardTitle className="text-sm">Equipment</CardTitle>
         </CardHeader>
         <CardContent>
-          {lineItems.length === 0 ? (
-            <p className="text-muted-foreground text-sm">No line items associated with this deal.</p>
+          {hardwareLineItems.length === 0 ? (
+            <p className="text-muted-foreground text-sm">No equipment items found. Please add line items on the Quote tab first.</p>
           ) : (
             <div className="border rounded-lg overflow-hidden">
               <table className="w-full text-sm">
@@ -587,7 +587,7 @@ export function ServiceAgreementForm({
                   </tr>
                 </thead>
                 <tbody>
-                  {lineItems.map((item, index) => (
+                  {hardwareLineItems.map((item, index) => (
                     <tr key={item.id} className={index % 2 === 0 ? 'bg-background' : 'bg-muted/30'}>
                       <td className="px-4 py-2">{item.quantity}</td>
                       <td className="px-4 py-2">{item.name}</td>
