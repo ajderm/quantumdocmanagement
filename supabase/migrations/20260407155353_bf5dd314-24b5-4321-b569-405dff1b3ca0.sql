@@ -1,0 +1,1 @@
+ALTER TABLE public.commission_user_settings ADD COLUMN IF NOT EXISTS phone text NOT NULL DEFAULT '';
