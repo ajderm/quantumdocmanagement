@@ -327,6 +327,7 @@ export type Database = {
         Row: {
           created_at: string
           dealer_account_id: string
+          equipment_object_id: string | null
           id: string
           setting_key: string
           setting_value: Json
@@ -335,6 +336,7 @@ export type Database = {
         Insert: {
           created_at?: string
           dealer_account_id: string
+          equipment_object_id?: string | null
           id?: string
           setting_key: string
           setting_value?: Json
@@ -343,6 +345,7 @@ export type Database = {
         Update: {
           created_at?: string
           dealer_account_id?: string
+          equipment_object_id?: string | null
           id?: string
           setting_key?: string
           setting_value?: Json

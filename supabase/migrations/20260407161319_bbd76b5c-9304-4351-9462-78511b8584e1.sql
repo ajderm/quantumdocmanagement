@@ -1,0 +1,1 @@
+ALTER TABLE public.dealer_settings ADD COLUMN IF NOT EXISTS equipment_object_id TEXT DEFAULT '';
