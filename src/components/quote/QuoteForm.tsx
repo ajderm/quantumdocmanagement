@@ -718,7 +718,7 @@ export function QuoteForm({ deal, company, lineItems, dealOwner, onFormChange, p
               <div></div>
               <div>Qty</div>
               <div>Type</div>
-              <div>Model</div>
+              <div>Model / Item #</div>
               <div>Pricing Source</div>
               <div>MSRP</div>
               <div>Rep Cost</div>
@@ -820,7 +820,11 @@ export function QuoteForm({ deal, company, lineItems, dealOwner, onFormChange, p
                 </div>
               </div>
               {isExpanded && (
-                <div className="pl-9 pr-2 pb-2 pt-1">
+                <div className="pl-9 pr-2 pb-2 pt-1 space-y-1.5">
+                  <div className="flex items-start gap-2">
+                    <Label className="text-xs text-muted-foreground mt-1.5 shrink-0 w-16">Item #</Label>
+                    <Input value={item.itemNumber || ''} onChange={e => updateLineItem(idx, 'itemNumber', e.target.value)} className="h-8 text-sm flex-1" placeholder="Item number (for ordering)" />
+                  </div>
                   <div className="flex items-start gap-2">
                     <Label className="text-xs text-muted-foreground mt-1.5 shrink-0 w-16">Description</Label>
                     <Input value={item.description} onChange={e => updateLineItem(idx, 'description', e.target.value)} className="h-8 text-sm flex-1" placeholder="Product description..." />
