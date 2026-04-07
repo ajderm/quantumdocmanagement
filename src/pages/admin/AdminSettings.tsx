@@ -85,7 +85,7 @@ export default function AdminSettings() {
   const [uploadingProposal, setUploadingProposal] = useState(false);
 
   // Commission user settings
-  const [commissionUsers, setCommissionUsers] = useState<Array<{ hubspot_user_name: string; hubspot_user_id: string; commission_percentage: number }>>([]);
+  const [commissionUsers, setCommissionUsers] = useState<Array<{ hubspot_user_name: string; hubspot_user_id: string; commission_percentage: number; phone: string }>>([]);
   const [newCommissionUserName, setNewCommissionUserName] = useState('');
   const [newCommissionPercentage, setNewCommissionPercentage] = useState('40');
   const [fetchingOwners, setFetchingOwners] = useState(false);
@@ -194,6 +194,7 @@ export default function AdminSettings() {
             hubspot_user_name: u.hubspot_user_name || '',
             hubspot_user_id: u.hubspot_user_id || '',
             commission_percentage: u.commission_percentage ?? 40,
+            phone: u.phone || '',
           })));
         }
 
@@ -817,7 +818,7 @@ export default function AdminSettings() {
                     Commission User Settings
                   </CardTitle>
                   <CardDescription>
-                    Define commission percentages per sales rep. These will auto-populate in the Commission form.
+                    Define commission percentages and phone numbers per sales rep. These will auto-populate in the Commission form and on document headers.
                   </CardDescription>
                 </CardHeader>
                 <CardContent className="space-y-4">
@@ -826,6 +827,18 @@ export default function AdminSettings() {
                       {commissionUsers.map((user, idx) => (
                         <div key={idx} className="flex items-center gap-3 p-2 rounded-md border">
                           <span className="text-sm flex-1">{user.hubspot_user_name}</span>
+                          <div className="flex items-center gap-1">
+                            <Input
+                              className="w-36 h-8 text-sm"
+                              value={user.phone}
+                              onChange={e => {
+                                const updated = [...commissionUsers];
+                                updated[idx] = { ...updated[idx], phone: e.target.value };
+                                setCommissionUsers(updated);
+                              }}
+                              placeholder="Phone number"
+                            />
+                          </div>
                           <div className="flex items-center gap-1">
                             <Input
                               className="w-20 h-8 text-sm text-right"
@@ -866,6 +879,7 @@ export default function AdminSettings() {
                               hubspot_user_name: newCommissionUserName.trim(),
                               hubspot_user_id: '',
                               commission_percentage: parseFloat(newCommissionPercentage) || 40,
+                            phone: "",
                             }]);
                             setNewCommissionUserName('');
                             setNewCommissionPercentage('40');
@@ -885,7 +899,8 @@ export default function AdminSettings() {
                           hubspot_user_name: newCommissionUserName.trim(),
                           hubspot_user_id: '',
                           commission_percentage: parseFloat(newCommissionPercentage) || 40,
-                        }]);
+                        phone: "",
+                            }]);
                         setNewCommissionUserName('');
                         setNewCommissionPercentage('40');
                       }
@@ -915,6 +930,7 @@ export default function AdminSettings() {
                               hubspot_user_name: `${o.firstName} ${o.lastName}`.trim(),
                               hubspot_user_id: o.id || '',
                               commission_percentage: 40,
+                              phone: '',
                             }));
                           if (newOwners.length > 0) {
                             setCommissionUsers(prev => [...prev, ...newOwners]);

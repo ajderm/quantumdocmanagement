@@ -404,6 +404,23 @@ Deno.serve(async (req) => {
           phone: ownerResponse.phone || null,
         };
         console.log('Deal owner fetched:', dealOwner.firstName, dealOwner.lastName, 'email:', dealOwner.email);
+
+        // If HubSpot owner record doesn't have a phone, check commission_user_settings
+        if (!dealOwner.phone) {
+          try {
+            const { data: repSettings } = await supabase
+              .from('commission_user_settings')
+              .select('phone')
+              .eq('hubspot_user_id', ownerResponse.userId || ownerResponse.id)
+              .maybeSingle();
+            if (repSettings?.phone) {
+              dealOwner.phone = repSettings.phone;
+              console.log('Rep phone from settings:', dealOwner.phone);
+            }
+          } catch (phoneErr) {
+            // Non-critical - continue without phone
+          }
+        }
       } catch (e) {
         console.error('Failed to fetch deal owner:', e);
       }

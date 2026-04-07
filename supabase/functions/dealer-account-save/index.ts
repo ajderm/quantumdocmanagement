@@ -178,6 +178,7 @@ Deno.serve(async (req) => {
           hubspot_user_name: u.hubspot_user_name,
           hubspot_user_id: u.hubspot_user_id || null,
           commission_percentage: u.commission_percentage ?? 40,
+          phone: u.phone || '',
         }));
 
         const { error: insertError } = await supabase
