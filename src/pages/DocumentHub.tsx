@@ -3486,6 +3486,7 @@ function DocumentHubContent() {
                     overageColorRate: String(formData.overageColorRate),
                     serviceBaseRate: String(formData.serviceBaseRate),
                   } : null}
+                  installationConfigs={installationSavedConfig}
                 />
 
                 {/* Actions */}
@@ -4182,6 +4183,7 @@ function DocumentHubContent() {
             lineItems={lineItems}
             termsAndConditions={documentTerms.service_agreement}
             documentStyles={dealerSettings.document_styles}
+            installationConfigs={installationSavedConfig}
           />
         )}
       </div>
@@ -4208,6 +4210,7 @@ function DocumentHubContent() {
                     lineItems={lineItems}
                     termsAndConditions={documentTerms.service_agreement}
                     documentStyles={dealerSettings.document_styles}
+                    installationConfigs={installationSavedConfig}
                   />
                 </div>
               )}

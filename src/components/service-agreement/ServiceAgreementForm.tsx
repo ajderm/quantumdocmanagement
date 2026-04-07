@@ -128,6 +128,7 @@ interface ServiceAgreementFormProps {
   savedConfig: ServiceAgreementFormData | null;
   labeledContacts: LabeledContacts;
   quoteFormData?: QuoteFormData | null;
+  installationConfigs?: Record<string, { installedSerial?: string; idNumber?: string }>;
 }
 
 export function ServiceAgreementForm({
@@ -139,6 +140,7 @@ export function ServiceAgreementForm({
   savedConfig,
   labeledContacts,
   quoteFormData,
+  installationConfigs,
 }: ServiceAgreementFormProps) {
   const meterMethods = dealerSettings?.meter_methods || ["FMAudit", "PrintFleet", "Manual Entry"];
   
@@ -148,13 +150,26 @@ export function ServiceAgreementForm({
       (item) => item.category?.toLowerCase() === 'hardware'
     );
     // If no items are explicitly typed as hardware, show all items that aren't accessories
+    let filtered: LineItem[];
     if (hw.length === 0) {
       const nonAccessories = lineItems.filter(
         (item) => item.category?.toLowerCase() !== 'accessory' && !item.parentLineItemId
       );
-      return nonAccessories.length > 0 ? nonAccessories : lineItems;
+      filtered = nonAccessories.length > 0 ? nonAccessories : lineItems;
+    } else {
+      filtered = hw;
     }
-    return hw;
+    // Enrich with serial numbers from installation configs
+    if (installationConfigs) {
+      return filtered.map(item => {
+        const installData = installationConfigs[item.id];
+        if (installData?.installedSerial && !item.serial) {
+          return { ...item, serial: installData.installedSerial };
+        }
+        return item;
+      });
+    }
+    return filtered;
   })();
 
   // Track if we've done initial setup

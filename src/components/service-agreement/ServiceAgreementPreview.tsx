@@ -34,21 +34,35 @@ interface ServiceAgreementPreviewProps {
   lineItems: LineItem[];
   termsAndConditions?: string;
   documentStyles?: { fontFamily?: string; fontColor?: string; tableBorderColor?: string; tableLineColor?: string; };
+  installationConfigs?: Record<string, { installedSerial?: string; idNumber?: string }>;
 }
 
 export const ServiceAgreementPreview = forwardRef<HTMLDivElement, ServiceAgreementPreviewProps>(
-  ({ formData, dealerInfo, lineItems, termsAndConditions, documentStyles }, ref) => {
+  ({ formData, dealerInfo, lineItems, termsAndConditions, documentStyles, installationConfigs }, ref) => {
     const hardwareLineItems = (() => {
       const hw = lineItems.filter(
         (item) => item.category?.toLowerCase() === 'hardware'
       );
+      let filtered: LineItem[];
       if (hw.length === 0) {
         const nonAccessories = lineItems.filter(
           (item) => item.category?.toLowerCase() !== 'accessory' && !item.parentLineItemId
         );
-        return nonAccessories.length > 0 ? nonAccessories : lineItems;
+        filtered = nonAccessories.length > 0 ? nonAccessories : lineItems;
+      } else {
+        filtered = hw;
       }
-      return hw;
+      // Enrich with serial numbers from installation configs
+      if (installationConfigs) {
+        return filtered.map(item => {
+          const installData = installationConfigs[item.id];
+          if (installData?.installedSerial && !item.serial) {
+            return { ...item, serial: installData.installedSerial };
+          }
+          return item;
+        });
+      }
+      return filtered;
     })();
 
     const formatCurrency = (value: string | number) => {
