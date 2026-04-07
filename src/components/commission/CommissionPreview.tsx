@@ -67,6 +67,9 @@ export const CommissionPreview = forwardRef<HTMLDivElement, CommissionPreviewPro
     const borderColor = documentStyles?.tableBorderColor || '#000000';
     const lineColor = documentStyles?.tableLineColor || '#d1d5db';
 
+    const isPurchase = formData.transactionType === "Purchase" || formData.transactionType === "Rental";
+    const isLease = formData.transactionType.startsWith("Lease -- ");
+
     return (
       <div
         ref={ref}
@@ -124,7 +127,7 @@ export const CommissionPreview = forwardRef<HTMLDivElement, CommissionPreviewPro
         {/* Items & Lease Info side by side */}
         <div className="mb-3">
           <div className="font-bold pb-1 mb-2" style={{ borderBottom: `2px solid ${borderColor}` }}>ITEM</div>
-          <div className="grid grid-cols-[1fr_200px] gap-4">
+          <div className={isPurchase ? "" : "grid grid-cols-[1fr_200px] gap-4"}>
             {/* Left: Billed / Rep Cost / Condition table */}
             <div>
               <table className="w-full border-collapse text-[9px]">
@@ -173,7 +176,8 @@ export const CommissionPreview = forwardRef<HTMLDivElement, CommissionPreviewPro
               </table>
             </div>
 
-            {/* Right: Lease Information */}
+            {/* Right: Lease Information - hidden for Purchase/Rental */}
+            {!isPurchase && (
             <div className="text-[9px]">
               <div className="font-bold pb-0.5 mb-1" style={{ borderBottom: `1px solid ${borderColor}` }}>Lease Information</div>
               <div className="space-y-0.5">
@@ -183,14 +187,9 @@ export const CommissionPreview = forwardRef<HTMLDivElement, CommissionPreviewPro
                 <div className="flex justify-between"><span>Approval Date</span><span>{formData.approvalDate}</span></div>
                 <div className="flex justify-between"><span>Rate Used</span><span>{formData.rateUsed || "-"}</span></div>
                 <div className="flex justify-between"><span>Lease Payment</span><span>${fmt(formData.leasePayment)}</span></div>
-                <div className="mt-1 pt-1" style={{ borderTop: `1px solid ${lineColor}` }}>
-                  <div className="font-semibold mb-0.5">Revenue</div>
-                  <div className="flex justify-between"><span>Lease/Equip Rev</span><span>${fmt(leaseEquipRev)}</span></div>
-                  <div className="flex justify-between"><span>Net Equip Rev</span><span>${fmt(netEquipRev)}</span></div>
-                  <div className="flex justify-between font-bold"><span>Equipment AGP</span><span>${fmt(equipmentAGP)}</span></div>
-                </div>
               </div>
             </div>
+            )}
           </div>
         </div>
 

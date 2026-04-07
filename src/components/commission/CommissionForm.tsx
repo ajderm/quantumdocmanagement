@@ -449,8 +449,8 @@ export function CommissionForm({ deal, company, lineItems, dealOwner, portalId, 
   // Handle transaction type change
   const handleTransactionTypeChange = (value: string) => {
     updateField("transactionType", value);
-    if (value === "Purchase") {
-      // Clear lease fields when Purchase selected
+    if (value === "Purchase" || value === "Rental") {
+      // Clear lease fields when Purchase or Rental selected
       setFormData(prev => ({
         ...prev,
         transactionType: value,
@@ -507,7 +507,8 @@ export function CommissionForm({ deal, company, lineItems, dealOwner, portalId, 
   const splitMultiplier = formData.splitPercentage > 0 ? formData.splitPercentage / 100 : 1;
   const totalCommission = baseCommission * splitMultiplier;
 
-  const isPurchase = formData.transactionType === "Purchase";
+  const isPurchase = formData.transactionType === "Purchase" || formData.transactionType === "Rental";
+  const isLease = formData.transactionType.startsWith("Lease -- ");
 
   return (
     <div className="space-y-4">
@@ -560,6 +561,7 @@ export function CommissionForm({ deal, company, lineItems, dealOwner, portalId, 
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="Purchase">Purchase</SelectItem>
+                  <SelectItem value="Rental">Rental</SelectItem>
                   {leasingCompanies.map(c => (
                     <SelectItem key={c} value={`Lease -- ${c}`}>Lease -- {c}</SelectItem>
                   ))}
@@ -696,7 +698,8 @@ export function CommissionForm({ deal, company, lineItems, dealOwner, portalId, 
           </CardContent>
         </Card>
 
-        <Card className={isPurchase ? "opacity-50" : ""}>
+        {!isPurchase && (
+        <Card>
           <CardHeader className="pb-2">
             <CardTitle className="text-sm">Lease Information</CardTitle>
           </CardHeader>
@@ -776,6 +779,7 @@ export function CommissionForm({ deal, company, lineItems, dealOwner, portalId, 
             </div>
           </CardContent>
         </Card>
+        )}
       </div>
 
       {/* Commission */}
