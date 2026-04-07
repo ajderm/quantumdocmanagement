@@ -5,7 +5,7 @@ import { Label } from '@/components/ui/label';
 import { Button } from '@/components/ui/button';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Plus, Trash2, AlertTriangle, X, Package, Scissors } from 'lucide-react';
+import { Plus, Trash2, AlertTriangle, X, Package, Scissors, ChevronDown, ChevronRight } from 'lucide-react';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { supabase } from '@/integrations/supabase/client';
 import { ProductSearchModal, HubSpotProduct } from './ProductSearchModal';
@@ -92,6 +92,7 @@ export function QuoteForm({ deal, company, lineItems, dealOwner, onFormChange, p
   const hasInitializedRef = useRef(false);
   const savedConfigRef = useRef(savedConfig);
   const leasingCompanyIdRef = useRef('');
+  const [expandedRows, setExpandedRows] = useState<Set<string>>(new Set());
   const [formData, setFormData] = useState<QuoteFormData>({ 
     quoteNumber: '', 
     quoteDate: new Date().toISOString().split('T')[0], 
@@ -712,12 +713,12 @@ export function QuoteForm({ deal, company, lineItems, dealOwner, onFormChange, p
           </CardTitle>
         </CardHeader>
         <CardContent>
-          <div className="space-y-2">
-            <div className="grid grid-cols-[45px_75px_1.2fr_1.5fr_110px_95px_95px_65px_95px_100px_40px] gap-2 text-xs font-medium text-muted-foreground px-2">
+          <div className="space-y-1">
+            <div className="grid grid-cols-[28px_45px_75px_1.2fr_110px_95px_95px_65px_95px_100px_40px] gap-2 text-xs font-medium text-muted-foreground px-2">
+              <div></div>
               <div>Qty</div>
               <div>Type</div>
               <div>Model</div>
-              <div>Description</div>
               <div>Pricing Source</div>
               <div>MSRP</div>
               <div>Rep Cost</div>
@@ -729,8 +730,21 @@ export function QuoteForm({ deal, company, lineItems, dealOwner, onFormChange, p
             {formData.lineItems.map((item, idx) => {
               const hardwareItems = formData.lineItems.filter(li => li.productType?.toLowerCase() === 'hardware');
               const isHardware = item.productType?.toLowerCase() === 'hardware';
+              const isExpanded = expandedRows.has(item.id);
+              const toggleExpanded = () => {
+                setExpandedRows(prev => {
+                  const next = new Set(prev);
+                  if (next.has(item.id)) next.delete(item.id);
+                  else next.add(item.id);
+                  return next;
+                });
+              };
               return (
-              <div key={item.id} className={`grid grid-cols-[45px_75px_1.2fr_1.5fr_110px_95px_95px_65px_95px_100px_40px] gap-2 items-center ${item.parentLineItemId ? 'ml-4 border-l-2 border-primary/20 pl-2' : ''}`}>
+              <div key={item.id} className={`${item.parentLineItemId ? 'ml-4 border-l-2 border-primary/20 pl-2' : ''}`}>
+              <div className={`grid grid-cols-[28px_45px_75px_1.2fr_110px_95px_95px_65px_95px_100px_40px] gap-2 items-center`}>
+                <button type="button" onClick={toggleExpanded} className="h-8 w-7 flex items-center justify-center text-muted-foreground hover:text-foreground transition-colors rounded hover:bg-muted/50">
+                  {isExpanded ? <ChevronDown className="h-3.5 w-3.5" /> : <ChevronRight className="h-3.5 w-3.5" />}
+                </button>
                 <div>
                   <Input type="number" min="1" value={item.quantity} onChange={e => updateLineItem(idx, 'quantity', parseInt(e.target.value) || 1)} className="h-8 text-sm" />
                 </div>
@@ -749,9 +763,6 @@ export function QuoteForm({ deal, company, lineItems, dealOwner, onFormChange, p
                 </div>
                 <div>
                   <Input value={item.model} onChange={e => updateLineItem(idx, 'model', e.target.value)} className="h-8 text-sm" />
-                </div>
-                <div>
-                  <Input value={item.description} onChange={e => updateLineItem(idx, 'description', e.target.value)} className="h-8 text-sm" />
                 </div>
                 <div>
                   <Input value={item.dealerSource} onChange={e => updateLineItem(idx, 'dealerSource', e.target.value)} className="h-8 text-sm" placeholder="Pricing Source" />
@@ -807,6 +818,15 @@ export function QuoteForm({ deal, company, lineItems, dealOwner, onFormChange, p
                   )}
                   <Button type="button" variant="ghost" size="sm" onClick={() => removeLineItem(idx)} className="h-8 w-8 p-0 text-destructive"><Trash2 className="h-3.5 w-3.5" /></Button>
                 </div>
+              </div>
+              {isExpanded && (
+                <div className="pl-9 pr-2 pb-2 pt-1">
+                  <div className="flex items-start gap-2">
+                    <Label className="text-xs text-muted-foreground mt-1.5 shrink-0 w-16">Description</Label>
+                    <Input value={item.description} onChange={e => updateLineItem(idx, 'description', e.target.value)} className="h-8 text-sm flex-1" placeholder="Product description..." />
+                  </div>
+                </div>
+              )}
               </div>
               );
             })}
