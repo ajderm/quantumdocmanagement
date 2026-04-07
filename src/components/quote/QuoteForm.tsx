@@ -714,7 +714,7 @@ export function QuoteForm({ deal, company, lineItems, dealOwner, onFormChange, p
         </CardHeader>
         <CardContent>
           <div className="space-y-1">
-            <div className="grid grid-cols-[28px_45px_75px_1.2fr_110px_95px_95px_65px_95px_100px_40px] gap-2 text-xs font-medium text-muted-foreground px-2">
+            <div className="grid grid-cols-[28px_40px_70px_1fr_100px_85px_85px_60px_85px_95px_36px] gap-1.5 text-xs font-medium text-muted-foreground px-2">
               <div></div>
               <div>Qty</div>
               <div>Type</div>
@@ -741,7 +741,7 @@ export function QuoteForm({ deal, company, lineItems, dealOwner, onFormChange, p
               };
               return (
               <div key={item.id} className={`${item.parentLineItemId ? 'ml-4 border-l-2 border-primary/20 pl-2' : ''}`}>
-              <div className={`grid grid-cols-[28px_45px_75px_1.2fr_110px_95px_95px_65px_95px_100px_40px] gap-2 items-center`}>
+              <div className={`grid grid-cols-[28px_40px_70px_1fr_100px_85px_85px_60px_85px_95px_36px] gap-1.5 items-center`}>
                 <button type="button" onClick={toggleExpanded} className="h-8 w-7 flex items-center justify-center text-muted-foreground hover:text-foreground transition-colors rounded hover:bg-muted/50">
                   {isExpanded ? <ChevronDown className="h-3.5 w-3.5" /> : <ChevronRight className="h-3.5 w-3.5" />}
                 </button>
