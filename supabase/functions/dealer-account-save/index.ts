@@ -18,7 +18,7 @@ Deno.serve(async (req) => {
     const accountData = body.accountData as Record<string, unknown> | undefined;
     const documentTerms = body.documentTerms as Record<string, string> | undefined;
     const dealerSettings = body.dealerSettings as Record<string, unknown> | undefined;
-    const commissionUsers = body.commissionUsers as Array<{ hubspot_user_name: string; hubspot_user_id?: string; commission_percentage: number }> | undefined;
+    const commissionUsers = body.commissionUsers as Array<{ hubspot_user_name: string; hubspot_user_id?: string; commission_percentage: number; phone?: string }> | undefined;
 
     console.log('Saving dealer account for portal:', portalId);
 

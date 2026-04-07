@@ -145,6 +145,7 @@ export type Database = {
           hubspot_user_id: string | null
           hubspot_user_name: string
           id: string
+          phone: string
           updated_at: string
         }
         Insert: {
@@ -154,6 +155,7 @@ export type Database = {
           hubspot_user_id?: string | null
           hubspot_user_name: string
           id?: string
+          phone?: string
           updated_at?: string
         }
         Update: {
@@ -163,6 +165,7 @@ export type Database = {
           hubspot_user_id?: string | null
           hubspot_user_name?: string
           id?: string
+          phone?: string
           updated_at?: string
         }
         Relationships: [
