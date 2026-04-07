@@ -3367,6 +3367,7 @@ function DocumentHubContent() {
                     quantity: li.quantity,
                     productType: li.productType || '',
                     parentLineItemId: li.parentLineItemId || '',
+                    itemNumber: li.itemNumber || '',
                   }))}
                 />
 
