@@ -758,6 +758,8 @@ export function QuoteForm({ deal, company, lineItems, dealOwner, onFormChange, p
                       <SelectItem value="Accessory">Accessory</SelectItem>
                       <SelectItem value="Software">Software</SelectItem>
                       <SelectItem value="Service">Service</SelectItem>
+                      <SelectItem value="Supplies">Supplies</SelectItem>
+                      <SelectItem value="Misc">Misc.</SelectItem>
                     </SelectContent>
                   </Select>
                 </div>
