@@ -95,6 +95,17 @@ export function HubSpotProvider({ children }: { children: ReactNode }) {
         }
         keysToRemove.forEach(key => window.localStorage.removeItem(key));
         console.log(`Portal changed from ${previousPortalId} to ${portalIdFromUrl}, cleared ${keysToRemove.length} stale backup keys`);
+
+        // Reset all React state to prevent cross-portal data leakage
+        setDeal(null);
+        setCompany(null);
+        setContacts([]);
+        setLineItems([]);
+        setDealOwner(null);
+        setLabeledContacts(null);
+        setCompanyContacts(null);
+        setProperties(null);
+        setError(null);
       }
       window.localStorage.setItem(STORAGE_KEYS.portalId, portalIdFromUrl);
     }
