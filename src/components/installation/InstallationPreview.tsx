@@ -2,6 +2,7 @@ import { forwardRef } from 'react';
 import type { InstallationFormData, LinkedAccessoryItem } from './InstallationForm';
 import type { DocumentStyles } from '@/components/commission/CommissionPreview';
 
+import { buildDocumentFontCss } from "@/lib/documentFontSizes";
 interface InstallationPreviewProps {
   formData: InstallationFormData;
   dealerInfo?: {
@@ -22,13 +23,8 @@ export const InstallationPreview = forwardRef<HTMLDivElement, InstallationPrevie
       return formData.customerNumberOverride || formData.customerNumber || '';
     };
 
-    const _docFontOffset = documentStyles?.fontSizeOffset ?? 0;
     const _docScopeId = 'doc-installation';
-    const _docFontCss = _docFontOffset
-      ? [6,7,8,9,10,11,12,14,15,16,18,20,24]
-          .map(n => `[data-doc-scope="${_docScopeId}"] .text-\\[${n}px\\]{font-size:${Math.max(4,n+_docFontOffset)}px !important;}`)
-          .join('')
-      : '';
+    const _docFontCss = buildDocumentFontCss(_docScopeId, documentStyles);
 
     return (
       <>

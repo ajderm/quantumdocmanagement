@@ -1,6 +1,7 @@
 import { forwardRef } from "react";
 import { CommissionFormData } from "./CommissionForm";
 
+import { buildDocumentFontCss } from "@/lib/documentFontSizes";
 interface DealerInfo {
   companyName?: string;
   address?: string;
@@ -71,13 +72,8 @@ export const CommissionPreview = forwardRef<HTMLDivElement, CommissionPreviewPro
     const isPurchase = formData.transactionType === "Purchase" || formData.transactionType === "Rental";
     const isLease = formData.transactionType.startsWith("Lease -- ");
 
-    const _docFontOffset = documentStyles?.fontSizeOffset ?? 0;
     const _docScopeId = 'doc-commission';
-    const _docFontCss = _docFontOffset
-      ? [6,7,8,9,10,11,12,14,15,16,18,20,24]
-          .map(n => `[data-doc-scope="${_docScopeId}"] .text-\\[${n}px\\]{font-size:${Math.max(4,n+_docFontOffset)}px !important;}`)
-          .join('')
-      : '';
+    const _docFontCss = buildDocumentFontCss(_docScopeId, documentStyles);
 
     return (
       <>
