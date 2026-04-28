@@ -48,7 +48,7 @@ export const LoiPreview = forwardRef<HTMLDivElement, LoiPreviewProps>(
     return (
       <div
         ref={ref}
-        className="bg-white p-8 min-h-[11in] w-[8.5in] text-[11px] leading-tight"
+        className="bg-white p-8 min-h-[11in] w-[8.5in] text-[15px] leading-tight"
         style={{ fontFamily: documentStyles?.fontFamily || "Arial, sans-serif", color: documentStyles?.fontColor || "#000000" }}
       >
         {/* Header - Customer Company Info Left, Title Right */}
@@ -63,20 +63,20 @@ export const LoiPreview = forwardRef<HTMLDivElement, LoiPreviewProps>(
               />
             )}
             <div>
-              <p className="font-bold text-[10px]">
+              <p className="font-bold text-[14px]">
                 {formData.customerCompanyName || "Company Name"}
               </p>
               {buildCustomerHeaderAddress() && (
-                <p className="text-[9px]">{buildCustomerHeaderAddress()}</p>
+                <p className="text-[10px]">{buildCustomerHeaderAddress()}</p>
               )}
               {buildCustomerHeaderCityStateZip() && (
-                <p className="text-[9px]">{buildCustomerHeaderCityStateZip()}</p>
+                <p className="text-[10px]">{buildCustomerHeaderCityStateZip()}</p>
               )}
               {formData.customerHeaderPhone && (
-                <p className="text-[9px]">Phone: {formData.customerHeaderPhone}</p>
+                <p className="text-[10px]">Phone: {formData.customerHeaderPhone}</p>
               )}
               {formData.customerHeaderWebsite && (
-                <p className="text-[9px]">{formData.customerHeaderWebsite}</p>
+                <p className="text-[10px]">{formData.customerHeaderWebsite}</p>
               )}
             </div>
           </div>
@@ -84,7 +84,7 @@ export const LoiPreview = forwardRef<HTMLDivElement, LoiPreviewProps>(
           {/* Right: Document Title and Date */}
           <div className="text-right">
             <h1 className="text-base font-bold mb-2">Letter of Intent</h1>
-            <p className="text-[9px]">Date: {formatDate(formData.date)}</p>
+            <p className="text-[10px]">Date: {formatDate(formData.date)}</p>
           </div>
         </div>
 
@@ -92,10 +92,10 @@ export const LoiPreview = forwardRef<HTMLDivElement, LoiPreviewProps>(
         <div className="flex gap-6 mb-6">
           {/* Left Column - Lease Company Information */}
           <div className="flex-1">
-            <table className="w-full border-collapse text-[9px]">
+            <table className="w-full border-collapse text-[10px]">
               <thead>
                 <tr className="border-b-2 border-black">
-                  <th colSpan={2} className="text-left py-1 pb-2 font-bold text-[10px]">
+                  <th colSpan={2} className="text-left py-1 pb-2 font-bold text-[14px]">
                     LEASE COMPANY INFORMATION
                   </th>
                 </tr>
@@ -135,10 +135,10 @@ export const LoiPreview = forwardRef<HTMLDivElement, LoiPreviewProps>(
 
           {/* Right Column - Customer Information */}
           <div className="flex-1">
-            <table className="w-full border-collapse text-[9px]">
+            <table className="w-full border-collapse text-[10px]">
               <thead>
                 <tr className="border-b-2 border-black">
-                  <th colSpan={2} className="text-left py-1 pb-2 font-bold text-[10px]">
+                  <th colSpan={2} className="text-left py-1 pb-2 font-bold text-[14px]">
                     CUSTOMER INFORMATION
                   </th>
                 </tr>
@@ -180,10 +180,10 @@ export const LoiPreview = forwardRef<HTMLDivElement, LoiPreviewProps>(
         {/* Equipment Being Returned */}
         {filledEquipment.length > 0 && (
           <div className="mb-6">
-            <table className="w-full border-collapse text-[9px]">
+            <table className="w-full border-collapse text-[10px]">
               <thead>
                 <tr className="border-b-2 border-black">
-                  <th colSpan={2} className="text-left py-1 pb-2 font-bold text-[10px]">
+                  <th colSpan={2} className="text-left py-1 pb-2 font-bold text-[14px]">
                     EQUIPMENT BEING RETURNED
                   </th>
                 </tr>
@@ -202,7 +202,7 @@ export const LoiPreview = forwardRef<HTMLDivElement, LoiPreviewProps>(
               </tbody>
             </table>
             {showAddendumReference && (
-              <p className="text-[9px] italic mt-2">
+              <p className="text-[10px] italic mt-2">
                 * For additional equipment being returned, please reference the attached documentation/addendum.
               </p>
             )}

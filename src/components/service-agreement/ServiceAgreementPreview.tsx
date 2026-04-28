@@ -78,7 +78,7 @@ export const ServiceAgreementPreview = forwardRef<HTMLDivElement, ServiceAgreeme
     return (
       <div
         ref={ref}
-        className="bg-white p-8 min-h-[11in] w-[8.5in] text-[11px] leading-tight"
+        className="bg-white p-8 min-h-[11in] w-[8.5in] text-[15px] leading-tight"
         style={{ fontFamily: documentStyles?.fontFamily || 'Arial, sans-serif', color: documentStyles?.fontColor || '#000000' }}
       >
         {/* Header */}
@@ -94,23 +94,23 @@ export const ServiceAgreementPreview = forwardRef<HTMLDivElement, ServiceAgreeme
               />
             )}
             <div>
-              <p className="font-bold text-[10px]">{dealerInfo?.company_name || 'Company Name'}</p>
-              <p className="text-[9px]">
+              <p className="font-bold text-[14px]">{dealerInfo?.company_name || 'Company Name'}</p>
+              <p className="text-[10px]">
                 {dealerInfo?.address_line1}
                 {dealerInfo?.address_line2 && <>, {dealerInfo.address_line2}</>}
               </p>
-              <p className="text-[9px]">
+              <p className="text-[10px]">
                 {[dealerInfo?.city, dealerInfo?.state, dealerInfo?.zip_code].filter(Boolean).join(', ')}
               </p>
-              {dealerInfo?.phone && <p className="text-[9px]">Phone: {dealerInfo.phone}</p>}
-              {dealerInfo?.website && <p className="text-[9px]">{dealerInfo.website}</p>}
+              {dealerInfo?.phone && <p className="text-[10px]">Phone: {dealerInfo.phone}</p>}
+              {dealerInfo?.website && <p className="text-[10px]">{dealerInfo.website}</p>}
             </div>
           </div>
 
           {/* Right: Customer Number & Meter Method */}
           <div className="text-right">
             <h1 className="text-base font-bold mb-2">Service Agreement</h1>
-            <table className="text-right ml-auto text-[9px]">
+            <table className="text-right ml-auto text-[10px]">
               <tbody>
                 <tr>
                   <td className="pr-4 font-bold">Customer #:</td>
@@ -129,7 +129,7 @@ export const ServiceAgreementPreview = forwardRef<HTMLDivElement, ServiceAgreeme
         <div className="flex gap-5 mb-4">
           {/* Ship To */}
           <div className="flex-1">
-            <table className="w-full border-collapse text-[9px]">
+            <table className="w-full border-collapse text-[10px]">
               <thead>
                 <tr className="border-b-2 border-black">
                   <th colSpan={2} className="text-left py-1 pb-2 font-bold">CUSTOMER SHIP TO</th>
@@ -166,7 +166,7 @@ export const ServiceAgreementPreview = forwardRef<HTMLDivElement, ServiceAgreeme
 
           {/* Bill To */}
           <div className="flex-1">
-            <table className="w-full border-collapse text-[9px]">
+            <table className="w-full border-collapse text-[10px]">
               <thead>
                 <tr className="border-b-2 border-black">
                   <th colSpan={2} className="text-left py-1 pb-2 font-bold">CUSTOMER BILL TO</th>
@@ -204,7 +204,7 @@ export const ServiceAgreementPreview = forwardRef<HTMLDivElement, ServiceAgreeme
 
         {/* Terms Table */}
         <div className="mb-4">
-          <table className="w-full border-collapse text-[9px]">
+          <table className="w-full border-collapse text-[10px]">
             <thead>
               <tr className="border-b-2 border-black">
                 <th colSpan={5} className="text-left py-1 pb-2 font-bold">TERMS</th>
@@ -231,7 +231,7 @@ export const ServiceAgreementPreview = forwardRef<HTMLDivElement, ServiceAgreeme
 
         {/* Equipment Table */}
         <div className="mb-4">
-          <table className="w-full border-collapse text-[9px]">
+          <table className="w-full border-collapse text-[10px]">
             <thead>
               <tr className="border-b-2 border-black">
                 <th colSpan={4} className="text-left py-1 pb-2 font-bold">EQUIPMENT</th>
@@ -264,7 +264,7 @@ export const ServiceAgreementPreview = forwardRef<HTMLDivElement, ServiceAgreeme
 
         {/* Rates Table (Hardware Only) */}
         <div className="mb-4">
-          <table className="w-full border-collapse text-[9px]">
+          <table className="w-full border-collapse text-[10px]">
             <thead>
               <tr className="border-b-2 border-black">
                 <th colSpan={6} className="text-left py-1 pb-2 font-bold">RATES</th>
@@ -324,7 +324,7 @@ export const ServiceAgreementPreview = forwardRef<HTMLDivElement, ServiceAgreeme
         {/* Terms and Conditions */}
         {termsAndConditions && (
           <div className="mb-4">
-            <p className="font-bold mb-1 text-[10px]">Terms & Conditions:</p>
+            <p className="font-bold mb-1 text-[14px]">Terms & Conditions:</p>
             <p className="text-[8px] whitespace-pre-wrap">{termsAndConditions}</p>
           </div>
         )}
@@ -334,7 +334,7 @@ export const ServiceAgreementPreview = forwardRef<HTMLDivElement, ServiceAgreeme
           <div className="grid grid-cols-2 gap-8">
             {/* Left: Dealer */}
             <div>
-              <p className="font-bold mb-1 text-[10px]">{dealerInfo?.company_name || 'Dealer'}</p>
+              <p className="font-bold mb-1 text-[14px]">{dealerInfo?.company_name || 'Dealer'}</p>
               <div className="space-y-1">
                 <div>
                   <div className="border-b border-black h-4"></div>
@@ -357,7 +357,7 @@ export const ServiceAgreementPreview = forwardRef<HTMLDivElement, ServiceAgreeme
 
             {/* Right: Customer */}
             <div>
-              <p className="font-bold mb-1 text-[10px]">{formData.billToCompany || 'Customer'}</p>
+              <p className="font-bold mb-1 text-[14px]">{formData.billToCompany || 'Customer'}</p>
               <div className="space-y-1">
                 <div>
                   <div className="border-b border-black h-4"></div>

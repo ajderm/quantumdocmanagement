@@ -73,7 +73,7 @@ export const CommissionPreview = forwardRef<HTMLDivElement, CommissionPreviewPro
     return (
       <div
         ref={ref}
-        className="bg-white p-6 min-h-[11in] w-[8.5in] text-[10px] leading-tight"
+        className="bg-white p-6 min-h-[11in] w-[8.5in] text-[14px] leading-tight"
         style={{
           fontFamily: documentStyles?.fontFamily || "Arial, sans-serif",
           color: documentStyles?.fontColor || "#000000",
@@ -85,8 +85,8 @@ export const CommissionPreview = forwardRef<HTMLDivElement, CommissionPreviewPro
             {dealerInfo?.logoUrl && (
               <img src={dealerInfo.logoUrl} alt="Logo" className="h-10 object-contain" crossOrigin="anonymous" />
             )}
-            <div className="text-[9px]">
-              <p className="font-bold text-[10px]">{dealerInfo?.companyName || ""}</p>
+            <div className="text-[10px]">
+              <p className="font-bold text-[14px]">{dealerInfo?.companyName || ""}</p>
               {dealerInfo?.address && <p>{dealerInfo.address}</p>}
               {dealerInfo?.phone && <p>Phone: {dealerInfo.phone}</p>}
               {dealerInfo?.website && <p>{dealerInfo.website}</p>}
@@ -98,7 +98,7 @@ export const CommissionPreview = forwardRef<HTMLDivElement, CommissionPreviewPro
         {/* Sale Info */}
         <div className="mb-3">
           <div className="font-bold pb-1 mb-2" style={{ borderBottom: `2px solid ${borderColor}` }}>SALE INFO</div>
-          <div className="grid grid-cols-[140px_1fr] gap-y-0.5 text-[9px]">
+          <div className="grid grid-cols-[140px_1fr] gap-y-0.5 text-[10px]">
             <span className="font-semibold">Sales Representative</span><span>{formData.salesRepresentative}</span>
             <span className="font-semibold">Sold On Date</span><span>{formData.soldOnDate}</span>
             <span className="font-semibold">Customer</span><span>{formData.customer}</span>
@@ -113,7 +113,7 @@ export const CommissionPreview = forwardRef<HTMLDivElement, CommissionPreviewPro
         {(formData.transactionType || formData.promoDiscounts) && (
           <div className="mb-3">
             <div className="font-bold pb-1 mb-2" style={{ borderBottom: `2px solid ${borderColor}` }}>CUSTOMER/SALE TYPE</div>
-            <div className="text-[9px] space-y-0.5">
+            <div className="text-[10px] space-y-0.5">
               {formData.transactionType && (
                 <div><span className="font-semibold">Transaction Type: </span>{formData.transactionType}</div>
               )}
@@ -130,7 +130,7 @@ export const CommissionPreview = forwardRef<HTMLDivElement, CommissionPreviewPro
           <div className={isPurchase ? "" : "grid grid-cols-[1fr_200px] gap-4"}>
             {/* Left: Billed / Rep Cost / Condition table */}
             <div>
-              <table className="w-full border-collapse text-[9px]">
+              <table className="w-full border-collapse text-[10px]">
                 <thead>
                   <tr style={{ borderBottom: `1px solid ${borderColor}` }}>
                     <th className="text-left py-0.5 font-bold">Billed</th>
@@ -178,7 +178,7 @@ export const CommissionPreview = forwardRef<HTMLDivElement, CommissionPreviewPro
 
             {/* Right: Lease Information - hidden for Purchase/Rental */}
             {!isPurchase && (
-            <div className="text-[9px]">
+            <div className="text-[10px]">
               <div className="font-bold pb-0.5 mb-1" style={{ borderBottom: `1px solid ${borderColor}` }}>Lease Information</div>
               <div className="space-y-0.5">
                 <div className="flex justify-between"><span>Lease Company</span><span>{formData.leaseCompany}</span></div>
@@ -196,7 +196,7 @@ export const CommissionPreview = forwardRef<HTMLDivElement, CommissionPreviewPro
         {/* Commission */}
         <div className="mb-3">
           <div className="font-bold pb-1 mb-2" style={{ borderBottom: `2px solid ${borderColor}` }}>COMMISSION</div>
-          <table className="text-[9px]">
+          <table className="text-[10px]">
             <tbody>
               <tr>
                 <td className="pr-8 py-0.5 font-semibold">Equipment Revenue</td>
@@ -242,7 +242,7 @@ export const CommissionPreview = forwardRef<HTMLDivElement, CommissionPreviewPro
         {/* Signatures */}
         <div>
           <div className="font-bold pb-1 mb-3" style={{ borderBottom: `2px solid ${borderColor}` }}>SIGNATURES</div>
-          <div className="space-y-4 text-[9px]">
+          <div className="space-y-4 text-[10px]">
             {[
               { label: "Sales Rep", name: formData.salesRepSignature },
               { label: "Sales Manager", name: formData.salesManagerSignature },
@@ -250,7 +250,7 @@ export const CommissionPreview = forwardRef<HTMLDivElement, CommissionPreviewPro
             ].map(({ label, name }) => (
               <div key={label} className="grid grid-cols-[1fr_150px] gap-4">
                 <div>
-                  {name && <p className="text-[9px] mb-0.5">{name}</p>}
+                  {name && <p className="text-[10px] mb-0.5">{name}</p>}
                   <div className="h-5 mb-0.5" style={{ borderBottom: `1px solid ${borderColor}` }}></div>
                   <p className="text-[8px]">{label} Signature</p>
                 </div>
