@@ -442,6 +442,14 @@ function DocumentHubContent() {
   }, [loading, company, dealOwner, labeledContacts, lineItems, relocationFormData, relocationSavedConfig]);
   // Fetch dealer info when portalId is available
   useEffect(() => {
+    // Reset portal-specific state to prevent cross-tenant leakage
+    setDealerInfo(null);
+    setDealerSettings({});
+    setDocumentTerms({});
+    setCommissionUsers([]);
+    setCustomDocuments([]);
+    setConfigsLoaded(false);
+
     const fetchDealerInfo = async () => {
       const currentPortalId = portalId || localStorage.getItem('hs_portal_id');
       if (!currentPortalId) return;
@@ -1778,13 +1786,9 @@ function DocumentHubContent() {
 
         if (hubspotError) {
           console.error('HubSpot deal update error:', hubspotError);
-          toast.success('Configuration saved (deal amount sync failed)');
-        } else {
-          toast.success('Configuration saved & synced to HubSpot');
         }
       } catch (hsErr) {
         console.error('HubSpot sync error:', hsErr);
-        toast.success('Configuration saved (HubSpot sync partial)');
       }
     } catch (err) {
       console.error('Save error:', err);
