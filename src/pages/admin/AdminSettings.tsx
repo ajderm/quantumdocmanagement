@@ -379,6 +379,7 @@ export default function AdminSettings() {
           fontColor: docStyleFontColor,
           tableBorderColor: docStyleTableBorderColor,
           tableLineColor: docStyleTableLineColor,
+          fontSizeOffset: docStyleFontSizeOffset,
         },
         proposal_template_url: proposalTemplateUrl,
         proposal_template_name: proposalFileName,
