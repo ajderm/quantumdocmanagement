@@ -457,12 +457,14 @@ export function QuoteForm({ deal, company, lineItems, dealOwner, onFormChange, p
       // Use saved line items directly — don't merge by index with HubSpot items
       // since versions may have completely different line items
       const savedLineItems = (savedConfig.lineItems?.length > 0 ? savedConfig.lineItems : hubspotData.lineItems).map((item: any) => {
+        const freshItem = hubspotData.lineItems.find((hi: any) => hi.id === item.id);
         return {
           ...item,
           cost: item.cost ?? 0,
           markupPercent: item.markupPercent ?? 0,
           msrp: item.msrp ?? item.price ?? 0,
-          dealerSource: item.dealerSource || '',
+          dealerSource: item.dealerSource || freshItem?.dealerSource || '',
+          itemNumber: item.itemNumber || freshItem?.itemNumber || '',
         };
       });
       setFormData(prev => ({ 
@@ -633,7 +635,7 @@ export function QuoteForm({ deal, company, lineItems, dealOwner, onFormChange, p
       hs_product_id: product.id,
       productType: product.productType || '',
       parentLineItemId: '',
-      itemNumber: (product as any).itemNumber || '',
+      itemNumber: product.itemNumber || '',
     };
     setFormData(prev => ({ ...prev, lineItems: [...prev.lineItems, newItem] }));
   };

@@ -20,6 +20,7 @@ export interface HubSpotProduct {
   originalType?: string;
   hasOverride?: boolean;
   dealer?: string;
+  itemNumber?: string;
 }
 
 interface PricingTier {
@@ -258,7 +259,11 @@ export function ProductSearchModal({
                         )}
                       </div>
                       <div className="flex items-center gap-3 text-xs text-muted-foreground mt-0.5">
-                        {product.sku && <span>SKU: {product.sku}</span>}
+                        {product.itemNumber ? (
+                          <span className="font-bold">Item#: {product.itemNumber}</span>
+                        ) : (
+                          product.sku && <span>SKU: {product.sku}</span>
+                        )}
                         {product.dealer && <span className="text-blue-600">Source: {product.dealer}</span>}
                         <span>MSRP: ${(product.price ?? 0).toLocaleString('en-US', { minimumFractionDigits: 2 })}</span>
                         {tierCost !== undefined ? (
