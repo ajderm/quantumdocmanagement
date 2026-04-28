@@ -27,14 +27,13 @@ export const InstallationPreview = forwardRef<HTMLDivElement, InstallationPrevie
     const _docFontCss = buildDocumentFontCss(_docScopeId, documentStyles);
 
     return (
-      <>
-        {_docFontCss && <style>{_docFontCss}</style>}
         <div
         ref={ref}
         data-doc-scope={_docScopeId}
         className="bg-white p-6 min-h-[11in] w-[8.5in] text-[12px] leading-tight"
         style={{ fontFamily: documentStyles?.fontFamily || 'Arial, sans-serif', color: documentStyles?.fontColor || '#000000' }}
       >
+          {_docFontCss && <style>{_docFontCss}</style>}
         {/* Header */}
         <div className="flex justify-between items-start mb-4">
           {/* Left - Company Info */}
@@ -326,7 +325,6 @@ export const InstallationPreview = forwardRef<HTMLDivElement, InstallationPrevie
           </div>
         </div>
       </div>
-        </>
     );
   }
 );

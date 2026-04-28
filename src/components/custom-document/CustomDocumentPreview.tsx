@@ -198,8 +198,6 @@ export const CustomDocumentPreview = forwardRef<HTMLDivElement, CustomDocumentPr
     const _docFontCss = buildDocumentFontCss(_docScopeId, documentStyles);
 
     return (
-      <>
-        {_docFontCss && <style>{_docFontCss}</style>}
         <div
           ref={ref}
           data-doc-scope={_docScopeId}
@@ -211,9 +209,9 @@ export const CustomDocumentPreview = forwardRef<HTMLDivElement, CustomDocumentPr
             color: documentStyles?.fontColor || '#000000',
           }}
         >
+          {_docFontCss && <style>{_docFontCss}</style>}
           {sections.map(renderSection)}
         </div>
-      </>
     );
   }
 );

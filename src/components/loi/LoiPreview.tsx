@@ -50,14 +50,13 @@ export const LoiPreview = forwardRef<HTMLDivElement, LoiPreviewProps>(
     const _docFontCss = buildDocumentFontCss(_docScopeId, documentStyles);
 
     return (
-      <>
-        {_docFontCss && <style>{_docFontCss}</style>}
         <div
         ref={ref}
         data-doc-scope={_docScopeId}
         className="bg-white p-8 min-h-[11in] w-[8.5in] text-[13px] leading-tight"
         style={{ fontFamily: documentStyles?.fontFamily || "Arial, sans-serif", color: documentStyles?.fontColor || "#000000" }}
       >
+          {_docFontCss && <style>{_docFontCss}</style>}
         {/* Header - Customer Company Info Left, Title Right */}
         <div className="flex justify-between items-start mb-6">
           {/* Left: Customer Company Info */}
@@ -283,7 +282,6 @@ export const LoiPreview = forwardRef<HTMLDivElement, LoiPreviewProps>(
           </p>
         </div>
       </div>
-        </>
     );
   }
 );

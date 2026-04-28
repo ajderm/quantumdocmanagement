@@ -29,8 +29,6 @@ export const NewCustomerPreview = forwardRef<HTMLDivElement, NewCustomerPreviewP
     const _docFontCss = buildDocumentFontCss(_docScopeId, documentStyles);
 
     return (
-      <>
-        {_docFontCss && <style>{_docFontCss}</style>}
         <div
         ref={ref}
         data-doc-scope={_docScopeId}
@@ -42,6 +40,7 @@ export const NewCustomerPreview = forwardRef<HTMLDivElement, NewCustomerPreviewP
           color: documentStyles?.fontColor || '#000000',
         }}
       >
+          {_docFontCss && <style>{_docFontCss}</style>}
         {/* Header */}
         <table className="w-full border-collapse mb-4">
           <tbody>
@@ -351,7 +350,6 @@ export const NewCustomerPreview = forwardRef<HTMLDivElement, NewCustomerPreviewP
           </tbody>
         </table>
       </div>
-        </>
     );
   }
 );
