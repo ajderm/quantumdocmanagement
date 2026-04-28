@@ -605,7 +605,7 @@ export default function AdminSettings() {
                   </div>
                   <div className="space-y-2">
                     <div className="flex items-center justify-between">
-                      <Label>Font Size Adjustment</Label>
+                      <Label>Master Font Size Adjustment</Label>
                       <span className="text-xs text-muted-foreground tabular-nums">
                         {docStyleFontSizeOffset > 0 ? `+${docStyleFontSizeOffset}` : docStyleFontSizeOffset}px
                       </span>
@@ -620,15 +620,60 @@ export default function AdminSettings() {
                       className="w-full accent-primary"
                     />
                     <p className="text-xs text-muted-foreground">
-                      Master adjustment applied to all output document fonts. 0 = default sizes, negative = smaller, positive = larger.
+                      Applied on top of every section. Use the per-section sliders below for finer control.
                     </p>
                   </div>
+
+                  {/* Per-section font-size sliders */}
+                  <div className="space-y-4 pt-2 border-t">
+                    <div>
+                      <Label className="text-sm">Per-Section Adjustments</Label>
+                      <p className="text-xs text-muted-foreground mt-1">
+                        Fine-tune each text role independently. Stacks with the master adjustment above.
+                      </p>
+                    </div>
+                    {([
+                      { key: 'title', label: 'Document Title', desc: 'Main headings (e.g. "QUOTE", "Lease Return Letter")', base: 16 },
+                      { key: 'header', label: 'Section Headers', desc: 'Bold underlined section titles', base: 15 },
+                      { key: 'body', label: 'Body Text', desc: 'Paragraphs, signature labels, table column headers', base: 14 },
+                      { key: 'table', label: 'Table Rows', desc: 'Equipment rows, dealer header address lines', base: 10 },
+                      { key: 'fine', label: 'Fine Print / T&C', desc: 'Terms & conditions and footnotes', base: 8 },
+                    ] as const).map(role => {
+                      const val = docStyleFontSizeOffsets[role.key];
+                      const effective = Math.max(4, role.base + docStyleFontSizeOffset + val);
+                      return (
+                        <div key={role.key} className="space-y-1.5">
+                          <div className="flex items-center justify-between">
+                            <div>
+                              <Label className="text-sm">{role.label}</Label>
+                              <p className="text-[11px] text-muted-foreground">{role.desc}</p>
+                            </div>
+                            <span className="text-xs text-muted-foreground tabular-nums whitespace-nowrap ml-2">
+                              {val > 0 ? `+${val}` : val}px → <span className="font-semibold text-foreground">{effective}px</span>
+                            </span>
+                          </div>
+                          <input
+                            type="range"
+                            min={-6}
+                            max={12}
+                            step={1}
+                            value={val}
+                            onChange={e => setDocStyleFontSizeOffsets(prev => ({ ...prev, [role.key]: Number(e.target.value) }))}
+                            className="w-full accent-primary"
+                          />
+                        </div>
+                      );
+                    })}
+                  </div>
+
                   <div className="p-3 rounded-md border bg-muted/50">
                     <p className="text-xs text-muted-foreground mb-2">Preview:</p>
                     <div style={{ fontFamily: docStyleFontFamily, color: docStyleFontColor }}>
-                      <div className="font-bold pb-1 mb-1" style={{ borderBottom: `2px solid ${docStyleTableBorderColor}`, fontSize: `${15 + docStyleFontSizeOffset}px` }}>SECTION HEADER</div>
-                      <div className="py-1" style={{ borderBottom: `1px solid ${docStyleTableLineColor}`, fontSize: `${14 + docStyleFontSizeOffset}px` }}>Sample body text</div>
-                      <div className="py-1" style={{ borderBottom: `1px solid ${docStyleTableLineColor}`, fontSize: `${10 + docStyleFontSizeOffset}px` }}>Sample table row data</div>
+                      <div className="font-bold mb-1" style={{ fontSize: `${Math.max(4, 16 + docStyleFontSizeOffset + docStyleFontSizeOffsets.title)}px` }}>DOCUMENT TITLE</div>
+                      <div className="font-bold pb-1 mb-1" style={{ borderBottom: `2px solid ${docStyleTableBorderColor}`, fontSize: `${Math.max(4, 15 + docStyleFontSizeOffset + docStyleFontSizeOffsets.header)}px` }}>SECTION HEADER</div>
+                      <div className="py-1" style={{ borderBottom: `1px solid ${docStyleTableLineColor}`, fontSize: `${Math.max(4, 14 + docStyleFontSizeOffset + docStyleFontSizeOffsets.body)}px` }}>Sample body text</div>
+                      <div className="py-1" style={{ borderBottom: `1px solid ${docStyleTableLineColor}`, fontSize: `${Math.max(4, 10 + docStyleFontSizeOffset + docStyleFontSizeOffsets.table)}px` }}>Sample table row data</div>
+                      <div className="py-1 italic text-muted-foreground" style={{ fontSize: `${Math.max(4, 8 + docStyleFontSizeOffset + docStyleFontSizeOffsets.fine)}px` }}>Fine print / terms &amp; conditions example text.</div>
                     </div>
                   </div>
                 </CardContent>
