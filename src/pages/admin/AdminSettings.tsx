@@ -78,6 +78,7 @@ export default function AdminSettings() {
   const [docStyleFontColor, setDocStyleFontColor] = useState('#000000');
   const [docStyleTableBorderColor, setDocStyleTableBorderColor] = useState('#000000');
   const [docStyleTableLineColor, setDocStyleTableLineColor] = useState('#d1d5db');
+  const [docStyleFontSizeOffset, setDocStyleFontSizeOffset] = useState(0);
   
   // Proposal template
   const [proposalTemplateUrl, setProposalTemplateUrl] = useState<string | null>(null);
