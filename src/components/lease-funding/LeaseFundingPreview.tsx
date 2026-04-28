@@ -17,7 +17,7 @@ interface DealerInfo {
 interface LeaseFundingPreviewProps {
   formData: LeaseFundingFormData;
   dealerInfo?: DealerInfo;
-  documentStyles?: { fontFamily?: string; fontColor?: string; tableBorderColor?: string; tableLineColor?: string; };
+  documentStyles?: { fontFamily?: string; fontColor?: string; tableBorderColor?: string; tableLineColor?: string; fontSizeOffset?: number; };
 }
 
 export const LeaseFundingPreview = forwardRef<HTMLDivElement, LeaseFundingPreviewProps>(
@@ -38,10 +38,21 @@ export const LeaseFundingPreview = forwardRef<HTMLDivElement, LeaseFundingPrevie
       return format(date, "MM/dd/yyyy");
     };
 
+    const _docFontOffset = documentStyles?.fontSizeOffset ?? 0;
+    const _docScopeId = 'doc-leasefunding';
+    const _docFontCss = _docFontOffset
+      ? [6,7,8,9,10,11,12,14,15,16,18,20,24]
+          .map(n => `[data-doc-scope="${_docScopeId}"] .text-\\[${n}px\\]{font-size:${Math.max(4,n+_docFontOffset)}px !important;}`)
+          .join('')
+      : '';
+
     return (
-      <div
+      <>
+        {_docFontCss && <style>{_docFontCss}</style>}
+        <div
         ref={ref}
-        className="bg-white p-8 min-h-[11in] w-[8.5in] text-[11px] leading-tight"
+        data-doc-scope={_docScopeId}
+        className="bg-white p-8 min-h-[11in] w-[8.5in] text-[15px] leading-tight"
         style={{ fontFamily: documentStyles?.fontFamily || "Arial, sans-serif", color: documentStyles?.fontColor || "#000000" }}
       >
         {/* Header */}
@@ -57,23 +68,23 @@ export const LeaseFundingPreview = forwardRef<HTMLDivElement, LeaseFundingPrevie
               />
             )}
             <div>
-              <p className="font-bold text-[10px]">
+              <p className="font-bold text-[14px]">
                 {dealerInfo?.company_name || "Company Name"}
               </p>
-              <p className="text-[9px]">
+              <p className="text-[10px]">
                 {dealerInfo?.address_line1}
                 {dealerInfo?.address_line2 && <>, {dealerInfo.address_line2}</>}
               </p>
-              <p className="text-[9px]">
+              <p className="text-[10px]">
                 {[dealerInfo?.city, dealerInfo?.state, dealerInfo?.zip_code]
                   .filter(Boolean)
                   .join(", ")}
               </p>
               {dealerInfo?.phone && (
-                <p className="text-[9px]">Phone: {dealerInfo.phone}</p>
+                <p className="text-[10px]">Phone: {dealerInfo.phone}</p>
               )}
               {dealerInfo?.website && (
-                <p className="text-[9px]">{dealerInfo.website}</p>
+                <p className="text-[10px]">{dealerInfo.website}</p>
               )}
             </div>
           </div>
@@ -86,7 +97,7 @@ export const LeaseFundingPreview = forwardRef<HTMLDivElement, LeaseFundingPrevie
 
         {/* Lease Information Table */}
         <div className="mb-4">
-          <table className="w-full border-collapse text-[9px]">
+          <table className="w-full border-collapse text-[10px]">
             <thead>
               <tr className="border-b-2 border-black">
                 <th colSpan={2} className="text-left py-1 pb-2 font-bold">
@@ -117,7 +128,7 @@ export const LeaseFundingPreview = forwardRef<HTMLDivElement, LeaseFundingPrevie
 
         {/* Equipment Table */}
         <div className="mb-4">
-          <table className="w-full border-collapse text-[9px]">
+          <table className="w-full border-collapse text-[10px]">
             <thead>
               <tr className="border-b-2 border-black">
                 <th colSpan={2} className="text-left py-1 pb-2 font-bold">
@@ -144,7 +155,7 @@ export const LeaseFundingPreview = forwardRef<HTMLDivElement, LeaseFundingPrevie
 
         {/* Lease Terms Table */}
         <div className="mb-4">
-          <table className="w-full border-collapse text-[9px]">
+          <table className="w-full border-collapse text-[10px]">
             <thead>
               <tr className="border-b-2 border-black">
                 <th colSpan={2} className="text-left py-1 pb-2 font-bold">
@@ -185,6 +196,7 @@ export const LeaseFundingPreview = forwardRef<HTMLDivElement, LeaseFundingPrevie
           </table>
         </div>
       </div>
+        </>
     );
   }
 );

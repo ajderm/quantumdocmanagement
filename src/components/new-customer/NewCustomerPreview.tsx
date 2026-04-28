@@ -10,7 +10,7 @@ interface NewCustomerPreviewProps {
     logoUrl?: string;
   };
   termsAndConditions?: string;
-  documentStyles?: { fontFamily?: string; fontColor?: string; tableBorderColor?: string; tableLineColor?: string; };
+  documentStyles?: { fontFamily?: string; fontColor?: string; tableBorderColor?: string; tableLineColor?: string; fontSizeOffset?: number; };
 }
 
 const DEFAULT_TERMS = `TERMS OF SALE: Net 30 Days. A service charge of 1.5% per month (18% per annum) will be applied to all past due balances. In the event collection efforts are required, buyer agrees to pay all costs of collection including reasonable attorney fees.
@@ -24,10 +24,21 @@ export const NewCustomerPreview = forwardRef<HTMLDivElement, NewCustomerPreviewP
 
     const businessTypeLabel = formData.businessType ? formData.businessType.replace('_', ' ').replace(/\b\w/g, l => l.toUpperCase()) : '';
 
+    const _docFontOffset = documentStyles?.fontSizeOffset ?? 0;
+    const _docScopeId = 'doc-newcustomer';
+    const _docFontCss = _docFontOffset
+      ? [6,7,8,9,10,11,12,14,15,16,18,20,24]
+          .map(n => `[data-doc-scope="${_docScopeId}"] .text-\\[${n}px\\]{font-size:${Math.max(4,n+_docFontOffset)}px !important;}`)
+          .join('')
+      : '';
+
     return (
-      <div
+      <>
+        {_docFontCss && <style>{_docFontCss}</style>}
+        <div
         ref={ref}
-        className="bg-white p-8 text-[10px] leading-tight"
+        data-doc-scope={_docScopeId}
+        className="bg-white p-8 text-[14px] leading-tight"
         style={{
           width: '8.5in',
           minHeight: '11in',
@@ -44,22 +55,22 @@ export const NewCustomerPreview = forwardRef<HTMLDivElement, NewCustomerPreviewP
                   <img src={dealerInfo.logoUrl} alt="Logo" className="h-10 mb-1" />
                 )}
                 <div className="font-bold text-[12px]">{dealerInfo?.companyName || 'Company Name'}</div>
-                <div className="text-[9px]">{dealerInfo?.address}</div>
-                <div className="text-[9px]">{dealerInfo?.phone}</div>
+                <div className="text-[10px]">{dealerInfo?.address}</div>
+                <div className="text-[10px]">{dealerInfo?.phone}</div>
               </td>
               <td className="align-top text-right">
                 <div className="font-bold text-[14px]">NEW CUSTOMER APPLICATION</div>
-                <div className="text-[9px] mt-1">{today}</div>
+                <div className="text-[10px] mt-1">{today}</div>
               </td>
             </tr>
           </tbody>
         </table>
 
         {/* Customer Information */}
-        <table className="w-full border-collapse text-[9px] mb-3">
+        <table className="w-full border-collapse text-[10px] mb-3">
           <thead>
             <tr className="border-b-2 border-black">
-              <th colSpan={4} className="text-left py-1 pb-2 font-bold text-[10px]">CUSTOMER INFORMATION</th>
+              <th colSpan={4} className="text-left py-1 pb-2 font-bold text-[14px]">CUSTOMER INFORMATION</th>
             </tr>
           </thead>
           <tbody>
@@ -95,10 +106,10 @@ export const NewCustomerPreview = forwardRef<HTMLDivElement, NewCustomerPreviewP
         {/* Addresses - Three Column Layout */}
         <div className="grid grid-cols-3 gap-3 mb-3">
           {/* Headquarters */}
-          <table className="w-full border-collapse text-[9px]">
+          <table className="w-full border-collapse text-[10px]">
             <thead>
               <tr className="border-b-2 border-black">
-                <th className="text-left py-1 pb-2 font-bold text-[10px]">HEADQUARTERS</th>
+                <th className="text-left py-1 pb-2 font-bold text-[14px]">HEADQUARTERS</th>
               </tr>
             </thead>
             <tbody>
@@ -112,10 +123,10 @@ export const NewCustomerPreview = forwardRef<HTMLDivElement, NewCustomerPreviewP
           </table>
 
           {/* Branch */}
-          <table className="w-full border-collapse text-[9px]">
+          <table className="w-full border-collapse text-[10px]">
             <thead>
               <tr className="border-b-2 border-black">
-                <th className="text-left py-1 pb-2 font-bold text-[10px]">BRANCH OFFICE</th>
+                <th className="text-left py-1 pb-2 font-bold text-[14px]">BRANCH OFFICE</th>
               </tr>
             </thead>
             <tbody>
@@ -135,10 +146,10 @@ export const NewCustomerPreview = forwardRef<HTMLDivElement, NewCustomerPreviewP
           </table>
 
           {/* Billing */}
-          <table className="w-full border-collapse text-[9px]">
+          <table className="w-full border-collapse text-[10px]">
             <thead>
               <tr className="border-b-2 border-black">
-                <th className="text-left py-1 pb-2 font-bold text-[10px]">BILLING OFFICE</th>
+                <th className="text-left py-1 pb-2 font-bold text-[14px]">BILLING OFFICE</th>
               </tr>
             </thead>
             <tbody>
@@ -161,12 +172,12 @@ export const NewCustomerPreview = forwardRef<HTMLDivElement, NewCustomerPreviewP
         </div>
 
         {/* Contacts */}
-        <table className="w-full border-collapse text-[9px] mb-3">
+        <table className="w-full border-collapse text-[10px] mb-3">
           <thead>
             <tr className="border-b-2 border-black">
-              <th className="text-left py-1 pb-2 font-bold text-[10px] w-1/3">PRINCIPAL / OWNER</th>
-              <th className="text-left py-1 pb-2 font-bold text-[10px] w-1/3">EQUIPMENT / METER CONTACT</th>
-              <th className="text-left py-1 pb-2 font-bold text-[10px] w-1/3">ACCOUNTS PAYABLE</th>
+              <th className="text-left py-1 pb-2 font-bold text-[14px] w-1/3">PRINCIPAL / OWNER</th>
+              <th className="text-left py-1 pb-2 font-bold text-[14px] w-1/3">EQUIPMENT / METER CONTACT</th>
+              <th className="text-left py-1 pb-2 font-bold text-[14px] w-1/3">ACCOUNTS PAYABLE</th>
             </tr>
           </thead>
           <tbody>
@@ -194,10 +205,10 @@ export const NewCustomerPreview = forwardRef<HTMLDivElement, NewCustomerPreviewP
         </table>
 
         {/* Interests */}
-        <table className="w-full border-collapse text-[9px] mb-3">
+        <table className="w-full border-collapse text-[10px] mb-3">
           <thead>
             <tr className="border-b-2 border-black">
-              <th className="text-left py-1 pb-2 font-bold text-[10px]">INTERESTS</th>
+              <th className="text-left py-1 pb-2 font-bold text-[14px]">INTERESTS</th>
             </tr>
           </thead>
           <tbody>
@@ -215,10 +226,10 @@ export const NewCustomerPreview = forwardRef<HTMLDivElement, NewCustomerPreviewP
         {/* References - Two Column Layout */}
         <div className="grid grid-cols-2 gap-4 mb-3">
           {/* Bank References */}
-          <table className="w-full border-collapse text-[9px]">
+          <table className="w-full border-collapse text-[10px]">
             <thead>
               <tr className="border-b-2 border-black">
-                <th className="text-left py-1 pb-2 font-bold text-[10px]">BANK REFERENCES</th>
+                <th className="text-left py-1 pb-2 font-bold text-[14px]">BANK REFERENCES</th>
               </tr>
             </thead>
             <tbody>
@@ -237,10 +248,10 @@ export const NewCustomerPreview = forwardRef<HTMLDivElement, NewCustomerPreviewP
           </table>
 
           {/* Business References */}
-          <table className="w-full border-collapse text-[9px]">
+          <table className="w-full border-collapse text-[10px]">
             <thead>
               <tr className="border-b-2 border-black">
-                <th className="text-left py-1 pb-2 font-bold text-[10px]">BUSINESS REFERENCES</th>
+                <th className="text-left py-1 pb-2 font-bold text-[14px]">BUSINESS REFERENCES</th>
               </tr>
             </thead>
             <tbody>
@@ -259,10 +270,10 @@ export const NewCustomerPreview = forwardRef<HTMLDivElement, NewCustomerPreviewP
         </div>
 
         {/* Invoicing & Payment */}
-        <table className="w-full border-collapse text-[9px] mb-3">
+        <table className="w-full border-collapse text-[10px] mb-3">
           <thead>
             <tr className="border-b-2 border-black">
-              <th colSpan={2} className="text-left py-1 pb-2 font-bold text-[10px]">INVOICING & PAYMENT</th>
+              <th colSpan={2} className="text-left py-1 pb-2 font-bold text-[14px]">INVOICING & PAYMENT</th>
             </tr>
           </thead>
           <tbody>
@@ -285,10 +296,10 @@ export const NewCustomerPreview = forwardRef<HTMLDivElement, NewCustomerPreviewP
         </table>
 
         {/* Terms & Conditions */}
-        <table className="w-full border-collapse text-[9px] mb-3">
+        <table className="w-full border-collapse text-[10px] mb-3">
           <thead>
             <tr className="border-b-2 border-black">
-              <th className="text-left py-1 pb-2 font-bold text-[10px]">TERMS & CONDITIONS</th>
+              <th className="text-left py-1 pb-2 font-bold text-[14px]">TERMS & CONDITIONS</th>
             </tr>
           </thead>
           <tbody>
@@ -299,10 +310,10 @@ export const NewCustomerPreview = forwardRef<HTMLDivElement, NewCustomerPreviewP
         </table>
 
         {/* Acknowledgement & Authorization */}
-        <table className="w-full border-collapse text-[9px] mb-4">
+        <table className="w-full border-collapse text-[10px] mb-4">
           <thead>
             <tr className="border-b-2 border-black">
-              <th className="text-left py-1 pb-2 font-bold text-[10px]">ACKNOWLEDGEMENT & AUTHORIZATION</th>
+              <th className="text-left py-1 pb-2 font-bold text-[14px]">ACKNOWLEDGEMENT & AUTHORIZATION</th>
             </tr>
           </thead>
           <tbody>
@@ -319,7 +330,7 @@ export const NewCustomerPreview = forwardRef<HTMLDivElement, NewCustomerPreviewP
         </table>
 
         {/* Signature Block */}
-        <table className="w-full border-collapse text-[9px] border-t-2 border-black pt-4">
+        <table className="w-full border-collapse text-[10px] border-t-2 border-black pt-4">
           <tbody>
             <tr>
               <td className="pt-6 pr-4 w-1/2">
@@ -344,6 +355,7 @@ export const NewCustomerPreview = forwardRef<HTMLDivElement, NewCustomerPreviewP
           </tbody>
         </table>
       </div>
+        </>
     );
   }
 );

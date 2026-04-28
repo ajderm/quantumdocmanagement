@@ -16,7 +16,7 @@ interface DealerInfo {
 interface RelocationPreviewProps {
   formData: RelocationFormData;
   dealerInfo?: DealerInfo;
-  documentStyles?: { fontFamily?: string; fontColor?: string; tableBorderColor?: string; tableLineColor?: string; };
+  documentStyles?: { fontFamily?: string; fontColor?: string; tableBorderColor?: string; tableLineColor?: string; fontSizeOffset?: number; };
 }
 
 const RelocationPreview = forwardRef<HTMLDivElement, RelocationPreviewProps>(({ formData, dealerInfo, documentStyles }, ref) => {
@@ -29,10 +29,21 @@ const RelocationPreview = forwardRef<HTMLDivElement, RelocationPreviewProps>(({ 
     }
   };
 
+  const _docFontOffset = documentStyles?.fontSizeOffset ?? 0;
+  const _docScopeId = 'doc-relocation';
+  const _docFontCss = _docFontOffset
+    ? [6,7,8,9,10,11,12,14,15,16,18,20,24]
+        .map(n => `[data-doc-scope="${_docScopeId}"] .text-\\[${n}px\\]{font-size:${Math.max(4,n+_docFontOffset)}px !important;}`)
+        .join('')
+    : '';
+
   return (
+    <>
+      {_docFontCss && <style>{_docFontCss}</style>}
     <div
       ref={ref}
-      className="bg-white p-6 text-[10px] leading-tight"
+      data-doc-scope={_docScopeId}
+      className="bg-white p-6 text-[14px] leading-tight"
       style={{ width: '8.5in', minHeight: '11in', fontFamily: documentStyles?.fontFamily || 'Arial, sans-serif', color: documentStyles?.fontColor || '#000000' }}
     >
       {/* Header */}
@@ -45,7 +56,7 @@ const RelocationPreview = forwardRef<HTMLDivElement, RelocationPreviewProps>(({ 
               className="h-12 object-contain"
             />
           )}
-          <div className="text-[9px]">
+          <div className="text-[10px]">
             <div className="font-bold">{dealerInfo?.name || 'Dealer Name'}</div>
             <div>{dealerInfo?.address || ''}</div>
             <div>
@@ -61,10 +72,10 @@ const RelocationPreview = forwardRef<HTMLDivElement, RelocationPreviewProps>(({ 
       </div>
 
       {/* Customer Information Section */}
-      <table className="w-full border-collapse text-[9px] mb-4">
+      <table className="w-full border-collapse text-[10px] mb-4">
         <thead>
           <tr className="border-b-2 border-black">
-            <th colSpan={4} className="text-left py-1 pb-2 font-bold text-[10px]">CUSTOMER INFORMATION</th>
+            <th colSpan={4} className="text-left py-1 pb-2 font-bold text-[14px]">CUSTOMER INFORMATION</th>
           </tr>
         </thead>
         <tbody>
@@ -102,10 +113,10 @@ const RelocationPreview = forwardRef<HTMLDivElement, RelocationPreviewProps>(({ 
       </table>
 
       {/* Current Location Section */}
-      <table className="w-full border-collapse text-[9px] mb-4">
+      <table className="w-full border-collapse text-[10px] mb-4">
         <thead>
           <tr className="border-b-2 border-black">
-            <th colSpan={4} className="text-left py-1 pb-2 font-bold text-[10px]">CURRENT LOCATION</th>
+            <th colSpan={4} className="text-left py-1 pb-2 font-bold text-[14px]">CURRENT LOCATION</th>
           </tr>
         </thead>
         <tbody>
@@ -159,10 +170,10 @@ const RelocationPreview = forwardRef<HTMLDivElement, RelocationPreviewProps>(({ 
       </table>
 
       {/* Destination Section */}
-      <table className="w-full border-collapse text-[9px] mb-4">
+      <table className="w-full border-collapse text-[10px] mb-4">
         <thead>
           <tr className="border-b-2 border-black">
-            <th colSpan={4} className="text-left py-1 pb-2 font-bold text-[10px]">DESTINATION</th>
+            <th colSpan={4} className="text-left py-1 pb-2 font-bold text-[14px]">DESTINATION</th>
           </tr>
         </thead>
         <tbody>
@@ -216,10 +227,10 @@ const RelocationPreview = forwardRef<HTMLDivElement, RelocationPreviewProps>(({ 
       </table>
 
       {/* Equipment Section */}
-      <table className="w-full border-collapse text-[9px] mb-4">
+      <table className="w-full border-collapse text-[10px] mb-4">
         <thead>
           <tr className="border-b-2 border-black">
-            <th colSpan={6} className="text-left py-1 pb-2 font-bold text-[10px]">EQUIPMENT</th>
+            <th colSpan={6} className="text-left py-1 pb-2 font-bold text-[14px]">EQUIPMENT</th>
           </tr>
           <tr className="border-b border-gray-400">
             <th className="py-1 text-left font-semibold">Make/Model #</th>
@@ -259,6 +270,7 @@ const RelocationPreview = forwardRef<HTMLDivElement, RelocationPreviewProps>(({ 
         </p>
       </div>
     </div>
+    </>
   );
 });
 

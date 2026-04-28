@@ -78,6 +78,7 @@ export default function AdminSettings() {
   const [docStyleFontColor, setDocStyleFontColor] = useState('#000000');
   const [docStyleTableBorderColor, setDocStyleTableBorderColor] = useState('#000000');
   const [docStyleTableLineColor, setDocStyleTableLineColor] = useState('#d1d5db');
+  const [docStyleFontSizeOffset, setDocStyleFontSizeOffset] = useState(0);
   
   // Proposal template
   const [proposalTemplateUrl, setProposalTemplateUrl] = useState<string | null>(null);
@@ -181,6 +182,7 @@ export default function AdminSettings() {
             if (ds.fontColor) setDocStyleFontColor(ds.fontColor);
             if (ds.tableBorderColor) setDocStyleTableBorderColor(ds.tableBorderColor);
             if (ds.tableLineColor) setDocStyleTableLineColor(ds.tableLineColor);
+            if (typeof ds.fontSizeOffset === 'number') setDocStyleFontSizeOffset(ds.fontSizeOffset);
           }
           if (settings.proposal_template_url) {
             setProposalTemplateUrl(settings.proposal_template_url);
@@ -377,6 +379,7 @@ export default function AdminSettings() {
           fontColor: docStyleFontColor,
           tableBorderColor: docStyleTableBorderColor,
           tableLineColor: docStyleTableLineColor,
+          fontSizeOffset: docStyleFontSizeOffset,
         },
         proposal_template_url: proposalTemplateUrl,
         proposal_template_name: proposalFileName,
@@ -587,12 +590,32 @@ export default function AdminSettings() {
                       </div>
                     </div>
                   </div>
+                  <div className="space-y-2">
+                    <div className="flex items-center justify-between">
+                      <Label>Font Size Adjustment</Label>
+                      <span className="text-xs text-muted-foreground tabular-nums">
+                        {docStyleFontSizeOffset > 0 ? `+${docStyleFontSizeOffset}` : docStyleFontSizeOffset}px
+                      </span>
+                    </div>
+                    <input
+                      type="range"
+                      min={-4}
+                      max={12}
+                      step={1}
+                      value={docStyleFontSizeOffset}
+                      onChange={e => setDocStyleFontSizeOffset(Number(e.target.value))}
+                      className="w-full accent-primary"
+                    />
+                    <p className="text-xs text-muted-foreground">
+                      Master adjustment applied to all output document fonts. 0 = default sizes, negative = smaller, positive = larger.
+                    </p>
+                  </div>
                   <div className="p-3 rounded-md border bg-muted/50">
                     <p className="text-xs text-muted-foreground mb-2">Preview:</p>
-                    <div style={{ fontFamily: docStyleFontFamily, color: docStyleFontColor }} className="text-sm">
-                      <div className="font-bold pb-1 mb-1" style={{ borderBottom: `2px solid ${docStyleTableBorderColor}` }}>SECTION HEADER</div>
-                      <div className="py-1" style={{ borderBottom: `1px solid ${docStyleTableLineColor}` }}>Sample row content</div>
-                      <div className="py-1" style={{ borderBottom: `1px solid ${docStyleTableLineColor}` }}>Another row of data</div>
+                    <div style={{ fontFamily: docStyleFontFamily, color: docStyleFontColor }}>
+                      <div className="font-bold pb-1 mb-1" style={{ borderBottom: `2px solid ${docStyleTableBorderColor}`, fontSize: `${15 + docStyleFontSizeOffset}px` }}>SECTION HEADER</div>
+                      <div className="py-1" style={{ borderBottom: `1px solid ${docStyleTableLineColor}`, fontSize: `${14 + docStyleFontSizeOffset}px` }}>Sample body text</div>
+                      <div className="py-1" style={{ borderBottom: `1px solid ${docStyleTableLineColor}`, fontSize: `${10 + docStyleFontSizeOffset}px` }}>Sample table row data</div>
                     </div>
                   </div>
                 </CardContent>

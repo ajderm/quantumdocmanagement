@@ -17,7 +17,7 @@ interface CustomDocumentPreviewProps {
   document: CustomDocument;
   formData: Record<string, any>;
   dealerInfo?: DealerInfo;
-  documentStyles?: { fontFamily?: string; fontColor?: string; tableBorderColor?: string; tableLineColor?: string; };
+  documentStyles?: { fontFamily?: string; fontColor?: string; tableBorderColor?: string; tableLineColor?: string; fontSizeOffset?: number; };
 }
 
 export const CustomDocumentPreview = forwardRef<HTMLDivElement, CustomDocumentPreviewProps>(
@@ -53,7 +53,7 @@ export const CustomDocumentPreview = forwardRef<HTMLDivElement, CustomDocumentPr
             />
           )}
           {section.showDealerAddress && dealerInfo && (
-            <div className="text-[10px] leading-tight">
+            <div className="text-[14px] leading-tight">
               <div className="font-bold text-[12px]">{dealerInfo.companyName}</div>
               <div>{dealerInfo.address}</div>
               <div>
@@ -67,17 +67,17 @@ export const CustomDocumentPreview = forwardRef<HTMLDivElement, CustomDocumentPr
         </div>
         <div className="text-right">
           <div className="text-[16px] font-bold">{document.name}</div>
-          <div className="text-[10px] mt-1">Date: {formatDate(new Date())}</div>
+          <div className="text-[14px] mt-1">Date: {formatDate(new Date())}</div>
         </div>
       </div>
     );
 
     const renderFields = (section: DocumentSection) => (
       <div className="mb-4" key={section.id}>
-        <div className="font-bold text-[11px] border-b-2 border-black pb-1 mb-2 uppercase">
+        <div className="font-bold text-[15px] border-b-2 border-black pb-1 mb-2 uppercase">
           {section.title}
         </div>
-        <div className="grid grid-cols-3 gap-x-4 gap-y-1 text-[10px]">
+        <div className="grid grid-cols-3 gap-x-4 gap-y-1 text-[14px]">
           {(section.fields || []).map((field) => {
             const value = formData[field.id] || '';
             // Skip checkboxes that are false
@@ -108,10 +108,10 @@ export const CustomDocumentPreview = forwardRef<HTMLDivElement, CustomDocumentPr
 
       return (
         <div className="mb-4" key={section.id}>
-          <div className="font-bold text-[11px] border-b-2 border-black pb-1 mb-2 uppercase">
+          <div className="font-bold text-[15px] border-b-2 border-black pb-1 mb-2 uppercase">
             {section.title}
           </div>
-          <table className="w-full text-[9px] border-collapse">
+          <table className="w-full text-[14px] border-collapse">
             <thead>
               <tr className="border-b border-black">
                 {columns.map((col) => (
@@ -139,7 +139,7 @@ export const CustomDocumentPreview = forwardRef<HTMLDivElement, CustomDocumentPr
 
     const renderSignature = (section: DocumentSection) => (
       <div className="mb-4" key={section.id}>
-        <div className="font-bold text-[11px] border-b-2 border-black pb-1 mb-3 uppercase">
+        <div className="font-bold text-[15px] border-b-2 border-black pb-1 mb-3 uppercase">
           {section.title}
         </div>
         <div className="flex gap-8 mt-6">
@@ -147,14 +147,14 @@ export const CustomDocumentPreview = forwardRef<HTMLDivElement, CustomDocumentPr
             <div className="border-b border-black pb-1 mb-1 min-h-[24px] font-script italic text-[14px]">
               {formData[`sig_${section.id}_name`] || ''}
             </div>
-            <div className="text-[9px]">{section.signerLabel || 'Authorized Signature'}</div>
+            <div className="text-[14px]">{section.signerLabel || 'Authorized Signature'}</div>
           </div>
           {section.includeDateLine && (
             <div className="w-32">
-              <div className="border-b border-black pb-1 mb-1 min-h-[24px] text-[10px]">
+              <div className="border-b border-black pb-1 mb-1 min-h-[24px] text-[14px]">
                 {formData[`sig_${section.id}_date`] || formatDate(new Date())}
               </div>
-              <div className="text-[9px]">Date</div>
+              <div className="text-[14px]">Date</div>
             </div>
           )}
         </div>
@@ -166,7 +166,7 @@ export const CustomDocumentPreview = forwardRef<HTMLDivElement, CustomDocumentPr
 
       return (
         <div className="mb-4" key={section.id}>
-          <div className="font-bold text-[11px] border-b-2 border-black pb-1 mb-2 uppercase">
+          <div className="font-bold text-[15px] border-b-2 border-black pb-1 mb-2 uppercase">
             Terms & Conditions
           </div>
           <div className="text-[8px] leading-tight whitespace-pre-wrap">
@@ -193,19 +193,31 @@ export const CustomDocumentPreview = forwardRef<HTMLDivElement, CustomDocumentPr
       }
     };
 
+    const _docFontOffset = documentStyles?.fontSizeOffset ?? 0;
+    const _docScopeId = 'doc-customdocument';
+    const _docFontCss = _docFontOffset
+      ? [6,7,8,9,10,11,12,14,15,16,18,20,24]
+          .map(n => `[data-doc-scope="${_docScopeId}"] .text-\\[${n}px\\]{font-size:${Math.max(4,n+_docFontOffset)}px !important;}`)
+          .join('')
+      : '';
+
     return (
-      <div
-        ref={ref}
-        className="bg-white p-8"
-        style={{
-          width: '8.5in',
-          minHeight: '11in',
-          fontFamily: documentStyles?.fontFamily || 'Arial, sans-serif',
-          color: documentStyles?.fontColor || '#000000',
-        }}
-      >
-        {sections.map(renderSection)}
-      </div>
+      <>
+        {_docFontCss && <style>{_docFontCss}</style>}
+        <div
+          ref={ref}
+          data-doc-scope={_docScopeId}
+          className="bg-white p-8"
+          style={{
+            width: '8.5in',
+            minHeight: '11in',
+            fontFamily: documentStyles?.fontFamily || 'Arial, sans-serif',
+            color: documentStyles?.fontColor || '#000000',
+          }}
+        >
+          {sections.map(renderSection)}
+        </div>
+      </>
     );
   }
 );

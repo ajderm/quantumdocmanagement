@@ -22,10 +22,21 @@ export const InstallationPreview = forwardRef<HTMLDivElement, InstallationPrevie
       return formData.customerNumberOverride || formData.customerNumber || '';
     };
 
+    const _docFontOffset = documentStyles?.fontSizeOffset ?? 0;
+    const _docScopeId = 'doc-installation';
+    const _docFontCss = _docFontOffset
+      ? [6,7,8,9,10,11,12,14,15,16,18,20,24]
+          .map(n => `[data-doc-scope="${_docScopeId}"] .text-\\[${n}px\\]{font-size:${Math.max(4,n+_docFontOffset)}px !important;}`)
+          .join('')
+      : '';
+
     return (
-      <div
+      <>
+        {_docFontCss && <style>{_docFontCss}</style>}
+        <div
         ref={ref}
-        className="bg-white p-6 min-h-[11in] w-[8.5in] text-[10px] leading-tight"
+        data-doc-scope={_docScopeId}
+        className="bg-white p-6 min-h-[11in] w-[8.5in] text-[14px] leading-tight"
         style={{ fontFamily: documentStyles?.fontFamily || 'Arial, sans-serif', color: documentStyles?.fontColor || '#000000' }}
       >
         {/* Header */}
@@ -42,7 +53,7 @@ export const InstallationPreview = forwardRef<HTMLDivElement, InstallationPrevie
                     crossOrigin="anonymous"
                   />
                 )}
-                <p className="font-bold text-[9px]">{dealerInfo.companyName}</p>
+                <p className="font-bold text-[10px]">{dealerInfo.companyName}</p>
                 <p className="text-[8px]">{dealerInfo.address}</p>
                 <p className="text-[8px]">{dealerInfo.phone}</p>
                 <p className="text-[8px]">{dealerInfo.website}</p>
@@ -84,7 +95,7 @@ export const InstallationPreview = forwardRef<HTMLDivElement, InstallationPrevie
         {/* Customer Ship To / Bill To */}
         <div className="grid grid-cols-2 gap-4 mb-4">
           <div className="border border-black p-2">
-            <p className="font-bold text-[9px] mb-1 border-b border-black pb-2 text-center">CUSTOMER SHIP TO</p>
+            <p className="font-bold text-[10px] mb-1 border-b border-black pb-2 text-center">CUSTOMER SHIP TO</p>
             <table className="w-full text-[8px]">
               <tbody>
                 <tr><td className="font-bold w-16">Company:</td><td>{formData.shipToCompany}</td></tr>
@@ -97,7 +108,7 @@ export const InstallationPreview = forwardRef<HTMLDivElement, InstallationPrevie
             </table>
           </div>
           <div className="border border-black p-2">
-            <p className="font-bold text-[9px] mb-1 border-b border-black pb-2 text-center">CUSTOMER BILL TO</p>
+            <p className="font-bold text-[10px] mb-1 border-b border-black pb-2 text-center">CUSTOMER BILL TO</p>
             <table className="w-full text-[8px]">
               <tbody>
                 <tr><td className="font-bold w-16">Company:</td><td>{formData.billToCompany}</td></tr>
@@ -113,7 +124,7 @@ export const InstallationPreview = forwardRef<HTMLDivElement, InstallationPrevie
 
         {/* Equipment Installed */}
         <div className="mb-4">
-          <p className="font-bold text-[9px] mb-1">EQUIPMENT (INSTALLED)</p>
+          <p className="font-bold text-[10px] mb-1">EQUIPMENT (INSTALLED)</p>
           <table className="w-full border-collapse text-[8px]">
             <thead>
               <tr className="border-b border-black">
@@ -151,7 +162,7 @@ export const InstallationPreview = forwardRef<HTMLDivElement, InstallationPrevie
         {/* Networking & Additional Contacts - Side by Side */}
         <div className="grid grid-cols-2 gap-4 mb-4">
           <div className="border border-black p-2">
-            <p className="font-bold text-[9px] mb-1 border-b border-black pb-2 text-center">NETWORKING</p>
+            <p className="font-bold text-[10px] mb-1 border-b border-black pb-2 text-center">NETWORKING</p>
             {/* Print and Scan side by side */}
             <div className="grid grid-cols-2 gap-2">
               {/* PRINT Column */}
@@ -183,7 +194,7 @@ export const InstallationPreview = forwardRef<HTMLDivElement, InstallationPrevie
             </div>
           </div>
           <div className="border border-black p-2">
-            <p className="font-bold text-[9px] mb-1 border-b border-black pb-2 text-center">ADDITIONAL CONTACTS</p>
+            <p className="font-bold text-[10px] mb-1 border-b border-black pb-2 text-center">ADDITIONAL CONTACTS</p>
             <div className="grid grid-cols-2 gap-2">
               {/* IT Contact Column */}
               <div>
@@ -214,7 +225,7 @@ export const InstallationPreview = forwardRef<HTMLDivElement, InstallationPrevie
         {/* Equipment Removed */}
         {formData.removedEquipment.length > 0 && (
           <div className="mb-4">
-            <p className="font-bold text-[9px] mb-1">EQUIPMENT (REMOVED)</p>
+            <p className="font-bold text-[10px] mb-1">EQUIPMENT (REMOVED)</p>
             <table className="w-full border-collapse text-[8px]">
               <thead>
                 <tr className="border-b border-black">
@@ -245,7 +256,7 @@ export const InstallationPreview = forwardRef<HTMLDivElement, InstallationPrevie
         {/* Removal Instructions */}
         {formData.removalInstructions && (
           <div className="mb-4">
-            <p className="font-bold text-[9px] mb-1">REMOVAL INSTRUCTIONS</p>
+            <p className="font-bold text-[10px] mb-1">REMOVAL INSTRUCTIONS</p>
             <p className="text-[8px] whitespace-pre-wrap border border-black p-2">{formData.removalInstructions}</p>
           </div>
         )}
@@ -253,7 +264,7 @@ export const InstallationPreview = forwardRef<HTMLDivElement, InstallationPrevie
         {/* Removal Receipt T&C */}
         {removalReceiptTerms && (
           <div className="mb-3">
-            <p className="font-bold text-[9px] mb-1">REMOVAL RECEIPT</p>
+            <p className="font-bold text-[10px] mb-1">REMOVAL RECEIPT</p>
             <p className="text-[7px] whitespace-pre-wrap mb-1">{removalReceiptTerms}</p>
             <div className="w-32">
               <div className="border-b border-black h-4 mb-0.5"></div>
@@ -265,7 +276,7 @@ export const InstallationPreview = forwardRef<HTMLDivElement, InstallationPrevie
         {/* Delivery and Acceptance T&C */}
         {deliveryAcceptanceTerms && (
           <div className="mb-3">
-            <p className="font-bold text-[9px] mb-1">DELIVERY AND ACCEPTANCE</p>
+            <p className="font-bold text-[10px] mb-1">DELIVERY AND ACCEPTANCE</p>
             <p className="text-[7px] whitespace-pre-wrap mb-1">{deliveryAcceptanceTerms}</p>
             <div className="w-32">
               <div className="border-b border-black h-4 mb-0.5"></div>
@@ -276,7 +287,7 @@ export const InstallationPreview = forwardRef<HTMLDivElement, InstallationPrevie
 
         {/* Combined Signature Section */}
         <div className="mt-4 pt-3 border-t border-black">
-          <p className="font-bold text-[9px] mb-2">SIGNATURES</p>
+          <p className="font-bold text-[10px] mb-2">SIGNATURES</p>
           <div className="grid grid-cols-2 gap-4">
             {/* Technician Side */}
             <div className="border-r border-gray-300 pr-4">
@@ -319,6 +330,7 @@ export const InstallationPreview = forwardRef<HTMLDivElement, InstallationPrevie
           </div>
         </div>
       </div>
+        </>
     );
   }
 );

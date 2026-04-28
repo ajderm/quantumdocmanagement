@@ -107,6 +107,7 @@ interface DealerSettings {
     fontColor?: string;
     tableBorderColor?: string;
     tableLineColor?: string;
+    fontSizeOffset?: number;
   };
   proposal_template_url?: string;
   proposal_template_name?: string;

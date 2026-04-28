@@ -19,7 +19,7 @@ interface FMVLeasePreviewProps {
   formData: FMVLeaseFormData;
   dealerInfo?: DealerInfo | null;
   termsAndConditions?: string;
-  documentStyles?: { fontFamily?: string; fontColor?: string; tableBorderColor?: string; tableLineColor?: string; };
+  documentStyles?: { fontFamily?: string; fontColor?: string; tableBorderColor?: string; tableLineColor?: string; fontSizeOffset?: number; };
 }
 
 const PAYMENT_FREQUENCY_LABELS: Record<string, string> = {
@@ -41,10 +41,21 @@ export const FMVLeasePreview = forwardRef<HTMLDivElement, FMVLeasePreviewProps>(
       }).format(num);
     };
 
+    const _docFontOffset = documentStyles?.fontSizeOffset ?? 0;
+    const _docScopeId = 'doc-fmvlease';
+    const _docFontCss = _docFontOffset
+      ? [6,7,8,9,10,11,12,14,15,16,18,20,24]
+          .map(n => `[data-doc-scope="${_docScopeId}"] .text-\\[${n}px\\]{font-size:${Math.max(4,n+_docFontOffset)}px !important;}`)
+          .join('')
+      : '';
+
     return (
-      <div
+      <>
+        {_docFontCss && <style>{_docFontCss}</style>}
+        <div
         ref={ref}
-        className="bg-white p-8 min-h-[11in] w-[8.5in] text-[11px] leading-tight"
+        data-doc-scope={_docScopeId}
+        className="bg-white p-8 min-h-[11in] w-[8.5in] text-[15px] leading-tight"
         style={{ fontFamily: documentStyles?.fontFamily || "Arial, sans-serif", color: documentStyles?.fontColor || "#000000" }}
       >
         {/* Header */}
@@ -60,23 +71,23 @@ export const FMVLeasePreview = forwardRef<HTMLDivElement, FMVLeasePreviewProps>(
               />
             )}
             <div>
-              <p className="font-bold text-[10px]">
+              <p className="font-bold text-[14px]">
                 {dealerInfo?.company_name || "Company Name"}
               </p>
-              <p className="text-[9px]">
+              <p className="text-[10px]">
                 {dealerInfo?.address_line1}
                 {dealerInfo?.address_line2 && <>, {dealerInfo.address_line2}</>}
               </p>
-              <p className="text-[9px]">
+              <p className="text-[10px]">
                 {[dealerInfo?.city, dealerInfo?.state, dealerInfo?.zip_code]
                   .filter(Boolean)
                   .join(", ")}
               </p>
               {dealerInfo?.phone && (
-                <p className="text-[9px]">Phone: {dealerInfo.phone}</p>
+                <p className="text-[10px]">Phone: {dealerInfo.phone}</p>
               )}
               {dealerInfo?.website && (
-                <p className="text-[9px]">{dealerInfo.website}</p>
+                <p className="text-[10px]">{dealerInfo.website}</p>
               )}
             </div>
           </div>
@@ -89,7 +100,7 @@ export const FMVLeasePreview = forwardRef<HTMLDivElement, FMVLeasePreviewProps>(
 
         {/* Customer Information Table */}
         <div className="mb-4">
-          <table className="w-full border-collapse text-[9px]">
+          <table className="w-full border-collapse text-[10px]">
             <thead>
               <tr className="border-b-2 border-black">
                 <th colSpan={4} className="text-left py-1 pb-2 font-bold">
@@ -134,7 +145,7 @@ export const FMVLeasePreview = forwardRef<HTMLDivElement, FMVLeasePreviewProps>(
 
         {/* Equipment Information Table */}
         <div className="mb-4">
-          <table className="w-full border-collapse text-[9px]">
+          <table className="w-full border-collapse text-[10px]">
             <thead>
               <tr className="border-b-2 border-black">
                 <th colSpan={4} className="text-left py-1 pb-2 font-bold">
@@ -179,7 +190,7 @@ export const FMVLeasePreview = forwardRef<HTMLDivElement, FMVLeasePreviewProps>(
 
         {/* Payment Schedule Table */}
         <div className="mb-4">
-          <table className="w-full border-collapse text-[9px]">
+          <table className="w-full border-collapse text-[10px]">
             <thead>
               <tr className="border-b-2 border-black">
                 <th colSpan={4} className="text-left py-1 pb-2 font-bold">
@@ -225,7 +236,7 @@ export const FMVLeasePreview = forwardRef<HTMLDivElement, FMVLeasePreviewProps>(
         {/* Terms and Conditions */}
         {termsAndConditions && (
           <div className="mb-4">
-            <p className="font-bold mb-1 text-[10px]">Terms & Conditions:</p>
+            <p className="font-bold mb-1 text-[14px]">Terms & Conditions:</p>
             <p className="text-[8px] whitespace-pre-wrap">{termsAndConditions}</p>
           </div>
         )}
@@ -235,7 +246,7 @@ export const FMVLeasePreview = forwardRef<HTMLDivElement, FMVLeasePreviewProps>(
           <div className="grid grid-cols-2 gap-8">
             {/* Left: Lessor (Dealer) */}
             <div>
-              <p className="font-bold mb-1 text-[10px]">
+              <p className="font-bold mb-1 text-[14px]">
                 LESSOR: {dealerInfo?.company_name || "Dealer"}
               </p>
               <div className="space-y-1">
@@ -260,7 +271,7 @@ export const FMVLeasePreview = forwardRef<HTMLDivElement, FMVLeasePreviewProps>(
 
             {/* Right: Lessee (Customer) */}
             <div>
-              <p className="font-bold mb-1 text-[10px]">
+              <p className="font-bold mb-1 text-[14px]">
                 LESSEE: {formData.companyLegalName || "Customer"}
               </p>
               <div className="space-y-1">
@@ -285,6 +296,7 @@ export const FMVLeasePreview = forwardRef<HTMLDivElement, FMVLeasePreviewProps>(
           </div>
         </div>
       </div>
+        </>
     );
   }
 );
