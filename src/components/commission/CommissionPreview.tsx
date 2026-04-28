@@ -70,9 +70,20 @@ export const CommissionPreview = forwardRef<HTMLDivElement, CommissionPreviewPro
     const isPurchase = formData.transactionType === "Purchase" || formData.transactionType === "Rental";
     const isLease = formData.transactionType.startsWith("Lease -- ");
 
+    const _docFontOffset = documentStyles?.fontSizeOffset ?? 0;
+    const _docScopeId = 'doc-commission';
+    const _docFontCss = _docFontOffset
+      ? [6,7,8,9,10,11,12,14,15,16,18,20,24]
+          .map(n => `[data-doc-scope="${_docScopeId}"] .text-\\[${n}px\\]{font-size:${Math.max(4,n+_docFontOffset)}px !important;}`)
+          .join('')
+      : '';
+
     return (
-      <div
+      <>
+        {_docFontCss && <style>{_docFontCss}</style>}
+        <div
         ref={ref}
+        data-doc-scope={_docScopeId}
         className="bg-white p-6 min-h-[11in] w-[8.5in] text-[14px] leading-tight"
         style={{
           fontFamily: documentStyles?.fontFamily || "Arial, sans-serif",
@@ -263,6 +274,7 @@ export const CommissionPreview = forwardRef<HTMLDivElement, CommissionPreviewPro
           </div>
         </div>
       </div>
+        </>
     );
   }
 );

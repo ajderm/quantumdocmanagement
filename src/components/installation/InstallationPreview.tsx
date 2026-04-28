@@ -22,9 +22,20 @@ export const InstallationPreview = forwardRef<HTMLDivElement, InstallationPrevie
       return formData.customerNumberOverride || formData.customerNumber || '';
     };
 
+    const _docFontOffset = documentStyles?.fontSizeOffset ?? 0;
+    const _docScopeId = 'doc-installation';
+    const _docFontCss = _docFontOffset
+      ? [6,7,8,9,10,11,12,14,15,16,18,20,24]
+          .map(n => `[data-doc-scope="${_docScopeId}"] .text-\\[${n}px\\]{font-size:${Math.max(4,n+_docFontOffset)}px !important;}`)
+          .join('')
+      : '';
+
     return (
-      <div
+      <>
+        {_docFontCss && <style>{_docFontCss}</style>}
+        <div
         ref={ref}
+        data-doc-scope={_docScopeId}
         className="bg-white p-6 min-h-[11in] w-[8.5in] text-[14px] leading-tight"
         style={{ fontFamily: documentStyles?.fontFamily || 'Arial, sans-serif', color: documentStyles?.fontColor || '#000000' }}
       >
@@ -319,6 +330,7 @@ export const InstallationPreview = forwardRef<HTMLDivElement, InstallationPrevie
           </div>
         </div>
       </div>
+        </>
     );
   }
 );

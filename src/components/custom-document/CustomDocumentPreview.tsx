@@ -17,7 +17,7 @@ interface CustomDocumentPreviewProps {
   document: CustomDocument;
   formData: Record<string, any>;
   dealerInfo?: DealerInfo;
-  documentStyles?: { fontFamily?: string; fontColor?: string; tableBorderColor?: string; tableLineColor?: string; };
+  documentStyles?: { fontFamily?: string; fontColor?: string; tableBorderColor?: string; tableLineColor?: string; fontSizeOffset?: number; };
 }
 
 export const CustomDocumentPreview = forwardRef<HTMLDivElement, CustomDocumentPreviewProps>(
@@ -70,6 +70,7 @@ export const CustomDocumentPreview = forwardRef<HTMLDivElement, CustomDocumentPr
           <div className="text-[14px] mt-1">Date: {formatDate(new Date())}</div>
         </div>
       </div>
+        </>
     );
 
     const renderFields = (section: DocumentSection) => (
@@ -84,7 +85,9 @@ export const CustomDocumentPreview = forwardRef<HTMLDivElement, CustomDocumentPr
             if (field.type === 'checkbox' && !value) return null;
             
             return (
-              <div key={field.id} className={getWidthClass(field.width)}>
+              <>
+        {_docFontCss && <style>{_docFontCss}</style>}
+        <div key={field.id} className={getWidthClass(field.width)}>
                 <span className="font-semibold">{field.label}:</span>
                 <span className="ml-1">
                   {field.type === 'checkbox' 
@@ -193,9 +196,18 @@ export const CustomDocumentPreview = forwardRef<HTMLDivElement, CustomDocumentPr
       }
     };
 
+    const _docFontOffset = documentStyles?.fontSizeOffset ?? 0;
+    const _docScopeId = 'doc-customdocument';
+    const _docFontCss = _docFontOffset
+      ? [6,7,8,9,10,11,12,14,15,16,18,20,24]
+          .map(n => `[data-doc-scope="${_docScopeId}"] .text-\\[${n}px\\]{font-size:${Math.max(4,n+_docFontOffset)}px !important;}`)
+          .join('')
+      : '';
+
     return (
       <div
         ref={ref}
+        data-doc-scope={_docScopeId}
         className="bg-white p-8"
         style={{
           width: '8.5in',
