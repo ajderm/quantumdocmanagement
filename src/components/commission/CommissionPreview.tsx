@@ -76,8 +76,6 @@ export const CommissionPreview = forwardRef<HTMLDivElement, CommissionPreviewPro
     const _docFontCss = buildDocumentFontCss(_docScopeId, documentStyles);
 
     return (
-      <>
-        {_docFontCss && <style>{_docFontCss}</style>}
         <div
         ref={ref}
         data-doc-scope={_docScopeId}
@@ -87,6 +85,7 @@ export const CommissionPreview = forwardRef<HTMLDivElement, CommissionPreviewPro
           color: documentStyles?.fontColor || "#000000",
         }}
       >
+          {_docFontCss && <style>{_docFontCss}</style>}
         {/* Header */}
         <div className="flex justify-between items-start mb-3">
           <div className="flex items-start gap-3">
@@ -271,7 +270,6 @@ export const CommissionPreview = forwardRef<HTMLDivElement, CommissionPreviewPro
           </div>
         </div>
       </div>
-        </>
     );
   }
 );

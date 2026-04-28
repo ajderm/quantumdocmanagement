@@ -34,14 +34,13 @@ const RelocationPreview = forwardRef<HTMLDivElement, RelocationPreviewProps>(({ 
   const _docFontCss = buildDocumentFontCss(_docScopeId, documentStyles);
 
   return (
-    <>
-      {_docFontCss && <style>{_docFontCss}</style>}
     <div
       ref={ref}
       data-doc-scope={_docScopeId}
       className="bg-white p-6 text-[12px] leading-tight"
       style={{ width: '8.5in', minHeight: '11in', fontFamily: documentStyles?.fontFamily || 'Arial, sans-serif', color: documentStyles?.fontColor || '#000000' }}
     >
+      {_docFontCss && <style>{_docFontCss}</style>}
       {/* Header */}
       <div className="flex justify-between items-start mb-4">
         <div className="flex items-start gap-4">
@@ -266,7 +265,6 @@ const RelocationPreview = forwardRef<HTMLDivElement, RelocationPreviewProps>(({ 
         </p>
       </div>
     </div>
-    </>
   );
 });
 
