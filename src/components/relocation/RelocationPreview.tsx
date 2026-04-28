@@ -29,9 +29,20 @@ const RelocationPreview = forwardRef<HTMLDivElement, RelocationPreviewProps>(({ 
     }
   };
 
+  const _docFontOffset = documentStyles?.fontSizeOffset ?? 0;
+  const _docScopeId = 'doc-relocation';
+  const _docFontCss = _docFontOffset
+    ? [6,7,8,9,10,11,12,14,15,16,18,20,24]
+        .map(n => `[data-doc-scope="${_docScopeId}"] .text-\\[${n}px\\]{font-size:${Math.max(4,n+_docFontOffset)}px !important;}`)
+        .join('')
+    : '';
+
   return (
+    <>
+      {_docFontCss && <style>{_docFontCss}</style>}
     <div
       ref={ref}
+      data-doc-scope={_docScopeId}
       className="bg-white p-6 text-[14px] leading-tight"
       style={{ width: '8.5in', minHeight: '11in', fontFamily: documentStyles?.fontFamily || 'Arial, sans-serif', color: documentStyles?.fontColor || '#000000' }}
     >
