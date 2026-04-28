@@ -270,6 +270,7 @@ const RelocationPreview = forwardRef<HTMLDivElement, RelocationPreviewProps>(({ 
         </p>
       </div>
     </div>
+    </>
   );
 });
 
