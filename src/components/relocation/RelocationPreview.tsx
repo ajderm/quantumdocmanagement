@@ -16,7 +16,7 @@ interface DealerInfo {
 interface RelocationPreviewProps {
   formData: RelocationFormData;
   dealerInfo?: DealerInfo;
-  documentStyles?: { fontFamily?: string; fontColor?: string; tableBorderColor?: string; tableLineColor?: string; };
+  documentStyles?: { fontFamily?: string; fontColor?: string; tableBorderColor?: string; tableLineColor?: string; fontSizeOffset?: number; };
 }
 
 const RelocationPreview = forwardRef<HTMLDivElement, RelocationPreviewProps>(({ formData, dealerInfo, documentStyles }, ref) => {
