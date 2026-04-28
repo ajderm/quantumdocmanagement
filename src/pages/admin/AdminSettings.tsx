@@ -182,6 +182,7 @@ export default function AdminSettings() {
             if (ds.fontColor) setDocStyleFontColor(ds.fontColor);
             if (ds.tableBorderColor) setDocStyleTableBorderColor(ds.tableBorderColor);
             if (ds.tableLineColor) setDocStyleTableLineColor(ds.tableLineColor);
+            if (typeof ds.fontSizeOffset === 'number') setDocStyleFontSizeOffset(ds.fontSizeOffset);
           }
           if (settings.proposal_template_url) {
             setProposalTemplateUrl(settings.proposal_template_url);
