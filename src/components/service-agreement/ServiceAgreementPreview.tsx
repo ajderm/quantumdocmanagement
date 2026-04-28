@@ -2,6 +2,7 @@ import { forwardRef } from "react";
 import { format } from "date-fns";
 import { ServiceAgreementFormData } from "./ServiceAgreementForm";
 
+import { buildDocumentFontCss } from "@/lib/documentFontSizes";
 interface LineItem {
   id: string;
   name: string;
@@ -33,7 +34,7 @@ interface ServiceAgreementPreviewProps {
   dealerInfo?: DealerInfo | null;
   lineItems: LineItem[];
   termsAndConditions?: string;
-  documentStyles?: { fontFamily?: string; fontColor?: string; tableBorderColor?: string; tableLineColor?: string; fontSizeOffset?: number; };
+  documentStyles?: { fontFamily?: string; fontColor?: string; tableBorderColor?: string; tableLineColor?: string; fontSizeOffset?: number; fontSizeOffsets?: { title?: number; header?: number; body?: number; table?: number; fine?: number; }; };
   installationConfigs?: Record<string, { installedSerial?: string; idNumber?: string }>;
 }
 
@@ -75,13 +76,8 @@ export const ServiceAgreementPreview = forwardRef<HTMLDivElement, ServiceAgreeme
       }).format(num);
     };
 
-    const _docFontOffset = documentStyles?.fontSizeOffset ?? 0;
     const _docScopeId = 'doc-serviceagreement';
-    const _docFontCss = _docFontOffset
-      ? [6,7,8,9,10,11,12,14,15,16,18,20,24]
-          .map(n => `[data-doc-scope="${_docScopeId}"] .text-\\[${n}px\\]{font-size:${Math.max(4,n+_docFontOffset)}px !important;}`)
-          .join('')
-      : '';
+    const _docFontCss = buildDocumentFontCss(_docScopeId, documentStyles);
 
     return (
       <>

@@ -2,6 +2,7 @@ import { forwardRef } from 'react';
 import type { InterterritorialFormData } from './InterterritorialForm';
 import { format } from 'date-fns';
 
+import { buildDocumentFontCss } from "@/lib/documentFontSizes";
 interface InterterritorialPreviewProps {
   formData: InterterritorialFormData;
   dealerInfo?: {
@@ -12,7 +13,7 @@ interface InterterritorialPreviewProps {
     logoUrl?: string;
   };
   termsAndConditions?: string;
-  documentStyles?: { fontFamily?: string; fontColor?: string; tableBorderColor?: string; tableLineColor?: string; fontSizeOffset?: number; };
+  documentStyles?: { fontFamily?: string; fontColor?: string; tableBorderColor?: string; tableLineColor?: string; fontSizeOffset?: number; fontSizeOffsets?: { title?: number; header?: number; body?: number; table?: number; fine?: number; }; };
 }
 
 export const InterterritorialPreview = forwardRef<HTMLDivElement, InterterritorialPreviewProps>(
@@ -25,13 +26,8 @@ export const InterterritorialPreview = forwardRef<HTMLDivElement, Interterritori
       return (value ?? 0).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
     };
 
-    const _docFontOffset = documentStyles?.fontSizeOffset ?? 0;
     const _docScopeId = 'doc-interterritorial';
-    const _docFontCss = _docFontOffset
-      ? [6,7,8,9,10,11,12,14,15,16,18,20,24]
-          .map(n => `[data-doc-scope="${_docScopeId}"] .text-\\[${n}px\\]{font-size:${Math.max(4,n+_docFontOffset)}px !important;}`)
-          .join('')
-      : '';
+    const _docFontCss = buildDocumentFontCss(_docScopeId, documentStyles);
 
     return (
       <>

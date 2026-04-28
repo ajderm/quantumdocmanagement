@@ -3,6 +3,7 @@ import type { QuoteFormData } from './QuoteForm';
 import type { DocumentStyles } from '@/components/commission/CommissionPreview';
 import { getLabel, isSectionVisible, type FormCustomizationConfig } from '@/lib/formCustomization';
 
+import { buildDocumentFontCss } from "@/lib/documentFontSizes";
 interface QuotePreviewProps {
   formData: QuoteFormData;
   dealerInfo?: {
@@ -63,13 +64,8 @@ export const QuotePreview = forwardRef<HTMLDivElement, QuotePreviewProps>(
     // Get lease program display name
     const leaseTypeName = isRental ? 'Monthly Rental' : formData.leaseProgram === 'fmv' ? 'FMV Lease' : '$1 Buyout Lease';
 
-    const _docFontOffset = documentStyles?.fontSizeOffset ?? 0;
     const _docScopeId = 'doc-quote';
-    const _docFontCss = _docFontOffset
-      ? [6,7,8,9,10,11,12,14,15,16,18,20,24]
-          .map(n => `[data-doc-scope="${_docScopeId}"] .text-\\[${n}px\\]{font-size:${Math.max(4,n+_docFontOffset)}px !important;}`)
-          .join('')
-      : '';
+    const _docFontCss = buildDocumentFontCss(_docScopeId, documentStyles);
 
     return (
       <>

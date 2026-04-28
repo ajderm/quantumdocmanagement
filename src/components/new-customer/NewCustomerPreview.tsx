@@ -1,6 +1,7 @@
 import { forwardRef } from 'react';
 import { NewCustomerFormData } from './NewCustomerForm';
 
+import { buildDocumentFontCss } from "@/lib/documentFontSizes";
 interface NewCustomerPreviewProps {
   formData: NewCustomerFormData;
   dealerInfo?: {
@@ -10,7 +11,7 @@ interface NewCustomerPreviewProps {
     logoUrl?: string;
   };
   termsAndConditions?: string;
-  documentStyles?: { fontFamily?: string; fontColor?: string; tableBorderColor?: string; tableLineColor?: string; fontSizeOffset?: number; };
+  documentStyles?: { fontFamily?: string; fontColor?: string; tableBorderColor?: string; tableLineColor?: string; fontSizeOffset?: number; fontSizeOffsets?: { title?: number; header?: number; body?: number; table?: number; fine?: number; }; };
 }
 
 const DEFAULT_TERMS = `TERMS OF SALE: Net 30 Days. A service charge of 1.5% per month (18% per annum) will be applied to all past due balances. In the event collection efforts are required, buyer agrees to pay all costs of collection including reasonable attorney fees.
@@ -24,13 +25,8 @@ export const NewCustomerPreview = forwardRef<HTMLDivElement, NewCustomerPreviewP
 
     const businessTypeLabel = formData.businessType ? formData.businessType.replace('_', ' ').replace(/\b\w/g, l => l.toUpperCase()) : '';
 
-    const _docFontOffset = documentStyles?.fontSizeOffset ?? 0;
     const _docScopeId = 'doc-newcustomer';
-    const _docFontCss = _docFontOffset
-      ? [6,7,8,9,10,11,12,14,15,16,18,20,24]
-          .map(n => `[data-doc-scope="${_docScopeId}"] .text-\\[${n}px\\]{font-size:${Math.max(4,n+_docFontOffset)}px !important;}`)
-          .join('')
-      : '';
+    const _docFontCss = buildDocumentFontCss(_docScopeId, documentStyles);
 
     return (
       <>

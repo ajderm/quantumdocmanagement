@@ -2,6 +2,7 @@ import React, { forwardRef } from 'react';
 import { RelocationFormData } from './RelocationForm';
 import { format } from 'date-fns';
 
+import { buildDocumentFontCss } from "@/lib/documentFontSizes";
 interface DealerInfo {
   name: string;
   address: string;
@@ -16,7 +17,7 @@ interface DealerInfo {
 interface RelocationPreviewProps {
   formData: RelocationFormData;
   dealerInfo?: DealerInfo;
-  documentStyles?: { fontFamily?: string; fontColor?: string; tableBorderColor?: string; tableLineColor?: string; fontSizeOffset?: number; };
+  documentStyles?: { fontFamily?: string; fontColor?: string; tableBorderColor?: string; tableLineColor?: string; fontSizeOffset?: number; fontSizeOffsets?: { title?: number; header?: number; body?: number; table?: number; fine?: number; }; };
 }
 
 const RelocationPreview = forwardRef<HTMLDivElement, RelocationPreviewProps>(({ formData, dealerInfo, documentStyles }, ref) => {
@@ -29,13 +30,8 @@ const RelocationPreview = forwardRef<HTMLDivElement, RelocationPreviewProps>(({ 
     }
   };
 
-  const _docFontOffset = documentStyles?.fontSizeOffset ?? 0;
   const _docScopeId = 'doc-relocation';
-  const _docFontCss = _docFontOffset
-    ? [6,7,8,9,10,11,12,14,15,16,18,20,24]
-        .map(n => `[data-doc-scope="${_docScopeId}"] .text-\\[${n}px\\]{font-size:${Math.max(4,n+_docFontOffset)}px !important;}`)
-        .join('')
-    : '';
+  const _docFontCss = buildDocumentFontCss(_docScopeId, documentStyles);
 
   return (
     <>

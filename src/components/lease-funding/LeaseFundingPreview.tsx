@@ -2,6 +2,7 @@ import { forwardRef } from "react";
 import { format } from "date-fns";
 import { LeaseFundingFormData } from "./LeaseFundingForm";
 
+import { buildDocumentFontCss } from "@/lib/documentFontSizes";
 interface DealerInfo {
   company_name?: string;
   address_line1?: string;
@@ -17,7 +18,7 @@ interface DealerInfo {
 interface LeaseFundingPreviewProps {
   formData: LeaseFundingFormData;
   dealerInfo?: DealerInfo;
-  documentStyles?: { fontFamily?: string; fontColor?: string; tableBorderColor?: string; tableLineColor?: string; fontSizeOffset?: number; };
+  documentStyles?: { fontFamily?: string; fontColor?: string; tableBorderColor?: string; tableLineColor?: string; fontSizeOffset?: number; fontSizeOffsets?: { title?: number; header?: number; body?: number; table?: number; fine?: number; }; };
 }
 
 export const LeaseFundingPreview = forwardRef<HTMLDivElement, LeaseFundingPreviewProps>(
@@ -38,13 +39,8 @@ export const LeaseFundingPreview = forwardRef<HTMLDivElement, LeaseFundingPrevie
       return format(date, "MM/dd/yyyy");
     };
 
-    const _docFontOffset = documentStyles?.fontSizeOffset ?? 0;
     const _docScopeId = 'doc-leasefunding';
-    const _docFontCss = _docFontOffset
-      ? [6,7,8,9,10,11,12,14,15,16,18,20,24]
-          .map(n => `[data-doc-scope="${_docScopeId}"] .text-\\[${n}px\\]{font-size:${Math.max(4,n+_docFontOffset)}px !important;}`)
-          .join('')
-      : '';
+    const _docFontCss = buildDocumentFontCss(_docScopeId, documentStyles);
 
     return (
       <>

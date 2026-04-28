@@ -2,6 +2,7 @@ import { forwardRef } from 'react';
 import { format } from 'date-fns';
 import type { CustomDocument, DocumentSection } from '@/components/admin/types';
 
+import { buildDocumentFontCss } from "@/lib/documentFontSizes";
 interface DealerInfo {
   companyName?: string;
   address?: string;
@@ -17,7 +18,7 @@ interface CustomDocumentPreviewProps {
   document: CustomDocument;
   formData: Record<string, any>;
   dealerInfo?: DealerInfo;
-  documentStyles?: { fontFamily?: string; fontColor?: string; tableBorderColor?: string; tableLineColor?: string; fontSizeOffset?: number; };
+  documentStyles?: { fontFamily?: string; fontColor?: string; tableBorderColor?: string; tableLineColor?: string; fontSizeOffset?: number; fontSizeOffsets?: { title?: number; header?: number; body?: number; table?: number; fine?: number; }; };
 }
 
 export const CustomDocumentPreview = forwardRef<HTMLDivElement, CustomDocumentPreviewProps>(
@@ -193,13 +194,8 @@ export const CustomDocumentPreview = forwardRef<HTMLDivElement, CustomDocumentPr
       }
     };
 
-    const _docFontOffset = documentStyles?.fontSizeOffset ?? 0;
     const _docScopeId = 'doc-customdocument';
-    const _docFontCss = _docFontOffset
-      ? [6,7,8,9,10,11,12,14,15,16,18,20,24]
-          .map(n => `[data-doc-scope="${_docScopeId}"] .text-\\[${n}px\\]{font-size:${Math.max(4,n+_docFontOffset)}px !important;}`)
-          .join('')
-      : '';
+    const _docFontCss = buildDocumentFontCss(_docScopeId, documentStyles);
 
     return (
       <>
