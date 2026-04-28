@@ -142,20 +142,20 @@ export const QuotePreview = forwardRef<HTMLDivElement, QuotePreviewProps>(
                 <th className="text-left py-1 pb-2 w-12">Qty.</th>
                 <th className="text-left py-1 pb-2 w-36">Model</th>
                 <th className="text-left py-1 pb-2">Description</th>
-                {!isRental && <th className="text-right py-1 pb-2 w-24">Retail Total</th>}
-                {!isRental && <th className="text-right py-1 pb-2 w-24">Your Total</th>}
+                {!isRental && <th className="text-right py-1 pb-2 w-24">Retail</th>}
+                {!isRental && <th className="text-right py-1 pb-2 w-24">Your Price</th>}
               </tr>
             </thead>
             <tbody>
               {formData.equipmentDisplay !== 'total_only' && formData.lineItems.map((item) => {
-                const itemMsrp = item.msrp || 0;
-                const itemPrice = item.price || 0;
+                const itemMsrp = (item.msrp || 0) * item.quantity;
+                const itemPrice = (item.price || 0) * item.quantity;
                 const msrpDiffers = itemMsrp > 0 && Math.abs(itemMsrp - itemPrice) > 0.01;
                 return (
                   <tr key={item.id} className="border-b border-gray-300">
                     <td className="py-1">{item.quantity}</td>
                     <td className="py-1">{item.parentLineItemId ? '' : item.model}</td>
-                    <td className="py-1">{item.description}</td>
+                    <td className="py-1">{item.description || item.model}</td>
                     {!isRental && (
                       <td className="py-1 text-right">
                         {msrpDiffers ? (
@@ -174,8 +174,8 @@ export const QuotePreview = forwardRef<HTMLDivElement, QuotePreviewProps>(
                   {formData.lineItems.map((item) => (
                     <tr key={item.id} className="border-b border-gray-300">
                       <td className="py-1">{item.quantity}</td>
-                      <td className="py-1">{item.parentLineItemId ? '' : item.model}</td>
-                      <td className="py-1">{item.description}</td>
+                    <td className="py-1">{item.parentLineItemId ? '' : item.model}</td>
+                      <td className="py-1">{item.description || item.model}</td>
                       {!isRental && <td className="py-1 text-right"></td>}
                       {!isRental && <td className="py-1 text-right"></td>}
                     </tr>
