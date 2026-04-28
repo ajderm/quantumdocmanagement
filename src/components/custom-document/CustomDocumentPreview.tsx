@@ -70,7 +70,6 @@ export const CustomDocumentPreview = forwardRef<HTMLDivElement, CustomDocumentPr
           <div className="text-[14px] mt-1">Date: {formatDate(new Date())}</div>
         </div>
       </div>
-        </>
     );
 
     const renderFields = (section: DocumentSection) => (
