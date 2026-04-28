@@ -81,7 +81,7 @@ export const CommissionPreview = forwardRef<HTMLDivElement, CommissionPreviewPro
         <div
         ref={ref}
         data-doc-scope={_docScopeId}
-        className="bg-white p-6 min-h-[11in] w-[8.5in] text-[14px] leading-tight"
+        className="bg-white p-6 min-h-[11in] w-[8.5in] text-[10px] leading-tight"
         style={{
           fontFamily: documentStyles?.fontFamily || "Arial, sans-serif",
           color: documentStyles?.fontColor || "#000000",
@@ -94,7 +94,7 @@ export const CommissionPreview = forwardRef<HTMLDivElement, CommissionPreviewPro
               <img src={dealerInfo.logoUrl} alt="Logo" className="h-10 object-contain" crossOrigin="anonymous" />
             )}
             <div className="text-[10px]">
-              <p className="font-bold text-[14px]">{dealerInfo?.companyName || ""}</p>
+              <p className="font-bold text-[10px]">{dealerInfo?.companyName || ""}</p>
               {dealerInfo?.address && <p>{dealerInfo.address}</p>}
               {dealerInfo?.phone && <p>Phone: {dealerInfo.phone}</p>}
               {dealerInfo?.website && <p>{dealerInfo.website}</p>}

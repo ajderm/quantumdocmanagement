@@ -55,7 +55,7 @@ export const LoiPreview = forwardRef<HTMLDivElement, LoiPreviewProps>(
         <div
         ref={ref}
         data-doc-scope={_docScopeId}
-        className="bg-white p-8 min-h-[11in] w-[8.5in] text-[15px] leading-tight"
+        className="bg-white p-8 min-h-[11in] w-[8.5in] text-[11px] leading-tight"
         style={{ fontFamily: documentStyles?.fontFamily || "Arial, sans-serif", color: documentStyles?.fontColor || "#000000" }}
       >
         {/* Header - Customer Company Info Left, Title Right */}
@@ -70,7 +70,7 @@ export const LoiPreview = forwardRef<HTMLDivElement, LoiPreviewProps>(
               />
             )}
             <div>
-              <p className="font-bold text-[14px]">
+              <p className="font-bold text-[10px]">
                 {formData.customerCompanyName || "Company Name"}
               </p>
               {buildCustomerHeaderAddress() && (
@@ -102,7 +102,7 @@ export const LoiPreview = forwardRef<HTMLDivElement, LoiPreviewProps>(
             <table className="w-full border-collapse text-[10px]">
               <thead>
                 <tr className="border-b-2 border-black">
-                  <th colSpan={2} className="text-left py-1 pb-2 font-bold text-[14px]">
+                  <th colSpan={2} className="text-left py-1 pb-2 font-bold text-[10px]">
                     LEASE COMPANY INFORMATION
                   </th>
                 </tr>
@@ -145,7 +145,7 @@ export const LoiPreview = forwardRef<HTMLDivElement, LoiPreviewProps>(
             <table className="w-full border-collapse text-[10px]">
               <thead>
                 <tr className="border-b-2 border-black">
-                  <th colSpan={2} className="text-left py-1 pb-2 font-bold text-[14px]">
+                  <th colSpan={2} className="text-left py-1 pb-2 font-bold text-[10px]">
                     CUSTOMER INFORMATION
                   </th>
                 </tr>
@@ -190,7 +190,7 @@ export const LoiPreview = forwardRef<HTMLDivElement, LoiPreviewProps>(
             <table className="w-full border-collapse text-[10px]">
               <thead>
                 <tr className="border-b-2 border-black">
-                  <th colSpan={2} className="text-left py-1 pb-2 font-bold text-[14px]">
+                  <th colSpan={2} className="text-left py-1 pb-2 font-bold text-[10px]">
                     EQUIPMENT BEING RETURNED
                   </th>
                 </tr>

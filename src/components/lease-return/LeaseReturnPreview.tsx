@@ -53,7 +53,7 @@ export const LeaseReturnPreview = forwardRef<HTMLDivElement, LeaseReturnPreviewP
         <div
         ref={ref}
         data-doc-scope={_docScopeId}
-        className="bg-white p-8 min-h-[11in] w-[8.5in] text-[15px] leading-tight"
+        className="bg-white p-8 min-h-[11in] w-[8.5in] text-[11px] leading-tight"
         style={{ fontFamily: documentStyles?.fontFamily || "Arial, sans-serif", color: documentStyles?.fontColor || "#000000" }}
       >
         {/* Header */}
@@ -69,7 +69,7 @@ export const LeaseReturnPreview = forwardRef<HTMLDivElement, LeaseReturnPreviewP
               />
             )}
             <div>
-              <p className="font-bold text-[14px]">
+              <p className="font-bold text-[10px]">
                 {dealerInfo?.company_name || "Company Name"}
               </p>
               <p className="text-[10px]">
@@ -97,7 +97,7 @@ export const LeaseReturnPreview = forwardRef<HTMLDivElement, LeaseReturnPreviewP
         </div>
 
         {/* Letter Body */}
-        <div className="mb-6 space-y-4 text-[14px] leading-relaxed">
+        <div className="mb-6 space-y-4 text-[10px] leading-relaxed">
           <p>
             Dealer will provide Customer with a check in the amount of{" "}
             <span className="font-bold">{formatCurrency(formData.amount)}</span>{" "}
