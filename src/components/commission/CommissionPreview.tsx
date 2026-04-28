@@ -14,6 +14,7 @@ export interface DocumentStyles {
   fontColor?: string;
   tableBorderColor?: string;
   tableLineColor?: string;
+  fontSizeOffset?: number;
 }
 
 interface CommissionPreviewProps {
