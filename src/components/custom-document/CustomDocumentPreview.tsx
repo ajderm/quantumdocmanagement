@@ -114,7 +114,7 @@ export const CustomDocumentPreview = forwardRef<HTMLDivElement, CustomDocumentPr
           <div className="font-bold text-[15px] border-b-2 border-black pb-1 mb-2 uppercase">
             {section.title}
           </div>
-          <table className="w-full text-[10px] border-collapse">
+          <table className="w-full text-[14px] border-collapse">
             <thead>
               <tr className="border-b border-black">
                 {columns.map((col) => (
@@ -150,14 +150,14 @@ export const CustomDocumentPreview = forwardRef<HTMLDivElement, CustomDocumentPr
             <div className="border-b border-black pb-1 mb-1 min-h-[24px] font-script italic text-[14px]">
               {formData[`sig_${section.id}_name`] || ''}
             </div>
-            <div className="text-[10px]">{section.signerLabel || 'Authorized Signature'}</div>
+            <div className="text-[14px]">{section.signerLabel || 'Authorized Signature'}</div>
           </div>
           {section.includeDateLine && (
             <div className="w-32">
               <div className="border-b border-black pb-1 mb-1 min-h-[24px] text-[14px]">
                 {formData[`sig_${section.id}_date`] || formatDate(new Date())}
               </div>
-              <div className="text-[10px]">Date</div>
+              <div className="text-[14px]">Date</div>
             </div>
           )}
         </div>
