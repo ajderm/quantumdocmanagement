@@ -53,7 +53,7 @@ export const LeaseReturnPreview = forwardRef<HTMLDivElement, LeaseReturnPreviewP
         <div
         ref={ref}
         data-doc-scope={_docScopeId}
-        className="bg-white p-8 min-h-[11in] w-[8.5in] text-[11px] leading-tight"
+        className="bg-white p-8 min-h-[11in] w-[8.5in] text-[13px] leading-tight"
         style={{ fontFamily: documentStyles?.fontFamily || "Arial, sans-serif", color: documentStyles?.fontColor || "#000000" }}
       >
         {/* Header */}
@@ -69,23 +69,23 @@ export const LeaseReturnPreview = forwardRef<HTMLDivElement, LeaseReturnPreviewP
               />
             )}
             <div>
-              <p className="font-bold text-[10px]">
+              <p className="font-bold text-[12px]">
                 {dealerInfo?.company_name || "Company Name"}
               </p>
-              <p className="text-[10px]">
+              <p className="text-[12px]">
                 {dealerInfo?.address_line1}
                 {dealerInfo?.address_line2 && <>, {dealerInfo.address_line2}</>}
               </p>
-              <p className="text-[10px]">
+              <p className="text-[12px]">
                 {[dealerInfo?.city, dealerInfo?.state, dealerInfo?.zip_code]
                   .filter(Boolean)
                   .join(", ")}
               </p>
               {dealerInfo?.phone && (
-                <p className="text-[10px]">Phone: {dealerInfo.phone}</p>
+                <p className="text-[12px]">Phone: {dealerInfo.phone}</p>
               )}
               {dealerInfo?.website && (
-                <p className="text-[10px]">{dealerInfo.website}</p>
+                <p className="text-[12px]">{dealerInfo.website}</p>
               )}
             </div>
           </div>
@@ -97,7 +97,7 @@ export const LeaseReturnPreview = forwardRef<HTMLDivElement, LeaseReturnPreviewP
         </div>
 
         {/* Letter Body */}
-        <div className="mb-6 space-y-4 text-[10px] leading-relaxed">
+        <div className="mb-6 space-y-4 text-[12px] leading-relaxed">
           <p>
             Dealer will provide Customer with a check in the amount of{" "}
             <span className="font-bold">{formatCurrency(formData.amount)}</span>{" "}
@@ -131,7 +131,7 @@ export const LeaseReturnPreview = forwardRef<HTMLDivElement, LeaseReturnPreviewP
 
         {/* Lease Information Table */}
         <div className="mb-4">
-          <table className="w-full border-collapse text-[10px]">
+          <table className="w-full border-collapse text-[12px]">
             <thead>
               <tr className="border-b-2 border-black">
                 <th colSpan={2} className="text-left py-1 pb-2 font-bold">
@@ -158,7 +158,7 @@ export const LeaseReturnPreview = forwardRef<HTMLDivElement, LeaseReturnPreviewP
 
         {/* Equipment Table */}
         <div className="mb-6">
-          <table className="w-full border-collapse text-[10px]">
+          <table className="w-full border-collapse text-[12px]">
             <thead>
               <tr className="border-b-2 border-black">
                 <th className="text-left py-1 pb-2 font-bold w-1/4">Make</th>
@@ -188,7 +188,7 @@ export const LeaseReturnPreview = forwardRef<HTMLDivElement, LeaseReturnPreviewP
 
         {/* Signatures Section */}
         <div className="mt-8">
-          <table className="w-full border-collapse text-[10px]">
+          <table className="w-full border-collapse text-[12px]">
             <thead>
               <tr className="border-b-2 border-black">
                 <th colSpan={2} className="text-left py-1 pb-2 font-bold">
@@ -205,19 +205,19 @@ export const LeaseReturnPreview = forwardRef<HTMLDivElement, LeaseReturnPreviewP
               {/* Customer Signature */}
               <div>
                 <div className="border-b border-black h-6 mb-1"></div>
-                <p className="text-[10px]">Authorized Signature (Customer)</p>
+                <p className="text-[12px]">Authorized Signature (Customer)</p>
               </div>
 
               {/* Printed Name & Title */}
               <div>
                 <div className="border-b border-black h-6 mb-1"></div>
-                <p className="text-[10px]">Printed Name & Title</p>
+                <p className="text-[12px]">Printed Name & Title</p>
               </div>
 
               {/* Dealer Representative */}
               <div>
                 <div className="border-b border-black h-6 mb-1"></div>
-                <p className="text-[10px]">Dealer (Representative)</p>
+                <p className="text-[12px]">Dealer (Representative)</p>
               </div>
             </div>
 
@@ -226,19 +226,19 @@ export const LeaseReturnPreview = forwardRef<HTMLDivElement, LeaseReturnPreviewP
               {/* Date for Customer Signature */}
               <div>
                 <div className="border-b border-black h-6 mb-1"></div>
-                <p className="text-[10px]">Date</p>
+                <p className="text-[12px]">Date</p>
               </div>
 
               {/* Empty space aligned with Printed Name & Title - matching full height */}
               <div>
                 <div className="h-6 mb-1"></div>
-                <p className="text-[10px] invisible">Placeholder</p>
+                <p className="text-[12px] invisible">Placeholder</p>
               </div>
 
               {/* Date for Dealer */}
               <div>
                 <div className="border-b border-black h-6 mb-1"></div>
-                <p className="text-[10px]">Date</p>
+                <p className="text-[12px]">Date</p>
               </div>
             </div>
           </div>

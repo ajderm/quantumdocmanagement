@@ -48,7 +48,7 @@ export const LeaseFundingPreview = forwardRef<HTMLDivElement, LeaseFundingPrevie
         <div
         ref={ref}
         data-doc-scope={_docScopeId}
-        className="bg-white p-8 min-h-[11in] w-[8.5in] text-[11px] leading-tight"
+        className="bg-white p-8 min-h-[11in] w-[8.5in] text-[13px] leading-tight"
         style={{ fontFamily: documentStyles?.fontFamily || "Arial, sans-serif", color: documentStyles?.fontColor || "#000000" }}
       >
         {/* Header */}
@@ -64,23 +64,23 @@ export const LeaseFundingPreview = forwardRef<HTMLDivElement, LeaseFundingPrevie
               />
             )}
             <div>
-              <p className="font-bold text-[10px]">
+              <p className="font-bold text-[12px]">
                 {dealerInfo?.company_name || "Company Name"}
               </p>
-              <p className="text-[10px]">
+              <p className="text-[12px]">
                 {dealerInfo?.address_line1}
                 {dealerInfo?.address_line2 && <>, {dealerInfo.address_line2}</>}
               </p>
-              <p className="text-[10px]">
+              <p className="text-[12px]">
                 {[dealerInfo?.city, dealerInfo?.state, dealerInfo?.zip_code]
                   .filter(Boolean)
                   .join(", ")}
               </p>
               {dealerInfo?.phone && (
-                <p className="text-[10px]">Phone: {dealerInfo.phone}</p>
+                <p className="text-[12px]">Phone: {dealerInfo.phone}</p>
               )}
               {dealerInfo?.website && (
-                <p className="text-[10px]">{dealerInfo.website}</p>
+                <p className="text-[12px]">{dealerInfo.website}</p>
               )}
             </div>
           </div>
@@ -93,7 +93,7 @@ export const LeaseFundingPreview = forwardRef<HTMLDivElement, LeaseFundingPrevie
 
         {/* Lease Information Table */}
         <div className="mb-4">
-          <table className="w-full border-collapse text-[10px]">
+          <table className="w-full border-collapse text-[12px]">
             <thead>
               <tr className="border-b-2 border-black">
                 <th colSpan={2} className="text-left py-1 pb-2 font-bold">
@@ -124,7 +124,7 @@ export const LeaseFundingPreview = forwardRef<HTMLDivElement, LeaseFundingPrevie
 
         {/* Equipment Table */}
         <div className="mb-4">
-          <table className="w-full border-collapse text-[10px]">
+          <table className="w-full border-collapse text-[12px]">
             <thead>
               <tr className="border-b-2 border-black">
                 <th colSpan={2} className="text-left py-1 pb-2 font-bold">
@@ -151,7 +151,7 @@ export const LeaseFundingPreview = forwardRef<HTMLDivElement, LeaseFundingPrevie
 
         {/* Lease Terms Table */}
         <div className="mb-4">
-          <table className="w-full border-collapse text-[10px]">
+          <table className="w-full border-collapse text-[12px]">
             <thead>
               <tr className="border-b-2 border-black">
                 <th colSpan={2} className="text-left py-1 pb-2 font-bold">
