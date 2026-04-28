@@ -55,7 +55,7 @@ export const RemovalPreview = forwardRef<HTMLDivElement, RemovalPreviewProps>(
         <div
         ref={ref}
         data-doc-scope={_docScopeId}
-        className="bg-white p-6 min-h-[11in] w-[8.5in] text-[10px] leading-tight"
+        className="bg-white p-6 min-h-[11in] w-[8.5in] text-[12px] leading-tight"
         style={{ fontFamily: documentStyles?.fontFamily || "Arial, sans-serif", color: documentStyles?.fontColor || "#000000" }}
       >
         {/* Header */}
@@ -70,8 +70,8 @@ export const RemovalPreview = forwardRef<HTMLDivElement, RemovalPreviewProps>(
                 crossOrigin="anonymous"
               />
             )}
-            <div className="text-[10px]">
-              <p className="font-bold text-[10px]">
+            <div className="text-[12px]">
+              <p className="font-bold text-[12px]">
                 {dealerInfo?.company_name || "Company Name"}
               </p>
               <p>
@@ -92,9 +92,9 @@ export const RemovalPreview = forwardRef<HTMLDivElement, RemovalPreviewProps>(
           <div className="text-right">
             <h1 className="text-sm font-bold mb-1">EQUIPMENT REMOVAL</h1>
             {formData.idNumber && (
-              <p className="text-[10px]">ID#: {formData.idNumber}</p>
+              <p className="text-[12px]">ID#: {formData.idNumber}</p>
             )}
-            <div className="text-[10px] mt-1">
+            <div className="text-[12px] mt-1">
               {formData.meterBlack && <p>Meter Black: {formData.meterBlack}</p>}
               {formData.meterColor && <p>Meter Color: {formData.meterColor}</p>}
               {formData.meterTotal && <p>Meter Total: {formData.meterTotal}</p>}
@@ -107,7 +107,7 @@ export const RemovalPreview = forwardRef<HTMLDivElement, RemovalPreviewProps>(
           {/* Ship To */}
           <div>
             <div className="font-bold border-b-2 border-black pb-1 mb-2">SHIP TO</div>
-            <div className="text-[10px] space-y-0.5">
+            <div className="text-[12px] space-y-0.5">
               <p><span className="font-semibold">Customer:</span> {formData.shipToCustomer || "-"}</p>
               <p><span className="font-semibold">Address:</span> {formData.shipToAddress || "-"}</p>
               <p><span className="font-semibold">City, St Zip:</span> {formData.shipToCityZip || "-"}</p>
@@ -122,7 +122,7 @@ export const RemovalPreview = forwardRef<HTMLDivElement, RemovalPreviewProps>(
             <div className="font-bold border-b-2 border-black pb-1 mb-2">
               BILL TO {formData.billToSameAsShipTo && <span className="font-normal text-[8px]">(SAME AS SHIP TO)</span>}
             </div>
-            <div className="text-[10px] space-y-0.5">
+            <div className="text-[12px] space-y-0.5">
               <p><span className="font-semibold">Customer:</span> {billTo.customer || "-"}</p>
               <p><span className="font-semibold">Address:</span> {billTo.address || "-"}</p>
               <p><span className="font-semibold">City, St Zip:</span> {billTo.cityZip || "-"}</p>
@@ -135,7 +135,7 @@ export const RemovalPreview = forwardRef<HTMLDivElement, RemovalPreviewProps>(
 
         {/* Equipment Table */}
         <div className="mb-4">
-          <table className="w-full border-collapse text-[10px]">
+          <table className="w-full border-collapse text-[12px]">
             <thead>
               <tr className="border-b-2 border-black">
                 <th className="text-left py-1 pb-2 font-bold w-12">Qty</th>
@@ -169,7 +169,7 @@ export const RemovalPreview = forwardRef<HTMLDivElement, RemovalPreviewProps>(
         {formData.additionalComments && (
           <div className="mb-4">
             <div className="font-bold border-b-2 border-black pb-1 mb-2">ADDITIONAL COMMENTS</div>
-            <p className="text-[10px] whitespace-pre-wrap">{formData.additionalComments}</p>
+            <p className="text-[12px] whitespace-pre-wrap">{formData.additionalComments}</p>
           </div>
         )}
 
@@ -177,14 +177,14 @@ export const RemovalPreview = forwardRef<HTMLDivElement, RemovalPreviewProps>(
         <div className="mt-6">
           <div className="font-bold border-b-2 border-black pb-1 mb-3">REMOVAL RECEIPT</div>
           
-          <p className="text-[10px] mb-4">
+          <p className="text-[12px] mb-4">
             The undersigned Customer acknowledges surrender of all equipment described herein to the 
             dealer/representative identified above. Customer confirms that all equipment has been removed 
             from the premises and releases all claims related to said equipment.
           </p>
 
           {/* Two-column signature layout */}
-          <div className="grid grid-cols-[1fr_150px] gap-4 text-[10px]">
+          <div className="grid grid-cols-[1fr_150px] gap-4 text-[12px]">
             {/* Left column */}
             <div className="space-y-3">
               {/* Customer Signature */}

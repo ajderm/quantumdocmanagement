@@ -39,7 +39,7 @@ const RelocationPreview = forwardRef<HTMLDivElement, RelocationPreviewProps>(({ 
     <div
       ref={ref}
       data-doc-scope={_docScopeId}
-      className="bg-white p-6 text-[10px] leading-tight"
+      className="bg-white p-6 text-[12px] leading-tight"
       style={{ width: '8.5in', minHeight: '11in', fontFamily: documentStyles?.fontFamily || 'Arial, sans-serif', color: documentStyles?.fontColor || '#000000' }}
     >
       {/* Header */}
@@ -52,7 +52,7 @@ const RelocationPreview = forwardRef<HTMLDivElement, RelocationPreviewProps>(({ 
               className="h-12 object-contain"
             />
           )}
-          <div className="text-[10px]">
+          <div className="text-[12px]">
             <div className="font-bold">{dealerInfo?.name || 'Dealer Name'}</div>
             <div>{dealerInfo?.address || ''}</div>
             <div>
@@ -68,10 +68,10 @@ const RelocationPreview = forwardRef<HTMLDivElement, RelocationPreviewProps>(({ 
       </div>
 
       {/* Customer Information Section */}
-      <table className="w-full border-collapse text-[10px] mb-4">
+      <table className="w-full border-collapse text-[12px] mb-4">
         <thead>
           <tr className="border-b-2 border-black">
-            <th colSpan={4} className="text-left py-1 pb-2 font-bold text-[10px]">CUSTOMER INFORMATION</th>
+            <th colSpan={4} className="text-left py-1 pb-2 font-bold text-[12px]">CUSTOMER INFORMATION</th>
           </tr>
         </thead>
         <tbody>
@@ -109,10 +109,10 @@ const RelocationPreview = forwardRef<HTMLDivElement, RelocationPreviewProps>(({ 
       </table>
 
       {/* Current Location Section */}
-      <table className="w-full border-collapse text-[10px] mb-4">
+      <table className="w-full border-collapse text-[12px] mb-4">
         <thead>
           <tr className="border-b-2 border-black">
-            <th colSpan={4} className="text-left py-1 pb-2 font-bold text-[10px]">CURRENT LOCATION</th>
+            <th colSpan={4} className="text-left py-1 pb-2 font-bold text-[12px]">CURRENT LOCATION</th>
           </tr>
         </thead>
         <tbody>
@@ -166,10 +166,10 @@ const RelocationPreview = forwardRef<HTMLDivElement, RelocationPreviewProps>(({ 
       </table>
 
       {/* Destination Section */}
-      <table className="w-full border-collapse text-[10px] mb-4">
+      <table className="w-full border-collapse text-[12px] mb-4">
         <thead>
           <tr className="border-b-2 border-black">
-            <th colSpan={4} className="text-left py-1 pb-2 font-bold text-[10px]">DESTINATION</th>
+            <th colSpan={4} className="text-left py-1 pb-2 font-bold text-[12px]">DESTINATION</th>
           </tr>
         </thead>
         <tbody>
@@ -223,10 +223,10 @@ const RelocationPreview = forwardRef<HTMLDivElement, RelocationPreviewProps>(({ 
       </table>
 
       {/* Equipment Section */}
-      <table className="w-full border-collapse text-[10px] mb-4">
+      <table className="w-full border-collapse text-[12px] mb-4">
         <thead>
           <tr className="border-b-2 border-black">
-            <th colSpan={6} className="text-left py-1 pb-2 font-bold text-[10px]">EQUIPMENT</th>
+            <th colSpan={6} className="text-left py-1 pb-2 font-bold text-[12px]">EQUIPMENT</th>
           </tr>
           <tr className="border-b border-gray-400">
             <th className="py-1 text-left font-semibold">Make/Model #</th>
