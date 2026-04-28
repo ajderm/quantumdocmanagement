@@ -202,19 +202,22 @@ export const CustomDocumentPreview = forwardRef<HTMLDivElement, CustomDocumentPr
       : '';
 
     return (
-      <div
-        ref={ref}
-        data-doc-scope={_docScopeId}
-        className="bg-white p-8"
-        style={{
-          width: '8.5in',
-          minHeight: '11in',
-          fontFamily: documentStyles?.fontFamily || 'Arial, sans-serif',
-          color: documentStyles?.fontColor || '#000000',
-        }}
-      >
-        {sections.map(renderSection)}
-      </div>
+      <>
+        {_docFontCss && <style>{_docFontCss}</style>}
+        <div
+          ref={ref}
+          data-doc-scope={_docScopeId}
+          className="bg-white p-8"
+          style={{
+            width: '8.5in',
+            minHeight: '11in',
+            fontFamily: documentStyles?.fontFamily || 'Arial, sans-serif',
+            color: documentStyles?.fontColor || '#000000',
+          }}
+        >
+          {sections.map(renderSection)}
+        </div>
+      </>
     );
   }
 );
