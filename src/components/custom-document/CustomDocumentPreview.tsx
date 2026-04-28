@@ -84,9 +84,7 @@ export const CustomDocumentPreview = forwardRef<HTMLDivElement, CustomDocumentPr
             if (field.type === 'checkbox' && !value) return null;
             
             return (
-              <>
-        {_docFontCss && <style>{_docFontCss}</style>}
-        <div key={field.id} className={getWidthClass(field.width)}>
+              <div key={field.id} className={getWidthClass(field.width)}>
                 <span className="font-semibold">{field.label}:</span>
                 <span className="ml-1">
                   {field.type === 'checkbox' 
