@@ -144,7 +144,7 @@ export const InstallationPreview = forwardRef<HTMLDivElement, InstallationPrevie
                 <tr key={acc.id} className="border-b border-gray-200 bg-gray-50">
                   <td className="py-1">{acc.quantity}</td>
                   <td className="py-1">{acc.itemNumber}</td>
-                  <td className="py-1 pl-2">{acc.model}{acc.description && acc.description !== acc.model ? ` - ${acc.description}` : ''} <span className="text-[7px] text-gray-500">({acc.productType})</span></td>
+                  <td className="py-1 pl-2">{acc.model}{acc.description && acc.description !== acc.model ? ` - ${acc.description}` : ''} <span className="text-[9px] text-gray-500">({acc.productType})</span></td>
                   <td className="py-1"></td>
                   <td className="py-1"></td>
                   <td className="py-1"></td>
@@ -163,7 +163,7 @@ export const InstallationPreview = forwardRef<HTMLDivElement, InstallationPrevie
               {/* PRINT Column */}
               <div>
                 <p className="font-bold text-[8px] mb-1 text-center border-b border-gray-300 pb-0.5">PRINT</p>
-                <table className="w-full text-[7px]">
+                <table className="w-full text-[9px]">
                   <tbody>
                     <tr><td>Setup:</td><td className="text-right">{formData.dealerSetupPrint || '____'}</td></tr>
                     <tr><td>Windows:</td><td className="text-right">{formData.printWindowsComputers || '____'}</td></tr>
@@ -176,12 +176,12 @@ export const InstallationPreview = forwardRef<HTMLDivElement, InstallationPrevie
               {/* SCAN Column */}
               <div>
                 <p className="font-bold text-[8px] mb-1 text-center border-b border-gray-300 pb-0.5">SCAN</p>
-                <table className="w-full text-[7px]">
+                <table className="w-full text-[9px]">
                   <tbody>
                     <tr><td>Setup:</td><td className="text-right">{formData.dealerSetupScan || '____'}</td></tr>
                     <tr><td>Windows:</td><td className="text-right">{formData.scanWindowsComputers || '____'}</td></tr>
                     <tr><td>Mac:</td><td className="text-right">{formData.scanMacComputers || '____'}</td></tr>
-                    <tr><td>Email:</td><td className="text-right text-[6px] break-all">{formData.emailAssigned || '____'}</td></tr>
+                    <tr><td>Email:</td><td className="text-right text-[8px] break-all">{formData.emailAssigned || '____'}</td></tr>
                     <tr><td>Password:</td><td className="text-right">{formData.emailPassword || '____'}</td></tr>
                   </tbody>
                 </table>
@@ -194,22 +194,22 @@ export const InstallationPreview = forwardRef<HTMLDivElement, InstallationPrevie
               {/* IT Contact Column */}
               <div>
                 <p className="font-bold text-[8px] mb-1 text-center border-b border-gray-300 pb-0.5">IT CONTACT</p>
-                <table className="w-full text-[7px]">
+                <table className="w-full text-[9px]">
                   <tbody>
                     <tr><td>Name:</td><td className="text-right">{formData.itContactName || '____'}</td></tr>
                     <tr><td>Phone:</td><td className="text-right">{formData.itContactPhone || '____'}</td></tr>
-                    <tr><td>Email:</td><td className="text-right text-[6px] break-all">{formData.itContactEmail || '____'}</td></tr>
+                    <tr><td>Email:</td><td className="text-right text-[8px] break-all">{formData.itContactEmail || '____'}</td></tr>
                   </tbody>
                 </table>
               </div>
               {/* Meter Contact Column */}
               <div>
                 <p className="font-bold text-[8px] mb-1 text-center border-b border-gray-300 pb-0.5">METER CONTACT</p>
-                <table className="w-full text-[7px]">
+                <table className="w-full text-[9px]">
                   <tbody>
                     <tr><td>Name:</td><td className="text-right">{formData.meterContactName || '____'}</td></tr>
                     <tr><td>Phone:</td><td className="text-right">{formData.meterContactPhone || '____'}</td></tr>
-                    <tr><td>Email:</td><td className="text-right text-[6px] break-all">{formData.meterContactEmail || '____'}</td></tr>
+                    <tr><td>Email:</td><td className="text-right text-[8px] break-all">{formData.meterContactEmail || '____'}</td></tr>
                   </tbody>
                 </table>
               </div>
@@ -260,10 +260,10 @@ export const InstallationPreview = forwardRef<HTMLDivElement, InstallationPrevie
         {removalReceiptTerms && (
           <div className="mb-3">
             <p className="font-bold text-[12px] mb-1">REMOVAL RECEIPT</p>
-            <p className="text-[7px] whitespace-pre-wrap mb-1">{removalReceiptTerms}</p>
+            <p className="text-[9px] whitespace-pre-wrap mb-1">{removalReceiptTerms}</p>
             <div className="w-32">
               <div className="border-b border-black h-4 mb-0.5"></div>
-              <p className="text-[7px]">Customer Initials</p>
+              <p className="text-[9px]">Customer Initials</p>
             </div>
           </div>
         )}
@@ -272,10 +272,10 @@ export const InstallationPreview = forwardRef<HTMLDivElement, InstallationPrevie
         {deliveryAcceptanceTerms && (
           <div className="mb-3">
             <p className="font-bold text-[12px] mb-1">DELIVERY AND ACCEPTANCE</p>
-            <p className="text-[7px] whitespace-pre-wrap mb-1">{deliveryAcceptanceTerms}</p>
+            <p className="text-[9px] whitespace-pre-wrap mb-1">{deliveryAcceptanceTerms}</p>
             <div className="w-32">
               <div className="border-b border-black h-4 mb-0.5"></div>
-              <p className="text-[7px]">Customer Initials</p>
+              <p className="text-[9px]">Customer Initials</p>
             </div>
           </div>
         )}
@@ -290,11 +290,11 @@ export const InstallationPreview = forwardRef<HTMLDivElement, InstallationPrevie
               <div className="space-y-2">
                 <div>
                   <div className="border-b border-black h-5 mb-0.5"></div>
-                  <p className="text-[7px]">Installed By (sign)</p>
+                  <p className="text-[9px]">Installed By (sign)</p>
                 </div>
                 <div>
                   <div className="border-b border-black h-5 mb-0.5"></div>
-                  <p className="text-[7px]">Printed Name</p>
+                  <p className="text-[9px]">Printed Name</p>
                 </div>
               </div>
             </div>
@@ -304,21 +304,21 @@ export const InstallationPreview = forwardRef<HTMLDivElement, InstallationPrevie
               <div className="grid grid-cols-2 gap-2 mb-2">
                 <div>
                   <div className="border-b border-black h-5 mb-0.5"></div>
-                  <p className="text-[7px]">Signature</p>
+                  <p className="text-[9px]">Signature</p>
                 </div>
                 <div>
                   <div className="border-b border-black h-5 mb-0.5"></div>
-                  <p className="text-[7px]">Printed Name</p>
+                  <p className="text-[9px]">Printed Name</p>
                 </div>
               </div>
               <div className="grid grid-cols-2 gap-2">
                 <div>
                   <div className="border-b border-black h-5 mb-0.5"></div>
-                  <p className="text-[7px]">Date</p>
+                  <p className="text-[9px]">Date</p>
                 </div>
                 <div>
                   <div className="border-b border-black h-5 mb-0.5"></div>
-                  <p className="text-[7px]">Title</p>
+                  <p className="text-[9px]">Title</p>
                 </div>
               </div>
             </div>
