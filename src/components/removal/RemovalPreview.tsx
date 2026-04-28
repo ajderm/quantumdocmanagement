@@ -55,7 +55,7 @@ export const RemovalPreview = forwardRef<HTMLDivElement, RemovalPreviewProps>(
         <div
         ref={ref}
         data-doc-scope={_docScopeId}
-        className="bg-white p-6 min-h-[11in] w-[8.5in] text-[14px] leading-tight"
+        className="bg-white p-6 min-h-[11in] w-[8.5in] text-[10px] leading-tight"
         style={{ fontFamily: documentStyles?.fontFamily || "Arial, sans-serif", color: documentStyles?.fontColor || "#000000" }}
       >
         {/* Header */}
@@ -71,7 +71,7 @@ export const RemovalPreview = forwardRef<HTMLDivElement, RemovalPreviewProps>(
               />
             )}
             <div className="text-[10px]">
-              <p className="font-bold text-[14px]">
+              <p className="font-bold text-[10px]">
                 {dealerInfo?.company_name || "Company Name"}
               </p>
               <p>

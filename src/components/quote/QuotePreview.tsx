@@ -73,7 +73,7 @@ export const QuotePreview = forwardRef<HTMLDivElement, QuotePreviewProps>(
         <div 
         ref={ref}
         data-doc-scope={_docScopeId}
-        className="bg-white p-8 min-h-[11in] w-[8.5in] text-[15px] leading-tight"
+        className="bg-white p-8 min-h-[11in] w-[8.5in] text-[11px] leading-tight"
         style={{ fontFamily: documentStyles?.fontFamily || 'Arial, sans-serif', color: documentStyles?.fontColor || '#000000' }}
       >
         {/* Header */}
@@ -89,10 +89,10 @@ export const QuotePreview = forwardRef<HTMLDivElement, QuotePreviewProps>(
                     crossOrigin="anonymous"
                   />
                 )}
-                <p className="font-bold text-[15px]">{dealerInfo.companyName}</p>
-                <p className="text-[14px]">{dealerInfo.address}</p>
-                <p className="text-[14px]">{dealerInfo.phone}</p>
-                <p className="text-[14px]">{dealerInfo.website}</p>
+                <p className="font-bold text-[11px]">{dealerInfo.companyName}</p>
+                <p className="text-[10px]">{dealerInfo.address}</p>
+                <p className="text-[10px]">{dealerInfo.phone}</p>
+                <p className="text-[10px]">{dealerInfo.website}</p>
               </>
             )}
           </div>
@@ -136,14 +136,14 @@ export const QuotePreview = forwardRef<HTMLDivElement, QuotePreviewProps>(
             <p className="font-bold">EQUIPMENT</p>
             <div className="flex gap-4">
               {formData.rfpNumber && (
-                <p className="text-[15px]"><span className="font-semibold">RFP #:</span> {formData.rfpNumber}</p>
+                <p className="text-[11px]"><span className="font-semibold">RFP #:</span> {formData.rfpNumber}</p>
               )}
               {formData.contractNumber && (
-                <p className="text-[15px]"><span className="font-semibold">Contract #:</span> {formData.contractNumber}</p>
+                <p className="text-[11px]"><span className="font-semibold">Contract #:</span> {formData.contractNumber}</p>
               )}
             </div>
           </div>
-          <table className="w-full border-collapse text-[14px]">
+          <table className="w-full border-collapse text-[10px]">
             <thead>
               <tr className="border-b-2 border-black">
                 <th className="text-left py-1 pb-2 w-12">Qty.</th>
@@ -212,7 +212,7 @@ export const QuotePreview = forwardRef<HTMLDivElement, QuotePreviewProps>(
 
         {/* Combined Pricing Table - Purchase | Lease | Service Agreement */}
         <div className="mb-4">
-          <table className="w-full border-collapse text-[15px]">
+          <table className="w-full border-collapse text-[11px]">
             <colgroup>
               {showPurchase && <col style={{ width: '18%' }} />}
               {showPurchase && showLease && <col style={{ width: '16px' }} />}
@@ -234,12 +234,12 @@ export const QuotePreview = forwardRef<HTMLDivElement, QuotePreviewProps>(
                 )}
               </tr>
               <tr className="border-b border-gray-300">
-                {showPurchase && <th className="text-left py-1 font-semibold text-[14px]"></th>}
-                {showPurchase && showLease && <th className="text-center py-1 font-semibold text-[14px]"></th>}
+                {showPurchase && <th className="text-left py-1 font-semibold text-[10px]"></th>}
+                {showPurchase && showLease && <th className="text-center py-1 font-semibold text-[10px]"></th>}
                 {showLease && (
                   <>
-                    <th className="text-left py-1 font-semibold text-[14px]">{isRental ? '' : 'TERM'}</th>
-                    <th className="text-right py-1 font-semibold text-[14px] pr-3">PAYMENT</th>
+                    <th className="text-left py-1 font-semibold text-[10px]">{isRental ? '' : 'TERM'}</th>
+                    <th className="text-right py-1 font-semibold text-[10px] pr-3">PAYMENT</th>
                   </>
                 )}
                 {hasServiceAgreement && (
@@ -278,7 +278,7 @@ export const QuotePreview = forwardRef<HTMLDivElement, QuotePreviewProps>(
                 {hasServiceAgreement && (
                   <td className="py-1 pl-4 align-top border-l-2 border-black" rowSpan={Math.max(formData.selectedTerms.length, 1)}>
                     {/* Service Agreement mini-table matching blue reference layout */}
-                    <table className="w-full text-[14px]">
+                    <table className="w-full text-[10px]">
                       <tbody>
                         <tr>
                           <td className="font-bold pr-2 py-[1px]">BASE RATE</td>
@@ -331,7 +331,7 @@ export const QuotePreview = forwardRef<HTMLDivElement, QuotePreviewProps>(
 
         {/* Leasing Company Info */}
         {showLease && formData.leasingCompanyId && formData.showFinancingProvider !== false && (
-          <div className="mb-4 text-[14px] text-gray-600">
+          <div className="mb-4 text-[10px] text-gray-600">
             <p>Financing provided by: {formData.leasingCompanyId}</p>
           </div>
         )}
@@ -347,7 +347,7 @@ export const QuotePreview = forwardRef<HTMLDivElement, QuotePreviewProps>(
             || dealerInfo?.termsAndConditions
             || '';
           return tcText ? (
-            <div className="mb-6 text-[15px]">
+            <div className="mb-6 text-[11px]">
               <p className="font-bold mb-1">Terms & Conditions:</p>
               <p className="whitespace-pre-wrap">{tcText}</p>
             </div>
@@ -369,26 +369,26 @@ export const QuotePreview = forwardRef<HTMLDivElement, QuotePreviewProps>(
           <div className="grid grid-cols-2 gap-x-6 gap-y-2">
             <div>
               <div className="border-b border-black h-5"></div>
-              <p className="text-[14px]">Signature</p>
+              <p className="text-[10px]">Signature</p>
             </div>
             <div>
               <div className="border-b border-black h-5"></div>
-              <p className="text-[14px]">Title</p>
+              <p className="text-[10px]">Title</p>
             </div>
             <div>
               <div className="border-b border-black h-5"></div>
-              <p className="text-[14px]">Printed Name</p>
+              <p className="text-[10px]">Printed Name</p>
             </div>
             <div>
               <div className="border-b border-black h-5"></div>
-              <p className="text-[14px]">Date</p>
+              <p className="text-[10px]">Date</p>
             </div>
           </div>
         </div>
         )}
 
         {/* Confidentiality Notice */}
-        <div className="mt-6 text-[14px] text-gray-500 italic">
+        <div className="mt-6 text-[10px] text-gray-500 italic">
           <p>
             Information in this proposal is confidential and intended solely for use in the procurement process 
             and may not be disclosed except to persons who are involved in the evaluation of the proposal and 

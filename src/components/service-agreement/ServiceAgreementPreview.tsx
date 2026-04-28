@@ -85,7 +85,7 @@ export const ServiceAgreementPreview = forwardRef<HTMLDivElement, ServiceAgreeme
         <div
         ref={ref}
         data-doc-scope={_docScopeId}
-        className="bg-white p-8 min-h-[11in] w-[8.5in] text-[15px] leading-tight"
+        className="bg-white p-8 min-h-[11in] w-[8.5in] text-[11px] leading-tight"
         style={{ fontFamily: documentStyles?.fontFamily || 'Arial, sans-serif', color: documentStyles?.fontColor || '#000000' }}
       >
         {/* Header */}
@@ -101,7 +101,7 @@ export const ServiceAgreementPreview = forwardRef<HTMLDivElement, ServiceAgreeme
               />
             )}
             <div>
-              <p className="font-bold text-[14px]">{dealerInfo?.company_name || 'Company Name'}</p>
+              <p className="font-bold text-[10px]">{dealerInfo?.company_name || 'Company Name'}</p>
               <p className="text-[10px]">
                 {dealerInfo?.address_line1}
                 {dealerInfo?.address_line2 && <>, {dealerInfo.address_line2}</>}
@@ -331,7 +331,7 @@ export const ServiceAgreementPreview = forwardRef<HTMLDivElement, ServiceAgreeme
         {/* Terms and Conditions */}
         {termsAndConditions && (
           <div className="mb-4">
-            <p className="font-bold mb-1 text-[14px]">Terms & Conditions:</p>
+            <p className="font-bold mb-1 text-[10px]">Terms & Conditions:</p>
             <p className="text-[8px] whitespace-pre-wrap">{termsAndConditions}</p>
           </div>
         )}
@@ -341,7 +341,7 @@ export const ServiceAgreementPreview = forwardRef<HTMLDivElement, ServiceAgreeme
           <div className="grid grid-cols-2 gap-8">
             {/* Left: Dealer */}
             <div>
-              <p className="font-bold mb-1 text-[14px]">{dealerInfo?.company_name || 'Dealer'}</p>
+              <p className="font-bold mb-1 text-[10px]">{dealerInfo?.company_name || 'Dealer'}</p>
               <div className="space-y-1">
                 <div>
                   <div className="border-b border-black h-4"></div>
@@ -364,7 +364,7 @@ export const ServiceAgreementPreview = forwardRef<HTMLDivElement, ServiceAgreeme
 
             {/* Right: Customer */}
             <div>
-              <p className="font-bold mb-1 text-[14px]">{formData.billToCompany || 'Customer'}</p>
+              <p className="font-bold mb-1 text-[10px]">{formData.billToCompany || 'Customer'}</p>
               <div className="space-y-1">
                 <div>
                   <div className="border-b border-black h-4"></div>

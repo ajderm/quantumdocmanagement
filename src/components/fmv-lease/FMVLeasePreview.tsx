@@ -51,7 +51,7 @@ export const FMVLeasePreview = forwardRef<HTMLDivElement, FMVLeasePreviewProps>(
         <div
         ref={ref}
         data-doc-scope={_docScopeId}
-        className="bg-white p-8 min-h-[11in] w-[8.5in] text-[15px] leading-tight"
+        className="bg-white p-8 min-h-[11in] w-[8.5in] text-[11px] leading-tight"
         style={{ fontFamily: documentStyles?.fontFamily || "Arial, sans-serif", color: documentStyles?.fontColor || "#000000" }}
       >
         {/* Header */}
@@ -67,7 +67,7 @@ export const FMVLeasePreview = forwardRef<HTMLDivElement, FMVLeasePreviewProps>(
               />
             )}
             <div>
-              <p className="font-bold text-[14px]">
+              <p className="font-bold text-[10px]">
                 {dealerInfo?.company_name || "Company Name"}
               </p>
               <p className="text-[10px]">
@@ -232,7 +232,7 @@ export const FMVLeasePreview = forwardRef<HTMLDivElement, FMVLeasePreviewProps>(
         {/* Terms and Conditions */}
         {termsAndConditions && (
           <div className="mb-4">
-            <p className="font-bold mb-1 text-[14px]">Terms & Conditions:</p>
+            <p className="font-bold mb-1 text-[10px]">Terms & Conditions:</p>
             <p className="text-[8px] whitespace-pre-wrap">{termsAndConditions}</p>
           </div>
         )}
@@ -242,7 +242,7 @@ export const FMVLeasePreview = forwardRef<HTMLDivElement, FMVLeasePreviewProps>(
           <div className="grid grid-cols-2 gap-8">
             {/* Left: Lessor (Dealer) */}
             <div>
-              <p className="font-bold mb-1 text-[14px]">
+              <p className="font-bold mb-1 text-[10px]">
                 LESSOR: {dealerInfo?.company_name || "Dealer"}
               </p>
               <div className="space-y-1">
@@ -267,7 +267,7 @@ export const FMVLeasePreview = forwardRef<HTMLDivElement, FMVLeasePreviewProps>(
 
             {/* Right: Lessee (Customer) */}
             <div>
-              <p className="font-bold mb-1 text-[14px]">
+              <p className="font-bold mb-1 text-[10px]">
                 LESSEE: {formData.companyLegalName || "Customer"}
               </p>
               <div className="space-y-1">

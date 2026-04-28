@@ -32,7 +32,7 @@ export const InstallationPreview = forwardRef<HTMLDivElement, InstallationPrevie
         <div
         ref={ref}
         data-doc-scope={_docScopeId}
-        className="bg-white p-6 min-h-[11in] w-[8.5in] text-[14px] leading-tight"
+        className="bg-white p-6 min-h-[11in] w-[8.5in] text-[10px] leading-tight"
         style={{ fontFamily: documentStyles?.fontFamily || 'Arial, sans-serif', color: documentStyles?.fontColor || '#000000' }}
       >
         {/* Header */}
