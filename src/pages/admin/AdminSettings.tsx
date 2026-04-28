@@ -79,6 +79,9 @@ export default function AdminSettings() {
   const [docStyleTableBorderColor, setDocStyleTableBorderColor] = useState('#000000');
   const [docStyleTableLineColor, setDocStyleTableLineColor] = useState('#d1d5db');
   const [docStyleFontSizeOffset, setDocStyleFontSizeOffset] = useState(0);
+  const [docStyleFontSizeOffsets, setDocStyleFontSizeOffsets] = useState<{
+    title: number; header: number; body: number; table: number; fine: number;
+  }>({ title: 0, header: 0, body: 0, table: 0, fine: 0 });
   
   // Proposal template
   const [proposalTemplateUrl, setProposalTemplateUrl] = useState<string | null>(null);
@@ -183,6 +186,15 @@ export default function AdminSettings() {
             if (ds.tableBorderColor) setDocStyleTableBorderColor(ds.tableBorderColor);
             if (ds.tableLineColor) setDocStyleTableLineColor(ds.tableLineColor);
             if (typeof ds.fontSizeOffset === 'number') setDocStyleFontSizeOffset(ds.fontSizeOffset);
+            if (ds.fontSizeOffsets && typeof ds.fontSizeOffsets === 'object') {
+              setDocStyleFontSizeOffsets({
+                title: Number(ds.fontSizeOffsets.title) || 0,
+                header: Number(ds.fontSizeOffsets.header) || 0,
+                body: Number(ds.fontSizeOffsets.body) || 0,
+                table: Number(ds.fontSizeOffsets.table) || 0,
+                fine: Number(ds.fontSizeOffsets.fine) || 0,
+              });
+            }
           }
           if (settings.proposal_template_url) {
             setProposalTemplateUrl(settings.proposal_template_url);
@@ -380,6 +392,7 @@ export default function AdminSettings() {
           tableBorderColor: docStyleTableBorderColor,
           tableLineColor: docStyleTableLineColor,
           fontSizeOffset: docStyleFontSizeOffset,
+          fontSizeOffsets: docStyleFontSizeOffsets,
         },
         proposal_template_url: proposalTemplateUrl,
         proposal_template_name: proposalFileName,
