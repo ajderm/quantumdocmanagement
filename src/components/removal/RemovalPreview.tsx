@@ -16,7 +16,7 @@ interface DealerInfo {
 interface RemovalPreviewProps {
   formData: RemovalFormData;
   dealerInfo?: DealerInfo;
-  documentStyles?: { fontFamily?: string; fontColor?: string; tableBorderColor?: string; tableLineColor?: string; fontSizeOffset?: number; };
+  documentStyles?: { fontFamily?: string; fontColor?: string; tableBorderColor?: string; tableLineColor?: string; fontSizeOffset?: number; fontSizeOffsets?: { title?: number; header?: number; body?: number; table?: number; fine?: number; }; };
 }
 
 export const RemovalPreview = forwardRef<HTMLDivElement, RemovalPreviewProps>(

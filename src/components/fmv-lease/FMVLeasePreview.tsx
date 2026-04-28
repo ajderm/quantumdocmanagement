@@ -19,7 +19,7 @@ interface FMVLeasePreviewProps {
   formData: FMVLeaseFormData;
   dealerInfo?: DealerInfo | null;
   termsAndConditions?: string;
-  documentStyles?: { fontFamily?: string; fontColor?: string; tableBorderColor?: string; tableLineColor?: string; fontSizeOffset?: number; };
+  documentStyles?: { fontFamily?: string; fontColor?: string; tableBorderColor?: string; tableLineColor?: string; fontSizeOffset?: number; fontSizeOffsets?: { title?: number; header?: number; body?: number; table?: number; fine?: number; }; };
 }
 
 const PAYMENT_FREQUENCY_LABELS: Record<string, string> = {

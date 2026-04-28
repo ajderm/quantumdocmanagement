@@ -33,7 +33,7 @@ interface ServiceAgreementPreviewProps {
   dealerInfo?: DealerInfo | null;
   lineItems: LineItem[];
   termsAndConditions?: string;
-  documentStyles?: { fontFamily?: string; fontColor?: string; tableBorderColor?: string; tableLineColor?: string; fontSizeOffset?: number; };
+  documentStyles?: { fontFamily?: string; fontColor?: string; tableBorderColor?: string; tableLineColor?: string; fontSizeOffset?: number; fontSizeOffsets?: { title?: number; header?: number; body?: number; table?: number; fine?: number; }; };
   installationConfigs?: Record<string, { installedSerial?: string; idNumber?: string }>;
 }
 

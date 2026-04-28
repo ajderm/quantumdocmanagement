@@ -12,7 +12,7 @@ interface InterterritorialPreviewProps {
     logoUrl?: string;
   };
   termsAndConditions?: string;
-  documentStyles?: { fontFamily?: string; fontColor?: string; tableBorderColor?: string; tableLineColor?: string; fontSizeOffset?: number; };
+  documentStyles?: { fontFamily?: string; fontColor?: string; tableBorderColor?: string; tableLineColor?: string; fontSizeOffset?: number; fontSizeOffsets?: { title?: number; header?: number; body?: number; table?: number; fine?: number; }; };
 }
 
 export const InterterritorialPreview = forwardRef<HTMLDivElement, InterterritorialPreviewProps>(

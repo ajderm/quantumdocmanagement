@@ -10,7 +10,7 @@ interface NewCustomerPreviewProps {
     logoUrl?: string;
   };
   termsAndConditions?: string;
-  documentStyles?: { fontFamily?: string; fontColor?: string; tableBorderColor?: string; tableLineColor?: string; fontSizeOffset?: number; };
+  documentStyles?: { fontFamily?: string; fontColor?: string; tableBorderColor?: string; tableLineColor?: string; fontSizeOffset?: number; fontSizeOffsets?: { title?: number; header?: number; body?: number; table?: number; fine?: number; }; };
 }
 
 const DEFAULT_TERMS = `TERMS OF SALE: Net 30 Days. A service charge of 1.5% per month (18% per annum) will be applied to all past due balances. In the event collection efforts are required, buyer agrees to pay all costs of collection including reasonable attorney fees.
