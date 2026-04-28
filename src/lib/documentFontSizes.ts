@@ -26,15 +26,15 @@ export interface DocumentStyles {
 }
 
 // All px sizes used across preview components.
-export const KNOWN_DOC_FONT_SIZES = [6, 7, 8, 9, 10, 11, 12, 14, 15, 16, 18, 20, 24] as const;
+export const KNOWN_DOC_FONT_SIZES = [6, 7, 8, 9, 10, 12, 13, 14, 16, 18, 20, 24] as const;
 
 // Map each base size -> semantic role.
 export function roleForSize(px: number): FontSizeRole {
   if (px >= 16) return 'title';
-  if (px === 11) return 'header';
-  if (px === 10 || px === 12) return 'body';
-  if (px === 9 || px === 8) return 'table';
-  return 'fine'; // 7, 6
+  if (px === 13 || px === 14) return 'header';
+  if (px === 12) return 'body';
+  if (px === 10 || px === 9) return 'table';
+  return 'fine'; // 8, 7, 6
 }
 
 export const FONT_SIZE_ROLES: Array<{
@@ -44,9 +44,9 @@ export const FONT_SIZE_ROLES: Array<{
   sample: number;
 }> = [
   { key: 'title', label: 'Document Title', description: 'Main document headings (e.g. "QUOTE", "Lease Return Letter")', sample: 16 },
-  { key: 'header', label: 'Section Headers', description: 'Bold underlined section titles inside documents', sample: 11 },
-  { key: 'body', label: 'Body Text', description: 'Paragraphs, signature labels, table column headers', sample: 10 },
-  { key: 'table', label: 'Table Rows', description: 'Equipment/line-item rows, dealer header address lines', sample: 9 },
+  { key: 'header', label: 'Section Headers', description: 'Bold underlined section titles inside documents', sample: 13 },
+  { key: 'body', label: 'Body Text', description: 'Paragraphs, signature labels, table column headers', sample: 12 },
+  { key: 'table', label: 'Table Rows', description: 'Equipment/line-item rows, dealer header address lines', sample: 10 },
   { key: 'fine', label: 'Fine Print / T&C', description: 'Terms & conditions and footnotes', sample: 7 },
 ];
 
