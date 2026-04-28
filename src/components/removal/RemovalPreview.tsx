@@ -1,6 +1,7 @@
 import { forwardRef } from "react";
 import { RemovalFormData } from "./RemovalForm";
 
+import { buildDocumentFontCss } from "@/lib/documentFontSizes";
 interface DealerInfo {
   company_name?: string;
   address_line1?: string;
@@ -45,13 +46,8 @@ export const RemovalPreview = forwardRef<HTMLDivElement, RemovalPreviewProps>(
           email: formData.billToEmail,
         };
 
-    const _docFontOffset = documentStyles?.fontSizeOffset ?? 0;
     const _docScopeId = 'doc-removal';
-    const _docFontCss = _docFontOffset
-      ? [6,7,8,9,10,11,12,14,15,16,18,20,24]
-          .map(n => `[data-doc-scope="${_docScopeId}"] .text-\\[${n}px\\]{font-size:${Math.max(4,n+_docFontOffset)}px !important;}`)
-          .join('')
-      : '';
+    const _docFontCss = buildDocumentFontCss(_docScopeId, documentStyles);
 
     return (
       <>

@@ -1,6 +1,7 @@
 import { forwardRef } from 'react';
 import { NewCustomerFormData } from './NewCustomerForm';
 
+import { buildDocumentFontCss } from "@/lib/documentFontSizes";
 interface NewCustomerPreviewProps {
   formData: NewCustomerFormData;
   dealerInfo?: {
@@ -24,13 +25,8 @@ export const NewCustomerPreview = forwardRef<HTMLDivElement, NewCustomerPreviewP
 
     const businessTypeLabel = formData.businessType ? formData.businessType.replace('_', ' ').replace(/\b\w/g, l => l.toUpperCase()) : '';
 
-    const _docFontOffset = documentStyles?.fontSizeOffset ?? 0;
     const _docScopeId = 'doc-newcustomer';
-    const _docFontCss = _docFontOffset
-      ? [6,7,8,9,10,11,12,14,15,16,18,20,24]
-          .map(n => `[data-doc-scope="${_docScopeId}"] .text-\\[${n}px\\]{font-size:${Math.max(4,n+_docFontOffset)}px !important;}`)
-          .join('')
-      : '';
+    const _docFontCss = buildDocumentFontCss(_docScopeId, documentStyles);
 
     return (
       <>
