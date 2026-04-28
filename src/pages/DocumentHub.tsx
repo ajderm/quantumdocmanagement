@@ -108,6 +108,13 @@ interface DealerSettings {
     tableBorderColor?: string;
     tableLineColor?: string;
     fontSizeOffset?: number;
+    fontSizeOffsets?: {
+      title?: number;
+      header?: number;
+      body?: number;
+      table?: number;
+      fine?: number;
+    };
   };
   proposal_template_url?: string;
   proposal_template_name?: string;
