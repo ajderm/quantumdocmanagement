@@ -101,7 +101,8 @@ export function DocumentPacketForm({
 
     for (const file of validFiles) {
       try {
-        const storagePath = `document-packets/${portalId}/${dealId}/${Date.now()}-${file.name}`;
+        const safeName = file.name.replace(/[/\\:*?"<>|]/g, '_').replace(/\.\./g, '_');
+        const storagePath = `document-packets/${portalId}/${dealId}/${Date.now()}-${safeName}`;
         const { error: uploadError } = await supabase.storage
           .from('company-assets')
           .upload(storagePath, file, { upsert: false });
