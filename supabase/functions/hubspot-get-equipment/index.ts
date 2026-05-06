@@ -223,11 +223,7 @@ Deno.serve(async (req) => {
         return createErrorResponse(`Unknown action: ${action}`, 400, corsHeaders);
     }
   } catch (error: unknown) {
-    console.error('Equipment error:', error instanceof Error ? error.message : 'Unknown');
-    return createErrorResponse(
-      error instanceof Error ? error.message : 'An error occurred',
-      500,
-      corsHeaders
-    );
+    console.error('Equipment error:', error);
+    return createErrorResponse('Failed to fetch equipment', 500, corsHeaders);
   }
 });

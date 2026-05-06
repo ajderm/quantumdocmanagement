@@ -273,21 +273,14 @@ export default function AdminSettings() {
     setUploadingLogo(true);
 
     try {
-      const fileExt = file.name.split('.').pop();
-      const fileName = `${portalId || 'default'}-logo-${Date.now()}.${fileExt}`;
-      const filePath = `logos/${fileName}`;
-
-      const { error: uploadError } = await supabase.storage
-        .from('company-assets')
-        .upload(filePath, file, { upsert: true });
-
-      if (uploadError) throw uploadError;
-
-      const { data: urlData } = supabase.storage
-        .from('company-assets')
-        .getPublicUrl(filePath);
-
-      setLogoUrl(urlData.publicUrl);
+      const fd = new FormData();
+      fd.append('action', 'upload');
+      fd.append('folder', 'logos');
+      fd.append('portalId', portalId || '');
+      fd.append('file', file);
+      const { data, error: uploadError } = await supabase.functions.invoke('company-asset-upload', { body: fd });
+      if (uploadError || !data?.publicUrl) throw uploadError || new Error('Upload failed');
+      setLogoUrl(data.publicUrl);
       toast.success('Logo uploaded successfully');
     } catch (error) {
       console.error('Error uploading logo:', error);
@@ -324,20 +317,15 @@ export default function AdminSettings() {
 
     setUploadingProposal(true);
     try {
-      const fileName = `${portalId || 'default'}-proposal-${Date.now()}.pdf`;
-      const filePath = `proposals/${fileName}`;
+      const fd = new FormData();
+      fd.append('action', 'upload');
+      fd.append('folder', 'proposals');
+      fd.append('portalId', portalId || '');
+      fd.append('file', file);
+      const { data, error: uploadError } = await supabase.functions.invoke('company-asset-upload', { body: fd });
+      if (uploadError || !data?.publicUrl) throw uploadError || new Error('Upload failed');
 
-      const { error: uploadError } = await supabase.storage
-        .from('company-assets')
-        .upload(filePath, file, { upsert: true });
-
-      if (uploadError) throw uploadError;
-
-      const { data: urlData } = supabase.storage
-        .from('company-assets')
-        .getPublicUrl(filePath);
-
-      setProposalTemplateUrl(urlData.publicUrl);
+      setProposalTemplateUrl(data.publicUrl);
       setProposalFileName(file.name);
       toast.success('Proposal template uploaded');
     } catch (error) {

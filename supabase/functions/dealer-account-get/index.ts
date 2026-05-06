@@ -149,8 +149,7 @@ Deno.serve(async (req) => {
     });
   } catch (error: unknown) {
     console.error('Error fetching dealer account:', error);
-    const message = error instanceof Error ? error.message : 'Failed to fetch settings';
-    return new Response(JSON.stringify({ error: message }), {
+    return new Response(JSON.stringify({ error: 'Failed to fetch settings' }), {
       status: 500,
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
     });

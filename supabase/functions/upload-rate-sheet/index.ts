@@ -236,7 +236,7 @@ Deno.serve(async (req: Request) => {
   } catch (error) {
     console.error("Error processing rate sheet:", error);
     return new Response(
-      JSON.stringify({ error: "Failed to process rate sheet", details: String(error) }),
+      JSON.stringify({ error: "Failed to process rate sheet" }),
       { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
     );
   }
