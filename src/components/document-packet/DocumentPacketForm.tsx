@@ -101,14 +101,16 @@ export function DocumentPacketForm({
 
     for (const file of validFiles) {
       try {
-        const safeName = file.name.replace(/[/\\:*?"<>|]/g, '_').replace(/\.\./g, '_');
-        const storagePath = `document-packets/${portalId}/${dealId}/${Date.now()}-${safeName}`;
-        const { error: uploadError } = await supabase.storage
-          .from('company-assets')
-          .upload(storagePath, file, { upsert: false });
+        const fd = new FormData();
+        fd.append('action', 'upload');
+        fd.append('folder', 'document-packets');
+        fd.append('portalId', portalId);
+        fd.append('dealId', dealId);
+        fd.append('file', file);
+        const { data, error: uploadError } = await supabase.functions.invoke('company-asset-upload', { body: fd });
 
-        if (uploadError) {
-          toast.error(`Failed to upload ${file.name}: ${uploadError.message}`);
+        if (uploadError || !data?.path) {
+          toast.error(`Failed to upload ${file.name}`);
           continue;
         }
 
@@ -117,7 +119,7 @@ export function DocumentPacketForm({
           name: file.name,
           type: ACCEPTED_TYPES[file.type] || file.name.split('.').pop()?.toLowerCase() || 'pdf',
           size: file.size,
-          storagePath,
+          storagePath: data.path,
           order: files.length + uploadedFiles.length,
           uploadedAt: new Date().toISOString(),
         });
