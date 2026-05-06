@@ -198,8 +198,7 @@ Deno.serve(async (req) => {
     });
   } catch (error: unknown) {
     console.error('Error saving dealer account:', error);
-    const message = error instanceof Error ? error.message : 'Failed to save settings';
-    return new Response(JSON.stringify({ error: message }), {
+    return new Response(JSON.stringify({ error: 'Failed to save settings' }), {
       status: 500,
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
     });
