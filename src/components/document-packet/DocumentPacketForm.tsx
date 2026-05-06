@@ -155,7 +155,13 @@ export function DocumentPacketForm({
     const file = files.find(f => f.id === fileId);
     if (!file) return;
     try {
-      await supabase.storage.from('company-assets').remove([file.storagePath]);
+      const fd = new FormData();
+      fd.append('action', 'delete');
+      fd.append('folder', 'document-packets');
+      fd.append('portalId', portalId);
+      fd.append('dealId', dealId);
+      fd.append('path', file.storagePath);
+      await supabase.functions.invoke('company-asset-upload', { body: fd });
     } catch { /* continue */ }
     setFiles(prev => prev.filter(f => f.id !== fileId).map((f, i) => ({ ...f, order: i })));
   };
