@@ -34,7 +34,41 @@ serve(async (req) => {
       );
     }
 
-    const sortedFiles = [...(files as PacketFile[])].sort((a, b) => a.order - b.order);
+    // Security: validate portalId is numeric only (prevents path traversal)
+    if (!/^\d{1,20}$/.test(String(portalId))) {
+      return new Response(
+        JSON.stringify({ error: "Invalid portalId format" }),
+        { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
+
+    // Security: validate dealId is numeric only
+    if (!/^\d{1,20}$/.test(String(dealId))) {
+      return new Response(
+        JSON.stringify({ error: "Invalid dealId format" }),
+        { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
+
+    // Security: enforce all file storagePaths belong to this portal's namespace
+    const allowedPrefix = `document-packets/${portalId}/`;
+    const validatedFiles = (files as PacketFile[]).filter(f => {
+      const path = String(f.storagePath || '');
+      if (path.includes('..') || !path.startsWith(allowedPrefix)) {
+        console.warn(`Blocked unauthorized file access attempt: ${path}`);
+        return false;
+      }
+      return true;
+    });
+
+    if (validatedFiles.length === 0) {
+      return new Response(
+        JSON.stringify({ error: "No valid files to compile" }),
+        { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
+
+    const sortedFiles = [...validatedFiles].sort((a, b) => a.order - b.order);
     const masterPdf = await PDFDocument.create();
     const font = await masterPdf.embedFont(StandardFonts.Helvetica);
     const fontBold = await masterPdf.embedFont(StandardFonts.HelveticaBold);
