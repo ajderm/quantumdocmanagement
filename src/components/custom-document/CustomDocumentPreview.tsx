@@ -1,7 +1,7 @@
 import { forwardRef } from 'react';
 import { format } from 'date-fns';
 import type { CustomDocument, DocumentSection } from '@/components/admin/types';
-
+import { evaluateFormula, formatFieldNumber } from './DynamicFieldRenderer';
 import { buildDocumentFontCss } from "@/lib/documentFontSizes";
 interface DealerInfo {
   companyName?: string;
@@ -80,26 +80,96 @@ export const CustomDocumentPreview = forwardRef<HTMLDivElement, CustomDocumentPr
         </div>
         <div className="grid grid-cols-3 gap-x-4 gap-y-1 text-[12px]">
           {(section.fields || []).map((field) => {
-            const value = formData[field.id] || '';
-            // Skip checkboxes that are false
+            const value = formData[field.id];
             if (field.type === 'checkbox' && !value) return null;
+            
+            let displayValue: string;
+            if (field.type === 'checkbox') {
+              displayValue = value ? 'Yes' : 'No';
+            } else if (field.type === 'date' && value) {
+              displayValue = formatDate(value);
+            } else if (field.type === 'formula' && field.formula) {
+              const result = evaluateFormula(field.formula, formData);
+              displayValue = formatFieldNumber(result, field.decimals, field.prefix, field.suffix);
+            } else if (field.type === 'currency') {
+              const num = parseFloat(String(value));
+              displayValue = isNaN(num) ? (value || '-') : `${field.prefix || '$'}${num.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+            } else if (field.type === 'percentage') {
+              const num = parseFloat(String(value));
+              displayValue = isNaN(num) ? (value || '-') : `${num}%`;
+            } else if (field.type === 'number') {
+              const num = parseFloat(String(value));
+              displayValue = isNaN(num) ? (value || '-') : `${field.prefix || ''}${num.toLocaleString('en-US')}${field.suffix || ''}`;
+            } else {
+              displayValue = value || '-';
+            }
             
             return (
               <div key={field.id} className={getWidthClass(field.width)}>
                 <span className="font-semibold">{field.label}:</span>
-                <span className="ml-1">
-                  {field.type === 'checkbox' 
-                    ? (value ? 'Yes' : 'No')
-                    : field.type === 'date' && value
-                      ? formatDate(value)
-                      : value || '—'}
-                </span>
+                <span className="ml-1">{displayValue}</span>
               </div>
             );
           })}
         </div>
       </div>
     );
+
+    const renderTextBlock = (section: DocumentSection) => {
+      let content = formData[`textblock_${section.id}`] || section.content || '';
+      // Replace merge fields with values from formData/deal/company context
+      content = content.replace(/\{\{([^}]+)\}\}/g, (_: string, key: string) => {
+        const parts = key.trim().split('.');
+        if (parts.length === 2) {
+          const [obj, prop] = parts;
+          // Try to resolve from formData first, then leave the placeholder
+          return formData[`${obj}_${prop}`] || `{{${key}}}`;
+        }
+        return formData[key] || `{{${key}}}`;
+      });
+
+      if (!content) return null;
+
+      return (
+        <div className="mb-4" key={section.id}>
+          {section.title && (
+            <div className="font-bold text-[13px] border-b-2 border-black pb-1 mb-2 uppercase">
+              {section.title}
+            </div>
+          )}
+          <div className="text-[12px] whitespace-pre-wrap leading-relaxed">
+            {content}
+          </div>
+        </div>
+      );
+    };
+
+    const renderCalculatedSummary = (section: DocumentSection) => {
+      if (!section.summaryRows || section.summaryRows.length === 0) return null;
+
+      return (
+        <div className="mb-4" key={section.id}>
+          <div className="font-bold text-[13px] border-b-2 border-black pb-1 mb-2 uppercase">
+            {section.title}
+          </div>
+          <table className="w-full text-[12px]">
+            <tbody>
+              {section.summaryRows.map((row) => {
+                const result = evaluateFormula(row.formula, formData);
+                return (
+                  <tr key={row.id} className={row.bold ? 'border-t border-black font-bold' : 'border-b border-gray-200'}>
+                    <td className="py-1">{row.label}</td>
+                    <td className="py-1 text-right">
+                      {formatFieldNumber(result, 2, row.prefix, row.suffix)}
+                    </td>
+                  </tr>
+                );
+              })}
+            </tbody>
+          </table>
+        </div>
+      );
+    };
 
     const renderTable = (section: DocumentSection) => {
       const rows = formData[`table_${section.id}`] || [];
@@ -185,6 +255,10 @@ export const CustomDocumentPreview = forwardRef<HTMLDivElement, CustomDocumentPr
           return renderFields(section);
         case 'table':
           return renderTable(section);
+        case 'text_block':
+          return renderTextBlock(section);
+        case 'calculated_summary':
+          return renderCalculatedSummary(section);
         case 'signature':
           return renderSignature(section);
         case 'terms':

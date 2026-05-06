@@ -2,8 +2,9 @@ import { useEffect, useCallback } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import { Textarea } from '@/components/ui/textarea';
 import { Separator } from '@/components/ui/separator';
-import { DynamicFieldRenderer } from './DynamicFieldRenderer';
+import { DynamicFieldRenderer, evaluateFormula, formatFieldNumber } from './DynamicFieldRenderer';
 import { TableSectionRenderer } from './TableSectionRenderer';
 import type { CustomDocument, DocumentSection, DocumentField } from '@/components/admin/types';
 import { EXISTING_DOCUMENT_FIELDS } from '@/components/admin/types';
@@ -256,6 +257,7 @@ export function CustomDocumentForm({
                     field={field}
                     value={formData[field.id]}
                     onChange={(value) => updateField(field.id, value)}
+                    allFieldValues={formData}
                   />
                 ))}
               </div>
@@ -273,6 +275,51 @@ export function CustomDocumentForm({
                 onChange={(rows) => updateTableRows(section.id, rows)}
                 lineItems={lineItems}
               />
+            </CardContent>
+          </Card>
+        );
+
+      case 'text_block':
+        return (
+          <Card key={section.id}>
+            <CardHeader className="pb-3">
+              <CardTitle className="text-lg">{section.title}</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <Textarea
+                value={formData[`textblock_${section.id}`] || section.content || ''}
+                onChange={(e) => updateField(`textblock_${section.id}`, e.target.value)}
+                rows={5}
+                placeholder="Enter content..."
+                className="text-sm"
+              />
+              <p className="text-xs text-muted-foreground mt-1">
+                Use merge fields like {'{{company.name}}'}, {'{{deal.dealname}}'}, {'{{owner.firstName}}'} to auto-populate.
+              </p>
+            </CardContent>
+          </Card>
+        );
+
+      case 'calculated_summary':
+        return (
+          <Card key={section.id}>
+            <CardHeader className="pb-3">
+              <CardTitle className="text-lg">{section.title}</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="space-y-2">
+                {(section.summaryRows || []).map((row) => {
+                  const result = evaluateFormula(row.formula, formData);
+                  return (
+                    <div key={row.id} className={`flex justify-between items-center py-1 ${row.bold ? 'font-bold border-t pt-2' : ''}`}>
+                      <span className="text-sm">{row.label}</span>
+                      <span className="text-sm font-medium">
+                        {formatFieldNumber(result, 2, row.prefix, row.suffix)}
+                      </span>
+                    </div>
+                  );
+                })}
+              </div>
             </CardContent>
           </Card>
         );

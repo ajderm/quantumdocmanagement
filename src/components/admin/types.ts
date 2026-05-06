@@ -37,7 +37,7 @@ export interface FieldMappingsGrouped {
 export interface DocumentField {
   id: string;
   label: string;
-  type: 'text' | 'date' | 'dropdown' | 'checkbox' | 'textarea' | 'signature';
+  type: 'text' | 'date' | 'dropdown' | 'checkbox' | 'textarea' | 'signature' | 'number' | 'currency' | 'percentage' | 'formula' | 'richtext';
   mapping: {
     source: 'hubspot' | 'manual' | 'existing';
     object?: string;
@@ -47,6 +47,11 @@ export interface DocumentField {
   required: boolean;
   width: 'full' | 'half' | 'third';
   options?: string[]; // For dropdown type
+  formula?: string; // For formula type - references other field IDs, e.g. "{field_price} * {field_qty}"
+  prefix?: string; // For currency/number - e.g. "$"
+  suffix?: string; // For percentage - e.g. "%"
+  decimals?: number; // Number of decimal places
+  placeholder?: string; // Placeholder text
 }
 
 export interface TableColumn {
@@ -61,7 +66,7 @@ export interface TableColumn {
 export interface DocumentSection {
   id: string;
   title: string;
-  type: 'header' | 'fields' | 'table' | 'signature' | 'terms';
+  type: 'header' | 'fields' | 'table' | 'signature' | 'terms' | 'text_block' | 'calculated_summary';
   showDealerLogo?: boolean;
   showDealerAddress?: boolean;
   fields?: DocumentField[];
@@ -70,6 +75,10 @@ export interface DocumentSection {
   signerLabel?: string;
   includeDateLine?: boolean;
   showTerms?: boolean;
+  // text_block section
+  content?: string; // Rich text / merge field content for text_block
+  // calculated_summary section
+  summaryRows?: { id: string; label: string; formula: string; prefix?: string; suffix?: string; bold?: boolean; }[];
 }
 
 export interface DocumentSchema {

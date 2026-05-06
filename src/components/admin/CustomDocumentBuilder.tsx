@@ -34,7 +34,9 @@ interface CustomDocumentBuilderProps {
 const SECTION_TYPES = [
   { type: 'header', label: 'Header (Logo & Company Info)', icon: FileText },
   { type: 'fields', label: 'Field Section', icon: FileText },
+  { type: 'text_block', label: 'Text Block (Open Content)', icon: FileText },
   { type: 'table', label: 'Table (Equipment/Products)', icon: FileText },
+  { type: 'calculated_summary', label: 'Calculated Summary', icon: FileText },
   { type: 'signature', label: 'Signature Block', icon: FileText },
   { type: 'terms', label: 'Terms & Conditions', icon: FileText },
 ];
@@ -42,9 +44,14 @@ const SECTION_TYPES = [
 const FIELD_TYPES = [
   { type: 'text', label: 'Text Input' },
   { type: 'textarea', label: 'Text Area' },
+  { type: 'richtext', label: 'Rich Text' },
   { type: 'date', label: 'Date Picker' },
   { type: 'dropdown', label: 'Dropdown' },
   { type: 'checkbox', label: 'Checkbox' },
+  { type: 'number', label: 'Number' },
+  { type: 'currency', label: 'Currency ($)' },
+  { type: 'percentage', label: 'Percentage (%)' },
+  { type: 'formula', label: 'Formula (Calculated)' },
 ];
 
 const FIELD_WIDTHS = [
