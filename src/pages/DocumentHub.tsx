@@ -73,6 +73,7 @@ import { CommissionPreview } from '@/components/commission/CommissionPreview';
 import { CustomDocumentForm, CustomDocumentPreview, DynamicIcon } from '@/components/custom-document';
 import type { CustomDocument } from '@/components/admin/types';
 import type { FormCustomizationConfig, FormCustomizationMap } from '@/lib/formCustomization';
+import { DocumentPacketForm } from '@/components/document-packet/DocumentPacketForm';
 
 const documentTypes = [
   { code: 'quote', name: 'Quote', icon: FileText },
@@ -3189,6 +3190,16 @@ function DocumentHubContent() {
                 {customDoc.name}
               </TabsTrigger>
             ))}
+            {/* Document Packet Tab */}
+            {(!dealerSettings.enabled_forms || dealerSettings.enabled_forms.length === 0 || dealerSettings.enabled_forms.includes('document_packet')) && (
+              <TabsTrigger
+                value="document_packet"
+                className="relative rounded-none border-b-2 border-transparent data-[state=active]:border-primary data-[state=active]:bg-transparent data-[state=active]:text-primary data-[state=active]:shadow-none px-3 py-2.5 text-xs text-muted-foreground hover:text-foreground transition-colors"
+              >
+                <Package className="h-3.5 w-3.5 mr-1.5" />
+                Document Packet
+              </TabsTrigger>
+            )}
           </TabsList>
           </div>
 
@@ -4100,6 +4111,17 @@ function DocumentHubContent() {
               </Card>
             </TabsContent>
           ))}
+
+          {/* Document Packet Tab Content */}
+          <TabsContent value="document_packet" className="mt-0">
+            <DocumentPacketForm
+              portalId={portalId || localStorage.getItem('hs_portal_id') || ''}
+              dealId={deal?.hsObjectId || ''}
+              dealName={deal?.properties?.dealname || deal?.dealname || ''}
+              companyName={company?.properties?.name || company?.name || ''}
+            />
+          </TabsContent>
+
         </Tabs>
       </div>
 
