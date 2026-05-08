@@ -44,6 +44,7 @@ const ALL_FORM_TYPES = [
   { code: 'relocation', name: 'Relocation' },
   { code: 'equipment_removal', name: 'Equipment Removal' },
   { code: 'commission', name: 'Commission' },
+  { code: 'document_packet', name: 'Document Packet' },
 ];
 
 export default function AdminSettings() {
