@@ -216,10 +216,20 @@ export function DocumentPacketForm({
       if (error) throw error;
 
       if (data?.pdfUrl) {
-        const link = document.createElement('a');
-        link.href = data.pdfUrl;
-        link.download = `${title.replace(/[^a-zA-Z0-9]/g, '_')}_${new Date().toISOString().split('T')[0]}.pdf`;
-        link.click();
+        try {
+          const pdfResponse = await fetch(data.pdfUrl);
+          const pdfBlob = await pdfResponse.blob();
+          const blobUrl = URL.createObjectURL(pdfBlob);
+          const link = document.createElement('a');
+          link.href = blobUrl;
+          link.download = `${title.replace(/[^a-zA-Z0-9]/g, '_')}_${new Date().toISOString().split('T')[0]}.pdf`;
+          document.body.appendChild(link);
+          link.click();
+          document.body.removeChild(link);
+          URL.revokeObjectURL(blobUrl);
+        } catch {
+          window.open(data.pdfUrl, '_blank');
+        }
         toast.success('Document packet compiled');
         if (data.errors?.length) {
           data.errors.forEach((err: string) => toast.warning(err));
