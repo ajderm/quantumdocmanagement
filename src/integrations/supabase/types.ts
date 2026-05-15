@@ -14,6 +14,53 @@ export type Database = {
   }
   public: {
     Tables: {
+      access_rules: {
+        Row: {
+          created_at: string | null
+          cutoff_stage: string
+          cutoff_stage_label: string | null
+          dealer_account_id: string
+          id: string
+          pipeline_id: string
+          pipeline_label: string | null
+          post_cutoff_min_role: string
+          pre_cutoff_min_role: string
+          updated_at: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          cutoff_stage: string
+          cutoff_stage_label?: string | null
+          dealer_account_id: string
+          id?: string
+          pipeline_id: string
+          pipeline_label?: string | null
+          post_cutoff_min_role?: string
+          pre_cutoff_min_role?: string
+          updated_at?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          cutoff_stage?: string
+          cutoff_stage_label?: string | null
+          dealer_account_id?: string
+          id?: string
+          pipeline_id?: string
+          pipeline_label?: string | null
+          post_cutoff_min_role?: string
+          pre_cutoff_min_role?: string
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "access_rules_dealer_account_id_fkey"
+            columns: ["dealer_account_id"]
+            isOneToOne: false
+            referencedRelation: "dealer_accounts"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       api_rate_limits: {
         Row: {
           created_at: string
@@ -76,6 +123,47 @@ export type Database = {
           updated_at?: string
         }
         Relationships: []
+      }
+      app_user_roles: {
+        Row: {
+          created_at: string | null
+          dealer_account_id: string
+          hubspot_user_email: string | null
+          hubspot_user_id: string
+          hubspot_user_name: string | null
+          id: string
+          role: string
+          updated_at: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          dealer_account_id: string
+          hubspot_user_email?: string | null
+          hubspot_user_id: string
+          hubspot_user_name?: string | null
+          id?: string
+          role?: string
+          updated_at?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          dealer_account_id?: string
+          hubspot_user_email?: string | null
+          hubspot_user_id?: string
+          hubspot_user_name?: string | null
+          id?: string
+          role?: string
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "app_user_roles_dealer_account_id_fkey"
+            columns: ["dealer_account_id"]
+            isOneToOne: false
+            referencedRelation: "dealer_accounts"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       audit_log: {
         Row: {
