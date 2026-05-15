@@ -5,7 +5,7 @@ import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Separator } from '@/components/ui/separator';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Building2, Upload, Save, Loader2, CreditCard, FileText, ArrowLeft, Plus, X, Settings2, Link2, FilePlus, Palette, Users, Download, DollarSign, Trash2 } from 'lucide-react';
+import { Building2, Upload, Save, Loader2, CreditCard, FileText, ArrowLeft, Plus, X, Settings2, Link2, FilePlus, Palette, Users, Download, DollarSign, Trash2, Shield } from 'lucide-react';
 import { useState, useEffect, useRef } from 'react';
 import { Link, useSearchParams } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
@@ -14,6 +14,7 @@ import { Badge } from '@/components/ui/badge';
 import { FieldMappingEditor } from '@/components/admin/FieldMappingEditor';
 import { CustomDocumentBuilder } from '@/components/admin/CustomDocumentBuilder';
 import { FormCustomizationTab } from '@/components/admin/FormCustomizationTab';
+import { UserRolesManager } from '@/components/admin/UserRolesManager';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import type { FormCustomizationMap } from '@/lib/formCustomization';
 
@@ -484,6 +485,10 @@ export default function AdminSettings() {
                 <CreditCard className="h-4 w-4 mr-2" />
                 Leasing Partners
               </Link>
+            </TabsTrigger>
+            <TabsTrigger value="user-roles">
+              <Shield className="h-4 w-4 mr-2" />
+              User Roles
             </TabsTrigger>
           </TabsList>
 
@@ -1334,6 +1339,20 @@ export default function AdminSettings() {
                 )}
               </Button>
             </div>
+          </TabsContent>
+
+          <TabsContent value="user-roles">
+            {dealerAccountId && portalId && (
+              <UserRolesManager
+                portalId={portalId}
+                dealerAccountId={dealerAccountId}
+              />
+            )}
+            {!dealerAccountId && (
+              <div className="text-center py-8 text-sm text-muted-foreground">
+                Save company settings first to enable user roles management.
+              </div>
+            )}
           </TabsContent>
         </Tabs>
       </div>
