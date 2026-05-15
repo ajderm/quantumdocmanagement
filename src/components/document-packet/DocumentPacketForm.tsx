@@ -216,13 +216,14 @@ export function DocumentPacketForm({
       if (error) throw error;
 
       if (data?.pdfUrl) {
+        const fileName = `${title.replace(/[^a-zA-Z0-9]/g, '_')}_${new Date().toISOString().split('T')[0]}.pdf`;
         try {
           const pdfResponse = await fetch(data.pdfUrl);
           const pdfBlob = await pdfResponse.blob();
           const blobUrl = URL.createObjectURL(pdfBlob);
           const link = document.createElement('a');
           link.href = blobUrl;
-          link.download = `${title.replace(/[^a-zA-Z0-9]/g, '_')}_${new Date().toISOString().split('T')[0]}.pdf`;
+          link.download = fileName;
           document.body.appendChild(link);
           link.click();
           document.body.removeChild(link);
@@ -230,7 +231,24 @@ export function DocumentPacketForm({
         } catch {
           window.open(data.pdfUrl, '_blank');
         }
-        toast.success('Document packet compiled');
+
+        // Attach compiled PDF to HubSpot deal/project
+        if (dealId) {
+          try {
+            const { error: attachError } = await supabase.functions.invoke('hubspot-attach-file', {
+              body: { portalId, dealId, fileUrl: data.pdfUrl, fileName },
+            });
+            if (!attachError) {
+              toast.success('Compiled and attached to HubSpot');
+            } else {
+              toast.success('Document packet compiled');
+            }
+          } catch {
+            toast.success('Document packet compiled');
+          }
+        } else {
+          toast.success('Document packet compiled');
+        }
         if (data.errors?.length) {
           data.errors.forEach((err: string) => toast.warning(err));
         }
