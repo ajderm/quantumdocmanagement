@@ -347,7 +347,7 @@ Deno.serve(async (req) => {
       'street_address__del_', 'street_address_line_2__del_', 'city__del_', 'state__del_', 'postal_code__del_', 'zip__del_', 'zip_code__del_',
       'street_address__ap_', 'street_address_line_2__ap_', 'city__ap_', 'state__ap_', 'zip_code__ap_']);
     const contactPropsNeeded = new Set(['firstname', 'lastname', 'email', 'phone', 'jobtitle']);
-    const dealPropsNeeded = new Set(['dealname', 'amount', 'dealstage', 'closedate', 'hubspot_owner_id', 'hs_object_id']);
+    const dealPropsNeeded = new Set(['dealname', 'amount', 'dealstage', 'pipeline', 'closedate', 'hubspot_owner_id', 'hs_object_id']);
     const lineItemPropsNeeded = new Set(['name', 'description', 'quantity', 'price', 'hs_sku', 'item_number', 'hs_product_id', 'hs_product_type', 'hs_recurring_billing_period', 'hs_cost_of_goods_sold', 'unit_cost', 'condition', 'hs_product_condition', 'dealer', 'manufacturer', 'vendor', 'hs_line_item_dealer', 'color_mono', 'machine_type']);
 
     // Add properties from field mappings
@@ -387,6 +387,7 @@ Deno.serve(async (req) => {
       dealName: dealResponse.properties.dealname,
       amount: dealResponse.properties.amount ? parseFloat(dealResponse.properties.amount) : null,
       stage: dealResponse.properties.dealstage,
+      pipeline: dealResponse.properties.pipeline,
       closeDate: dealResponse.properties.closedate,
       ownerId: dealResponse.properties.hubspot_owner_id,
     };

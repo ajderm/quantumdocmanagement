@@ -132,6 +132,49 @@ const AUTO_SAVE_DELAY = 3000;
 function DocumentHubContent() {
   const { deal, company, contacts, lineItems, dealOwner, labeledContacts, companyContacts, properties, loading, error, portalId, userId } = useHubSpot();
   
+  // User permissions
+  const [userPermissions, setUserPermissions] = useState<{
+    role: string;
+    can_view: boolean;
+    can_edit: boolean;
+    can_download: boolean;
+    can_generate: boolean;
+    is_admin: boolean;
+    reason: string;
+  }>({ role: 'user', can_view: true, can_edit: true, can_download: true, can_generate: true, is_admin: false, reason: 'loading' });
+
+  // Fetch user permissions when deal loads
+  useEffect(() => {
+    const fetchPermissions = async () => {
+      if (!portalId || !userId) return;
+      try {
+        const params = new URLSearchParams({
+          portalId: portalId,
+          userId: userId,
+          dealStage: deal?.properties?.dealstage || deal?.stage || '',
+          pipelineId: deal?.properties?.pipeline || deal?.pipeline || '',
+        });
+        const { data, error: permError } = await supabase.functions.invoke('get-user-access', {
+          body: null,
+          headers: {},
+        });
+        // Use GET params approach - invoke with query string
+        const response = await fetch(
+          `${import.meta.env.VITE_SUPABASE_URL || 'https://rqfheyisgxbmjlntjmhz.supabase.co'}/functions/v1/get-user-access?${params.toString()}`,
+          { headers: { 'apikey': import.meta.env.VITE_SUPABASE_ANON_KEY || 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InJxZmhleWlzZ3hibWpsbmRqbWh6Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3MzU5MTkyODgsImV4cCI6MjA1MTQ5NTI4OH0.sWDqSGxIUjUqe3MxdmNFcnFKZTdwaG1NWk9yMzZvN0k' } }
+        );
+        if (response.ok) {
+          const perms = await response.json();
+          setUserPermissions(perms);
+        }
+      } catch {
+        // On error, default to full access (fail open for now)
+        console.warn('Failed to fetch user permissions, defaulting to full access');
+      }
+    };
+    fetchPermissions();
+  }, [portalId, userId, deal?.properties?.dealstage, deal?.properties?.pipeline]);
+
   // Quote state
   const [generating, setGenerating] = useState(false);
   const [saving, setSaving] = useState(false);
@@ -3114,6 +3157,16 @@ function DocumentHubContent() {
 
       <div className="px-4 pt-3 pb-2">
 
+        {/* Permission Banner */}
+        {!userPermissions.can_edit && userPermissions.reason !== 'loading' && (
+          <div className="mb-3 px-3 py-2 rounded-lg bg-amber-50 border border-amber-200 text-amber-800 text-xs flex items-center gap-2">
+            <AlertCircle className="h-3.5 w-3.5 shrink-0" />
+            {userPermissions.can_view
+              ? 'You have view-only access. Document editing and downloads are restricted at this stage.'
+              : 'Access to this deal is restricted. Contact your administrator for access.'}
+          </div>
+        )}
+
         {/* Deal Context */}
         {deal && (
           <div className="mb-3 px-1">
@@ -3262,7 +3315,7 @@ function DocumentHubContent() {
                 {/* Actions */}
                 <div className="pt-4 border-t border-border/60 space-y-3">
                   <div className="flex gap-2">
-                    <Button onClick={handleGeneratePDF} disabled={generating} className="flex-1">
+                    <Button onClick={handleGeneratePDF} disabled={generating || !userPermissions.can_generate} className="flex-1" title={!userPermissions.can_generate ? 'You do not have permission to generate documents at this stage' : ''}>
                       {generating ? (
                         <Loader2 className="h-4 w-4 mr-2 animate-spin" />
                       ) : (
