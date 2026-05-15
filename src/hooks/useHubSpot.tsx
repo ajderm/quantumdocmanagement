@@ -79,7 +79,7 @@ export function HubSpotProvider({ children }: { children: ReactNode }) {
   const [error, setError] = useState<string | null>(null);
 
   const fetchData = async () => {
-    const { portalId: portalIdFromUrl, userId: userIdFromUrl, dealId } = readHubSpotParams();
+    const { portalId: portalIdFromUrl, userId: userIdFromUrl, dealId, objectType: currentObjectType } = readHubSpotParams();
 
     // Persist portal/user for later (e.g. settings tab opened without params)
     if (portalIdFromUrl) {
