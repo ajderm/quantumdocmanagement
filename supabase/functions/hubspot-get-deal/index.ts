@@ -288,7 +288,10 @@ Deno.serve(async (req) => {
       dealId = dealId || body.dealId || body.recordId || body.objectId;
     }
 
-    console.log('Request received - portalId:', portalId, 'dealId:', dealId);
+    // Read objectType to support Projects
+    const objectType = url.searchParams.get('objectType') || 'deals';
+
+    console.log('Request received - portalId:', portalId, 'dealId:', dealId, 'objectType:', objectType);
 
     if (!portalId || !dealId) {
       return new Response(
@@ -372,11 +375,72 @@ Deno.serve(async (req) => {
 
     console.log('Dynamic properties - deal:', Array.from(dealPropsNeeded).length, 'company:', Array.from(companyPropsNeeded).length);
 
+    // If objectType is 'projects', resolve the project's associated deal first
+    let resolvedDealId = dealId;
+    let projectInfo: { id: string; name: string; stage: string; pipeline: string } | null = null;
+
+    if (objectType === 'projects' || objectType === '0-54') {
+      console.log('Project object detected, resolving associated deal...');
+      try {
+        // Fetch the project record
+        const projectResponse = await hubspotRequest(
+          accessToken,
+          `/crm/v3/objects/projects/${dealId}?properties=hs_project_title,hs_pipeline_stage,hs_pipeline`
+        );
+        projectInfo = {
+          id: projectResponse.id,
+          name: projectResponse.properties?.hs_project_title || 'Untitled Project',
+          stage: projectResponse.properties?.hs_pipeline_stage || '',
+          pipeline: projectResponse.properties?.hs_pipeline || '',
+        };
+        console.log('Project found:', projectInfo.name);
+
+        // Get associated deals via Associations API
+        const assocResponse = await hubspotRequest(
+          accessToken,
+          `/crm/v4/objects/projects/${dealId}/associations/deals`
+        );
+        const associatedDeals = assocResponse.results || [];
+        if (associatedDeals.length > 0) {
+          resolvedDealId = associatedDeals[0].toObjectId;
+          console.log('Resolved project to deal:', resolvedDealId);
+        } else {
+          console.log('No associated deal found for project, returning project info only');
+          // Return minimal response with project info but no deal data
+          return new Response(
+            JSON.stringify({
+              deal: {
+                dealId: projectInfo.id,
+                hsObjectId: projectInfo.id,
+                dealName: projectInfo.name,
+                amount: null,
+                stage: projectInfo.stage,
+                pipeline: projectInfo.pipeline,
+                closeDate: null,
+                ownerId: null,
+              },
+              company: null,
+              contacts: [],
+              lineItems: [],
+              dealOwner: null,
+              labeledContacts: null,
+              companyContacts: null,
+              projectInfo,
+            }),
+            { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+          );
+        }
+      } catch (projErr) {
+        console.error('Project resolution error:', projErr);
+        // Fall through to try treating dealId as a deal directly
+      }
+    }
+
     // Fetch deal with dynamic properties
     const dealPropsString = Array.from(dealPropsNeeded).join(',');
     const dealResponse = await hubspotRequest(
       accessToken,
-      `/crm/v3/objects/deals/${dealId}?properties=${dealPropsString}`
+      `/crm/v3/objects/deals/${resolvedDealId}?properties=${dealPropsString}`
     );
 
     console.log('Deal fetched:', dealResponse.id);
@@ -634,6 +698,7 @@ Deno.serve(async (req) => {
       // Include raw properties for custom document field resolution
       properties: rawProperties,
       fieldMappings,
+      projectInfo, // null if initiated from a deal, populated if from a project
     };
 
     console.log('Returning data successfully, companyContacts labels:', Object.keys(companyContacts));

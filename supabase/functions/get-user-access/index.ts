@@ -72,7 +72,8 @@ serve(async (req) => {
       .eq("hubspot_user_id", userId)
       .single();
 
-    const role = userRole?.role || "user"; // Default to 'user' if not explicitly set
+    // Default to 'viewer' if not explicitly set (restrictive by default)
+    const role = userRole?.role || "viewer";
 
     // If admin or manager, full access always
     if (role === "admin" || role === "manager") {
@@ -100,12 +101,39 @@ serve(async (req) => {
         .single();
 
       if (rule) {
-        // Determine if deal is past the cutoff stage
-        // We fetch pipeline stages from HubSpot to determine order
-        // For now, we compare stage IDs - the cutoff_stage is the stage at which access opens up
-        const isPastCutoff = dealStage === rule.cutoff_stage;
-        // Note: exact stage ordering requires HubSpot API call - for MVP, we use exact match
-        // The admin will set the specific stage ID that acts as the gate
+        // Fetch pipeline stages from HubSpot to determine ordering
+        let isPastCutoff = dealStage === rule.cutoff_stage; // Fallback: exact match
+
+        try {
+          // Get HubSpot token to fetch pipeline stages
+          const { data: tokenData } = await supabase
+            .from("hubspot_tokens")
+            .select("access_token")
+            .eq("portal_id", portalId)
+            .single();
+
+          if (tokenData?.access_token) {
+            const pipelineResp = await fetch(
+              `https://api.hubapi.com/crm/v3/pipelines/deals/${pipelineId}`,
+              { headers: { Authorization: `Bearer ${tokenData.access_token}` } }
+            );
+            if (pipelineResp.ok) {
+              const pipelineData = await pipelineResp.json();
+              const stages = (pipelineData.stages || [])
+                .sort((a: any, b: any) => (a.displayOrder || 0) - (b.displayOrder || 0));
+              
+              const cutoffIndex = stages.findIndex((s: any) => s.id === rule.cutoff_stage);
+              const currentIndex = stages.findIndex((s: any) => s.id === dealStage);
+              
+              if (cutoffIndex >= 0 && currentIndex >= 0) {
+                isPastCutoff = currentIndex >= cutoffIndex;
+              }
+            }
+          }
+        } catch {
+          // On error, fall back to exact match
+          console.warn('Could not fetch pipeline stages for ordering, using exact match');
+        }
 
         if (isPastCutoff) {
           // Past cutoff - check post_cutoff_min_role

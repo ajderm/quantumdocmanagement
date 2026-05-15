@@ -26,7 +26,6 @@ interface RawProperties {
 type HubSpotContextType = {
   portalId: string | null;
   userId: string | null;
-  objectType: string; // 'deals' | 'projects' | custom object type
   deal: any;
   company: any;
   contacts: any[];
@@ -78,11 +77,9 @@ export function HubSpotProvider({ children }: { children: ReactNode }) {
   const [loading, setLoading] = useState(true);
   const [isEmbedded, setIsEmbedded] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [objectType, setObjectType] = useState<string>('deals');
 
   const fetchData = async () => {
-    const { portalId: portalIdFromUrl, userId: userIdFromUrl, dealId, objectType: objectTypeFromUrl } = readHubSpotParams();
-    const currentObjectType = objectTypeFromUrl || 'deals';
+    const { portalId: portalIdFromUrl, userId: userIdFromUrl, dealId, objectType: currentObjectType } = readHubSpotParams();
 
     // Persist portal/user for later (e.g. settings tab opened without params)
     if (portalIdFromUrl) {
@@ -120,7 +117,6 @@ export function HubSpotProvider({ children }: { children: ReactNode }) {
 
     setPortalId(effectivePortalId);
     setUserId(effectiveUserId);
-    setObjectType(currentObjectType);
 
     console.log(
       "useHubSpot: URL params - portalId:",
@@ -137,7 +133,7 @@ export function HubSpotProvider({ children }: { children: ReactNode }) {
 
       try {
         const { data, error: invokeError } = await supabase.functions.invoke("hubspot-get-deal", {
-          body: { portalId: effectivePortalId, dealId },
+          body: { portalId: effectivePortalId, dealId, objectType: currentObjectType },
         });
 
         if (invokeError) throw invokeError;
@@ -176,7 +172,6 @@ export function HubSpotProvider({ children }: { children: ReactNode }) {
       value={{
         portalId,
         userId,
-        objectType,
         deal,
         company,
         contacts,
