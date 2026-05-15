@@ -97,13 +97,34 @@ Deno.serve(async (req) => {
       .filter((o: any) => !o.archived)
       .map((o: any) => ({
         id: o.id,
+        userId: String(o.userId || o.id),
         firstName: o.firstName || '',
         lastName: o.lastName || '',
         email: o.email || '',
       }));
 
+    // Also fetch deal pipelines for access rules configuration
+    let pipelines: any[] = [];
+    try {
+      const pipelinesResponse = await fetch('https://api.hubapi.com/crm/v3/pipelines/deals', {
+        headers: { Authorization: `Bearer ${accessToken}`, 'Content-Type': 'application/json' },
+      });
+      if (pipelinesResponse.ok) {
+        const pipelinesData = await pipelinesResponse.json();
+        pipelines = (pipelinesData.results || []).map((p: any) => ({
+          id: p.id,
+          label: p.label,
+          stages: (p.stages || []).map((s: any) => ({
+            id: s.id, label: s.label, displayOrder: s.displayOrder || 0,
+          })).sort((a: any, b: any) => a.displayOrder - b.displayOrder),
+        }));
+      }
+    } catch (pipelineErr) {
+      console.error('Pipeline fetch error:', pipelineErr);
+    }
+
     return new Response(
-      JSON.stringify({ owners }),
+      JSON.stringify({ owners, pipelines }),
       { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     );
   } catch (error: unknown) {

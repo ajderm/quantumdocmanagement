@@ -64,7 +64,33 @@ serve(async (req) => {
       );
     }
 
-    // Get user role
+    // Check if this portal has ANY user roles configured
+    const { data: allRoles, error: rolesError } = await supabase
+      .from("app_user_roles")
+      .select("hubspot_user_id")
+      .eq("dealer_account_id", account.id)
+      .limit(1);
+
+    const rolesConfigured = allRoles && allRoles.length > 0;
+
+    // If no roles have been configured for this portal, grant full access
+    // (the admin hasn't set up user management yet - don't lock anyone out)
+    if (!rolesConfigured) {
+      return new Response(
+        JSON.stringify({
+          role: "user",
+          can_view: true,
+          can_edit: true,
+          can_download: true,
+          can_generate: true,
+          is_admin: false,
+          reason: "no_roles_configured",
+        }),
+        { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
+
+    // Get this specific user's role
     const { data: userRole } = await supabase
       .from("app_user_roles")
       .select("role")
@@ -72,7 +98,7 @@ serve(async (req) => {
       .eq("hubspot_user_id", userId)
       .single();
 
-    // Default to 'viewer' if not explicitly set (restrictive by default)
+    // Default to 'viewer' only when roles ARE configured but this user isn't in the list
     const role = userRole?.role || "viewer";
 
     // If admin or manager, full access always

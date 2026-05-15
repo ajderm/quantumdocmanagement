@@ -84,42 +84,43 @@ export function UserRolesManager({ portalId, dealerAccountId }: UserRolesManager
   const syncHubSpotUsers = async () => {
     setSyncing(true);
     try {
-      const { data: tokenData } = await supabase.from('hubspot_tokens').select('access_token').eq('portal_id', portalId).single();
-      if (!tokenData?.access_token) { toast.error('No HubSpot token found'); setSyncing(false); return; }
-      const token = tokenData.access_token;
+      // Use the hubspot-get-owners edge function which handles token lookup server-side
+      const { data, error: invokeError } = await supabase.functions.invoke('hubspot-get-owners', {
+        body: { portalId },
+      });
 
-      const response = await fetch('https://api.hubapi.com/crm/v3/owners?limit=500', { headers: { Authorization: `Bearer ${token}` } });
-      if (!response.ok) throw new Error('Failed to fetch HubSpot users');
-      const data = await response.json();
-      const owners = (data.results || []).map((o: any) => ({
+      if (invokeError || !data?.owners) {
+        toast.error(data?.error || 'Failed to fetch HubSpot users');
+        setSyncing(false);
+        return;
+      }
+
+      const owners = (data.owners || []).map((o: any) => ({
         userId: String(o.userId || o.id),
         email: o.email || '',
         name: `${o.firstName || ''} ${o.lastName || ''}`.trim(),
       }));
 
+      // Upsert new users that don't have roles yet
       const existingIds = new Set(userRoles.map(r => r.hubspot_user_id));
       for (const user of owners) {
         if (!existingIds.has(user.userId)) {
           await supabase.from('app_user_roles').upsert({
             dealer_account_id: dealerAccountId, hubspot_user_id: user.userId,
             hubspot_user_name: user.name, hubspot_user_email: user.email,
-            role: 'viewer', updated_at: new Date().toISOString(),
+            role: 'user', updated_at: new Date().toISOString(),
           }, { onConflict: 'dealer_account_id,hubspot_user_id' });
         }
       }
 
-      const pipelineResp = await fetch('https://api.hubapi.com/crm/v3/pipelines/deals', { headers: { Authorization: `Bearer ${token}` } });
-      if (pipelineResp.ok) {
-        const pData = await pipelineResp.json();
-        setPipelines((pData.results || []).map((p: any) => ({
-          id: p.id, label: p.label,
-          stages: (p.stages || []).map((s: any) => ({ id: s.id, label: s.label, displayOrder: s.displayOrder || 0 })).sort((a: any, b: any) => a.displayOrder - b.displayOrder),
-        })));
+      // Set pipelines from the same edge function response
+      if (data.pipelines) {
+        setPipelines(data.pipelines);
       }
 
       await loadData();
       toast.success(`Synced ${owners.length} users from HubSpot`);
-    } catch (err) { console.error('Sync error:', err); toast.error('Failed to sync'); }
+    } catch (err) { console.error('Sync error:', err); toast.error('Failed to sync HubSpot users'); }
     finally { setSyncing(false); }
   };
 
