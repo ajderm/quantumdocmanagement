@@ -50,8 +50,9 @@ function readHubSpotParams() {
   const portalId = urlParams.get("portalId") || urlParams.get("portal_id");
   const userId = urlParams.get("userId") || urlParams.get("user_id");
   const dealId = urlParams.get("dealId") || urlParams.get("recordId") || urlParams.get("objectId");
+  const objectType = urlParams.get("objectType") || urlParams.get("object_type") || "deals";
 
-  return { portalId, userId, dealId };
+  return { portalId, userId, dealId, objectType };
 }
 
 const HubSpotContext = createContext<HubSpotContextType | undefined>(undefined);
