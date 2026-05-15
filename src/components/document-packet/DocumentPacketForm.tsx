@@ -31,8 +31,10 @@ interface DocumentPacketFormProps {
   dealId: string;
   dealName?: string;
   companyName?: string;
+  hubspotToken?: string;
   savedConfig?: PacketConfig;
   onFormChange?: (data: PacketConfig) => void;
+  onAddFile?: (file: { name: string; storagePath: string; type: string; size: number }) => void; // Called by other forms to push PDFs here
 }
 
 const ACCEPTED_TYPES: Record<string, string> = {
@@ -56,8 +58,10 @@ export function DocumentPacketForm({
   dealId,
   dealName,
   companyName,
+  hubspotToken,
   savedConfig,
   onFormChange,
+  onAddFile,
 }: DocumentPacketFormProps) {
   const [files, setFiles] = useState<PacketFile[]>(savedConfig?.files || []);
   const [title, setTitle] = useState(savedConfig?.title || "Document Packet");
@@ -222,11 +226,32 @@ export function DocumentPacketForm({
           const blobUrl = URL.createObjectURL(pdfBlob);
           const link = document.createElement('a');
           link.href = blobUrl;
-          link.download = `${title.replace(/[^a-zA-Z0-9]/g, '_')}_${new Date().toISOString().split('T')[0]}.pdf`;
+          const fileName = `${title.replace(/[^a-zA-Z0-9]/g, '_')}_${new Date().toISOString().split('T')[0]}.pdf`;
+          link.download = fileName;
           document.body.appendChild(link);
           link.click();
           document.body.removeChild(link);
           URL.revokeObjectURL(blobUrl);
+
+          // Attach compiled PDF to HubSpot deal
+          if (hubspotToken && dealId) {
+            try {
+              const { error: attachError } = await supabase.functions.invoke('hubspot-attach-file', {
+                body: {
+                  token: hubspotToken,
+                  dealId,
+                  fileUrl: data.pdfUrl,
+                  fileName,
+                },
+              });
+              if (!attachError) {
+                toast.success('Attached to HubSpot deal');
+              }
+            } catch {
+              // Silent failure - download already succeeded
+              console.warn('Failed to attach to HubSpot, but PDF was downloaded');
+            }
+          }
         } catch {
           window.open(data.pdfUrl, '_blank');
         }
