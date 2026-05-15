@@ -26,6 +26,7 @@ interface RawProperties {
 type HubSpotContextType = {
   portalId: string | null;
   userId: string | null;
+  objectType: string; // 'deals' | 'projects' | custom object type
   deal: any;
   company: any;
   contacts: any[];
@@ -50,8 +51,9 @@ function readHubSpotParams() {
   const portalId = urlParams.get("portalId") || urlParams.get("portal_id");
   const userId = urlParams.get("userId") || urlParams.get("user_id");
   const dealId = urlParams.get("dealId") || urlParams.get("recordId") || urlParams.get("objectId");
+  const objectType = urlParams.get("objectType") || urlParams.get("object_type") || "deals";
 
-  return { portalId, userId, dealId };
+  return { portalId, userId, dealId, objectType };
 }
 
 const HubSpotContext = createContext<HubSpotContextType | undefined>(undefined);
@@ -76,9 +78,11 @@ export function HubSpotProvider({ children }: { children: ReactNode }) {
   const [loading, setLoading] = useState(true);
   const [isEmbedded, setIsEmbedded] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [objectType, setObjectType] = useState<string>('deals');
 
   const fetchData = async () => {
-    const { portalId: portalIdFromUrl, userId: userIdFromUrl, dealId } = readHubSpotParams();
+    const { portalId: portalIdFromUrl, userId: userIdFromUrl, dealId, objectType: objectTypeFromUrl } = readHubSpotParams();
+    const currentObjectType = objectTypeFromUrl || 'deals';
 
     // Persist portal/user for later (e.g. settings tab opened without params)
     if (portalIdFromUrl) {
@@ -116,6 +120,7 @@ export function HubSpotProvider({ children }: { children: ReactNode }) {
 
     setPortalId(effectivePortalId);
     setUserId(effectiveUserId);
+    setObjectType(currentObjectType);
 
     console.log(
       "useHubSpot: URL params - portalId:",
@@ -171,6 +176,7 @@ export function HubSpotProvider({ children }: { children: ReactNode }) {
       value={{
         portalId,
         userId,
+        objectType,
         deal,
         company,
         contacts,
