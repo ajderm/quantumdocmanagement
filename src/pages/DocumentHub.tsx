@@ -44,7 +44,8 @@ import {
   Lightbulb,
   CheckCircle2,
   Clock,
-  X
+  X,
+  AlertCircle
 } from 'lucide-react';
 import { QuoteForm, QuoteFormData } from '@/components/quote/QuoteForm';
 import { QuotePreview } from '@/components/quote/QuotePreview';
