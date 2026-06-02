@@ -724,8 +724,8 @@ export function QuoteForm({ deal, company, lineItems, dealOwner, onFormChange, p
           </CardTitle>
         </CardHeader>
         <CardContent>
-          <div className="space-y-1 overflow-x-auto">
-            <div className="grid grid-cols-[28px_40px_70px_1fr_100px_85px_85px_60px_85px_95px_72px] gap-1.5 text-xs font-medium text-muted-foreground px-2 min-w-[800px]">
+          <div className="space-y-1">
+            <div className="grid grid-cols-[28px_40px_70px_1fr_100px_85px_85px_60px_85px_95px_52px] gap-1.5 text-xs font-medium text-muted-foreground px-2">
               <div></div>
               <div>Qty</div>
               <div>Type</div>
@@ -752,7 +752,7 @@ export function QuoteForm({ deal, company, lineItems, dealOwner, onFormChange, p
               };
               return (
               <div key={item.id} className={`${item.parentLineItemId ? 'ml-4 border-l-2 border-primary/20 pl-2' : ''}`}>
-              <div className={`grid grid-cols-[28px_40px_70px_1fr_100px_85px_85px_60px_85px_95px_72px] gap-1.5 items-center`}>
+              <div className={`grid grid-cols-[28px_40px_70px_1fr_100px_85px_85px_60px_85px_95px_52px] gap-1.5 items-center`}>
                 <button type="button" onClick={toggleExpanded} className="h-8 w-7 flex items-center justify-center text-muted-foreground hover:text-foreground transition-colors rounded hover:bg-muted/50">
                   {isExpanded ? <ChevronDown className="h-3.5 w-3.5" /> : <ChevronRight className="h-3.5 w-3.5" />}
                 </button>
@@ -829,10 +829,10 @@ export function QuoteForm({ deal, company, lineItems, dealOwner, onFormChange, p
                   {!isHardware && item.quantity > 1 && hardwareItems.length > 1 && (
                     <Button type="button" variant="ghost" size="sm" onClick={() => splitLineItem(idx)} className="h-8 w-8 p-0 text-primary" title="Split into individual units for linking to different hardware"><Scissors className="h-3.5 w-3.5" /></Button>
                   )}
-                  <div className="flex items-center gap-0.5">
-                    <Button type="button" variant="ghost" size="sm" onClick={() => moveLineItem(idx, idx - 1)} disabled={idx === 0} className="h-7 w-7 p-0 text-muted-foreground"><ChevronUp className="h-3 w-3" /></Button>
-                    <Button type="button" variant="ghost" size="sm" onClick={() => moveLineItem(idx, idx + 1)} disabled={idx === formData.lineItems.length - 1} className="h-7 w-7 p-0 text-muted-foreground"><ChevronDown className="h-3 w-3" /></Button>
-                    <Button type="button" variant="ghost" size="sm" onClick={() => removeLineItem(idx)} className="h-7 w-7 p-0 text-destructive"><Trash2 className="h-3 w-3" /></Button>
+                  <div className="flex items-center gap-0">
+                    <Button type="button" variant="ghost" size="sm" onClick={() => moveLineItem(idx, idx - 1)} disabled={idx === 0} className="h-5 w-5 p-0 text-muted-foreground"><ChevronUp className="h-3 w-3" /></Button>
+                    <Button type="button" variant="ghost" size="sm" onClick={() => moveLineItem(idx, idx + 1)} disabled={idx === formData.lineItems.length - 1} className="h-5 w-5 p-0 text-muted-foreground"><ChevronDown className="h-3 w-3" /></Button>
+                    <Button type="button" variant="ghost" size="sm" onClick={() => removeLineItem(idx)} className="h-5 w-5 p-0 text-destructive"><Trash2 className="h-3 w-3" /></Button>
                   </div>
                 </div>
               </div>
