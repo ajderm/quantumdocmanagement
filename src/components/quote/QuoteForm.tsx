@@ -5,7 +5,7 @@ import { Label } from '@/components/ui/label';
 import { Button } from '@/components/ui/button';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Plus, Trash2, AlertTriangle, X, Package, Scissors, ChevronDown, ChevronRight } from 'lucide-react';
+import { Plus, Trash2, AlertTriangle, X, Package, Scissors, ChevronDown, ChevronRight, ChevronUp } from 'lucide-react';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { supabase } from '@/integrations/supabase/client';
 import { ProductSearchModal, HubSpotProduct } from './ProductSearchModal';
@@ -600,6 +600,15 @@ export function QuoteForm({ deal, company, lineItems, dealOwner, onFormChange, p
   };
   const addLineItem = () => { setFormData(prev => ({ ...prev, lineItems: [...prev.lineItems, { id: `new-${Date.now()}`, quantity: 1, model: '', description: '', price: 0, cost: 0, markupPercent: 0, msrp: 0, dealerSource: '', productType: '', parentLineItemId: '', itemNumber: '' }] })); };
   const removeLineItem = (index: number) => { setFormData(prev => { const newItems = prev.lineItems.filter((_, i) => i !== index); return { ...prev, lineItems: newItems }; }); };
+  const moveLineItem = (fromIndex: number, toIndex: number) => {
+    if (toIndex < 0 || toIndex >= formData.lineItems.length) return;
+    setFormData(prev => {
+      const items = [...prev.lineItems];
+      const [moved] = items.splice(fromIndex, 1);
+      items.splice(toIndex, 0, moved);
+      return { ...prev, lineItems: items };
+    });
+  };
 
   // Split a multi-quantity line item into individual units so each can be linked to different hardware
   const splitLineItem = (index: number) => {
@@ -716,7 +725,7 @@ export function QuoteForm({ deal, company, lineItems, dealOwner, onFormChange, p
         </CardHeader>
         <CardContent>
           <div className="space-y-1">
-            <div className="grid grid-cols-[28px_40px_70px_1fr_100px_85px_85px_60px_85px_95px_36px] gap-1.5 text-xs font-medium text-muted-foreground px-2">
+            <div className="grid grid-cols-[28px_40px_70px_1fr_100px_85px_85px_60px_85px_95px_72px] gap-1.5 text-xs font-medium text-muted-foreground px-2">
               <div></div>
               <div>Qty</div>
               <div>Type</div>
@@ -743,7 +752,7 @@ export function QuoteForm({ deal, company, lineItems, dealOwner, onFormChange, p
               };
               return (
               <div key={item.id} className={`${item.parentLineItemId ? 'ml-4 border-l-2 border-primary/20 pl-2' : ''}`}>
-              <div className={`grid grid-cols-[28px_40px_70px_1fr_100px_85px_85px_60px_85px_95px_36px] gap-1.5 items-center`}>
+              <div className={`grid grid-cols-[28px_40px_70px_1fr_100px_85px_85px_60px_85px_95px_72px] gap-1.5 items-center`}>
                 <button type="button" onClick={toggleExpanded} className="h-8 w-7 flex items-center justify-center text-muted-foreground hover:text-foreground transition-colors rounded hover:bg-muted/50">
                   {isExpanded ? <ChevronDown className="h-3.5 w-3.5" /> : <ChevronRight className="h-3.5 w-3.5" />}
                 </button>
@@ -820,7 +829,11 @@ export function QuoteForm({ deal, company, lineItems, dealOwner, onFormChange, p
                   {!isHardware && item.quantity > 1 && hardwareItems.length > 1 && (
                     <Button type="button" variant="ghost" size="sm" onClick={() => splitLineItem(idx)} className="h-8 w-8 p-0 text-primary" title="Split into individual units for linking to different hardware"><Scissors className="h-3.5 w-3.5" /></Button>
                   )}
-                  <Button type="button" variant="ghost" size="sm" onClick={() => removeLineItem(idx)} className="h-8 w-8 p-0 text-destructive"><Trash2 className="h-3.5 w-3.5" /></Button>
+                  <div className="flex items-center gap-0.5">
+                    <Button type="button" variant="ghost" size="sm" onClick={() => moveLineItem(idx, idx - 1)} disabled={idx === 0} className="h-7 w-7 p-0 text-muted-foreground"><ChevronUp className="h-3 w-3" /></Button>
+                    <Button type="button" variant="ghost" size="sm" onClick={() => moveLineItem(idx, idx + 1)} disabled={idx === formData.lineItems.length - 1} className="h-7 w-7 p-0 text-muted-foreground"><ChevronDown className="h-3 w-3" /></Button>
+                    <Button type="button" variant="ghost" size="sm" onClick={() => removeLineItem(idx)} className="h-7 w-7 p-0 text-destructive"><Trash2 className="h-3 w-3" /></Button>
+                  </div>
                 </div>
               </div>
               {isExpanded && (

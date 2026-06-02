@@ -1949,13 +1949,16 @@ function DocumentHubContent() {
 
     document.body.removeChild(tempContainer);
 
-    // US Letter dimensions in points (jsPDF default unit)
+    // US Letter dimensions in inches
     const pageWidthIn = 8.5;
     const pageHeightIn = 11;
 
-    // Calculate image dimensions scaled to page width
-    const imgWidth = pageWidthIn;
-    const imgHeight = (canvas.height * imgWidth) / canvas.width;
+    // Calculate exact pixels-per-inch from the rendered canvas
+    const pxPerInch = canvas.width / pageWidthIn;
+    const pageHeightPx = Math.floor(pxPerInch * pageHeightIn);
+
+    // Total content height in inches
+    const contentHeightIn = canvas.height / pxPerInch;
 
     const pdf = new jsPDF({
       orientation: 'portrait',
@@ -1963,39 +1966,36 @@ function DocumentHubContent() {
       format: 'letter',
     });
 
-    // Check if content fits on one page
-    if (imgHeight <= pageHeightIn) {
-      // Single page
+    if (contentHeightIn <= pageHeightIn) {
+      // Single page - render at actual height (no stretch)
       const imgData = canvas.toDataURL('image/jpeg', 0.85);
-      pdf.addImage(imgData, 'JPEG', 0, 0, imgWidth, imgHeight);
+      pdf.addImage(imgData, 'JPEG', 0, 0, pageWidthIn, contentHeightIn);
     } else {
-      // Multi-page: split content across pages
-      const totalPages = Math.ceil(imgHeight / pageHeightIn);
-      const pixelsPerPage = canvas.height / totalPages;
+      // Multi-page: slice at exact page boundaries, no stretching
+      const totalPages = Math.ceil(canvas.height / pageHeightPx);
 
       for (let page = 0; page < totalPages; page++) {
-        if (page > 0) {
-          pdf.addPage();
-        }
+        if (page > 0) pdf.addPage();
 
-        // Create a temporary canvas for this page's portion
+        const sourceY = page * pageHeightPx;
+        const sourceH = Math.min(pageHeightPx, canvas.height - sourceY);
+        const destH = sourceH / pxPerInch; // Actual height in inches (no stretch)
+
         const pageCanvas = document.createElement('canvas');
         pageCanvas.width = canvas.width;
-        pageCanvas.height = pixelsPerPage;
+        pageCanvas.height = sourceH;
 
         const ctx = pageCanvas.getContext('2d');
         if (ctx) {
           ctx.drawImage(
             canvas,
-            0, page * pixelsPerPage,           // Source x, y
-            canvas.width, pixelsPerPage,       // Source width, height
-            0, 0,                              // Destination x, y
-            canvas.width, pixelsPerPage        // Destination width, height
+            0, sourceY, canvas.width, sourceH,
+            0, 0, canvas.width, sourceH
           );
         }
 
         const pageImgData = pageCanvas.toDataURL('image/jpeg', 0.85);
-        pdf.addImage(pageImgData, 'JPEG', 0, 0, pageWidthIn, pageHeightIn);
+        pdf.addImage(pageImgData, 'JPEG', 0, 0, pageWidthIn, destH);
       }
     }
 
@@ -2071,6 +2071,29 @@ function DocumentHubContent() {
     } catch (err) {
       console.error('Failed to restore version:', err);
       toast.error('Failed to restore version');
+    }
+  };
+
+  const deleteQuoteVersion = async (versionId: string, quoteNumber: string) => {
+    if (!confirm(`Delete version ${quoteNumber}? This cannot be undone.`)) return;
+    const currentPortalId = portalId || localStorage.getItem('hs_portal_id');
+    const currentDealId = deal?.hsObjectId;
+    if (!currentPortalId || !currentDealId) return;
+
+    try {
+      const { error } = await supabase.functions.invoke('quote-versions', {
+        body: { action: 'delete_version', portalId: currentPortalId, dealId: currentDealId, versionId, userId: userId || undefined }
+      });
+      if (!error) {
+        await loadQuoteVersions();
+        if (currentVersionId === versionId) {
+          setCurrentVersionId(null);
+        }
+        toast.success(`Deleted ${quoteNumber}`);
+      }
+    } catch (err) {
+      console.error('Failed to delete version:', err);
+      toast.error('Failed to delete version');
     }
   };
 
@@ -2245,11 +2268,12 @@ function DocumentHubContent() {
       // Save a new version and get the new quote number
       const newQuoteNumber = await saveQuoteVersion(formData);
       if (newQuoteNumber && formData.quoteNumber !== newQuoteNumber) {
-        // Update the formData with the new quote number so the PDF renders it
+        // Update BOTH formData and currentQuoteNumber to keep them in sync
         const updatedFormData = { ...formData, quoteNumber: newQuoteNumber };
         setFormData(updatedFormData);
-        // Small delay to let React re-render the preview with the new quote number
-        await new Promise(resolve => setTimeout(resolve, 200));
+        setCurrentQuoteNumber(newQuoteNumber);
+        // Wait for React to commit the re-render to the DOM
+        await new Promise(resolve => requestAnimationFrame(() => setTimeout(resolve, 300)));
       }
 
       const quotePdf = await generateMultiPagePDF(previewRef.current);
@@ -3293,18 +3317,27 @@ function DocumentHubContent() {
                   {quoteVersions.length > 0 && (
                     <div className="flex flex-wrap gap-1.5">
                       {quoteVersions.map((v) => (
-                        <Button
-                          key={v.id}
-                          variant={v.id === currentVersionId ? "default" : "outline"}
-                          size="sm"
-                          className={`text-xs h-7 transition-all ${v.id === currentVersionId ? 'shadow-sm' : 'hover:border-primary/50'}`}
-                          onClick={() => restoreQuoteVersion(v.id)}
-                          disabled={v.id === currentVersionId}
-                          title={`Created: ${new Date(v.created_at).toLocaleString()}`}
-                        >
-                          {v.quote_number}
-                          <span className="ml-1 opacity-50 text-[10px]">{new Date(v.created_at).toLocaleDateString()}</span>
-                        </Button>
+                        <div key={v.id} className="relative group inline-flex">
+                          <Button
+                            variant={v.id === currentVersionId ? "default" : "outline"}
+                            size="sm"
+                            className={`text-xs h-7 transition-all pr-6 ${v.id === currentVersionId ? 'shadow-sm' : 'hover:border-primary/50'}`}
+                            onClick={() => restoreQuoteVersion(v.id)}
+                            disabled={v.id === currentVersionId}
+                            title={`Created: ${new Date(v.created_at).toLocaleString()}`}
+                          >
+                            {v.quote_number}
+                            <span className="ml-1 opacity-50 text-[10px]">{new Date(v.created_at).toLocaleDateString()}</span>
+                          </Button>
+                          <button
+                            type="button"
+                            onClick={(e) => { e.stopPropagation(); deleteQuoteVersion(v.id, v.quote_number); }}
+                            className="absolute -top-1 -right-1 h-4 w-4 rounded-full bg-destructive text-white flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity text-[8px] hover:bg-destructive/80"
+                            title={`Delete ${v.quote_number}`}
+                          >
+                            ×
+                          </button>
+                        </div>
                       ))}
                     </div>
                   )}
