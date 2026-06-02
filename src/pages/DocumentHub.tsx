@@ -3149,7 +3149,7 @@ function DocumentHubContent() {
   );
 
   return (
-    <div className="min-h-full bg-background">
+    <div className="min-h-full bg-background overflow-x-hidden">
       {/* Header - only show when NOT embedded in HubSpot (standalone/admin mode) */}
       {!isEmbedded && (
         <header className="sticky top-0 z-50 border-b border-border/60 bg-card/98 backdrop-blur-md">
