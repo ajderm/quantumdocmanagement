@@ -9,6 +9,13 @@
 */
 
 @layer base {
+  /* Force content to stay within iframe boundaries */
+  html, body, #root {
+    width: 100%;
+    max-width: 100%;
+    overflow-x: hidden;
+  }
+
   :root {
     /* Core palette - Professional Navy + Warm Amber */
     --background: 210 20% 98%;

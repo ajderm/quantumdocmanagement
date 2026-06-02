@@ -3176,7 +3176,7 @@ function DocumentHubContent() {
         </header>
       )}
 
-      <div className="px-4 pt-3 pb-2">
+      <div className="px-3 pt-3 pb-2 max-w-full">
 
         {/* Permission Banner */}
         {!userPermissions.can_edit && userPermissions.reason !== 'loading' && (

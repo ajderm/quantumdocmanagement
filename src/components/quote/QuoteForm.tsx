@@ -724,8 +724,8 @@ export function QuoteForm({ deal, company, lineItems, dealOwner, onFormChange, p
           </CardTitle>
         </CardHeader>
         <CardContent>
-          <div className="space-y-1">
-            <div className="grid grid-cols-[28px_40px_70px_1fr_100px_85px_85px_60px_85px_95px_72px] gap-1.5 text-xs font-medium text-muted-foreground px-2">
+          <div className="space-y-1 overflow-x-auto">
+            <div className="grid grid-cols-[28px_40px_70px_1fr_100px_85px_85px_60px_85px_95px_72px] gap-1.5 text-xs font-medium text-muted-foreground px-2 min-w-[800px]">
               <div></div>
               <div>Qty</div>
               <div>Type</div>
