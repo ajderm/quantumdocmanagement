@@ -131,7 +131,7 @@ interface DocumentTerms {
 const AUTO_SAVE_DELAY = 3000;
 
 function DocumentHubContent() {
-  const { deal, company, contacts, lineItems, dealOwner, labeledContacts, companyContacts, properties, loading, error, portalId, userId } = useHubSpot();
+  const { deal, company, contacts, lineItems, dealOwner, labeledContacts, companyContacts, properties, loading, error, portalId, userId, isEmbedded } = useHubSpot();
   
   // User permissions
   const [userPermissions, setUserPermissions] = useState<{
@@ -3150,29 +3150,31 @@ function DocumentHubContent() {
 
   return (
     <div className="min-h-full bg-background">
-      {/* Header */}
-      <header className="sticky top-0 z-50 border-b border-border/60 bg-card/98 backdrop-blur-md">
-        <div className="flex items-center justify-between h-12 px-4">
-          <div className="flex items-center gap-2.5">
-            <div className="h-7 w-7 rounded-lg bg-primary flex items-center justify-center">
-              <FileText className="h-3.5 w-3.5 text-primary-foreground" />
+      {/* Header - only show when NOT embedded in HubSpot (standalone/admin mode) */}
+      {!isEmbedded && (
+        <header className="sticky top-0 z-50 border-b border-border/60 bg-card/98 backdrop-blur-md">
+          <div className="flex items-center justify-between h-12 px-4">
+            <div className="flex items-center gap-2.5">
+              <div className="h-7 w-7 rounded-lg bg-primary flex items-center justify-center">
+                <FileText className="h-3.5 w-3.5 text-primary-foreground" />
+              </div>
+              <span className="text-sm font-semibold tracking-tight">Quantum Document Management</span>
             </div>
-            <span className="text-sm font-semibold tracking-tight">Quantum Document Management</span>
+            <Button variant="ghost" size="sm" className="text-muted-foreground hover:text-foreground h-8 text-xs" asChild>
+              <a
+                href={`/admin?portalId=${encodeURIComponent(
+                  portalId || window.localStorage.getItem('hs_portal_id') || ''
+                )}`}
+                target="_blank"
+                rel="noreferrer"
+              >
+                <Settings className="h-4 w-4 mr-1" />
+                Settings
+              </a>
+            </Button>
           </div>
-          <Button variant="ghost" size="sm" className="text-muted-foreground hover:text-foreground h-8 text-xs" asChild>
-            <a
-              href={`/admin?portalId=${encodeURIComponent(
-                portalId || window.localStorage.getItem('hs_portal_id') || ''
-              )}`}
-              target="_blank"
-              rel="noreferrer"
-            >
-              <Settings className="h-4 w-4 mr-1" />
-              Settings
-            </a>
-          </Button>
-        </div>
-      </header>
+        </header>
+      )}
 
       <div className="px-4 pt-3 pb-2">
 
@@ -3189,18 +3191,34 @@ function DocumentHubContent() {
         {/* Deal Context */}
         {deal && (
           <div className="mb-3 px-1">
-            <div className="flex items-center justify-between mb-2">
-              <div className="flex items-center gap-3">
-                <h2 className="text-base font-semibold tracking-tight">{deal.dealName}</h2>
-                <Badge variant="secondary" className="text-[10px] font-medium px-2 py-0.5 rounded-md">
+            <div className="flex items-center justify-between mb-2 gap-2">
+              <div className="flex items-center gap-3 min-w-0 flex-1">
+                <h2 className="text-base font-semibold tracking-tight truncate">{deal.dealName}</h2>
+                <Badge variant="secondary" className="text-[10px] font-medium px-2 py-0.5 rounded-md shrink-0">
                   {deal.stage}
                 </Badge>
               </div>
-              {deal.amount && (
-                <span className="text-sm font-semibold text-primary tabular-nums">
-                  ${deal.amount.toLocaleString()}
-                </span>
-              )}
+              <div className="flex items-center gap-2 shrink-0">
+                {deal.amount && (
+                  <span className="text-sm font-semibold text-primary tabular-nums">
+                    ${deal.amount.toLocaleString()}
+                  </span>
+                )}
+                {/* Settings gear - shown when embedded (replaces the hidden header) */}
+                {isEmbedded && (
+                  <a
+                    href={`/admin?portalId=${encodeURIComponent(
+                      portalId || window.localStorage.getItem('hs_portal_id') || ''
+                    )}`}
+                    target="_blank"
+                    rel="noreferrer"
+                    className="text-muted-foreground hover:text-foreground transition-colors"
+                    title="Admin Settings"
+                  >
+                    <Settings className="h-4 w-4" />
+                  </a>
+                )}
+              </div>
             </div>
             <div className="flex items-center gap-4 text-xs text-muted-foreground">
               <div className="flex items-center gap-1.5">
@@ -3229,8 +3247,8 @@ function DocumentHubContent() {
 
         {/* Document Type Tabs */}
         <Tabs defaultValue="quote" className="w-full">
-          <div className="border-b border-border/60 mb-4">
-            <TabsList className="w-full h-auto flex-wrap justify-start gap-0 bg-transparent p-0">
+          <div className="border-b border-border/60 mb-4 overflow-x-auto">
+            <TabsList className="w-max h-auto flex-nowrap justify-start gap-0 bg-transparent p-0">
             {documentTypes
               .filter(doc => !dealerSettings.enabled_forms || dealerSettings.enabled_forms.length === 0 || dealerSettings.enabled_forms.includes(doc.code))
               .map((doc) => {
