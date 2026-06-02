@@ -2268,12 +2268,15 @@ function DocumentHubContent() {
       // Save a new version and get the new quote number
       const newQuoteNumber = await saveQuoteVersion(formData);
       if (newQuoteNumber && formData.quoteNumber !== newQuoteNumber) {
-        // Update BOTH formData and currentQuoteNumber to keep them in sync
+        // Update React state for UI
         const updatedFormData = { ...formData, quoteNumber: newQuoteNumber };
         setFormData(updatedFormData);
         setCurrentQuoteNumber(newQuoteNumber);
-        // Wait for React to commit the re-render to the DOM
-        await new Promise(resolve => requestAnimationFrame(() => setTimeout(resolve, 300)));
+        // Also directly set the DOM text to avoid any React timing issues
+        const quoteNumEl = previewRef.current?.querySelector('[data-quote-number]');
+        if (quoteNumEl) quoteNumEl.textContent = newQuoteNumber;
+        // Wait for any layout reflow
+        await new Promise(resolve => requestAnimationFrame(() => setTimeout(resolve, 150)));
       }
 
       const quotePdf = await generateMultiPagePDF(previewRef.current);

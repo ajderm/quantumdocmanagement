@@ -101,7 +101,7 @@ export const QuotePreview = forwardRef<HTMLDivElement, QuotePreviewProps>(
               <tbody>
                 <tr>
                   <td className="pr-4">{getLabel(formCustomization, 'quoteNumber', 'Quote Number')}:</td>
-                  <td className="font-semibold">{formData.quoteNumber}</td>
+                  <td className="font-semibold" data-quote-number>{formData.quoteNumber}</td>
                 </tr>
                 <tr>
                   <td className="pr-4">{getLabel(formCustomization, 'quoteDate', 'Quote Date')}:</td>
@@ -142,14 +142,14 @@ export const QuotePreview = forwardRef<HTMLDivElement, QuotePreviewProps>(
               )}
             </div>
           </div>
-          <table className="w-full border-collapse text-[12px]">
+          <table className="w-full border-collapse table-fixed text-[12px]">
             <thead>
               <tr className="border-b-2 border-black">
-                <th className="text-left py-1 pb-2 w-12">Qty.</th>
-                <th className="text-left py-1 pb-2 w-36">Model</th>
-                <th className="text-left py-1 pb-2">Description</th>
-                {!isRental && <th className="text-right py-1 pb-2 w-24">Retail</th>}
-                {!isRental && <th className="text-right py-1 pb-2 w-24">Your Price</th>}
+                <th className="text-left py-1 pb-2" style={{ width: '8%' }}>Qty.</th>
+                <th className="text-left py-1 pb-2" style={{ width: '22%' }}>Model</th>
+                <th className="text-left py-1 pb-2" style={{ width: isRental ? '70%' : '38%' }}>Description</th>
+                {!isRental && <th className="text-right py-1 pb-2" style={{ width: '16%' }}>Retail</th>}
+                {!isRental && <th className="text-right py-1 pb-2" style={{ width: '16%' }}>Your Price</th>}
               </tr>
             </thead>
             <tbody>
@@ -160,8 +160,8 @@ export const QuotePreview = forwardRef<HTMLDivElement, QuotePreviewProps>(
                 return (
                   <tr key={item.id} className="border-b border-gray-300">
                     <td className="py-1">{item.quantity}</td>
-                    <td className="py-1">{item.parentLineItemId ? '' : item.model}</td>
-                    <td className="py-1">{item.description || item.model}</td>
+                    <td className="py-1" style={{ wordBreak: 'break-word', overflowWrap: 'break-word' }}>{item.parentLineItemId ? '' : item.model}</td>
+                    <td className="py-1" style={{ wordBreak: 'break-word', overflowWrap: 'break-word' }}>{item.description || item.model}</td>
                     {!isRental && (
                       <td className="py-1 text-right">
                         {msrpDiffers ? (
@@ -180,8 +180,8 @@ export const QuotePreview = forwardRef<HTMLDivElement, QuotePreviewProps>(
                   {formData.lineItems.map((item) => (
                     <tr key={item.id} className="border-b border-gray-300">
                       <td className="py-1">{item.quantity}</td>
-                    <td className="py-1">{item.parentLineItemId ? '' : item.model}</td>
-                      <td className="py-1">{item.description || item.model}</td>
+                    <td className="py-1" style={{ wordBreak: 'break-word', overflowWrap: 'break-word' }}>{item.parentLineItemId ? '' : item.model}</td>
+                      <td className="py-1" style={{ wordBreak: 'break-word', overflowWrap: 'break-word' }}>{item.description || item.model}</td>
                       {!isRental && <td className="py-1 text-right"></td>}
                       {!isRental && <td className="py-1 text-right"></td>}
                     </tr>
