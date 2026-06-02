@@ -207,6 +207,30 @@ Deno.serve(async (req) => {
         }, corsHeaders);
       }
 
+      case 'delete_version': {
+        if (!versionId) {
+          return createErrorResponse('Missing versionId for delete_version', 400, corsHeaders);
+        }
+
+        // Delete the version - MUST match portalId AND dealId for tenant isolation
+        const { error: deleteError } = await supabase
+          .from('quote_versions')
+          .delete()
+          .eq('id', versionId)
+          .eq('portal_id', portalId)
+          .eq('deal_id', dealId);
+
+        if (deleteError) {
+          return createErrorResponse('Failed to delete version', 500, corsHeaders);
+        }
+
+        auditLog(supabase, portalId, 'quote_version_deleted', 'quote', dealId, {
+          deletedVersionId: versionId,
+        }, userId);
+
+        return createJsonResponse({ success: true }, corsHeaders);
+      }
+
       default:
         return createErrorResponse(`Unknown action: ${action}`, 400, corsHeaders);
     }
