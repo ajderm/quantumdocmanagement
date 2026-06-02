@@ -29,10 +29,24 @@ serve(async (req) => {
     const supabase = createClient(supabaseUrl, supabaseKey);
 
     const url = new URL(req.url);
-    const portalId = url.searchParams.get("portalId");
-    const userId = url.searchParams.get("userId");
-    const dealStage = url.searchParams.get("dealStage") || "";
-    const pipelineId = url.searchParams.get("pipelineId") || "";
+    // Support both GET query params and POST body
+    let portalId = url.searchParams.get("portalId");
+    let userId = url.searchParams.get("userId");
+    let dealStage = url.searchParams.get("dealStage") || "";
+    let pipelineId = url.searchParams.get("pipelineId") || "";
+
+    // If not in query params, try POST body
+    if (!portalId || !userId) {
+      try {
+        const body = await req.json();
+        portalId = portalId || body.portalId || null;
+        userId = userId || body.userId || null;
+        dealStage = dealStage || body.dealStage || "";
+        pipelineId = pipelineId || body.pipelineId || "";
+      } catch {
+        // No body, continue with query params
+      }
+    }
 
     if (!portalId || !userId) {
       return new Response(

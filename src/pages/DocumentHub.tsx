@@ -149,27 +149,18 @@ function DocumentHubContent() {
     const fetchPermissions = async () => {
       if (!portalId || !userId) return;
       try {
-        const params = new URLSearchParams({
-          portalId: portalId,
-          userId: userId,
-          dealStage: deal?.properties?.dealstage || deal?.stage || '',
-          pipelineId: deal?.properties?.pipeline || deal?.pipeline || '',
-        });
         const { data, error: permError } = await supabase.functions.invoke('get-user-access', {
-          body: null,
-          headers: {},
+          body: {
+            portalId,
+            userId,
+            dealStage: deal?.properties?.dealstage || deal?.stage || '',
+            pipelineId: deal?.properties?.pipeline || deal?.pipeline || '',
+          },
         });
-        // Use GET params approach - invoke with query string
-        const response = await fetch(
-          `${import.meta.env.VITE_SUPABASE_URL || 'https://rqfheyisgxbmjlntjmhz.supabase.co'}/functions/v1/get-user-access?${params.toString()}`,
-          { headers: { 'apikey': import.meta.env.VITE_SUPABASE_ANON_KEY || 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InJxZmhleWlzZ3hibWpsbmRqbWh6Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3MzU5MTkyODgsImV4cCI6MjA1MTQ5NTI4OH0.sWDqSGxIUjUqe3MxdmNFcnFKZTdwaG1NWk9yMzZvN0k' } }
-        );
-        if (response.ok) {
-          const perms = await response.json();
-          setUserPermissions(perms);
+        if (!permError && data) {
+          setUserPermissions(data);
         }
       } catch {
-        // On error, default to full access (fail open for now)
         console.warn('Failed to fetch user permissions, defaulting to full access');
       }
     };
@@ -3133,7 +3124,7 @@ function DocumentHubContent() {
 
   if (loading || !configsLoaded) {
     return (
-      <div className="flex items-center justify-center min-h-screen bg-background">
+      <div className="flex items-center justify-center min-h-full bg-background">
         <Loader2 className="h-8 w-8 animate-spin text-primary" />
       </div>
     );
@@ -3141,7 +3132,7 @@ function DocumentHubContent() {
 
   if (error) {
     return (
-      <div className="flex items-center justify-center min-h-screen bg-background">
+      <div className="flex items-center justify-center min-h-full bg-background">
         <Card className="max-w-md">
           <CardContent className="pt-6 text-center">
             <p className="text-destructive mb-2">Failed to load deal data</p>
@@ -3158,7 +3149,7 @@ function DocumentHubContent() {
   );
 
   return (
-    <div className="min-h-screen bg-background">
+    <div className="min-h-full bg-background">
       {/* Header */}
       <header className="sticky top-0 z-50 border-b border-border/60 bg-card/98 backdrop-blur-md">
         <div className="flex items-center justify-between h-12 px-4">
