@@ -9,13 +9,6 @@
 */
 
 @layer base {
-  /* Force content to stay within iframe boundaries */
-  html, body, #root {
-    width: 100%;
-    max-width: 100%;
-    overflow-x: hidden;
-  }
-
   :root {
     /* Core palette - Professional Navy + Warm Amber */
     --background: 210 20% 98%;
@@ -140,7 +133,6 @@
     font-feature-settings: "cv02", "cv03", "cv04", "cv11";
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
-    overflow-x: hidden;
   }
 
   /* Custom scrollbar */
