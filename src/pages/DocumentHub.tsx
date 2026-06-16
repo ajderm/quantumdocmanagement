@@ -131,7 +131,7 @@ interface DocumentTerms {
 const AUTO_SAVE_DELAY = 3000;
 
 function DocumentHubContent() {
-  const { deal, company, contacts, lineItems, dealOwner, labeledContacts, companyContacts, properties, loading, error, portalId, userId, isEmbedded } = useHubSpot();
+  const { deal, company, contacts, lineItems, dealOwner, labeledContacts, companyContacts, properties, loading, error, portalId, userId } = useHubSpot();
   
   // User permissions
   const [userPermissions, setUserPermissions] = useState<{
@@ -3124,7 +3124,7 @@ function DocumentHubContent() {
 
   if (loading || !configsLoaded) {
     return (
-      <div className="flex items-center justify-center min-h-full bg-background">
+      <div className="flex items-center justify-center min-h-screen bg-background">
         <Loader2 className="h-8 w-8 animate-spin text-primary" />
       </div>
     );
@@ -3132,7 +3132,7 @@ function DocumentHubContent() {
 
   if (error) {
     return (
-      <div className="flex items-center justify-center min-h-full bg-background">
+      <div className="flex items-center justify-center min-h-screen bg-background">
         <Card className="max-w-md">
           <CardContent className="pt-6 text-center">
             <p className="text-destructive mb-2">Failed to load deal data</p>
@@ -3149,34 +3149,32 @@ function DocumentHubContent() {
   );
 
   return (
-    <div className="min-h-full bg-background overflow-x-hidden">
-      {/* Header - only show when NOT embedded in HubSpot (standalone/admin mode) */}
-      {!isEmbedded && (
-        <header className="sticky top-0 z-50 border-b border-border/60 bg-card/98 backdrop-blur-md">
-          <div className="flex items-center justify-between h-12 px-4">
-            <div className="flex items-center gap-2.5">
-              <div className="h-7 w-7 rounded-lg bg-primary flex items-center justify-center">
-                <FileText className="h-3.5 w-3.5 text-primary-foreground" />
-              </div>
-              <span className="text-sm font-semibold tracking-tight">Quantum Document Management</span>
+    <div className="min-h-screen bg-background">
+      {/* Header */}
+      <header className="sticky top-0 z-50 border-b border-border/60 bg-card/98 backdrop-blur-md">
+        <div className="flex items-center justify-between h-12 px-4">
+          <div className="flex items-center gap-2.5">
+            <div className="h-7 w-7 rounded-lg bg-primary flex items-center justify-center">
+              <FileText className="h-3.5 w-3.5 text-primary-foreground" />
             </div>
-            <Button variant="ghost" size="sm" className="text-muted-foreground hover:text-foreground h-8 text-xs" asChild>
-              <a
-                href={`/admin?portalId=${encodeURIComponent(
-                  portalId || window.localStorage.getItem('hs_portal_id') || ''
-                )}`}
-                target="_blank"
-                rel="noreferrer"
-              >
-                <Settings className="h-4 w-4 mr-1" />
-                Settings
-              </a>
-            </Button>
+            <span className="text-sm font-semibold tracking-tight">Quantum Document Management</span>
           </div>
-        </header>
-      )}
+          <Button variant="ghost" size="sm" className="text-muted-foreground hover:text-foreground h-8 text-xs" asChild>
+            <a
+              href={`/admin?portalId=${encodeURIComponent(
+                portalId || window.localStorage.getItem('hs_portal_id') || ''
+              )}`}
+              target="_blank"
+              rel="noreferrer"
+            >
+              <Settings className="h-4 w-4 mr-1" />
+              Settings
+            </a>
+          </Button>
+        </div>
+      </header>
 
-      <div className="px-3 pt-3 pb-2 max-w-full">
+      <div className="px-4 pt-3 pb-2">
 
         {/* Permission Banner */}
         {!userPermissions.can_edit && userPermissions.reason !== 'loading' && (
@@ -3203,20 +3201,6 @@ function DocumentHubContent() {
                   <span className="text-sm font-semibold text-primary tabular-nums">
                     ${deal.amount.toLocaleString()}
                   </span>
-                )}
-                {/* Settings gear - shown when embedded (replaces the hidden header) */}
-                {isEmbedded && (
-                  <a
-                    href={`/admin?portalId=${encodeURIComponent(
-                      portalId || window.localStorage.getItem('hs_portal_id') || ''
-                    )}`}
-                    target="_blank"
-                    rel="noreferrer"
-                    className="text-muted-foreground hover:text-foreground transition-colors"
-                    title="Admin Settings"
-                  >
-                    <Settings className="h-4 w-4" />
-                  </a>
                 )}
               </div>
             </div>
@@ -3247,8 +3231,8 @@ function DocumentHubContent() {
 
         {/* Document Type Tabs */}
         <Tabs defaultValue="quote" className="w-full">
-          <div className="border-b border-border/60 mb-4 overflow-x-auto">
-            <TabsList className="w-max h-auto flex-nowrap justify-start gap-0 bg-transparent p-0">
+          <div className="border-b border-border/60 mb-4">
+            <TabsList className="w-full h-auto flex-wrap justify-start gap-0 bg-transparent p-0">
             {documentTypes
               .filter(doc => !dealerSettings.enabled_forms || dealerSettings.enabled_forms.length === 0 || dealerSettings.enabled_forms.includes(doc.code))
               .map((doc) => {
