@@ -2008,6 +2008,16 @@ function DocumentHubContent() {
         setQuoteVersions(data.versions || []);
         setCurrentQuoteNumber(data.currentQuoteNumber || null);
         setCurrentVersionId(data.currentVersionId || null);
+        // Keep the rendered quote number (preview + PDF read formData.quoteNumber)
+        // in sync with the canonical versioning number so the app badge, the
+        // on-screen preview, and the generated PDF never diverge.
+        if (data.currentQuoteNumber) {
+          setFormData(prev =>
+            prev && prev.quoteNumber !== data.currentQuoteNumber
+              ? { ...prev, quoteNumber: data.currentQuoteNumber }
+              : prev
+          );
+        }
       }
     } catch (err) {
       console.error('Failed to load quote versions:', err);
@@ -2052,12 +2062,18 @@ function DocumentHubContent() {
         body: { action: 'restore_version', portalId: currentPortalId, dealId: currentDealId, versionId, userId: userId || undefined }
       });
       if (!error && data?.configuration) {
-        setSavedConfig(data.configuration);
-        setFormData(data.configuration);
-        setCurrentQuoteNumber(data.quoteNumber);
+        // The versioning backend is the source of truth for the quote number.
+        // Overwrite the restored configuration's quoteNumber with the canonical
+        // value so the preview/PDF (which read formData.quoteNumber) match the
+        // app badge (which reads currentQuoteNumber).
+        const canonicalNumber = data.quoteNumber || data.configuration.quoteNumber;
+        const restoredConfig = { ...data.configuration, quoteNumber: canonicalNumber };
+        setSavedConfig(restoredConfig);
+        setFormData(restoredConfig);
+        setCurrentQuoteNumber(canonicalNumber);
         setCurrentVersionId(versionId);
         setHasUnsavedChanges(false);
-        toast.success(`Restored ${data.quoteNumber}`);
+        toast.success(`Restored ${canonicalNumber}`);
       }
     } catch (err) {
       console.error('Failed to restore version:', err);
@@ -2259,13 +2275,15 @@ function DocumentHubContent() {
       // Save a new version and get the new quote number
       const newQuoteNumber = await saveQuoteVersion(formData);
       if (newQuoteNumber && formData.quoteNumber !== newQuoteNumber) {
-        // Update React state for UI
+        // Update React state for UI (app badge + on-screen preview)
         const updatedFormData = { ...formData, quoteNumber: newQuoteNumber };
         setFormData(updatedFormData);
         setCurrentQuoteNumber(newQuoteNumber);
-        // Also directly set the DOM text to avoid any React timing issues
-        const quoteNumEl = previewRef.current?.querySelector('[data-quote-number]');
-        if (quoteNumEl) quoteNumEl.textContent = newQuoteNumber;
+        // Also directly set the DOM text to avoid any React timing issues at
+        // capture time. Patch ALL tagged occurrences, not just the first, so
+        // the captured PDF can never show a stale number.
+        const quoteNumEls = previewRef.current?.querySelectorAll('[data-quote-number]');
+        quoteNumEls?.forEach(el => { el.textContent = newQuoteNumber; });
         // Wait for any layout reflow
         await new Promise(resolve => requestAnimationFrame(() => setTimeout(resolve, 150)));
       }
