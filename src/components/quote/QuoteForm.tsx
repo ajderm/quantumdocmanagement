@@ -2,6 +2,7 @@ import { useState, useEffect, useMemo, useRef } from 'react';
 import { Input } from '@/components/ui/input';
 import { CurrencyInput } from '@/components/ui/currency-input';
 import { Label } from '@/components/ui/label';
+import { Slider } from '@/components/ui/slider';
 import { Button } from '@/components/ui/button';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -726,11 +727,11 @@ export function QuoteForm({ deal, company, lineItems, dealOwner, onFormChange, p
         </CardHeader>
         <CardContent>
           <div className="space-y-1">
-            <div className="grid grid-cols-[28px_40px_70px_1fr_100px_85px_85px_60px_85px_95px_36px] gap-1.5 text-xs font-medium text-muted-foreground px-2">
+            <div className="grid grid-cols-[28px_56px_70px_1fr_100px_85px_85px_60px_85px_95px_36px] gap-1.5 text-xs font-medium text-muted-foreground px-2">
               <div></div>
               <div>Qty</div>
               <div>Type</div>
-              <div>Model / Item #</div>
+              <div>Model</div>
               <div>Pricing Source</div>
               <div>MSRP</div>
               <div>Rep Cost</div>
@@ -761,7 +762,7 @@ export function QuoteForm({ deal, company, lineItems, dealOwner, onFormChange, p
                 onDrop={(e) => { if (dragIndex === null || item.parentLineItemId) return; e.preventDefault(); moveLineItem(dragIndex, idx); setDragIndex(null); }}
                 onDragEnd={() => setDragIndex(null)}
               >
-              <div className={`grid grid-cols-[28px_40px_70px_1fr_100px_85px_85px_60px_85px_95px_36px] gap-1.5 items-center`}>
+              <div className={`grid grid-cols-[28px_56px_70px_1fr_100px_85px_85px_60px_85px_95px_36px] gap-1.5 items-center`}>
                 <button type="button" onClick={toggleExpanded} className="h-8 w-7 flex items-center justify-center text-muted-foreground hover:text-foreground transition-colors rounded hover:bg-muted/50 group" title={item.parentLineItemId ? '' : 'Drag to reorder'}>
                   {!item.parentLineItemId && <GripVertical className="h-3 w-3 absolute opacity-0 group-hover:opacity-60 cursor-grab" />}
                   {isExpanded ? <ChevronDown className="h-3.5 w-3.5" /> : <ChevronRight className="h-3.5 w-3.5" />}
@@ -851,6 +852,18 @@ export function QuoteForm({ deal, company, lineItems, dealOwner, onFormChange, p
                   <div className="flex items-start gap-2">
                     <Label className="text-xs text-muted-foreground mt-1.5 shrink-0 w-16">Description</Label>
                     <Input value={item.description} onChange={e => updateLineItem(idx, 'description', e.target.value)} className="h-8 text-sm flex-1" placeholder="Product description..." />
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <Label className="text-xs text-muted-foreground shrink-0 w-16">Markup</Label>
+                    <Slider
+                      value={[Math.min(item.markupPercent || 0, 200)]}
+                      min={0}
+                      max={200}
+                      step={1}
+                      onValueChange={(vals) => updateLineItem(idx, 'markupPercent', vals[0])}
+                      className="flex-1"
+                    />
+                    <span className="text-xs font-medium tabular-nums w-12 text-right">{(item.markupPercent || 0).toFixed(0)}%</span>
                   </div>
                 </div>
               )}
