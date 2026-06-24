@@ -17,6 +17,7 @@ interface PacketFile {
   storagePath: string;
   order: number;
   uploadedAt: string;
+  skipPageNumbers?: boolean;
 }
 
 interface PacketConfig {
@@ -208,7 +209,7 @@ export function DocumentPacketForm({
       const { data, error } = await supabase.functions.invoke('compile-document-packet', {
         body: {
           portalId, dealId,
-          files: files.map(f => ({ storagePath: f.storagePath, type: f.type, name: f.name, order: f.order })),
+          files: files.map(f => ({ storagePath: f.storagePath, type: f.type, name: f.name, order: f.order, skipPageNumbers: !!f.skipPageNumbers })),
           title, includeCoverPage, includePageNumbers, dealName, companyName,
         },
       });
@@ -370,6 +371,23 @@ export function DocumentPacketForm({
                   {file.type.toUpperCase()}
                 </Badge>
                 <span className="text-xs text-muted-foreground shrink-0">{formatFileSize(file.size)}</span>
+                {includePageNumbers && file.type === 'pdf' && (
+                  <label
+                    className="flex items-center gap-1 text-[11px] text-muted-foreground shrink-0 cursor-pointer select-none"
+                    title="Skip packet page numbers on this file (it already has its own)"
+                  >
+                    <input
+                      type="checkbox"
+                      className="h-3 w-3 cursor-pointer"
+                      checked={!!file.skipPageNumbers}
+                      onChange={(e) => {
+                        const checked = e.target.checked;
+                        setFiles(prev => prev.map(f => f.id === file.id ? { ...f, skipPageNumbers: checked } : f));
+                      }}
+                    />
+                    Already numbered
+                  </label>
+                )}
                 <div className="flex items-center gap-0.5 shrink-0">
                   <Button variant="ghost" size="sm" className="h-6 w-6 p-0" disabled={index === 0} onClick={() => moveFile(index, index - 1)}>
                     <ChevronUp className="h-3 w-3" />

@@ -31,8 +31,14 @@ export const CommissionPreview = forwardRef<HTMLDivElement, CommissionPreviewPro
     const totalBilled = formData.lineItems.reduce((s, i) => s + i.billed * i.quantity, 0);
     const totalRepCost = formData.lineItems.reduce((s, i) => s + i.repCost * i.quantity, 0);
 
+    const buyoutInMargin = formData.buyoutHandling !== 'customer';
+
     const costRows = [
-      { label: "Buyout/TradeUp", billed: formData.buyoutTradeUp, repCost: formData.buyoutTradeUp },
+      // Buyout only reduces margin when handled "out of margin". When it is a
+      // customer-facing line item it is a pass-through and does not affect commission.
+      ...(buyoutInMargin
+        ? [{ label: "Buyout/TradeUp", billed: formData.buyoutTradeUp, repCost: formData.buyoutTradeUp }]
+        : []),
       { label: "Shipping Costs", billed: formData.shippingCosts, repCost: formData.shippingCosts },
       { label: "Setup Cost", billed: formData.setupCost, repCost: formData.setupCost },
       { label: "Delivery Cost", billed: formData.deliveryCost, repCost: formData.deliveryCost },
@@ -244,10 +250,20 @@ export const CommissionPreview = forwardRef<HTMLDivElement, CommissionPreviewPro
               </tr>
             </tbody>
           </table>
+          {!buyoutInMargin && formData.buyoutTradeUp > 0 && (
+            <p className="text-[10px] italic mt-1">
+              Buyout / trade-in of ${fmt(formData.buyoutTradeUp)} billed to the customer as a line item (excluded from margin).
+            </p>
+          )}
+          {totalCommission < 0 && (
+            <p className="text-[10px] font-bold mt-1" style={{ color: '#b91c1c' }}>
+              WARNING: Commission is negative. Costs exceed deal margin.
+            </p>
+          )}
         </div>
 
         {/* Signatures */}
-        <div>
+        <div data-pdf-keep-together>
           <div className="font-bold pb-1 mb-3" style={{ borderBottom: `2px solid ${borderColor}` }}>SIGNATURES</div>
           <div className="space-y-4 text-[12px]">
             {[
