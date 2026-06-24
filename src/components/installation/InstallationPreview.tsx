@@ -98,7 +98,7 @@ export const InstallationPreview = forwardRef<HTMLDivElement, InstallationPrevie
                 <tr><td className="font-bold">City/St/Zip:</td><td>{formData.shipToCity}, {formData.shipToState} {formData.shipToZip}</td></tr>
                 <tr><td className="font-bold">ATTN:</td><td>{formData.shipToAttn}</td></tr>
                 <tr><td className="font-bold">Phone:</td><td>{formData.shipToPhone}</td></tr>
-                <tr><td className="font-bold">Email:</td><td>{formData.shipToEmail}</td></tr>
+                <tr><td className="font-bold align-top">Email:</td><td className="break-all">{formData.shipToEmail}</td></tr>
               </tbody>
             </table>
           </div>
@@ -111,7 +111,7 @@ export const InstallationPreview = forwardRef<HTMLDivElement, InstallationPrevie
                 <tr><td className="font-bold">City/St/Zip:</td><td>{formData.billToCity}, {formData.billToState} {formData.billToZip}</td></tr>
                 <tr><td className="font-bold">ATTN:</td><td>{formData.billToAttn}</td></tr>
                 <tr><td className="font-bold">Phone:</td><td>{formData.billToPhone}</td></tr>
-                <tr><td className="font-bold">Email:</td><td>{formData.billToEmail}</td></tr>
+                <tr><td className="font-bold align-top">Email:</td><td className="break-all">{formData.billToEmail}</td></tr>
               </tbody>
             </table>
           </div>
@@ -181,7 +181,7 @@ export const InstallationPreview = forwardRef<HTMLDivElement, InstallationPrevie
                     <tr><td>Setup:</td><td className="text-right">{formData.dealerSetupScan || '____'}</td></tr>
                     <tr><td>Windows:</td><td className="text-right">{formData.scanWindowsComputers || '____'}</td></tr>
                     <tr><td>Mac:</td><td className="text-right">{formData.scanMacComputers || '____'}</td></tr>
-                    <tr><td>Email:</td><td className="text-right text-[8px] break-all">{formData.emailAssigned || '____'}</td></tr>
+                    <tr><td className="align-top">Email:</td><td className="text-left text-[8px] break-all">{formData.emailAssigned || '____'}</td></tr>
                     <tr><td>Password:</td><td className="text-right">{formData.emailPassword || '____'}</td></tr>
                   </tbody>
                 </table>
@@ -198,7 +198,7 @@ export const InstallationPreview = forwardRef<HTMLDivElement, InstallationPrevie
                   <tbody>
                     <tr><td>Name:</td><td className="text-right">{formData.itContactName || '____'}</td></tr>
                     <tr><td>Phone:</td><td className="text-right">{formData.itContactPhone || '____'}</td></tr>
-                    <tr><td>Email:</td><td className="text-right text-[8px] break-all">{formData.itContactEmail || '____'}</td></tr>
+                    <tr><td className="align-top">Email:</td><td className="text-left text-[8px] break-all">{formData.itContactEmail || '____'}</td></tr>
                   </tbody>
                 </table>
               </div>
@@ -209,7 +209,7 @@ export const InstallationPreview = forwardRef<HTMLDivElement, InstallationPrevie
                   <tbody>
                     <tr><td>Name:</td><td className="text-right">{formData.meterContactName || '____'}</td></tr>
                     <tr><td>Phone:</td><td className="text-right">{formData.meterContactPhone || '____'}</td></tr>
-                    <tr><td>Email:</td><td className="text-right text-[8px] break-all">{formData.meterContactEmail || '____'}</td></tr>
+                    <tr><td className="align-top">Email:</td><td className="text-left text-[8px] break-all">{formData.meterContactEmail || '____'}</td></tr>
                   </tbody>
                 </table>
               </div>
@@ -281,7 +281,7 @@ export const InstallationPreview = forwardRef<HTMLDivElement, InstallationPrevie
         )}
 
         {/* Combined Signature Section */}
-        <div className="mt-4 pt-3 border-t border-black">
+        <div className="mt-4 pt-3 border-t border-black" data-pdf-keep-together>
           <p className="font-bold text-[12px] mb-2">SIGNATURES</p>
           <div className="grid grid-cols-2 gap-4">
             {/* Technician Side */}

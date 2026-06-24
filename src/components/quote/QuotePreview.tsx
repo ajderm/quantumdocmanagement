@@ -370,7 +370,7 @@ export const QuotePreview = forwardRef<HTMLDivElement, QuotePreviewProps>(
 
         {/* Acceptance Section */}
         {isSectionVisible(formCustomization, 'acceptance') && (
-        <div className="mt-4 pt-2 border-t border-gray-300">
+        <div className="mt-4 pt-2 border-t border-gray-300" data-pdf-keep-together>
           <p className="font-bold mb-2">Accepted By:</p>
           <div className="grid grid-cols-2 gap-x-6 gap-y-2">
             <div>

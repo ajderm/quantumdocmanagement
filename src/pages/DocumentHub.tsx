@@ -1931,6 +1931,16 @@ function DocumentHubContent() {
 
     await new Promise(resolve => setTimeout(resolve, 100));
 
+    // Measure "keep together" regions (e.g. signature / terms blocks) relative to the
+    // clone BEFORE rasterizing, so we can avoid splitting them across a page break.
+    const cloneRect = clone.getBoundingClientRect();
+    const keepTogetherCssRanges: Array<{ top: number; bottom: number }> = [];
+    const keepEls = clone.querySelectorAll('[data-pdf-keep-together]');
+    keepEls.forEach((el) => {
+      const r = (el as HTMLElement).getBoundingClientRect();
+      keepTogetherCssRanges.push({ top: r.top - cloneRect.top, bottom: r.bottom - cloneRect.top });
+    });
+
     const canvas = await html2canvas(clone, {
       scale: 2,
       useCORS: true,
@@ -1938,15 +1948,23 @@ function DocumentHubContent() {
       backgroundColor: '#ffffff',
     });
 
+    // CSS px -> canvas px ratio (html2canvas scale applied)
+    const cssToCanvas = cloneRect.width > 0 ? canvas.width / cloneRect.width : 2;
+
     document.body.removeChild(tempContainer);
 
     // US Letter dimensions in inches
     const pageWidthIn = 8.5;
     const pageHeightIn = 11;
 
+    // Page margins (Task 10): keep content off the very top/bottom edges on every page.
+    const marginTopIn = 0.35;
+    const marginBottomIn = 0.5;
+    const usableHeightIn = pageHeightIn - marginTopIn - marginBottomIn;
+
     // Calculate exact pixels-per-inch from the rendered canvas
     const pxPerInch = canvas.width / pageWidthIn;
-    const pageHeightPx = Math.floor(pxPerInch * pageHeightIn);
+    const usableHeightPx = Math.floor(pxPerInch * usableHeightIn);
 
     // Total content height in inches
     const contentHeightIn = canvas.height / pxPerInch;
@@ -1957,20 +1975,44 @@ function DocumentHubContent() {
       format: 'letter',
     });
 
-    if (contentHeightIn <= pageHeightIn) {
-      // Single page - render at actual height (no stretch)
-      const imgData = canvas.toDataURL('image/jpeg', 0.85);
-      pdf.addImage(imgData, 'JPEG', 0, 0, pageWidthIn, contentHeightIn);
+    // Keep-together ranges in canvas px
+    const keepRanges = keepTogetherCssRanges
+      .map(r => ({ top: r.top * cssToCanvas, bottom: r.bottom * cssToCanvas }))
+      .sort((a, b) => a.top - b.top);
+
+    // Given a tentative page-end boundary (canvas px), pull it earlier if it would split
+    // a keep-together block that is small enough to fit on a single page on its own.
+    const adjustBoundary = (start: number, tentativeEnd: number): number => {
+      for (const range of keepRanges) {
+        const fitsOnePage = (range.bottom - range.top) <= usableHeightPx;
+        const straddles = range.top < tentativeEnd && range.bottom > tentativeEnd;
+        // Only break before the block if some of it already started on this page
+        if (fitsOnePage && straddles && range.top > start) {
+          return Math.floor(range.top);
+        }
+      }
+      return tentativeEnd;
+    };
+
+    if (contentHeightIn <= usableHeightIn && keepRanges.length === 0) {
+      // Single page - render at actual height (no stretch), within the top margin
+      const imgData = canvas.toDataURL('image/jpeg', 0.9);
+      pdf.addImage(imgData, 'JPEG', 0, marginTopIn, pageWidthIn, contentHeightIn);
     } else {
-      // Multi-page: slice at exact page boundaries, no stretching
-      const totalPages = Math.ceil(canvas.height / pageHeightPx);
-
-      for (let page = 0; page < totalPages; page++) {
-        if (page > 0) pdf.addPage();
-
-        const sourceY = page * pageHeightPx;
-        const sourceH = Math.min(pageHeightPx, canvas.height - sourceY);
+      // Multi-page: slice at page boundaries (variable, to honor keep-together blocks)
+      let sourceY = 0;
+      let safety = 0;
+      while (sourceY < canvas.height && safety < 200) {
+        safety++;
+        let tentativeEnd = Math.min(sourceY + usableHeightPx, canvas.height);
+        if (tentativeEnd < canvas.height) {
+          tentativeEnd = adjustBoundary(sourceY, tentativeEnd);
+        }
+        const sourceH = tentativeEnd - sourceY;
+        if (sourceH <= 0) break;
         const destH = sourceH / pxPerInch; // Actual height in inches (no stretch)
+
+        if (sourceY > 0) pdf.addPage();
 
         const pageCanvas = document.createElement('canvas');
         pageCanvas.width = canvas.width;
@@ -1978,6 +2020,8 @@ function DocumentHubContent() {
 
         const ctx = pageCanvas.getContext('2d');
         if (ctx) {
+          ctx.fillStyle = '#ffffff';
+          ctx.fillRect(0, 0, canvas.width, sourceH);
           ctx.drawImage(
             canvas,
             0, sourceY, canvas.width, sourceH,
@@ -1985,9 +2029,28 @@ function DocumentHubContent() {
           );
         }
 
-        const pageImgData = pageCanvas.toDataURL('image/jpeg', 0.85);
-        pdf.addImage(pageImgData, 'JPEG', 0, 0, pageWidthIn, destH);
+        const pageImgData = pageCanvas.toDataURL('image/jpeg', 0.9);
+        pdf.addImage(pageImgData, 'JPEG', 0, marginTopIn, pageWidthIn, destH);
+
+        sourceY = tentativeEnd;
       }
+    }
+
+    // Page numbering (Task 12): "Page X of Y" in the bottom margin, multi-page only.
+    const pageCount = pdf.getNumberOfPages();
+    if (pageCount > 1) {
+      pdf.setFontSize(8);
+      pdf.setTextColor(120);
+      for (let i = 1; i <= pageCount; i++) {
+        pdf.setPage(i);
+        pdf.text(
+          `Page ${i} of ${pageCount}`,
+          pageWidthIn / 2,
+          pageHeightIn - 0.22,
+          { align: 'center' }
+        );
+      }
+      pdf.setTextColor(0);
     }
 
     return pdf;
