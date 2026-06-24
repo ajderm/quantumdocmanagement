@@ -247,7 +247,7 @@ export const InterterritorialPreview = forwardRef<HTMLDivElement, Interterritori
         )}
 
         {/* Signature Section */}
-        <div className="mt-4">
+        <div className="mt-4" data-pdf-keep-together>
           <p className="font-bold text-[12px] border-b-2 border-black pb-1 mb-3">INSTALLING DEALER SIGNATURE</p>
           <div className="grid grid-cols-2 gap-4">
             <div className="space-y-3">

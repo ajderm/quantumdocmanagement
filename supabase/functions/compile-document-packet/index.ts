@@ -12,6 +12,9 @@ interface PacketFile {
   type: string;
   name: string;
   order: number;
+  // When true, this file (e.g. a brochure) already has its own page numbers,
+  // so the compiler must not stamp packet page numbers on its pages.
+  skipPageNumbers?: boolean;
 }
 
 serve(async (req) => {
@@ -115,6 +118,9 @@ serve(async (req) => {
 
     const errors: string[] = [];
     let totalPagesAdded = includeCoverPage ? 1 : 0;
+    // Master-PDF page indices that must NOT receive a packet page number
+    // (files flagged as already having their own page numbers).
+    const skipNumberPageIndices = new Set<number>();
 
     for (const file of sortedFiles) {
       try {
@@ -133,7 +139,12 @@ serve(async (req) => {
           try {
             const sourcePdf = await PDFDocument.load(arrayBuffer, { ignoreEncryption: true });
             const copiedPages = await masterPdf.copyPages(sourcePdf, sourcePdf.getPageIndices());
-            copiedPages.forEach(page => { masterPdf.addPage(page); totalPagesAdded++; });
+            copiedPages.forEach(page => {
+              const idx = masterPdf.getPageCount(); // index this page will occupy
+              masterPdf.addPage(page);
+              if (file.skipPageNumbers) skipNumberPageIndices.add(idx);
+              totalPagesAdded++;
+            });
           } catch {
             errors.push(`${file.name}: Could not read PDF (may be encrypted or corrupted)`);
           }
@@ -196,6 +207,9 @@ serve(async (req) => {
       const pages = masterPdf.getPages();
       const startIndex = includeCoverPage ? 1 : 0;
       for (let i = startIndex; i < pages.length; i++) {
+        // Task 13: do not double-number pages that already carry their own numbers
+        // (e.g. brochures flagged as already numbered).
+        if (skipNumberPageIndices.has(i)) continue;
         const page = pages[i];
         const { width } = page.getSize();
         const pageNum = includeCoverPage ? i : i + 1;

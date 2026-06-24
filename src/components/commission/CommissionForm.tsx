@@ -4,6 +4,7 @@ import { CurrencyInput } from "@/components/ui/currency-input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { AlertTriangle } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 
 export interface CommissionLineItem {
@@ -41,6 +42,7 @@ export interface CommissionFormData {
   // Cost Breakdown
   promoDiscounts: string;
   buyoutTradeUp: number;
+  buyoutHandling: 'margin' | 'customer';
   shippingCosts: number;
   setupCost: number;
   deliveryCost: number;
@@ -104,6 +106,7 @@ export function getDefaultCommissionFormData(): CommissionFormData {
     lineItems: [],
     promoDiscounts: "",
     buyoutTradeUp: 0,
+    buyoutHandling: "margin",
     shippingCosts: 170,
     setupCost: 100,
     deliveryCost: 100,
@@ -475,8 +478,12 @@ export function CommissionForm({ deal, company, lineItems, dealOwner, portalId, 
   const totalBilled = formData.lineItems.reduce((sum, item) => sum + (item.billed * item.quantity), 0);
   const totalRepCost = formData.lineItems.reduce((sum, item) => sum + (item.repCost * item.quantity), 0);
 
+  // Buyout handling: 'margin' subtracts the buyout from margin (reduces commission);
+  // 'customer' treats it as a customer-facing line item (pass-through, does not reduce margin).
+  const buyoutInMargin = formData.buyoutHandling !== 'customer';
+
   const additionalCosts =
-    formData.buyoutTradeUp +
+    (buyoutInMargin ? formData.buyoutTradeUp : 0) +
     formData.shippingCosts + formData.setupCost + formData.deliveryCost +
     formData.connectivity +
     formData.leadFee + formData.otherSalesFees;
@@ -506,6 +513,13 @@ export function CommissionForm({ deal, company, lineItems, dealOwner, portalId, 
   // Commission with split
   const splitMultiplier = formData.splitPercentage > 0 ? formData.splitPercentage / 100 : 1;
   const totalCommission = baseCommission * splitMultiplier;
+
+  // Task 6: negative-commission / buyout-exceeds-margin warning.
+  // Margin before the buyout is deducted; if the buyout (when handled out of margin)
+  // is larger than that, it pushes commission negative.
+  const marginBeforeBuyout = netEquipRev - (totalRepCostWithCosts - (buyoutInMargin ? formData.buyoutTradeUp : 0));
+  const buyoutExceedsMargin = buyoutInMargin && formData.buyoutTradeUp > 0 && formData.buyoutTradeUp > marginBeforeBuyout;
+  const isNegativeCommission = totalCommission < 0 || equipmentAGP < 0;
 
   const isPurchase = formData.transactionType === "Purchase" || formData.transactionType === "Rental";
   const isLease = formData.transactionType.startsWith("Lease -- ");
@@ -656,6 +670,35 @@ export function CommissionForm({ deal, company, lineItems, dealOwner, portalId, 
                 />
               </div>
             ))}
+            {/* Task 7: how the buyout/trade-in is handled */}
+            {formData.buyoutTradeUp > 0 && (
+              <div className="flex items-center gap-2">
+                <Label className="text-xs flex-1 min-w-[140px]">Buyout Handling</Label>
+                <Select
+                  value={formData.buyoutHandling || 'margin'}
+                  onValueChange={(v) => updateField('buyoutHandling', v as 'margin' | 'customer')}
+                >
+                  <SelectTrigger className="h-7 text-sm w-44">
+                    <SelectValue placeholder="Select" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="margin">Out of margin</SelectItem>
+                    <SelectItem value="customer">Customer line item</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+            )}
+            {/* Task 6: warn when buyout/trade-in exceeds the available margin */}
+            {buyoutExceedsMargin && (
+              <div className="flex items-start gap-2 rounded-md border border-destructive/50 bg-destructive/10 p-2 text-xs text-destructive">
+                <AlertTriangle className="h-4 w-4 mt-0.5 flex-shrink-0" />
+                <span>
+                  The buyout / trade-in (${formatCurrency(formData.buyoutTradeUp)}) exceeds the available margin
+                  (${formatCurrency(marginBeforeBuyout)}). Taken out of margin this drives commission negative.
+                  Consider switching Buyout Handling to "Customer line item".
+                </span>
+              </div>
+            )}
             {/* Other Sales Fees Note -- shown when otherSalesFees > 0 */}
             {formData.otherSalesFees > 0 && (
               <div className="flex items-center gap-2">
@@ -801,8 +844,16 @@ export function CommissionForm({ deal, company, lineItems, dealOwner, portalId, 
           )}
           <div className="mt-3 pt-2 border-t text-sm font-bold flex justify-between">
             <span>Total Commission</span>
-            <span>${formatCurrency(totalCommission)}</span>
+            <span className={isNegativeCommission ? 'text-destructive' : ''}>${formatCurrency(totalCommission)}</span>
           </div>
+          {isNegativeCommission && (
+            <div className="mt-2 flex items-start gap-2 rounded-md border border-destructive/50 bg-destructive/10 p-2 text-xs text-destructive">
+              <AlertTriangle className="h-4 w-4 mt-0.5 flex-shrink-0" />
+              <span>
+                Commission is negative. Costs{formData.buyoutTradeUp > 0 && buyoutInMargin ? ' (including the buyout / trade-in taken out of margin)' : ''} exceed the deal margin. Review the cost breakdown or how the buyout is handled before submitting.
+              </span>
+            </div>
+          )}
         </CardContent>
       </Card>
 

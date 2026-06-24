@@ -30,6 +30,51 @@ function normalizeProductType(raw: string | null | undefined): string {
   return trimmed.charAt(0).toUpperCase() + trimmed.slice(1).toLowerCase();
 }
 
+// Collect ALL distinct pricing-source (dealer) values across the entire product
+// library, independent of the current search/type/dealer filter and independent of
+// which 100-product page is being viewed. Without this, the dropdown only showed
+// sources that happened to be on the current page. Capped for safety.
+async function collectAllDealerValues(accessToken: string): Promise<string[]> {
+  const values = new Set<string>();
+  let after: string | undefined = undefined;
+  const MAX_PAGES = 50; // up to 5000 products
+
+  for (let page = 0; page < MAX_PAGES; page++) {
+    const body: any = {
+      filterGroups: [],
+      properties: ['dealer'],
+      limit: 100,
+      sorts: [{ propertyName: 'name', direction: 'ASCENDING' }],
+    };
+    if (after) body.after = after;
+
+    const resp = await fetch('https://api.hubapi.com/crm/v3/objects/products/search', {
+      method: 'POST',
+      headers: {
+        Authorization: `Bearer ${accessToken}`,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify(body),
+    });
+
+    if (!resp.ok) {
+      console.error('Dealer-values scan failed:', resp.status, await resp.text());
+      break;
+    }
+
+    const json = await resp.json();
+    for (const p of json.results || []) {
+      const d = (p.properties?.dealer || '').trim();
+      if (d) values.add(d);
+    }
+
+    after = json.paging?.next?.after;
+    if (!after) break;
+  }
+
+  return [...values].sort();
+}
+
 Deno.serve(async (req) => {
   if (req.method === 'OPTIONS') {
     return new Response(null, { headers: corsHeaders });
@@ -131,8 +176,12 @@ Deno.serve(async (req) => {
       };
     });
 
-    // Collect distinct dealer values BEFORE filtering (so dropdown shows all options)
-    const dealerValues = [...new Set(products.map((p: any) => p.dealer).filter(Boolean))].sort();
+    // Collect distinct pricing sources. On the first request (no cursor) do a full
+    // library scan so the dropdown is complete on open; on paginated follow-up calls
+    // skip the scan (the client already accumulated the full set) to keep paging fast.
+    const dealerValues = after
+      ? [...new Set(products.map((p: any) => p.dealer).filter(Boolean))].sort()
+      : await collectAllDealerValues(accessToken);
 
     // Apply productType filter AFTER normalization + overrides
     if (productType) {
