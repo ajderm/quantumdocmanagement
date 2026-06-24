@@ -12,7 +12,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { ProductSearchModal, HubSpotProduct } from './ProductSearchModal';
 import { getLabel, isSectionVisible, type FormCustomizationConfig } from '@/lib/formCustomization';
 
-export interface QuoteLineItem { id: string; quantity: number; model: string; description: string; price: number; cost: number; markupPercent: number; msrp: number; dealerSource: string; hs_product_id?: string; productType?: string; parentLineItemId?: string; itemNumber?: string; }
+export interface QuoteLineItem { id: string; quantity: number; model: string; description: string; price: number; cost: number; markupPercent: number; msrp: number; dealerSource: string; hs_product_id?: string; productType?: string; parentLineItemId?: string; itemNumber?: string; serial?: string; equipmentId?: string; }
 export interface QuoteFormData { 
   quoteNumber: string; 
   quoteDate: string; 
@@ -32,6 +32,7 @@ export interface QuoteFormData {
   cashDiscount?: number; 
   selectedTerms: number[]; 
   serviceBaseRate: number; 
+  serviceBillingPeriod: 'monthly' | 'quarterly' | 'annual';
   includedBWCopies: number; 
   includedColorCopies: number; 
   overageBWRate: number; 
@@ -113,6 +114,7 @@ export function QuoteForm({ deal, company, lineItems, dealOwner, onFormChange, p
     cashDiscount: 0, 
     selectedTerms: [], 
     serviceBaseRate: 0, 
+    serviceBillingPeriod: 'monthly',
     includedBWCopies: 0, 
     includedColorCopies: 0, 
     overageBWRate: 0, 
@@ -447,6 +449,8 @@ export function QuoteForm({ deal, company, lineItems, dealOwner, onFormChange, p
         productType: item.category || '',
         parentLineItemId: '',
         itemNumber: item.itemNumber || item.properties?.item_number || '',
+        serial: item.serial || item.properties?.serial_number || '',
+        equipmentId: item.equipmentId || item.properties?.equipment_id || '',
       })),
       retailPrice: dealAmount
     };
@@ -1192,9 +1196,30 @@ export function QuoteForm({ deal, company, lineItems, dealOwner, onFormChange, p
           </div>
           {/* Base Rate Display */}
           <div className="mt-4 p-3 bg-muted/50 rounded-lg">
+            <div className="flex justify-between items-center mb-3">
+              <span className="text-sm font-medium">Billing Period</span>
+              <Select
+                value={formData.serviceBillingPeriod || 'monthly'}
+                onValueChange={(value) => setFormData(prev => ({ ...prev, serviceBillingPeriod: value as 'monthly' | 'quarterly' | 'annual' }))}
+              >
+                <SelectTrigger className="h-8 w-40 text-sm">
+                  <SelectValue placeholder="Select period" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="monthly">Monthly</SelectItem>
+                  <SelectItem value="quarterly">Quarterly</SelectItem>
+                  <SelectItem value="annual">Annual</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
             <div className="flex justify-between items-center">
               <div className="flex items-center gap-2">
-                <span className="text-sm font-medium">{getLabel(formCustomization, 'serviceBaseRate', 'Base Rate (per month)')}</span>
+                <span className="text-sm font-medium">
+                  {(() => {
+                    const periodLabel = formData.serviceBillingPeriod === 'quarterly' ? 'per quarter' : formData.serviceBillingPeriod === 'annual' ? 'per year' : 'per month';
+                    return getLabel(formCustomization, 'serviceBaseRate', `Base Rate (${periodLabel})`);
+                  })()}
+                </span>
                 {formData.baseRateManuallySet && (
                   <button 
                     type="button" 
@@ -1215,6 +1240,17 @@ export function QuoteForm({ deal, company, lineItems, dealOwner, onFormChange, p
                   className="h-8 text-sm pl-5 font-medium"
                 />
               </div>
+            </div>
+            {/* Annual total */}
+            <div className="flex justify-between items-center mt-2 pt-2 border-t border-border">
+              <span className="text-sm font-medium text-muted-foreground">Annual Total</span>
+              <span className="text-sm font-semibold">
+                ${(() => {
+                  const periodsPerYear = formData.serviceBillingPeriod === 'quarterly' ? 4 : formData.serviceBillingPeriod === 'annual' ? 1 : 12;
+                  const annual = (formData.serviceBaseRate || 0) * periodsPerYear;
+                  return annual.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+                })()}
+              </span>
             </div>
           </div>
         </CardContent>

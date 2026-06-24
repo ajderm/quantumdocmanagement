@@ -351,7 +351,7 @@ Deno.serve(async (req) => {
       'street_address__ap_', 'street_address_line_2__ap_', 'city__ap_', 'state__ap_', 'zip_code__ap_']);
     const contactPropsNeeded = new Set(['firstname', 'lastname', 'email', 'phone', 'jobtitle']);
     const dealPropsNeeded = new Set(['dealname', 'amount', 'dealstage', 'pipeline', 'closedate', 'hubspot_owner_id', 'hs_object_id']);
-    const lineItemPropsNeeded = new Set(['name', 'description', 'quantity', 'price', 'hs_sku', 'item_number', 'hs_product_id', 'hs_product_type', 'hs_recurring_billing_period', 'hs_cost_of_goods_sold', 'unit_cost', 'condition', 'hs_product_condition', 'dealer', 'manufacturer', 'vendor', 'hs_line_item_dealer', 'color_mono', 'machine_type']);
+    const lineItemPropsNeeded = new Set(['name', 'description', 'quantity', 'price', 'hs_sku', 'item_number', 'hs_product_id', 'hs_product_type', 'hs_recurring_billing_period', 'hs_cost_of_goods_sold', 'unit_cost', 'condition', 'hs_product_condition', 'dealer', 'manufacturer', 'vendor', 'hs_line_item_dealer', 'color_mono', 'machine_type', 'serial_number', 'equipment_id', 'meter_method', 'meter_reading', 'meter_reading_bw', 'meter_reading_color']);
 
     // Add properties from field mappings
     for (const mappings of Object.values(fieldMappings)) {
@@ -670,6 +670,11 @@ Deno.serve(async (req) => {
             dealer: lineItemResponse.properties.dealer || lineItemResponse.properties.manufacturer || lineItemResponse.properties.vendor || lineItemResponse.properties.hs_line_item_dealer || '',
             machineType: lineItemResponse.properties.color_mono || lineItemResponse.properties.machine_type || 'Color',
             cost: parseFloat(lineItemResponse.properties.unit_cost) || parseFloat(lineItemResponse.properties.hs_cost_of_goods_sold) || 0,
+            serial: lineItemResponse.properties.serial_number || '',
+            equipmentId: lineItemResponse.properties.equipment_id || '',
+            meterMethod: lineItemResponse.properties.meter_method || '',
+            meterReadingBW: lineItemResponse.properties.meter_reading_bw || lineItemResponse.properties.meter_reading || '',
+            meterReadingColor: lineItemResponse.properties.meter_reading_color || '',
             properties: lineItemResponse.properties, // Include raw properties
           };
         });

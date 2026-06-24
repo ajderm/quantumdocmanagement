@@ -52,6 +52,7 @@ export interface ServiceAgreementFormData {
   drumToner: string;
   effectiveDate: Date | null;
   contractLengthMonths: string;
+  billingPeriod: 'monthly' | 'quarterly' | 'annual';
   
   // Rates per line item (keyed by line item ID)
   rates: Record<string, {
@@ -96,6 +97,7 @@ interface QuoteFormData {
   overageBWRate: string;
   overageColorRate: string;
   serviceBaseRate: string;
+  serviceBillingPeriod?: string;
 }
 
 interface ServiceAgreementFormProps {
@@ -251,6 +253,7 @@ export function ServiceAgreementForm({
       billToAttn: fillIfEmpty(base.billToAttn, billToContact ? `${billToContact.firstName || ""} ${billToContact.lastName || ""}`.trim() : ""),
       billToPhone: fillIfEmpty(base.billToPhone, billToContact?.phone || ""),
       billToEmail: fillIfEmpty(base.billToEmail, billToContact?.email || ""),
+      billingPeriod: (base.billingPeriod || (quoteFormData?.serviceBillingPeriod as 'monthly' | 'quarterly' | 'annual') || 'monthly'),
       rates: nextRates,
     });
 
@@ -623,6 +626,23 @@ export function ServiceAgreementForm({
           <CardTitle className="text-sm">Rates</CardTitle>
         </CardHeader>
         <CardContent>
+          {/* Billing Period selector (before base-rate fields) */}
+          <div className="flex items-center justify-between mb-4 max-w-md">
+            <Label htmlFor="billingPeriod">Billing Period</Label>
+            <Select
+              value={formData.billingPeriod || 'monthly'}
+              onValueChange={(value) => updateField('billingPeriod', value)}
+            >
+              <SelectTrigger className="w-40">
+                <SelectValue placeholder="Select period" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="monthly">Monthly</SelectItem>
+                <SelectItem value="quarterly">Quarterly</SelectItem>
+                <SelectItem value="annual">Annual</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
           {hardwareLineItems.length === 0 ? (
             <p className="text-muted-foreground text-sm">No hardware line items available for rates.</p>
           ) : (
@@ -635,7 +655,9 @@ export function ServiceAgreementForm({
                     <th className="px-3 py-2 text-left font-medium">Includes (Color)</th>
                     <th className="px-3 py-2 text-left font-medium">Overages (B/W)</th>
                     <th className="px-3 py-2 text-left font-medium">Overages (Color)</th>
-                    <th className="px-3 py-2 text-left font-medium">Base Rate</th>
+                    <th className="px-3 py-2 text-left font-medium">
+                      Base Rate ({formData.billingPeriod === 'quarterly' ? 'Quarterly' : formData.billingPeriod === 'annual' ? 'Annual' : 'Monthly'})
+                    </th>
                   </tr>
                 </thead>
                 <tbody>
@@ -672,6 +694,27 @@ export function ServiceAgreementForm({
                   ))}
                 </tbody>
               </table>
+            </div>
+          )}
+          {/* Annual total summary */}
+          {hardwareLineItems.length > 0 && (
+            <div className="flex justify-end mt-3">
+              <div className="flex items-center gap-3 text-sm">
+                <span className="text-muted-foreground">Annual Total ({formData.billingPeriod === 'quarterly' ? '4 quarters' : formData.billingPeriod === 'annual' ? '1 year' : '12 months'}):</span>
+                <span className="font-semibold">
+                  {(() => {
+                    const periodsPerYear = formData.billingPeriod === 'quarterly' ? 4 : formData.billingPeriod === 'annual' ? 1 : 12;
+                    const totalBase = hardwareLineItems.reduce((sum, item) => {
+                      const rate = formData.rates[item.id]?.baseRate;
+                      return sum + (rate ? parseFloat(String(rate)) || 0 : 0);
+                    }, 0);
+                    const annual = totalBase * periodsPerYear;
+                    return annual > 0
+                      ? new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD', minimumFractionDigits: 2 }).format(annual)
+                      : '-';
+                  })()}
+                </span>
+              </div>
             </div>
           )}
         </CardContent>

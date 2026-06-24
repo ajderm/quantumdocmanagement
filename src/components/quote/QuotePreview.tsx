@@ -282,8 +282,15 @@ export const QuotePreview = forwardRef<HTMLDivElement, QuotePreviewProps>(
                         <tr>
                           <td className="font-bold pr-2 py-[1px]">BASE RATE</td>
                           <td className="py-[1px]">${formatCurrency(formData.serviceBaseRate)}</td>
-                          <td className="text-right py-[1px]">PER MONTH</td>
+                          <td className="text-right py-[1px]">{formData.serviceBillingPeriod === 'quarterly' ? 'PER QUARTER' : formData.serviceBillingPeriod === 'annual' ? 'PER YEAR' : 'PER MONTH'}</td>
                         </tr>
+                        {formData.serviceBillingPeriod !== 'annual' && (
+                          <tr>
+                            <td className="font-bold pr-2 py-[1px]">ANNUAL TOTAL</td>
+                            <td className="py-[1px]">${formatCurrency(formData.serviceBaseRate * (formData.serviceBillingPeriod === 'quarterly' ? 4 : 12))}</td>
+                            <td className="text-right py-[1px]">PER YEAR</td>
+                          </tr>
+                        )}
                         {(formData.includedBWCopies > 0 || formData.includedColorCopies > 0) && (
                           <>
                             <tr>

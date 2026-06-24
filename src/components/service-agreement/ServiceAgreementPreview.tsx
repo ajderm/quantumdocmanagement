@@ -277,7 +277,7 @@ export const ServiceAgreementPreview = forwardRef<HTMLDivElement, ServiceAgreeme
               </tr>
               <tr className="border-b border-gray-300">
                 <th className="py-1 text-left"><span className="underline">Model</span></th>
-                <th className="py-1 text-center"><span className="underline">Base Rate</span></th>
+                <th className="py-1 text-center"><span className="underline">Base Rate ({formData.billingPeriod === 'quarterly' ? 'Quarterly' : formData.billingPeriod === 'annual' ? 'Annual' : 'Monthly'})</span></th>
                 <th className="py-1 text-center"><span className="underline">Includes (B/W)</span></th>
                 <th className="py-1 text-center"><span className="underline">Includes (Color)</span></th>
                 <th className="py-1 text-center"><span className="underline">Overages (B/W)</span></th>
@@ -307,13 +307,33 @@ export const ServiceAgreementPreview = forwardRef<HTMLDivElement, ServiceAgreeme
               {/* Total Base Rate row when multiple units */}
               {hardwareLineItems.length > 1 && (
                 <tr className="border-t-2 border-black font-bold">
-                  <td className="py-1">Total</td>
+                  <td className="py-1">Total ({formData.billingPeriod === 'quarterly' ? 'Quarterly' : formData.billingPeriod === 'annual' ? 'Annual' : 'Monthly'})</td>
                   <td className="py-1 text-center">
                     {(() => {
                       const total = hardwareLineItems.reduce((sum, item) => {
                         const rate = formData.rates[item.id]?.baseRate;
                         return sum + (rate ? parseFloat(String(rate)) || 0 : 0);
                       }, 0);
+                      return total > 0 ? formatCurrency(total) : '-';
+                    })()}
+                  </td>
+                  <td className="py-1"></td>
+                  <td className="py-1"></td>
+                  <td className="py-1"></td>
+                  <td className="py-1"></td>
+                </tr>
+              )}
+              {/* Annual Total row (always shown when at least one unit and not already annual) */}
+              {hardwareLineItems.length > 0 && formData.billingPeriod !== 'annual' && (
+                <tr className={hardwareLineItems.length > 1 ? 'font-bold' : 'border-t-2 border-black font-bold'}>
+                  <td className="py-1">Annual Total</td>
+                  <td className="py-1 text-center">
+                    {(() => {
+                      const periodsPerYear = formData.billingPeriod === 'quarterly' ? 4 : 12;
+                      const total = hardwareLineItems.reduce((sum, item) => {
+                        const rate = formData.rates[item.id]?.baseRate;
+                        return sum + (rate ? parseFloat(String(rate)) || 0 : 0);
+                      }, 0) * periodsPerYear;
                       return total > 0 ? formatCurrency(total) : '-';
                     })()}
                   </td>
