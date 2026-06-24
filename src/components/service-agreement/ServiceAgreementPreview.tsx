@@ -356,7 +356,7 @@ export const ServiceAgreementPreview = forwardRef<HTMLDivElement, ServiceAgreeme
         )}
 
         {/* Signatures - matching Quote/Installation style */}
-        <div className="mt-6 pt-2 border-t border-gray-300">
+        <div className="mt-6 pt-2 border-t border-gray-300" data-pdf-keep-together>
           <div className="grid grid-cols-2 gap-8">
             {/* Left: Dealer */}
             <div>
