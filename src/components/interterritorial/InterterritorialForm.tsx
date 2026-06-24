@@ -637,8 +637,12 @@ export function InterterritorialForm({
                   </div>
                 </div>
               ))}
-              <div className="text-right font-semibold text-sm pt-2 border-t">
-                Total Fee: ${calculateTotalFee().toFixed(2)}
+              <div className="text-right text-sm pt-2 border-t space-y-0.5">
+                <div>Equipment Cost: ${formData.equipmentItems.reduce((sum, item) => sum + (item.cost || 0), 0).toFixed(2)}</div>
+                <div>Placement Fees: ${calculateTotalFee().toFixed(2)}</div>
+                <div className="font-semibold border-t pt-1">
+                  Total Billed to {formData.originatingName || 'Originating Dealer'}: ${(formData.equipmentItems.reduce((sum, item) => sum + (item.cost || 0), 0) + calculateTotalFee()).toFixed(2)}
+                </div>
               </div>
             </div>
           )}

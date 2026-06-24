@@ -143,6 +143,7 @@ interface InstallationFormProps {
   savedConfig?: InstallationFormData;
   labeledContacts?: LabeledContacts;
   quoteLineItems?: QuoteLineItemRef[];
+  defaultMeterMethod?: string;
 }
 
 const MAX_REMOVED_EQUIPMENT = 10;
@@ -161,6 +162,7 @@ export function InstallationForm({
   savedConfig,
   labeledContacts,
   quoteLineItems,
+  defaultMeterMethod,
 }: InstallationFormProps) {
   // Helper: check if a line item is hardware
   const isHardware = (item: any): boolean => {
@@ -375,6 +377,14 @@ export function InstallationForm({
       }));
     }
   }, [company?.customerNumber]);
+
+  // Carry over the deal's meter method (from the service agreement or line items)
+  // into the installation document when it has not been set yet.
+  useEffect(() => {
+    if (defaultMeterMethod && !formData.meterMethod) {
+      setFormData(prev => (prev.meterMethod ? prev : { ...prev, meterMethod: defaultMeterMethod }));
+    }
+  }, [defaultMeterMethod]);
 
   // Pre-fill labeled contacts (Ship To, Bill To, IT Contact) when available
   // Apply labeled contacts to fill empty fields - check saved config values too

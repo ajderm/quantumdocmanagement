@@ -22,6 +22,14 @@ export const InterterritorialPreview = forwardRef<HTMLDivElement, Interterritori
       return formData.equipmentItems.reduce((sum, item) => sum + (item.fee || 0), 0);
     };
 
+    const calculateTotalCost = () => {
+      return formData.equipmentItems.reduce((sum, item) => sum + (item.cost || 0), 0);
+    };
+
+    const calculateTotalBilled = () => {
+      return calculateTotalCost() + calculateTotalFee();
+    };
+
     const formatCurrency = (value: number) => {
       return (value ?? 0).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
     };
@@ -157,8 +165,25 @@ export const InterterritorialPreview = forwardRef<HTMLDivElement, Interterritori
               )}
             </tbody>
           </table>
-          <div className="pt-1 text-right font-bold text-[12px] border-t border-black mt-1">
-            TOTAL AMOUNT BILLED TO {formData.installingName || '[Installing Dealer]'}: ${formatCurrency(calculateTotalFee())}
+          <div className="mt-1 border-t border-black pt-1">
+            <table className="w-full text-[12px]">
+              <tbody>
+                <tr>
+                  <td className="text-right">Equipment Cost:</td>
+                  <td className="text-right w-24 font-semibold">${formatCurrency(calculateTotalCost())}</td>
+                </tr>
+                <tr>
+                  <td className="text-right">Placement Fees:</td>
+                  <td className="text-right w-24 font-semibold">${formatCurrency(calculateTotalFee())}</td>
+                </tr>
+                <tr className="border-t border-black">
+                  <td className="text-right font-bold pt-1">
+                    TOTAL AMOUNT BILLED TO {formData.originatingName || '[Originating Dealer]'}:
+                  </td>
+                  <td className="text-right w-24 font-bold pt-1">${formatCurrency(calculateTotalBilled())}</td>
+                </tr>
+              </tbody>
+            </table>
           </div>
         </div>
 

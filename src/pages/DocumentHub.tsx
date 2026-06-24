@@ -472,10 +472,10 @@ function DocumentHubContent() {
     // Pre-populate equipment from line items
     if (lineItems && lineItems.length > 0) {
       defaultData.equipmentItems = lineItems.slice(0, 20).map(item => ({
-        id: item.hsObjectId || crypto.randomUUID(),
-        makeModel: item.name || '',
-        serialNumber: item.properties?.serial_number || '',
-        equipmentId: item.properties?.equipment_id || '',
+        id: item.hsObjectId || item.id || crypto.randomUUID(),
+        makeModel: item.name || item.model || item.sku || '',
+        serialNumber: item.serial || item.properties?.serial_number || '',
+        equipmentId: item.equipmentId || item.properties?.equipment_id || '',
         networkPrint: false,
         scan: false,
         notes: '',
@@ -3493,6 +3493,7 @@ function DocumentHubContent() {
                     parentLineItemId: li.parentLineItemId || '',
                     itemNumber: li.itemNumber || '',
                   }))}
+                  defaultMeterMethod={serviceAgreementFormData?.meterMethod || (lineItems.find((li: any) => li.meterMethod)?.meterMethod) || ''}
                 />
 
                 {/* Actions */}
@@ -3563,6 +3564,7 @@ function DocumentHubContent() {
                     drumToner: '',
                     effectiveDate: null,
                     contractLengthMonths: '',
+                    billingPeriod: 'monthly',
                     rates: {},
                   }}
                   onChange={handleServiceAgreementFormChange}
@@ -3600,6 +3602,8 @@ function DocumentHubContent() {
                     category: li.productType || '',
                     itemNumber: li.itemNumber || '',
                     parentLineItemId: li.parentLineItemId || '',
+                    serial: li.serial || '',
+                    equipmentId: li.equipmentId || '',
                   })) : lineItems}
                   dealerSettings={dealerSettings}
                   savedConfig={serviceAgreementSavedConfig}
@@ -3610,6 +3614,7 @@ function DocumentHubContent() {
                     overageBWRate: String(formData.overageBWRate),
                     overageColorRate: String(formData.overageColorRate),
                     serviceBaseRate: String(formData.serviceBaseRate),
+                    serviceBillingPeriod: formData.serviceBillingPeriod || 'monthly',
                   } : null}
                   installationConfigs={installationSavedConfig}
                 />
