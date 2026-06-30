@@ -3791,7 +3791,7 @@ function DocumentHubContent() {
         <div className="flex items-start gap-0">
           {/* Collapsible nav rail (replaces the tab strip) */}
           <aside
-            className={`group/rail sticky top-[52px] self-start h-[calc(100vh-52px)] shrink-0 border-r border-border bg-card overflow-hidden transition-[width] duration-200 ease-out ${navExpanded ? "w-[248px]" : "w-[62px] hover:w-[248px]"}`}
+            className={`group/rail sticky top-[52px] self-start h-[calc(100vh-52px)] shrink-0 border-r border-border bg-card overflow-hidden flex flex-col transition-[width] duration-200 ease-out ${navExpanded ? "w-[248px]" : "w-[62px] hover:w-[248px]"}`}
           >
             {/* Rail top: pin toggle + search */}
             <div className="flex items-center gap-2 h-[46px] px-[15px] border-b border-border">
@@ -3817,104 +3817,111 @@ function DocumentHubContent() {
               </div>
             </div>
 
-            <div className="py-2 overflow-y-auto h-[calc(100%-46px-52px)]">
-              {navGroups.map((group) => {
-                const items = group.codes
-                  .filter((code) => isFormEnabled(code))
-                  .map((code) => docByCode(code))
-                  .filter((d): d is { code: string; name: string; icon: typeof FileText } => !!d)
-                  .filter((d) => matchesNavSearch(d.name));
-                if (items.length === 0) return null;
-                return (
-                  <div key={group.label} className="mb-1.5">
+            {/* Radix requires every TabsTrigger to live inside a TabsList (it mounts the
+                RovingFocusGroup). Pin + search stay ABOVE this so arrow-key roving focus
+                does not capture their inputs. The list is restyled into a vertical rail. */}
+            <TabsList className="!flex !flex-col flex-1 min-h-0 !h-auto !w-full !items-stretch !justify-start !gap-0 !rounded-none !bg-transparent !p-0 !shadow-none">
+              <div className="py-2 overflow-y-auto flex-1 min-h-0 w-full">
+                {navGroups.map((group) => {
+                  const items = group.codes
+                    .filter((code) => isFormEnabled(code))
+                    .map((code) => docByCode(code))
+                    .filter((d): d is { code: string; name: string; icon: typeof FileText } => !!d)
+                    .filter((d) => matchesNavSearch(d.name));
+                  if (items.length === 0) return null;
+                  return (
+                    <div key={group.label} className="mb-1.5">
+                      <div
+                        className={`eyebrow px-4 h-5 flex items-center whitespace-nowrap overflow-hidden transition-opacity duration-150 ${navExpanded ? "opacity-100" : "opacity-0 group-hover/rail:opacity-100"}`}
+                      >
+                        {group.label}
+                      </div>
+                      {items.map((doc) => {
+                        const Icon = doc.icon;
+                        const status = getDocStatus(doc.code);
+                        return (
+                          <TabsTrigger
+                            key={doc.code}
+                            value={doc.code}
+                            className="group/item relative w-full justify-start rounded-none px-[19px] py-2 h-auto text-xs text-muted-foreground hover:text-foreground hover:bg-muted/60 data-[state=active]:bg-qbs-navy/[0.06] data-[state=active]:text-qbs-navy data-[state=active]:font-semibold data-[state=active]:shadow-none transition-colors"
+                          >
+                            <span className="absolute left-0 top-0 bottom-0 w-[3px] bg-qbs-gold-500 opacity-0 group-data-[state=active]/item:opacity-100" />
+                            <Icon className="h-[18px] w-[18px] shrink-0" />
+                            <span
+                              className={`ml-3 whitespace-nowrap transition-opacity duration-150 ${navExpanded ? "opacity-100" : "opacity-0 group-hover/rail:opacity-100"}`}
+                            >
+                              {doc.name}
+                            </span>
+                            {doc.code === "installation" && hardwareLineItems.length > 0 && (
+                              <Badge
+                                variant="outline"
+                                className={`ml-1.5 text-[10px] px-1 py-0 transition-opacity duration-150 ${navExpanded ? "opacity-100" : "opacity-0 group-hover/rail:opacity-100"}`}
+                              >
+                                {hardwareLineItems.length}
+                              </Badge>
+                            )}
+                            <span
+                              className={`ml-auto h-1.5 w-1.5 rounded-full shrink-0 ${statusDotClass(status)} transition-opacity duration-150 ${navExpanded ? "opacity-100" : "opacity-0 group-hover/rail:opacity-100"}`}
+                            />
+                          </TabsTrigger>
+                        );
+                      })}
+                    </div>
+                  );
+                })}
+
+                {/* Custom documents */}
+                {customDocuments.filter((c) => matchesNavSearch(c.name)).length > 0 && (
+                  <div className="mb-1.5">
                     <div
                       className={`eyebrow px-4 h-5 flex items-center whitespace-nowrap overflow-hidden transition-opacity duration-150 ${navExpanded ? "opacity-100" : "opacity-0 group-hover/rail:opacity-100"}`}
                     >
-                      {group.label}
+                      Custom
                     </div>
-                    {items.map((doc) => {
-                      const Icon = doc.icon;
-                      const status = getDocStatus(doc.code);
-                      return (
+                    {customDocuments
+                      .filter((c) => matchesNavSearch(c.name))
+                      .map((customDoc) => (
                         <TabsTrigger
-                          key={doc.code}
-                          value={doc.code}
+                          key={customDoc.code}
+                          value={customDoc.code}
                           className="group/item relative w-full justify-start rounded-none px-[19px] py-2 h-auto text-xs text-muted-foreground hover:text-foreground hover:bg-muted/60 data-[state=active]:bg-qbs-navy/[0.06] data-[state=active]:text-qbs-navy data-[state=active]:font-semibold data-[state=active]:shadow-none transition-colors"
                         >
                           <span className="absolute left-0 top-0 bottom-0 w-[3px] bg-qbs-gold-500 opacity-0 group-data-[state=active]/item:opacity-100" />
-                          <Icon className="h-[18px] w-[18px] shrink-0" />
+                          <DynamicIcon name={customDoc.icon} className="h-[18px] w-[18px] shrink-0" />
                           <span
                             className={`ml-3 whitespace-nowrap transition-opacity duration-150 ${navExpanded ? "opacity-100" : "opacity-0 group-hover/rail:opacity-100"}`}
                           >
-                            {doc.name}
+                            {customDoc.name}
                           </span>
-                          {doc.code === "installation" && hardwareLineItems.length > 0 && (
-                            <Badge
-                              variant="outline"
-                              className={`ml-1.5 text-[10px] px-1 py-0 transition-opacity duration-150 ${navExpanded ? "opacity-100" : "opacity-0 group-hover/rail:opacity-100"}`}
-                            >
-                              {hardwareLineItems.length}
-                            </Badge>
-                          )}
                           <span
-                            className={`ml-auto h-1.5 w-1.5 rounded-full shrink-0 ${statusDotClass(status)} transition-opacity duration-150 ${navExpanded ? "opacity-100" : "opacity-0 group-hover/rail:opacity-100"}`}
+                            className={`ml-auto h-1.5 w-1.5 rounded-full shrink-0 ${statusDotClass(getDocStatus(customDoc.code))} transition-opacity duration-150 ${navExpanded ? "opacity-100" : "opacity-0 group-hover/rail:opacity-100"}`}
                           />
                         </TabsTrigger>
-                      );
-                    })}
+                      ))}
                   </div>
-                );
-              })}
+                )}
+              </div>
 
-              {/* Custom documents */}
-              {customDocuments.filter((c) => matchesNavSearch(c.name)).length > 0 && (
-                <div className="mb-1.5">
-                  <div
-                    className={`eyebrow px-4 h-5 flex items-center whitespace-nowrap overflow-hidden transition-opacity duration-150 ${navExpanded ? "opacity-100" : "opacity-0 group-hover/rail:opacity-100"}`}
+              {/* Pinned Document Packet footer - now a normal flex child INSIDE the TabsList
+                (no longer absolutely positioned) so its trigger stays in the RovingFocusGroup.
+                mt-auto pins it to the bottom of the flex column. */}
+              {isFormEnabled("document_packet") && (
+                <div className="mt-auto shrink-0 w-full h-[52px] border-t border-border bg-card flex items-center">
+                  <TabsTrigger
+                    value="document_packet"
+                    className="group/item relative w-full justify-start rounded-none px-[19px] py-2.5 h-auto text-xs text-qbs-gold-700 hover:bg-qbs-gold-100/60 data-[state=active]:bg-qbs-gold-100 data-[state=active]:text-qbs-gold-700 data-[state=active]:font-semibold data-[state=active]:shadow-none transition-colors"
                   >
-                    Custom
-                  </div>
-                  {customDocuments
-                    .filter((c) => matchesNavSearch(c.name))
-                    .map((customDoc) => (
-                      <TabsTrigger
-                        key={customDoc.code}
-                        value={customDoc.code}
-                        className="group/item relative w-full justify-start rounded-none px-[19px] py-2 h-auto text-xs text-muted-foreground hover:text-foreground hover:bg-muted/60 data-[state=active]:bg-qbs-navy/[0.06] data-[state=active]:text-qbs-navy data-[state=active]:font-semibold data-[state=active]:shadow-none transition-colors"
-                      >
-                        <span className="absolute left-0 top-0 bottom-0 w-[3px] bg-qbs-gold-500 opacity-0 group-data-[state=active]/item:opacity-100" />
-                        <DynamicIcon name={customDoc.icon} className="h-[18px] w-[18px] shrink-0" />
-                        <span
-                          className={`ml-3 whitespace-nowrap transition-opacity duration-150 ${navExpanded ? "opacity-100" : "opacity-0 group-hover/rail:opacity-100"}`}
-                        >
-                          {customDoc.name}
-                        </span>
-                        <span
-                          className={`ml-auto h-1.5 w-1.5 rounded-full shrink-0 ${statusDotClass(getDocStatus(customDoc.code))} transition-opacity duration-150 ${navExpanded ? "opacity-100" : "opacity-0 group-hover/rail:opacity-100"}`}
-                        />
-                      </TabsTrigger>
-                    ))}
+                    <span className="absolute left-0 top-0 bottom-0 w-[3px] bg-qbs-gold-500 opacity-0 group-data-[state=active]/item:opacity-100" />
+                    <Package className="h-[18px] w-[18px] shrink-0" />
+                    <span
+                      className={`ml-3 whitespace-nowrap font-medium transition-opacity duration-150 ${navExpanded ? "opacity-100" : "opacity-0 group-hover/rail:opacity-100"}`}
+                    >
+                      Document Packet
+                    </span>
+                  </TabsTrigger>
                 </div>
               )}
-            </div>
-
-            {/* Pinned Document Packet footer */}
-            {isFormEnabled("document_packet") && (
-              <div className="absolute bottom-0 left-0 right-0 h-[52px] border-t border-border bg-card flex items-center">
-                <TabsTrigger
-                  value="document_packet"
-                  className="group/item relative w-full justify-start rounded-none px-[19px] py-2.5 h-auto text-xs text-qbs-gold-700 hover:bg-qbs-gold-100/60 data-[state=active]:bg-qbs-gold-100 data-[state=active]:text-qbs-gold-700 data-[state=active]:font-semibold data-[state=active]:shadow-none transition-colors"
-                >
-                  <span className="absolute left-0 top-0 bottom-0 w-[3px] bg-qbs-gold-500 opacity-0 group-data-[state=active]/item:opacity-100" />
-                  <Package className="h-[18px] w-[18px] shrink-0" />
-                  <span
-                    className={`ml-3 whitespace-nowrap font-medium transition-opacity duration-150 ${navExpanded ? "opacity-100" : "opacity-0 group-hover/rail:opacity-100"}`}
-                  >
-                    Document Packet
-                  </span>
-                </TabsTrigger>
-              </div>
-            )}
+            </TabsList>
           </aside>
 
           {/* Content area */}
