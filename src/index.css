@@ -3,74 +3,108 @@
 @tailwind utilities;
 
 /* 
-  COPIER DOCUMENT GENERATOR - DESIGN SYSTEM
-  Professional, clean aesthetic for B2B office equipment industry
-  Using deep navy blues with warm amber accents
+  QUANTUM DOCUMENT MANAGEMENT - DESIGN SYSTEM (QBS)
+  Navy primary + Gold premium accent + Green action/success, cool-gray neutrals.
+  HubSpot-native feel for the embedded deal experience.
+  NOTE: Output documents (*Preview.tsx) do not consume these semantic tokens —
+  they use explicit colors + document_styles, so re-theming never alters PDFs.
 */
 
 @layer base {
   :root {
-    /* Core palette - Professional Navy + Warm Amber */
-    --background: 210 20% 98%;
-    --foreground: 222 48% 11%;
+    /* 1) QBS palette - raw brand ramps (reference directly where needed) */
+    --qbs-navy: #1b2a4d;
+    --qbs-navy-900: #111b33;
+    --qbs-navy-800: #1b2a4d;
+    --qbs-navy-700: #25375f;
+    --qbs-navy-600: #324a7a;
+    --qbs-navy-200: #aab6cd;
+    --qbs-navy-100: #d7deea;
+    --qbs-gold-700: #9c7836;
+    --qbs-gold-600: #b08a45;
+    --qbs-gold-500: #c49b55;
+    --qbs-gold-300: #ddc395;
+    --qbs-gold-100: #f1e7d2;
+    --qbs-green-700: #3a8f1c;
+    --qbs-green-600: #4fb52a;
+    --qbs-green-500: #6cdc3c;
+    --qbs-green-300: #a8ec88;
+    --qbs-green-100: #e2f8d6;
+    --qbs-neutral-25: #f8fafc;
+    --qbs-neutral-50: #f1f4f9;
+    --qbs-neutral-100: #e5e9f0;
+    --qbs-neutral-200: #d4dae3;
+    --qbs-neutral-300: #bcc4d0;
+    --qbs-neutral-400: #8d96a0;
+    --qbs-neutral-500: #747383;
+    --qbs-danger: #d64545;
+    --qbs-danger-bg: #fbe4e4;
+    --qbs-warning-bg: #f1e7d2;
+    --qbs-success-bg: #e2f8d6;
+
+    /* 2) shadcn semantic tokens re-pointed to QBS (HSL triplets) */
+    /* Core surfaces */
+    --background: 220 38% 96%; /* #F1F4F9 cool-gray app bg */
+    --foreground: 222 48% 20%; /* navy text */
 
     --card: 0 0% 100%;
-    --card-foreground: 222 48% 11%;
+    --card-foreground: 222 48% 20%;
 
     --popover: 0 0% 100%;
-    --popover-foreground: 222 48% 11%;
+    --popover-foreground: 222 48% 20%;
 
-    /* Primary: Deep Navy - trust, professionalism - Brand color #1b2a4d */
+    /* Primary: Navy - headers, nav, dark surfaces */
     --primary: 222 48% 20%;
-    --primary-foreground: 210 40% 98%;
+    --primary-foreground: 0 0% 100%;
 
-    /* Secondary: Slate gray for subtle UI */
-    --secondary: 215 20% 94%;
-    --secondary-foreground: 222 48% 20%;
+    /* Secondary: cool neutral */
+    --secondary: 218 27% 92%;
+    --secondary-foreground: 222 48% 24%;
 
     /* Muted backgrounds */
-    --muted: 215 20% 96%;
-    --muted-foreground: 215 16% 47%;
+    --muted: 218 27% 94%;
+    --muted-foreground: 215 9% 45%;
 
-    /* Accent: Warm Amber - action, attention */
-    --accent: 38 92% 50%;
-    --accent-foreground: 222 48% 11%;
+    /* Accent: Gold - premium / brand accent only (use sparingly) */
+    --accent: 38 48% 55%;
+    --accent-foreground: 222 60% 12%;
 
-    /* Success green */
-    --success: 142 71% 45%;
+    /* Success / action: Green - Generate + positive states (replaces amber) */
+    --success: 102 70% 44%;
     --success-foreground: 0 0% 100%;
 
-    /* Warning/caution */
-    --warning: 38 92% 50%;
-    --warning-foreground: 222 48% 11%;
+    /* Warning/caution: gold-tinted */
+    --warning: 38 48% 55%;
+    --warning-foreground: 222 48% 12%;
 
     /* Destructive red */
-    --destructive: 0 84% 60%;
-    --destructive-foreground: 210 40% 98%;
+    --destructive: 0 64% 55%;
+    --destructive-foreground: 0 0% 100%;
 
     /* Borders and inputs */
-    --border: 215 25% 88%;
-    --input: 215 25% 88%;
-    --ring: 222 48% 20%;
+    --border: 218 21% 86%;
+    --input: 218 21% 86%;
+    --ring: 222 38% 34%;
 
-    --radius: 0.625rem;
+    --radius: 0.5rem; /* inputs/buttons 8px; cards use rounded-xl (12px) */
 
-    /* Sidebar - Brand color #1b2a4d */
-    --sidebar-background: 222 48% 15%;
+    /* Sidebar / nav rail - navy */
+    --sidebar-background: 222 48% 14%;
     --sidebar-foreground: 210 40% 96%;
-    --sidebar-primary: 38 92% 50%;
+    --sidebar-primary: 38 48% 55%;
     --sidebar-primary-foreground: 222 48% 11%;
     --sidebar-accent: 222 48% 22%;
     --sidebar-accent-foreground: 210 40% 96%;
     --sidebar-border: 222 48% 25%;
-    --sidebar-ring: 38 92% 50%;
+    --sidebar-ring: 38 48% 55%;
 
     /* Custom tokens */
     --gradient-primary: linear-gradient(135deg, hsl(222 48% 20%), hsl(222 48% 30%));
-    --gradient-accent: linear-gradient(135deg, hsl(38 92% 50%), hsl(38 92% 60%));
-    --shadow-soft: 0 2px 8px -2px hsl(222 48% 20% / 0.08);
-    --shadow-medium: 0 4px 16px -4px hsl(222 48% 20% / 0.12);
-    --shadow-strong: 0 8px 32px -8px hsl(222 48% 20% / 0.16);
+    --gradient-accent: linear-gradient(135deg, hsl(38 48% 55%), hsl(38 48% 62%));
+    --shadow-soft: 0 1px 3px hsl(222 48% 20% / 0.08);
+    --shadow-medium: 0 4px 12px hsl(222 48% 20% / 0.08);
+    --shadow-strong: 0 12px 32px hsl(222 48% 20% / 0.12);
+    --focus-ring: 0 0 0 3px hsl(222 38% 34% / 0.3);
   }
 
   .dark {
@@ -129,10 +163,17 @@
   }
 
   body {
-    @apply bg-background text-foreground antialiased;
+    @apply bg-background text-foreground antialiased font-sans;
     font-feature-settings: "cv02", "cv03", "cv04", "cv11";
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
+  }
+
+  h1,
+  h2,
+  h3,
+  h4 {
+    letter-spacing: -0.015em;
   }
 
   /* Custom scrollbar */
@@ -188,6 +229,26 @@
   /* Tab trigger refinement */
   [data-state="active"][role="tab"] {
     @apply shadow-none;
+  }
+
+  /* Brand accent type - Instrument Serif, italic, gold (use sparingly) */
+  .brand-serif {
+    font-family: "Instrument Serif", Georgia, serif;
+    font-style: italic;
+    color: var(--qbs-gold-500);
+  }
+
+  /* Eyebrow label */
+  .eyebrow {
+    @apply uppercase text-[11px] font-semibold text-muted-foreground;
+    letter-spacing: 0.12em;
+  }
+
+  /* "From HubSpot" pill - signals a pre-filled field/section */
+  .from-hubspot-pill {
+    @apply inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[11px] font-medium;
+    background: var(--qbs-success-bg);
+    color: var(--qbs-green-700);
   }
 }
 
