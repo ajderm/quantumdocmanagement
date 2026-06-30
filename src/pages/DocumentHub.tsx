@@ -52,6 +52,7 @@ import {
 } from "lucide-react";
 import { QuoteForm, QuoteFormData } from "@/components/quote/QuoteForm";
 import { QuotePreview } from "@/components/quote/QuotePreview";
+import { SummaryRail, type SummaryMetric } from "@/components/shared";
 import { InstallationForm, InstallationFormData } from "@/components/installation/InstallationForm";
 import { InstallationPreview } from "@/components/installation/InstallationPreview";
 import { ServiceAgreementForm, ServiceAgreementFormData } from "@/components/service-agreement/ServiceAgreementForm";
@@ -3937,217 +3938,227 @@ function DocumentHubContent() {
                     </p>
                   </div>
                 </div>
-                <div className="space-y-4">
-                  <QuoteForm
-                    deal={deal}
-                    company={company}
-                    contacts={contacts}
-                    lineItems={lineItems}
-                    dealOwner={dealOwner}
-                    onFormChange={handleFormChange}
-                    portalId={portalId || localStorage.getItem("hs_portal_id") || undefined}
-                    savedConfig={savedConfig || undefined}
-                    formCustomization={dealerSettings.form_customization?.quote}
-                  />
+                <div className="grid grid-cols-1 xl:grid-cols-[minmax(0,1fr)_320px] gap-4 items-start">
+                  <div className="space-y-4 min-w-0">
+                    <QuoteForm
+                      deal={deal}
+                      company={company}
+                      contacts={contacts}
+                      lineItems={lineItems}
+                      dealOwner={dealOwner}
+                      onFormChange={handleFormChange}
+                      portalId={portalId || localStorage.getItem("hs_portal_id") || undefined}
+                      savedConfig={savedConfig || undefined}
+                      formCustomization={dealerSettings.form_customization?.quote}
+                    />
 
-                  {/* Quote Version & Number */}
-                  <div className="pt-3 border-t">
-                    <div className="flex items-center justify-between mb-3">
-                      <div className="flex items-center gap-2">
-                        <Label className="text-sm font-semibold text-muted-foreground">Quote #</Label>
-                        <span className="text-sm font-bold text-primary bg-primary/5 px-2 py-0.5 rounded">
-                          {currentQuoteNumber || formData?.quoteNumber || "—"}
-                        </span>
+                    {/* Quote Version & Number */}
+                    <div className="pt-3 border-t">
+                      <div className="flex items-center justify-between mb-3">
+                        <div className="flex items-center gap-2">
+                          <Label className="text-sm font-semibold text-muted-foreground">Quote #</Label>
+                          <span className="text-sm font-bold text-primary bg-primary/5 px-2 py-0.5 rounded">
+                            {currentQuoteNumber || formData?.quoteNumber || "—"}
+                          </span>
+                        </div>
+                        {quoteVersions.length > 0 && (
+                          <Badge variant="secondary" className="text-[10px]">
+                            {quoteVersions.length} version{quoteVersions.length !== 1 ? "s" : ""}
+                          </Badge>
+                        )}
                       </div>
                       {quoteVersions.length > 0 && (
-                        <Badge variant="secondary" className="text-[10px]">
-                          {quoteVersions.length} version{quoteVersions.length !== 1 ? "s" : ""}
-                        </Badge>
-                      )}
-                    </div>
-                    {quoteVersions.length > 0 && (
-                      <div className="flex flex-wrap gap-1.5">
-                        {quoteVersions.map((v) => (
-                          <div key={v.id} className="relative group inline-flex">
-                            <Button
-                              variant={v.id === currentVersionId ? "default" : "outline"}
-                              size="sm"
-                              className={`text-xs h-7 transition-all pr-6 ${v.id === currentVersionId ? "shadow-sm" : "hover:border-primary/50"}`}
-                              onClick={() => restoreQuoteVersion(v.id)}
-                              disabled={v.id === currentVersionId}
-                              title={`Created: ${new Date(v.created_at).toLocaleString()}`}
-                            >
-                              {v.quote_number}
-                              <span className="ml-1 opacity-50 text-[10px]">
-                                {new Date(v.created_at).toLocaleDateString()}
-                              </span>
-                            </Button>
-                            <button
-                              type="button"
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                deleteQuoteVersion(v.id, v.quote_number);
-                              }}
-                              className="absolute -top-1 -right-1 h-4 w-4 rounded-full bg-destructive text-white flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity text-[8px] hover:bg-destructive/80"
-                              title={`Delete ${v.quote_number}`}
-                            >
-                              ×
-                            </button>
-                          </div>
-                        ))}
-                      </div>
-                    )}
-                    {quoteVersions.length === 0 && (
-                      <p className="text-xs text-muted-foreground italic">
-                        A new quote number will be assigned when you Generate PDF.
-                      </p>
-                    )}
-                  </div>
-
-                  {/* Actions */}
-                  <div className="pt-4 border-t border-border/60 space-y-3">
-                    <div className="flex gap-2">
-                      <Button
-                        onClick={handleGeneratePDF}
-                        disabled={generating || !userPermissions.can_generate}
-                        className="flex-1"
-                        title={
-                          !userPermissions.can_generate
-                            ? "You do not have permission to generate documents at this stage"
-                            : ""
-                        }
-                      >
-                        {generating ? (
-                          <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                        ) : (
-                          <Download className="h-4 w-4 mr-2" />
-                        )}
-                        {generating ? "Generating..." : "Generate PDF"}
-                      </Button>
-                      <Button variant="outline" onClick={handleSave} disabled={saving}>
-                        {saving ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <Save className="h-4 w-4 mr-2" />}
-                        {saving ? "Saving..." : "Save"}
-                      </Button>
-                      <Button variant="outline" onClick={handlePreview}>
-                        <Eye className="h-4 w-4 mr-2" />
-                        Preview
-                      </Button>
-                    </div>
-                    <div className="flex gap-2">
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        className="flex-1 text-xs"
-                        onClick={() => setShowTemplateDialog(true)}
-                      >
-                        <FolderOpen className="h-3.5 w-3.5 mr-1" />
-                        Load Template
-                      </Button>
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        className="flex-1 text-xs"
-                        onClick={() => {
-                          setTemplateName("");
-                          setTemplateShared(true);
-                          setShowSaveTemplateDialog(true);
-                        }}
-                      >
-                        <BookTemplate className="h-3.5 w-3.5 mr-1" />
-                        Save as Template
-                      </Button>
-                    </div>
-                  </div>
-
-                  {/* Save Template Dialog */}
-                  {showSaveTemplateDialog && (
-                    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm">
-                      <div className="bg-white rounded-xl shadow-2xl p-6 w-96 space-y-4 border animate-in fade-in zoom-in-95 duration-200">
-                        <h3 className="text-sm font-semibold">Save as Quote Template</h3>
-                        <p className="text-xs text-muted-foreground">
-                          Saves the current line items, pricing, markups, accessories, relationships, and lease
-                          settings. Customer-specific info (name, address, contact) is excluded.
-                        </p>
-                        <div>
-                          <Label className="text-xs">Template Name</Label>
-                          <Input
-                            value={templateName}
-                            onChange={(e) => setTemplateName(e.target.value)}
-                            placeholder="e.g., Canon C5560i + Tray + Finisher"
-                            className="h-8 text-sm"
-                          />
-                        </div>
-                        <div className="flex items-center gap-2">
-                          <input
-                            type="checkbox"
-                            id="templateShared"
-                            checked={templateShared}
-                            onChange={(e) => setTemplateShared(e.target.checked)}
-                          />
-                          <Label htmlFor="templateShared" className="text-xs">
-                            Share with all reps
-                          </Label>
-                        </div>
-                        <div className="flex gap-2 justify-end">
-                          <Button variant="outline" size="sm" onClick={() => setShowSaveTemplateDialog(false)}>
-                            Cancel
-                          </Button>
-                          <Button size="sm" onClick={saveQuoteTemplate} disabled={!templateName.trim()}>
-                            Save Template
-                          </Button>
-                        </div>
-                      </div>
-                    </div>
-                  )}
-
-                  {/* Load Template Dialog */}
-                  {showTemplateDialog && (
-                    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm">
-                      <div className="bg-white rounded-xl shadow-2xl p-6 w-[500px] max-h-[70vh] flex flex-col border animate-in fade-in zoom-in-95 duration-200">
-                        <h3 className="text-sm font-semibold mb-3">Load Quote Template</h3>
-                        <p className="text-xs text-muted-foreground mb-3">
-                          Select a template to pre-fill line items, pricing, and configuration. Your customer info will
-                          be preserved.
-                        </p>
-                        <div className="overflow-y-auto flex-1 space-y-2">
-                          {quoteTemplates.length === 0 && (
-                            <p className="text-sm text-muted-foreground text-center py-8">
-                              No templates saved yet. Use "Save as Template" to create one.
-                            </p>
-                          )}
-                          {quoteTemplates.map((t) => (
-                            <div key={t.id} className="flex items-center gap-2 p-2 border rounded hover:bg-muted/50">
-                              <div className="flex-1">
-                                <p className="text-sm font-medium">{t.name}</p>
-                                <p className="text-xs text-muted-foreground">
-                                  {t.shared ? "Shared" : "Personal"} · by {t.created_by_name || "Unknown"} ·{" "}
-                                  {new Date(t.created_at).toLocaleDateString()}
-                                </p>
-                              </div>
-                              <Button size="sm" className="text-xs" onClick={() => loadQuoteTemplate(t.id)}>
-                                Load
+                        <div className="flex flex-wrap gap-1.5">
+                          {quoteVersions.map((v) => (
+                            <div key={v.id} className="relative group inline-flex">
+                              <Button
+                                variant={v.id === currentVersionId ? "default" : "outline"}
+                                size="sm"
+                                className={`text-xs h-7 transition-all pr-6 ${v.id === currentVersionId ? "shadow-sm" : "hover:border-primary/50"}`}
+                                onClick={() => restoreQuoteVersion(v.id)}
+                                disabled={v.id === currentVersionId}
+                                title={`Created: ${new Date(v.created_at).toLocaleString()}`}
+                              >
+                                {v.quote_number}
+                                <span className="ml-1 opacity-50 text-[10px]">
+                                  {new Date(v.created_at).toLocaleDateString()}
+                                </span>
                               </Button>
-                              {(t.created_by === userId || !t.created_by) && (
-                                <Button
-                                  variant="ghost"
-                                  size="sm"
-                                  className="text-xs text-destructive"
-                                  onClick={() => deleteQuoteTemplate(t.id)}
-                                >
-                                  Delete
-                                </Button>
-                              )}
+                              <button
+                                type="button"
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  deleteQuoteVersion(v.id, v.quote_number);
+                                }}
+                                className="absolute -top-1 -right-1 h-4 w-4 rounded-full bg-destructive text-white flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity text-[8px] hover:bg-destructive/80"
+                                title={`Delete ${v.quote_number}`}
+                              >
+                                ×
+                              </button>
                             </div>
                           ))}
                         </div>
-                        <div className="flex justify-end pt-3 border-t mt-3">
-                          <Button variant="outline" size="sm" onClick={() => setShowTemplateDialog(false)}>
-                            Close
-                          </Button>
-                        </div>
+                      )}
+                      {quoteVersions.length === 0 && (
+                        <p className="text-xs text-muted-foreground italic">
+                          A new quote number will be assigned when you Generate PDF.
+                        </p>
+                      )}
+                    </div>
+
+                    {/* Actions */}
+                    <div className="pt-4 border-t border-border/60 space-y-3">
+                      <div className="flex gap-2">
+                        <Button variant="outline" onClick={handleSave} disabled={saving} className="flex-1">
+                          {saving ? (
+                            <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                          ) : (
+                            <Save className="h-4 w-4 mr-2" />
+                          )}
+                          {saving ? "Saving..." : "Save"}
+                        </Button>
+                      </div>
+                      <div className="flex gap-2">
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          className="flex-1 text-xs"
+                          onClick={() => setShowTemplateDialog(true)}
+                        >
+                          <FolderOpen className="h-3.5 w-3.5 mr-1" />
+                          Load Template
+                        </Button>
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          className="flex-1 text-xs"
+                          onClick={() => {
+                            setTemplateName("");
+                            setTemplateShared(true);
+                            setShowSaveTemplateDialog(true);
+                          }}
+                        >
+                          <BookTemplate className="h-3.5 w-3.5 mr-1" />
+                          Save as Template
+                        </Button>
                       </div>
                     </div>
-                  )}
+
+                    {/* Save Template Dialog */}
+                    {showSaveTemplateDialog && (
+                      <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm">
+                        <div className="bg-white rounded-xl shadow-2xl p-6 w-96 space-y-4 border animate-in fade-in zoom-in-95 duration-200">
+                          <h3 className="text-sm font-semibold">Save as Quote Template</h3>
+                          <p className="text-xs text-muted-foreground">
+                            Saves the current line items, pricing, markups, accessories, relationships, and lease
+                            settings. Customer-specific info (name, address, contact) is excluded.
+                          </p>
+                          <div>
+                            <Label className="text-xs">Template Name</Label>
+                            <Input
+                              value={templateName}
+                              onChange={(e) => setTemplateName(e.target.value)}
+                              placeholder="e.g., Canon C5560i + Tray + Finisher"
+                              className="h-8 text-sm"
+                            />
+                          </div>
+                          <div className="flex items-center gap-2">
+                            <input
+                              type="checkbox"
+                              id="templateShared"
+                              checked={templateShared}
+                              onChange={(e) => setTemplateShared(e.target.checked)}
+                            />
+                            <Label htmlFor="templateShared" className="text-xs">
+                              Share with all reps
+                            </Label>
+                          </div>
+                          <div className="flex gap-2 justify-end">
+                            <Button variant="outline" size="sm" onClick={() => setShowSaveTemplateDialog(false)}>
+                              Cancel
+                            </Button>
+                            <Button size="sm" onClick={saveQuoteTemplate} disabled={!templateName.trim()}>
+                              Save Template
+                            </Button>
+                          </div>
+                        </div>
+                      </div>
+                    )}
+
+                    {/* Load Template Dialog */}
+                    {showTemplateDialog && (
+                      <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm">
+                        <div className="bg-white rounded-xl shadow-2xl p-6 w-[500px] max-h-[70vh] flex flex-col border animate-in fade-in zoom-in-95 duration-200">
+                          <h3 className="text-sm font-semibold mb-3">Load Quote Template</h3>
+                          <p className="text-xs text-muted-foreground mb-3">
+                            Select a template to pre-fill line items, pricing, and configuration. Your customer info
+                            will be preserved.
+                          </p>
+                          <div className="overflow-y-auto flex-1 space-y-2">
+                            {quoteTemplates.length === 0 && (
+                              <p className="text-sm text-muted-foreground text-center py-8">
+                                No templates saved yet. Use "Save as Template" to create one.
+                              </p>
+                            )}
+                            {quoteTemplates.map((t) => (
+                              <div key={t.id} className="flex items-center gap-2 p-2 border rounded hover:bg-muted/50">
+                                <div className="flex-1">
+                                  <p className="text-sm font-medium">{t.name}</p>
+                                  <p className="text-xs text-muted-foreground">
+                                    {t.shared ? "Shared" : "Personal"} · by {t.created_by_name || "Unknown"} ·{" "}
+                                    {new Date(t.created_at).toLocaleDateString()}
+                                  </p>
+                                </div>
+                                <Button size="sm" className="text-xs" onClick={() => loadQuoteTemplate(t.id)}>
+                                  Load
+                                </Button>
+                                {(t.created_by === userId || !t.created_by) && (
+                                  <Button
+                                    variant="ghost"
+                                    size="sm"
+                                    className="text-xs text-destructive"
+                                    onClick={() => deleteQuoteTemplate(t.id)}
+                                  >
+                                    Delete
+                                  </Button>
+                                )}
+                              </div>
+                            ))}
+                          </div>
+                          <div className="flex justify-end pt-3 border-t mt-3">
+                            <Button variant="outline" size="sm" onClick={() => setShowTemplateDialog(false)}>
+                              Close
+                            </Button>
+                          </div>
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                  <SummaryRail
+                    title="Quote summary"
+                    metrics={(() => {
+                      const m: SummaryMetric[] = [];
+                      if (formData) {
+                        const equip = formData.lineItems.reduce((s, i) => s + (i.price || 0) * (i.quantity || 0), 0);
+                        m.push({
+                          label: "Equipment total",
+                          value: `$${equip.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`,
+                          emphasis: true,
+                        });
+                        (formData.selectedTerms || []).forEach((t) => {
+                          const pay = (formData.paymentOverrides?.[t] ?? formData.calculatedPayments?.[t]) || 0;
+                          if (pay > 0) m.push({ label: `${t} mo lease`, value: `$${pay.toLocaleString()}/mo` });
+                        });
+                      }
+                      return m;
+                    })()}
+                    onGenerate={handleGeneratePDF}
+                    generating={generating}
+                    canGenerate={userPermissions.can_generate}
+                    generateLabel="Generate PDF"
+                    onPreview={handlePreview}
+                    autosave={saving ? "saving" : lastSavedData ? "saved" : "idle"}
+                  />
                 </div>
               </div>
             </TabsContent>
