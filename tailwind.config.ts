@@ -2,12 +2,7 @@ import type { Config } from "tailwindcss";
 
 export default {
   darkMode: ["class"],
-  content: [
-    "./pages/**/*.{ts,tsx}",
-    "./components/**/*.{ts,tsx}",
-    "./app/**/*.{ts,tsx}",
-    "./src/**/*.{ts,tsx}",
-  ],
+  content: ["./pages/**/*.{ts,tsx}", "./components/**/*.{ts,tsx}", "./app/**/*.{ts,tsx}", "./src/**/*.{ts,tsx}"],
   prefix: "",
   theme: {
     container: {
@@ -19,8 +14,10 @@ export default {
     },
     extend: {
       fontFamily: {
-        sans: ["Inter", "system-ui", "sans-serif"],
-        display: ["Plus Jakarta Sans", "Inter", "system-ui", "sans-serif"],
+        sans: ["DM Sans", "system-ui", "-apple-system", "Segoe UI", "sans-serif"],
+        serif: ["Instrument Serif", "Georgia", "serif"],
+        display: ["DM Sans", "system-ui", "sans-serif"],
+        mono: ["ui-monospace", "SFMono-Regular", "Menlo", "monospace"],
       },
       colors: {
         border: "hsl(var(--border))",
@@ -73,6 +70,43 @@ export default {
           "accent-foreground": "hsl(var(--sidebar-accent-foreground))",
           border: "hsl(var(--sidebar-border))",
           ring: "hsl(var(--sidebar-ring))",
+        },
+        /* QBS brand ramps - reference the raw palette directly (e.g. bg-qbs-navy) */
+        qbs: {
+          navy: {
+            DEFAULT: "var(--qbs-navy)",
+            900: "var(--qbs-navy-900)",
+            800: "var(--qbs-navy-800)",
+            700: "var(--qbs-navy-700)",
+            600: "var(--qbs-navy-600)",
+            200: "var(--qbs-navy-200)",
+            100: "var(--qbs-navy-100)",
+          },
+          gold: {
+            DEFAULT: "var(--qbs-gold-500)",
+            700: "var(--qbs-gold-700)",
+            600: "var(--qbs-gold-600)",
+            500: "var(--qbs-gold-500)",
+            300: "var(--qbs-gold-300)",
+            100: "var(--qbs-gold-100)",
+          },
+          green: {
+            DEFAULT: "var(--qbs-green-600)",
+            700: "var(--qbs-green-700)",
+            600: "var(--qbs-green-600)",
+            500: "var(--qbs-green-500)",
+            300: "var(--qbs-green-300)",
+            100: "var(--qbs-green-100)",
+          },
+          neutral: {
+            25: "var(--qbs-neutral-25)",
+            50: "var(--qbs-neutral-50)",
+            100: "var(--qbs-neutral-100)",
+            200: "var(--qbs-neutral-200)",
+            300: "var(--qbs-neutral-300)",
+            400: "var(--qbs-neutral-400)",
+            500: "var(--qbs-neutral-500)",
+          },
         },
       },
       borderRadius: {
