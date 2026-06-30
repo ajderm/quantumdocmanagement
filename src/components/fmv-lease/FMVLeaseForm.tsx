@@ -1,24 +1,16 @@
 import { useState, useEffect, useRef } from "react";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Calendar } from "@/components/ui/calendar";
-import {
-  Popover,
-  PopoverContent,
-  PopoverTrigger,
-} from "@/components/ui/popover";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { CalendarIcon } from "lucide-react";
+import { Switch } from "@/components/ui/switch";
+import { Textarea } from "@/components/ui/textarea";
+import { CalendarIcon, Building2, Package, DollarSign, FileSignature } from "lucide-react";
 import { format } from "date-fns";
 import { cn } from "@/lib/utils";
+import { SectionCard, FieldGrid, Field } from "@/components/shared";
 
 export interface FMVLeaseEquipmentItem {
   lineItemId: string;
@@ -40,15 +32,18 @@ export interface FMVLeaseFormData {
   equipmentCity: string;
   equipmentState: string;
   equipmentZip: string;
-  
+
   // Equipment Information (per line item)
   equipmentItems: FMVLeaseEquipmentItem[];
-  
+
   // Payment Schedule
   termInMonths: string;
   paymentFrequency: string;
   firstPaymentDate: Date | null;
   paymentAmount: string;
+  termsInclude?: boolean;
+  termsTemplateId?: string;
+  termsCustomText?: string;
 }
 
 interface LineItem {
@@ -123,8 +118,7 @@ export function FMVLeaseForm({
     if (hasInitializedRef.current) return;
     if (!company && !savedConfig) return;
 
-    const pick = (...vals: Array<string | undefined | null>) =>
-      vals.map((v) => (v ?? "").trim()).find(Boolean) || "";
+    const pick = (...vals: Array<string | undefined | null>) => vals.map((v) => (v ?? "").trim()).find(Boolean) || "";
 
     const buildAddress = (line1?: string | null, line2?: string | null) => {
       const a1 = (line1 ?? "").trim();
@@ -134,27 +128,37 @@ export function FMVLeaseForm({
       return a1 || a2;
     };
 
-    const fillIfEmpty = (current: string, next: string) =>
-      current?.trim() ? current : next;
+    const fillIfEmpty = (current: string, next: string) => (current?.trim() ? current : next);
 
     const base = savedConfig ? { ...formData, ...savedConfig } : { ...formData };
 
-    const equipmentAddress = company ? pick(buildAddress(company.deliveryAddress, company.deliveryAddress2), buildAddress(company.address, company.address2)) : "";
+    const equipmentAddress = company
+      ? pick(
+          buildAddress(company.deliveryAddress, company.deliveryAddress2),
+          buildAddress(company.address, company.address2),
+        )
+      : "";
     const equipmentCity = company ? pick(company.deliveryCity, company.city) : "";
     const equipmentState = company ? pick(company.deliveryState, company.state) : "";
-    
+
     const isValidZip = (val: string | undefined | null): boolean => {
       if (!val) return false;
       const trimmed = val.trim();
       if (/^[A-Za-z]{2}$/.test(trimmed)) return false;
       return trimmed.length > 0;
     };
-    
+
     const rawDeliveryZip = company?.deliveryZip?.trim();
     const rawFallbackZip = company?.zip?.trim();
-    const equipmentZip = isValidZip(rawDeliveryZip) ? rawDeliveryZip! : (isValidZip(rawFallbackZip) ? rawFallbackZip! : "");
+    const equipmentZip = isValidZip(rawDeliveryZip)
+      ? rawDeliveryZip!
+      : isValidZip(rawFallbackZip)
+        ? rawFallbackZip!
+        : "";
 
-    const billingAddress = company ? pick(buildAddress(company.apAddress, company.apAddress2), buildAddress(company.address, company.address2)) : "";
+    const billingAddress = company
+      ? pick(buildAddress(company.apAddress, company.apAddress2), buildAddress(company.address, company.address2))
+      : "";
     const billingCity = company ? pick(company.apCity, company.city) : "";
     const billingState = company ? pick(company.apState, company.state) : "";
     const billingZip = company?.apZip?.trim() || company?.zip?.trim() || "";
@@ -164,7 +168,10 @@ export function FMVLeaseForm({
       return {
         lineItemId: item.id,
         quantity: item.quantity,
-        makeModelDescription: `${item.model || item.name || ''} - ${item.description || ''}`.trim().replace(/^-\s*/, '').replace(/\s*-$/, ''),
+        makeModelDescription: `${item.model || item.name || ""} - ${item.description || ""}`
+          .trim()
+          .replace(/^-\s*/, "")
+          .replace(/\s*-$/, ""),
         serialNumber: savedItem?.serialNumber || item.serial || "",
         idNumber: savedItem?.idNumber || "",
       };
@@ -209,164 +216,276 @@ export function FMVLeaseForm({
   const formatCurrency = (value: string): string => {
     const num = parseFloat(value);
     if (isNaN(num)) return value;
-    return num.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+    return num.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
   };
 
   return (
     <div className="space-y-4">
-      {/* Customer Information Section */}
-      <Card>
-        <CardHeader className="py-3">
-          <CardTitle className="text-sm">Customer Information</CardTitle>
-        </CardHeader>
-        <CardContent className="space-y-4">
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div className="space-y-2">
-              <Label htmlFor="companyLegalName">Company Legal Name</Label>
-              <Input id="companyLegalName" value={formData.companyLegalName} onChange={(e) => updateField("companyLegalName", e.target.value)} />
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="phone">Phone</Label>
-              <Input id="phone" value={formData.phone} onChange={(e) => updateField("phone", e.target.value)} />
-            </div>
-          </div>
+      {/* Customer Information */}
+      <SectionCard title="Customer Information" icon={Building2} fromHubSpot description="Lessee details from the deal">
+        <div className="space-y-4">
+          <FieldGrid columns={2}>
+            <Field label="Company Legal Name">
+              <Input
+                id="companyLegalName"
+                value={formData.companyLegalName}
+                onChange={(e) => updateField("companyLegalName", e.target.value)}
+                className="h-9 text-sm"
+              />
+            </Field>
+            <Field label="Phone">
+              <Input
+                id="phone"
+                value={formData.phone}
+                onChange={(e) => updateField("phone", e.target.value)}
+                className="h-9 text-sm"
+              />
+            </Field>
+          </FieldGrid>
 
-          {/* Billing Address */}
           <div className="space-y-3">
-            <h4 className="text-sm font-medium text-muted-foreground">Billing Address</h4>
-            <div className="space-y-2">
-              <Label htmlFor="billingAddress">Address</Label>
-              <Input id="billingAddress" value={formData.billingAddress} onChange={(e) => updateField("billingAddress", e.target.value)} />
-            </div>
-            <div className="grid grid-cols-3 gap-2">
-              <div className="space-y-2">
-                <Label htmlFor="billingCity">City</Label>
-                <Input id="billingCity" value={formData.billingCity} onChange={(e) => updateField("billingCity", e.target.value)} />
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="billingState">State</Label>
-                <Input id="billingState" value={formData.billingState} onChange={(e) => updateField("billingState", e.target.value)} />
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="billingZip">Zip</Label>
-                <Input id="billingZip" value={formData.billingZip} onChange={(e) => updateField("billingZip", e.target.value)} />
-              </div>
-            </div>
+            <h4 className="eyebrow">Billing Address</h4>
+            <Field label="Address">
+              <Input
+                id="billingAddress"
+                value={formData.billingAddress}
+                onChange={(e) => updateField("billingAddress", e.target.value)}
+                className="h-9 text-sm"
+              />
+            </Field>
+            <FieldGrid columns={3}>
+              <Field label="City">
+                <Input
+                  id="billingCity"
+                  value={formData.billingCity}
+                  onChange={(e) => updateField("billingCity", e.target.value)}
+                  className="h-9 text-sm"
+                />
+              </Field>
+              <Field label="State">
+                <Input
+                  id="billingState"
+                  value={formData.billingState}
+                  onChange={(e) => updateField("billingState", e.target.value)}
+                  className="h-9 text-sm"
+                />
+              </Field>
+              <Field label="Zip">
+                <Input
+                  id="billingZip"
+                  value={formData.billingZip}
+                  onChange={(e) => updateField("billingZip", e.target.value)}
+                  className="h-9 text-sm"
+                />
+              </Field>
+            </FieldGrid>
           </div>
 
-          {/* Equipment Address */}
           <div className="space-y-3">
-            <h4 className="text-sm font-medium text-muted-foreground">Equipment Address (Ship To)</h4>
-            <div className="space-y-2">
-              <Label htmlFor="equipmentAddress">Address</Label>
-              <Input id="equipmentAddress" value={formData.equipmentAddress} onChange={(e) => updateField("equipmentAddress", e.target.value)} />
-            </div>
-            <div className="grid grid-cols-3 gap-2">
-              <div className="space-y-2">
-                <Label htmlFor="equipmentCity">City</Label>
-                <Input id="equipmentCity" value={formData.equipmentCity} onChange={(e) => updateField("equipmentCity", e.target.value)} />
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="equipmentState">State</Label>
-                <Input id="equipmentState" value={formData.equipmentState} onChange={(e) => updateField("equipmentState", e.target.value)} />
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="equipmentZip">Zip</Label>
-                <Input id="equipmentZip" value={formData.equipmentZip} onChange={(e) => updateField("equipmentZip", e.target.value)} />
-              </div>
-            </div>
+            <h4 className="eyebrow">Equipment Address (Ship To)</h4>
+            <Field label="Address">
+              <Input
+                id="equipmentAddress"
+                value={formData.equipmentAddress}
+                onChange={(e) => updateField("equipmentAddress", e.target.value)}
+                className="h-9 text-sm"
+              />
+            </Field>
+            <FieldGrid columns={3}>
+              <Field label="City">
+                <Input
+                  id="equipmentCity"
+                  value={formData.equipmentCity}
+                  onChange={(e) => updateField("equipmentCity", e.target.value)}
+                  className="h-9 text-sm"
+                />
+              </Field>
+              <Field label="State">
+                <Input
+                  id="equipmentState"
+                  value={formData.equipmentState}
+                  onChange={(e) => updateField("equipmentState", e.target.value)}
+                  className="h-9 text-sm"
+                />
+              </Field>
+              <Field label="Zip">
+                <Input
+                  id="equipmentZip"
+                  value={formData.equipmentZip}
+                  onChange={(e) => updateField("equipmentZip", e.target.value)}
+                  className="h-9 text-sm"
+                />
+              </Field>
+            </FieldGrid>
           </div>
-        </CardContent>
-      </Card>
+        </div>
+      </SectionCard>
 
-      {/* Equipment Information Section */}
-      <Card>
-        <CardHeader className="py-3">
-          <CardTitle className="text-sm">Equipment Information</CardTitle>
-        </CardHeader>
-        <CardContent>
-          {formData.equipmentItems.length === 0 ? (
-            <p className="text-sm text-muted-foreground">No line items available</p>
-          ) : (
-            <div className="space-y-3">
-              {formData.equipmentItems.map((item, index) => (
-                <div key={item.lineItemId} className="border rounded-lg p-3 space-y-3">
-                  <div className="grid grid-cols-12 gap-3">
-                    <div className="col-span-1">
-                      <Label>Qty</Label>
-                      <Input type="number" value={item.quantity} onChange={(e) => updateEquipmentItem(index, "quantity", parseInt(e.target.value) || 1)} className="h-8 text-sm text-center" />
-                    </div>
-                    <div className="col-span-11">
-                      <Label>Make/Model/Description</Label>
-                      <Input value={item.makeModelDescription} onChange={(e) => updateEquipmentItem(index, "makeModelDescription", e.target.value)} className="h-8 text-sm" />
-                    </div>
+      {/* Equipment Information */}
+      <SectionCard title="Equipment Information" icon={Package} description="Equipment schedule for the lease">
+        {formData.equipmentItems.length === 0 ? (
+          <p className="text-sm text-muted-foreground">No line items available</p>
+        ) : (
+          <div className="space-y-3">
+            {formData.equipmentItems.map((item, index) => (
+              <div key={item.lineItemId} className="border border-border rounded-lg p-3 space-y-3">
+                <div className="grid grid-cols-12 gap-3">
+                  <div className="col-span-2 sm:col-span-1">
+                    <Label className="text-[12px] font-medium text-foreground/80">Qty</Label>
+                    <Input
+                      type="number"
+                      value={item.quantity}
+                      onChange={(e) => updateEquipmentItem(index, "quantity", parseInt(e.target.value) || 1)}
+                      className="h-8 text-sm text-center mt-1"
+                    />
                   </div>
-                  <div className="grid grid-cols-2 gap-3">
-                    <div>
-                      <Label>Serial Number</Label>
-                      <Input value={item.serialNumber} onChange={(e) => updateEquipmentItem(index, "serialNumber", e.target.value)} className="h-8 text-sm" placeholder="Enter serial number" />
-                    </div>
-                    <div>
-                      <Label>ID Number</Label>
-                      <Input value={item.idNumber} onChange={(e) => updateEquipmentItem(index, "idNumber", e.target.value)} className="h-8 text-sm" placeholder="Enter ID number" />
-                    </div>
+                  <div className="col-span-10 sm:col-span-11">
+                    <Label className="text-[12px] font-medium text-foreground/80">Make/Model/Description</Label>
+                    <Input
+                      value={item.makeModelDescription}
+                      onChange={(e) => updateEquipmentItem(index, "makeModelDescription", e.target.value)}
+                      className="h-8 text-sm mt-1"
+                    />
                   </div>
                 </div>
-              ))}
-            </div>
-          )}
-        </CardContent>
-      </Card>
+                <FieldGrid columns={2}>
+                  <Field label="Serial Number">
+                    <Input
+                      value={item.serialNumber}
+                      onChange={(e) => updateEquipmentItem(index, "serialNumber", e.target.value)}
+                      className="h-8 text-sm"
+                      placeholder="Enter serial number"
+                    />
+                  </Field>
+                  <Field label="ID Number">
+                    <Input
+                      value={item.idNumber}
+                      onChange={(e) => updateEquipmentItem(index, "idNumber", e.target.value)}
+                      className="h-8 text-sm"
+                      placeholder="Enter ID number"
+                    />
+                  </Field>
+                </FieldGrid>
+              </div>
+            ))}
+          </div>
+        )}
+      </SectionCard>
 
-      {/* Payment Schedule Section */}
-      <Card>
-        <CardHeader className="py-3">
-          <CardTitle className="text-sm">Payment Schedule</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div className="space-y-2">
-              <Label htmlFor="termInMonths">Term in Months</Label>
-              <Input id="termInMonths" type="number" value={formData.termInMonths} onChange={(e) => updateField("termInMonths", e.target.value)} placeholder="e.g., 36" />
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="paymentFrequency">Payment Frequency</Label>
-              <Select value={formData.paymentFrequency} onValueChange={(value) => updateField("paymentFrequency", value)}>
-                <SelectTrigger><SelectValue placeholder="Select frequency" /></SelectTrigger>
+      {/* Payment Schedule */}
+      <SectionCard title="Payment Schedule" icon={DollarSign} description="Term and payment, derived from the Quote">
+        <div className="space-y-4">
+          <FieldGrid columns={2}>
+            <Field label="Term in Months">
+              <Input
+                id="termInMonths"
+                type="number"
+                value={formData.termInMonths}
+                onChange={(e) => updateField("termInMonths", e.target.value)}
+                className="h-9 text-sm"
+                placeholder="e.g., 36"
+              />
+            </Field>
+            <Field label="Payment Frequency">
+              <Select
+                value={formData.paymentFrequency}
+                onValueChange={(value) => updateField("paymentFrequency", value)}
+              >
+                <SelectTrigger className="h-9 text-sm">
+                  <SelectValue placeholder="Select frequency" />
+                </SelectTrigger>
                 <SelectContent>
                   {PAYMENT_FREQUENCIES.map((freq) => (
-                    <SelectItem key={freq.value} value={freq.value}>{freq.label}</SelectItem>
+                    <SelectItem key={freq.value} value={freq.value}>
+                      {freq.label}
+                    </SelectItem>
                   ))}
                 </SelectContent>
               </Select>
-            </div>
-          </div>
-
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-4">
-            <div className="space-y-2">
-              <Label>First Payment Date</Label>
+            </Field>
+          </FieldGrid>
+          <FieldGrid columns={2}>
+            <Field label="First Payment Date">
               <Popover>
                 <PopoverTrigger asChild>
-                  <Button variant="outline" className={cn("w-full justify-start text-left font-normal", !formData.firstPaymentDate && "text-muted-foreground")}>
+                  <Button
+                    variant="outline"
+                    className={cn(
+                      "w-full h-9 justify-start text-left font-normal",
+                      !formData.firstPaymentDate && "text-muted-foreground",
+                    )}
+                  >
                     <CalendarIcon className="mr-2 h-4 w-4" />
                     {formData.firstPaymentDate ? format(formData.firstPaymentDate, "MM/dd/yyyy") : "Select date"}
                   </Button>
                 </PopoverTrigger>
                 <PopoverContent className="w-auto p-0" align="start">
-                  <Calendar mode="single" selected={formData.firstPaymentDate || undefined} onSelect={(date) => updateField("firstPaymentDate", date || null)} initialFocus className="pointer-events-auto" />
+                  <Calendar
+                    mode="single"
+                    selected={formData.firstPaymentDate || undefined}
+                    onSelect={(date) => updateField("firstPaymentDate", date || null)}
+                    initialFocus
+                    className="pointer-events-auto"
+                  />
                 </PopoverContent>
               </Popover>
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="paymentAmount">Payment Amount</Label>
+            </Field>
+            <Field label="Payment Amount">
               <div className="relative">
                 <span className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground">$</span>
-                <Input id="paymentAmount" value={formData.paymentAmount} onChange={(e) => updateField("paymentAmount", e.target.value)} className="pl-7" placeholder="0.00" />
+                <Input
+                  id="paymentAmount"
+                  value={formData.paymentAmount}
+                  onChange={(e) => updateField("paymentAmount", e.target.value)}
+                  className="pl-7 h-9 text-sm"
+                  placeholder="0.00"
+                />
               </div>
-            </div>
-          </div>
-        </CardContent>
-      </Card>
+            </Field>
+          </FieldGrid>
+        </div>
+      </SectionCard>
+
+      {/* Terms & conditions (new; form capture only - the preview is intentionally unchanged) */}
+      <SectionCard
+        title="Terms &amp; conditions"
+        icon={FileSignature}
+        description="Captured with the document. Document rendering is wired in a later phase."
+        action={
+          <label className="flex items-center gap-2 cursor-pointer">
+            <span className="text-xs text-muted-foreground">Include on document</span>
+            <Switch checked={!!formData.termsInclude} onCheckedChange={(c) => updateField("termsInclude", c)} />
+          </label>
+        }
+      >
+        <div className="space-y-3">
+          <FieldGrid columns={2}>
+            <Field label="Template" hint="Backend templates connect when Settings migrates to HubSpot">
+              <Select
+                value={formData.termsTemplateId || "custom"}
+                onValueChange={(v) => updateField("termsTemplateId", v === "custom" ? "" : v)}
+              >
+                <SelectTrigger className="h-9 text-sm">
+                  <SelectValue placeholder="Custom text only" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="custom">Custom text only</SelectItem>
+                  <SelectItem value="standard">Standard terms</SelectItem>
+                  <SelectItem value="government">Government / public sector</SelectItem>
+                </SelectContent>
+              </Select>
+            </Field>
+          </FieldGrid>
+          <Field label="Custom text">
+            <Textarea
+              value={formData.termsCustomText || ""}
+              onChange={(e) => updateField("termsCustomText", e.target.value)}
+              placeholder="Enter any document-specific terms and conditions..."
+              className="text-sm min-h-[96px]"
+            />
+          </Field>
+        </div>
+      </SectionCard>
     </div>
   );
 }
