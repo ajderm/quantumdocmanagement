@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from "react";
-import { SectionCard, FieldGrid, Field , DealTermsOverride } from "@/components/shared";
+import { SectionCard, FieldGrid, Field, DealTermsOverride } from "@/components/shared";
 import { Switch } from "@/components/ui/switch";
 import { Building2, FileSignature, FileText, Package } from "lucide-react";
 import { Input } from "@/components/ui/input";
@@ -160,6 +160,12 @@ interface InterterritorialFormProps {
   serviceAgreementFormData: ServiceAgreementFormData | null;
   savedConfig: InterterritorialFormData | null;
   quoteFormData: QuoteFormData | null;
+  /**
+   * When true, the equipment Cost field is editable (admins only).
+   * Defaults to false so non-admins and the loading state see Cost as read-only,
+   * matching the rule that only super-admins can zero out equipment cost on ITTs.
+   */
+  canEditCost?: boolean;
 }
 
 const MAX_REMOVAL_EQUIPMENT = 10;
@@ -176,6 +182,7 @@ export function InterterritorialForm({
   serviceAgreementFormData,
   savedConfig,
   quoteFormData,
+  canEditCost = false,
 }: InterterritorialFormProps) {
   const hasInitializedRef = useRef(false);
 
@@ -617,7 +624,12 @@ export function InterterritorialForm({
                       step="0.01"
                       value={item.cost}
                       onChange={(e) => updateEquipmentItem(index, "cost", parseFloat(e.target.value) || 0)}
-                      className="h-8 text-sm"
+                      readOnly={!canEditCost}
+                      disabled={!canEditCost}
+                      title={
+                        canEditCost ? undefined : "Only super-admins can edit equipment cost on interterritorial deals"
+                      }
+                      className={`h-8 text-sm ${canEditCost ? "" : "bg-muted cursor-not-allowed opacity-70"}`}
                     />
                   </div>
                   <div className="col-span-2">
