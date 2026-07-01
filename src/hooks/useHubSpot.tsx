@@ -58,11 +58,9 @@ function readHubSpotParams() {
 const HubSpotContext = createContext<HubSpotContextType | undefined>(undefined);
 
 export function HubSpotProvider({ children }: { children: ReactNode }) {
-  const [portalId, setPortalId] = useState<string | null>(() =>
-    typeof window !== "undefined" ? window.localStorage.getItem(STORAGE_KEYS.portalId) : null
-  );
+  const [portalId, setPortalId] = useState<string | null>(null);
   const [userId, setUserId] = useState<string | null>(() =>
-    typeof window !== "undefined" ? window.localStorage.getItem(STORAGE_KEYS.userId) : null
+    typeof window !== "undefined" ? window.localStorage.getItem(STORAGE_KEYS.userId) : null,
   );
 
   const [deal, setDeal] = useState<any>(null);
@@ -79,7 +77,12 @@ export function HubSpotProvider({ children }: { children: ReactNode }) {
   const [error, setError] = useState<string | null>(null);
 
   const fetchData = async () => {
-    const { portalId: portalIdFromUrl, userId: userIdFromUrl, dealId, objectType: currentObjectType } = readHubSpotParams();
+    const {
+      portalId: portalIdFromUrl,
+      userId: userIdFromUrl,
+      dealId,
+      objectType: currentObjectType,
+    } = readHubSpotParams();
 
     // Persist portal/user for later (e.g. settings tab opened without params)
     if (portalIdFromUrl) {
@@ -94,8 +97,10 @@ export function HubSpotProvider({ children }: { children: ReactNode }) {
             keysToRemove.push(key);
           }
         }
-        keysToRemove.forEach(key => window.localStorage.removeItem(key));
-        console.log(`Portal changed from ${previousPortalId} to ${portalIdFromUrl}, cleared ${keysToRemove.length} stale backup keys`);
+        keysToRemove.forEach((key) => window.localStorage.removeItem(key));
+        console.log(
+          `Portal changed from ${previousPortalId} to ${portalIdFromUrl}, cleared ${keysToRemove.length} stale backup keys`,
+        );
 
         // Reset all React state to prevent cross-portal data leakage
         setDeal(null);
@@ -112,7 +117,7 @@ export function HubSpotProvider({ children }: { children: ReactNode }) {
     }
     if (userIdFromUrl) window.localStorage.setItem(STORAGE_KEYS.userId, userIdFromUrl);
 
-    const effectivePortalId = portalIdFromUrl || window.localStorage.getItem(STORAGE_KEYS.portalId);
+    const effectivePortalId = portalIdFromUrl;
     const effectiveUserId = userIdFromUrl || window.localStorage.getItem(STORAGE_KEYS.userId);
 
     setPortalId(effectivePortalId);
@@ -124,7 +129,7 @@ export function HubSpotProvider({ children }: { children: ReactNode }) {
       "dealId:",
       dealId,
       "full search:",
-      window.location.search
+      window.location.search,
     );
 
     // Only fetch deal data when we have a dealId (portalId can come from URL or storage)
