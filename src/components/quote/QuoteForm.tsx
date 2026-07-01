@@ -254,7 +254,7 @@ export function QuoteForm({
   // Fetch rate factors from database
   useEffect(() => {
     const fetchRateFactors = async () => {
-      const currentPortalId = portalId || localStorage.getItem("hs_portal_id");
+      const currentPortalId = portalId;
       if (!currentPortalId) return;
 
       try {
@@ -292,7 +292,7 @@ export function QuoteForm({
   // Fetch pricing tiers
   useEffect(() => {
     const fetchPricingTiers = async () => {
-      const currentPortalId = portalId || localStorage.getItem("hs_portal_id");
+      const currentPortalId = portalId;
       if (!currentPortalId) return;
       try {
         const { data } = await supabase.functions.invoke("pricing-tiers-get", {
@@ -2062,7 +2062,7 @@ export function QuoteForm({
       <ProductSearchModal
         open={productSearchOpen}
         onOpenChange={setProductSearchOpen}
-        portalId={portalId || localStorage.getItem("hs_portal_id") || ""}
+        portalId={portalId || ""}
         selectedTier={formData.specialPricingTier}
         pricingTiers={pricingTiers}
         onAddProduct={handleAddProductFromLibrary}
