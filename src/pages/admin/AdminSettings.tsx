@@ -38,6 +38,30 @@ import LeasingPartners from "./LeasingPartners";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import type { FormCustomizationMap } from "@/lib/formCustomization";
 
+// Left-rail navigation groups (mirrors the document hub's grouped rail)
+const SETTINGS_NAV: { label: string; items: { value: string; label: string; icon: typeof Building2 }[] }[] = [
+  {
+    label: "General",
+    items: [{ value: "company", label: "Company", icon: Building2 }],
+  },
+  {
+    label: "Documents",
+    items: [
+      { value: "field-mappings", label: "Field Mappings", icon: Link2 },
+      { value: "custom-documents", label: "Custom Documents", icon: FilePlus },
+      { value: "pricing-tiers", label: "Pricing Tiers", icon: DollarSign },
+      { value: "form-customization", label: "Form Customization", icon: Settings2 },
+    ],
+  },
+  {
+    label: "Partners & access",
+    items: [
+      { value: "leasing", label: "Leasing Partners", icon: CreditCard },
+      { value: "user-roles", label: "User Roles", icon: Shield },
+    ],
+  },
+];
+
 const DOCUMENT_TYPES = [
   { code: "quote", name: "Quote (Default)" },
   { code: "quote_fmv", name: "Quote: FMV Lease" },
@@ -464,16 +488,26 @@ export default function AdminSettings({
 
       {/* Header */}
       {embedded ? (
-        <header className="sticky top-0 z-40 border-b bg-card">
-          <div className="flex items-center h-14 px-4 gap-3">
-            <Button variant="ghost" size="sm" onClick={onBack}>
-              <ArrowLeft className="h-4 w-4 mr-2" />
+        <header className="sticky top-0 z-40 bg-qbs-navy-800 text-white shadow-[0_1px_3px_rgba(27,42,77,0.25)]">
+          {/* subtle gold radial glow, top-left */}
+          <div
+            className="pointer-events-none absolute inset-0 opacity-60"
+            style={{ background: "radial-gradient(420px 120px at 0% 0%, rgba(196,155,85,0.18), transparent 70%)" }}
+          />
+          <div className="relative flex items-center gap-3 h-[52px] px-4">
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={onBack}
+              className="h-8 text-xs text-white/85 hover:text-white hover:bg-white/10"
+            >
+              <ArrowLeft className="h-4 w-4 mr-1" />
               Back to documents
             </Button>
-            <div className="h-5 w-px bg-border" />
+            <div className="h-5 w-px bg-white/20" />
             <div className="flex items-center gap-2">
-              <Settings2 className="h-4 w-4 text-muted-foreground" />
-              <h1 className="text-sm font-semibold">Settings</h1>
+              <Settings2 className="h-4 w-4 text-white/80" />
+              <span className="text-sm font-semibold tracking-tight">Settings</span>
             </div>
           </div>
         </header>
@@ -493,63 +527,58 @@ export default function AdminSettings({
         </header>
       )}
 
-      <div className={embedded ? "mx-auto max-w-6xl p-6" : "max-w-4xl mx-auto p-6"}>
-        {!embedded && (
-          <>
-            {/* Back link for when accessed standalone */}
-            <Button variant="ghost" size="sm" className="mb-4" asChild>
-              <Link to={`/?portalId=${portalId || ""}`}>
-                <ArrowLeft className="h-4 w-4 mr-2" />
-                Back to Documents
-              </Link>
-            </Button>
+      <div className="flex items-start gap-0">
+        <Tabs defaultValue="company" orientation="vertical" className="flex items-start w-full">
+          {/* Collapsible icon rail (hover to expand), matching the document hub */}
+          <aside
+            className={`group/rail sticky self-start shrink-0 border-r border-border bg-card overflow-hidden flex flex-col transition-[width] duration-200 ease-out w-[62px] hover:w-[248px] ${embedded ? "top-[52px] h-[calc(100vh-52px)]" : "top-[56px] h-[calc(100vh-56px)]"}`}
+          >
+            <TabsList className="!flex !flex-col flex-1 min-h-0 !h-auto !w-full !items-stretch !justify-start !gap-0 !rounded-none !bg-transparent !p-0 !shadow-none">
+              <div className="py-2 overflow-y-auto flex-1 min-h-0 w-full">
+                {SETTINGS_NAV.map((group) => (
+                  <div key={group.label} className="mb-1.5">
+                    <div className="eyebrow px-4 h-5 flex items-center whitespace-nowrap overflow-hidden opacity-0 group-hover/rail:opacity-100 transition-opacity duration-150">
+                      {group.label}
+                    </div>
+                    {group.items.map((item) => {
+                      const Icon = item.icon;
+                      return (
+                        <TabsTrigger
+                          key={item.value}
+                          value={item.value}
+                          className="group/item relative w-full justify-start rounded-none px-[19px] py-2 h-auto text-xs text-muted-foreground hover:text-foreground hover:bg-muted/60 data-[state=active]:bg-qbs-navy/[0.06] data-[state=active]:text-qbs-navy data-[state=active]:font-semibold data-[state=active]:shadow-none transition-colors"
+                        >
+                          <span className="absolute left-0 top-0 bottom-0 w-[3px] bg-qbs-gold-500 opacity-0 group-data-[state=active]/item:opacity-100" />
+                          <Icon className="h-[18px] w-[18px] shrink-0" />
+                          <span className="ml-3 whitespace-nowrap opacity-0 group-hover/rail:opacity-100 transition-opacity duration-150">
+                            {item.label}
+                          </span>
+                        </TabsTrigger>
+                      );
+                    })}
+                  </div>
+                ))}
+              </div>
+            </TabsList>
+          </aside>
 
-            <div className="mb-8">
-              <h1 className="text-2xl font-bold text-foreground">Admin Settings</h1>
-              <p className="text-muted-foreground mt-1">
-                Configure your company branding, templates, and leasing partners
-              </p>
-            </div>
-          </>
-        )}
+          <div className="flex-1 min-w-0 p-6 space-y-6">
+            {!embedded && (
+              <div>
+                {/* Back link for when accessed standalone */}
+                <Button variant="ghost" size="sm" className="mb-4 -ml-2" asChild>
+                  <Link to={`/?portalId=${portalId || ""}`}>
+                    <ArrowLeft className="h-4 w-4 mr-2" />
+                    Back to Documents
+                  </Link>
+                </Button>
+                <h1 className="text-2xl font-bold text-foreground">Admin Settings</h1>
+                <p className="text-muted-foreground mt-1">
+                  Configure your company branding, templates, and leasing partners
+                </p>
+              </div>
+            )}
 
-        <Tabs
-          defaultValue="company"
-          orientation="vertical"
-          className="w-full flex flex-col gap-6 md:flex-row md:items-start"
-        >
-          <TabsList className="flex md:flex-col h-auto w-full md:w-56 shrink-0 items-stretch justify-start gap-1 bg-muted/50 p-1 overflow-x-auto">
-            <TabsTrigger value="company" className="justify-start">
-              <Building2 className="h-4 w-4 mr-2" />
-              Company
-            </TabsTrigger>
-            <TabsTrigger value="field-mappings" className="justify-start">
-              <Link2 className="h-4 w-4 mr-2" />
-              Field Mappings
-            </TabsTrigger>
-            <TabsTrigger value="custom-documents" className="justify-start">
-              <FilePlus className="h-4 w-4 mr-2" />
-              Custom Documents
-            </TabsTrigger>
-            <TabsTrigger value="pricing-tiers" className="justify-start">
-              <DollarSign className="h-4 w-4 mr-2" />
-              Pricing Tiers
-            </TabsTrigger>
-            <TabsTrigger value="form-customization" className="justify-start">
-              <Settings2 className="h-4 w-4 mr-2" />
-              Form Customization
-            </TabsTrigger>
-            <TabsTrigger value="leasing" className="justify-start">
-              <CreditCard className="h-4 w-4 mr-2" />
-              Leasing Partners
-            </TabsTrigger>
-            <TabsTrigger value="user-roles" className="justify-start">
-              <Shield className="h-4 w-4 mr-2" />
-              User Roles
-            </TabsTrigger>
-          </TabsList>
-
-          <div className="flex-1 min-w-0 w-full">
             <TabsContent value="company">
               <div className="space-y-6">
                 {/* Form Visibility Card */}
