@@ -1,4 +1,4 @@
-import { useEffect } from "react";
+import { useEffect, lazy, Suspense } from "react";
 import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
@@ -7,9 +7,9 @@ import { BrowserRouter, Routes, Route } from "react-router-dom";
 import { HubSpotProvider } from "./hooks/useHubSpot";
 import { ErrorBoundary } from "./components/ErrorBoundary";
 import DocumentHub from "./pages/DocumentHub";
-import AdminSettings from "./pages/admin/AdminSettings";
-import LeasingPartners from "./pages/admin/LeasingPartners";
-import NotFound from "./pages/NotFound";
+const AdminSettings = lazy(() => import("./pages/admin/AdminSettings"));
+const LeasingPartners = lazy(() => import("./pages/admin/LeasingPartners"));
+const NotFound = lazy(() => import("./pages/NotFound"));
 
 const queryClient = new QueryClient();
 
@@ -28,16 +28,22 @@ function AppInner() {
       <Toaster />
       <Sonner />
       <BrowserRouter>
-        <Routes>
-          {/* Main app - embedded in HubSpot Deal CRM card */}
-          <Route path="/" element={<DocumentHub />} />
-          
-          {/* Admin settings - accessed via HubSpot Connected Apps */}
-          <Route path="/admin" element={<AdminSettings />} />
-          <Route path="/admin/leasing" element={<LeasingPartners />} />
-          
-          <Route path="*" element={<NotFound />} />
-        </Routes>
+        <Suspense
+          fallback={
+            <div className="flex items-center justify-center min-h-[200px] text-sm text-muted-foreground">Loading…</div>
+          }
+        >
+          <Routes>
+            {/* Main app - embedded in HubSpot Deal CRM card */}
+            <Route path="/" element={<DocumentHub />} />
+
+            {/* Admin settings - accessed via HubSpot Connected Apps */}
+            <Route path="/admin" element={<AdminSettings />} />
+            <Route path="/admin/leasing" element={<LeasingPartners />} />
+
+            <Route path="*" element={<NotFound />} />
+          </Routes>
+        </Suspense>
       </BrowserRouter>
     </>
   );
