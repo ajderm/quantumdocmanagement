@@ -4,3 +4,4 @@ export { FromHubSpotPill } from "./FromHubSpotPill";
 export { AutosaveChip, type AutosaveStatus } from "./AutosaveChip";
 export { SummaryRail, type SummaryMetric } from "./SummaryRail";
 export { ViewOnlyBanner, EmptyState } from "./FormStates";
+export { DealTermsOverride } from "./DealTermsOverride";
