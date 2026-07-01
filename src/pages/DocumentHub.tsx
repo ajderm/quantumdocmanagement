@@ -204,6 +204,34 @@ function DocumentHubContent() {
     fetchPermissions();
   }, [portalId, userId, deal?.properties?.dealstage, deal?.properties?.pipeline]);
 
+  // Stamp "Last Time App Used" on the deal.
+  // Fully isolated and non-blocking by design: this writes ONLY the
+  // last_time_app_used property in its own PATCH. If that property does not
+  // exist in a given portal (or the call otherwise fails), the error is
+  // swallowed and can never affect the real deal update (amount/financing/etc).
+  const pushLastAppActivity = useCallback(async () => {
+    const currentPortalId = portalId || localStorage.getItem("hs_portal_id");
+    const dealId = deal?.hsObjectId;
+    if (!currentPortalId || !dealId) return;
+    try {
+      await supabase.functions.invoke("hubspot-update-deal", {
+        body: {
+          portalId: currentPortalId,
+          dealId,
+          properties: { last_time_app_used: Date.now().toString() },
+        },
+      });
+    } catch {
+      // Intentionally ignored: last_time_app_used is best-effort telemetry.
+    }
+  }, [portalId, deal?.hsObjectId]);
+
+  // Write the timestamp once when the app is opened on a deal.
+  useEffect(() => {
+    if (!portalId || !deal?.hsObjectId) return;
+    pushLastAppActivity();
+  }, [portalId, deal?.hsObjectId, pushLastAppActivity]);
+
   // Quote state
   const [generating, setGenerating] = useState(false);
   const [saving, setSaving] = useState(false);
@@ -2215,6 +2243,10 @@ function DocumentHubContent() {
       } catch (hsErr) {
         console.error("HubSpot sync error:", hsErr);
       }
+
+      // Stamp last-app-activity on save. Isolated from the write above and
+      // non-blocking, so a missing property can never fail the save.
+      pushLastAppActivity();
     } catch (err) {
       console.error("Save error:", err);
       toast.error("Failed to save configuration");
@@ -4746,6 +4778,7 @@ function DocumentHubContent() {
                       }
                       quoteFormData={formData ? { phone: formData.phone } : null}
                       savedConfig={interterritorialSavedConfig}
+                      canEditCost={userPermissions.is_admin}
                     />
                     <div className="flex pt-3 border-t">
                       <Button
