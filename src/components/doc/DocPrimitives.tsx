@@ -1,13 +1,13 @@
-import { forwardRef, useId, type ReactNode } from 'react';
-import type { DocumentStyles } from '@/lib/documentFontSizes';
-import { buildDocumentFontCss } from '@/lib/documentFontSizes';
+import { forwardRef, useId, type ReactNode } from "react";
+import type { DocumentStyles } from "@/lib/documentFontSizes";
+import { buildDocumentFontCss } from "@/lib/documentFontSizes";
 
 // Single source of truth for the horizontal page margin of every output
 // document. The PDF generator owns the vertical margins; this owns the sides.
 export const DOC_PAGE_PADDING_X_IN = 0.6;
 
-const DEFAULT_BORDER = '#000000';
-const DEFAULT_LINE = '#d1d5db';
+const DEFAULT_BORDER = "#000000";
+const DEFAULT_LINE = "#d1d5db";
 
 /**
  * DocPage — the outer page shell shared by every output document.
@@ -32,19 +32,23 @@ export const DocPage = forwardRef<
   const lineColor = documentStyles?.tableLineColor || DEFAULT_LINE;
   const borderCss =
     `[data-doc-scope="${scopeId}"] .border-black{border-color:${borderColor} !important;}` +
-    `[data-doc-scope="${scopeId}"] .border-gray-300{border-color:${lineColor} !important;}`;
+    `[data-doc-scope="${scopeId}"] .border-gray-300{border-color:${lineColor} !important;}` +
+    // html2canvas clips glyphs that sit tight against a bottom rule when the line box is
+    // short. Give every table header cell in the scope a taller line box so table headers
+    // (including bespoke tables) are not cut off in the generated PDF.
+    `[data-doc-scope="${scopeId}"] th{line-height:1.4;}`;
   return (
     <div
       ref={ref}
       data-doc-scope={scopeId}
-      className={`bg-white w-[8.5in] min-h-[11in] text-[13px] leading-tight ${className || ''}`}
+      className={`bg-white w-[8.5in] min-h-[11in] text-[13px] leading-tight ${className || ""}`}
       style={{
-        fontFamily: documentStyles?.fontFamily || 'Arial, sans-serif',
-        color: documentStyles?.fontColor || '#000000',
+        fontFamily: documentStyles?.fontFamily || "Arial, sans-serif",
+        color: documentStyles?.fontColor || "#000000",
         paddingLeft: `${DOC_PAGE_PADDING_X_IN}in`,
         paddingRight: `${DOC_PAGE_PADDING_X_IN}in`,
-        paddingTop: '0.3in',
-        paddingBottom: '0.3in',
+        paddingTop: "0.3in",
+        paddingBottom: "0.3in",
       }}
     >
       <style>{`${fontCss}${borderCss}`}</style>
@@ -52,7 +56,7 @@ export const DocPage = forwardRef<
     </div>
   );
 });
-DocPage.displayName = 'DocPage';
+DocPage.displayName = "DocPage";
 
 /**
  * DocLetterhead — the standardized document header: dealer logo + company block
@@ -101,7 +105,7 @@ export function DocLetterhead({
               {metaRows.map((r, i) => (
                 <tr key={i}>
                   <td className="pr-4">{r.label}:</td>
-                  <td className={r.emphasize ? 'font-semibold' : undefined}>{r.value}</td>
+                  <td className={r.emphasize ? "font-semibold" : undefined}>{r.value}</td>
                 </tr>
               ))}
             </tbody>
@@ -132,14 +136,14 @@ export function DocSection({
 }) {
   const borderColor = documentStyles?.tableBorderColor || DEFAULT_BORDER;
   return (
-    <div className={`mb-6 ${className || ''}`}>
+    <div className={`mb-6 ${className || ""}`}>
       {(title || action) && (
         <div
-          className="flex justify-between items-baseline mb-2"
-          style={{ borderBottom: `2px solid ${borderColor}`, paddingBottom: '2px' }}
+          className="flex justify-between items-end gap-4 mb-2"
+          style={{ borderBottom: `2px solid ${borderColor}`, paddingBottom: "6px" }}
         >
-          {title ? <p className="font-bold text-[13px]">{title}</p> : <span />}
-          {action}
+          {title ? <p className="font-bold text-[13px] leading-normal">{title}</p> : <span />}
+          {action ? <div className="leading-normal">{action}</div> : null}
         </div>
       )}
       {children}
@@ -151,15 +155,9 @@ export function DocSection({
  * DocSignature — wraps signature / acceptance blocks and guarantees they are
  * never split across a page break in the generated PDF.
  */
-export function DocSignature({
-  className,
-  children,
-}: {
-  className?: string;
-  children: ReactNode;
-}) {
+export function DocSignature({ className, children }: { className?: string; children: ReactNode }) {
   return (
-    <div className={`mb-6 ${className || ''}`} data-pdf-keep-together>
+    <div className={`mb-6 ${className || ""}`} data-pdf-keep-together>
       {children}
     </div>
   );
@@ -181,17 +179,17 @@ export function DocTable({
   children: ReactNode;
 }) {
   const rawId = useId();
-  const cls = `qdoc-t-${rawId.replace(/[^a-zA-Z0-9]/g, '')}`;
+  const cls = `qdoc-t-${rawId.replace(/[^a-zA-Z0-9]/g, "")}`;
   const borderColor = documentStyles?.tableBorderColor || DEFAULT_BORDER;
   const lineColor = documentStyles?.tableLineColor || DEFAULT_LINE;
   const css =
     `.${cls}{width:100%;border-collapse:collapse;}` +
-    `.${cls} > thead > tr > th{border-bottom:2px solid ${borderColor};padding:2px 4px;text-align:left;}` +
+    `.${cls} > thead > tr > th{border-bottom:2px solid ${borderColor};padding:3px 4px 6px;text-align:left;line-height:1.4;}` +
     `.${cls} > tbody > tr > td{border-bottom:1px solid ${lineColor};padding:2px 4px;vertical-align:top;}`;
   return (
     <>
       <style>{css}</style>
-      <table className={`${cls} ${className || ''}`}>{children}</table>
+      <table className={`${cls} ${className || ""}`}>{children}</table>
     </>
   );
 }
