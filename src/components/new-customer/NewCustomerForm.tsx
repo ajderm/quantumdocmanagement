@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from "react";
-import { SectionCard, FieldGrid, Field , DealTermsOverride } from "@/components/shared";
+import { SectionCard, FieldGrid, Field, DealTermsOverride } from "@/components/shared";
 import { Switch } from "@/components/ui/switch";
 import { Textarea } from "@/components/ui/textarea";
 import { Building2, ClipboardList, DollarSign, FileSignature, Landmark, Users } from "lucide-react";
@@ -238,17 +238,11 @@ export function NewCustomerForm({
       bankReferences:
         base.bankReferences?.length > 0
           ? base.bankReferences
-          : [
-              { id: "bank-1", bankName: "", address: "", cityStZip: "", contact: "", phone: "", accountNumber: "" },
-              { id: "bank-2", bankName: "", address: "", cityStZip: "", contact: "", phone: "", accountNumber: "" },
-            ],
+          : [{ id: "bank-1", bankName: "", address: "", cityStZip: "", contact: "", phone: "", accountNumber: "" }],
       businessReferences:
         base.businessReferences?.length > 0
           ? base.businessReferences
-          : [
-              { id: "biz-1", company: "", contact: "", title: "", phone: "", email: "" },
-              { id: "biz-2", company: "", contact: "", title: "", phone: "", email: "" },
-            ],
+          : [{ id: "biz-1", company: "", contact: "", title: "", phone: "", email: "" }],
     });
 
     hasInitializedRef.current = true;
@@ -268,6 +262,46 @@ export function NewCustomerForm({
     const newRefs = [...formData.businessReferences];
     newRefs[index] = { ...newRefs[index], [field]: value };
     onChange({ ...formData, businessReferences: newRefs });
+  };
+
+  const addBankReference = () => {
+    if (formData.bankReferences.length >= 3) return;
+    onChange({
+      ...formData,
+      bankReferences: [
+        ...formData.bankReferences,
+        {
+          id: `bank-${Date.now()}`,
+          bankName: "",
+          address: "",
+          cityStZip: "",
+          contact: "",
+          phone: "",
+          accountNumber: "",
+        },
+      ],
+    });
+  };
+
+  const removeBankReference = (index: number) => {
+    if (formData.bankReferences.length <= 1) return;
+    onChange({ ...formData, bankReferences: formData.bankReferences.filter((_, i) => i !== index) });
+  };
+
+  const addBusinessReference = () => {
+    if (formData.businessReferences.length >= 3) return;
+    onChange({
+      ...formData,
+      businessReferences: [
+        ...formData.businessReferences,
+        { id: `biz-${Date.now()}`, company: "", contact: "", title: "", phone: "", email: "" },
+      ],
+    });
+  };
+
+  const removeBusinessReference = (index: number) => {
+    if (formData.businessReferences.length <= 1) return;
+    onChange({ ...formData, businessReferences: formData.businessReferences.filter((_, i) => i !== index) });
   };
 
   // Handler for Branch Same as HQ toggle
@@ -714,12 +748,10 @@ export function NewCustomerForm({
         </SectionCard>
       </div>
 
-      {/* Contacts - Three Column Layout */}
-      <SectionCard title="Contacts" icon={Users}>
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-          {/* Principal */}
+      {/* Contacts - three separate cards */}
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 items-start">
+        <SectionCard title="Principal / Owner" icon={Users}>
           <div className="space-y-3">
-            <h4 className="text-xs font-medium text-muted-foreground">Principal / Owner</h4>
             <div>
               <Label>Name</Label>
               <Input
@@ -753,9 +785,9 @@ export function NewCustomerForm({
               />
             </div>
           </div>
-          {/* Equipment Contact */}
+        </SectionCard>
+        <SectionCard title="Equipment / Meter Contact" icon={Users}>
           <div className="space-y-3">
-            <h4 className="text-xs font-medium text-muted-foreground">Equipment / Meter Contact</h4>
             <div>
               <Label>Name</Label>
               <Input
@@ -789,9 +821,9 @@ export function NewCustomerForm({
               />
             </div>
           </div>
-          {/* AP Contact */}
+        </SectionCard>
+        <SectionCard title="Accounts Payable Contact" icon={Users}>
           <div className="space-y-3">
-            <h4 className="text-xs font-medium text-muted-foreground">Accounts Payable Contact</h4>
             <div>
               <Label>Name</Label>
               <Input
@@ -825,8 +857,8 @@ export function NewCustomerForm({
               />
             </div>
           </div>
-        </div>
-      </SectionCard>
+        </SectionCard>
+      </div>
 
       {/* Interests */}
       <SectionCard title="Interests" icon={ClipboardList}>
@@ -876,116 +908,162 @@ export function NewCustomerForm({
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
         {/* Bank References */}
         <SectionCard title="Bank References" icon={Landmark}>
-          {formData.bankReferences.map((ref, index) => (
-            <div key={ref.id} className="border rounded-lg p-3 space-y-2">
-              <div className="text-xs font-medium text-muted-foreground">Bank Reference {index + 1}</div>
-              <div className="grid grid-cols-2 gap-2">
+          <div className="space-y-3">
+            {formData.bankReferences.map((ref, index) => (
+              <div key={ref.id} className="border rounded-lg p-3 space-y-2">
+                <div className="flex items-center justify-between">
+                  <div className="text-xs font-medium text-muted-foreground">Bank Reference {index + 1}</div>
+                  {formData.bankReferences.length > 1 && (
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="sm"
+                      className="h-6 px-2 text-xs text-muted-foreground hover:text-destructive"
+                      onClick={() => removeBankReference(index)}
+                    >
+                      <Trash2 className="h-3 w-3" />
+                    </Button>
+                  )}
+                </div>
+                <div className="grid grid-cols-2 gap-2">
+                  <div>
+                    <Label>Bank Name</Label>
+                    <Input
+                      value={ref.bankName}
+                      onChange={(e) => updateBankReference(index, "bankName", e.target.value)}
+                      className="h-7 text-xs"
+                    />
+                  </div>
+                  <div>
+                    <Label>Contact</Label>
+                    <Input
+                      value={ref.contact}
+                      onChange={(e) => updateBankReference(index, "contact", e.target.value)}
+                      className="h-7 text-xs"
+                    />
+                  </div>
+                </div>
                 <div>
-                  <Label>Bank Name</Label>
+                  <Label>Address</Label>
                   <Input
-                    value={ref.bankName}
-                    onChange={(e) => updateBankReference(index, "bankName", e.target.value)}
+                    value={ref.address}
+                    onChange={(e) => updateBankReference(index, "address", e.target.value)}
                     className="h-7 text-xs"
                   />
                 </div>
+                <div className="grid grid-cols-2 gap-2">
+                  <div>
+                    <Label>City, State, ZIP</Label>
+                    <Input
+                      value={ref.cityStZip}
+                      onChange={(e) => updateBankReference(index, "cityStZip", e.target.value)}
+                      className="h-7 text-xs"
+                    />
+                  </div>
+                  <div>
+                    <Label>Phone</Label>
+                    <Input
+                      value={ref.phone}
+                      onChange={(e) => updateBankReference(index, "phone", e.target.value)}
+                      className="h-7 text-xs"
+                    />
+                  </div>
+                </div>
                 <div>
-                  <Label>Contact</Label>
+                  <Label>Account #</Label>
                   <Input
-                    value={ref.contact}
-                    onChange={(e) => updateBankReference(index, "contact", e.target.value)}
+                    value={ref.accountNumber}
+                    onChange={(e) => updateBankReference(index, "accountNumber", e.target.value)}
                     className="h-7 text-xs"
                   />
                 </div>
               </div>
-              <div>
-                <Label>Address</Label>
-                <Input
-                  value={ref.address}
-                  onChange={(e) => updateBankReference(index, "address", e.target.value)}
-                  className="h-7 text-xs"
-                />
-              </div>
-              <div className="grid grid-cols-2 gap-2">
-                <div>
-                  <Label>City, State, ZIP</Label>
-                  <Input
-                    value={ref.cityStZip}
-                    onChange={(e) => updateBankReference(index, "cityStZip", e.target.value)}
-                    className="h-7 text-xs"
-                  />
-                </div>
-                <div>
-                  <Label>Phone</Label>
-                  <Input
-                    value={ref.phone}
-                    onChange={(e) => updateBankReference(index, "phone", e.target.value)}
-                    className="h-7 text-xs"
-                  />
-                </div>
-              </div>
-              <div>
-                <Label>Account #</Label>
-                <Input
-                  value={ref.accountNumber}
-                  onChange={(e) => updateBankReference(index, "accountNumber", e.target.value)}
-                  className="h-7 text-xs"
-                />
-              </div>
-            </div>
-          ))}
+            ))}
+            {formData.bankReferences.length < 3 && (
+              <Button type="button" variant="outline" size="sm" className="w-full text-xs" onClick={addBankReference}>
+                <Plus className="h-3 w-3 mr-1" /> Add bank reference
+              </Button>
+            )}
+          </div>
         </SectionCard>
 
         {/* Business References */}
         <SectionCard title="Business References" icon={ClipboardList}>
-          {formData.businessReferences.map((ref, index) => (
-            <div key={ref.id} className="border rounded-lg p-3 space-y-2">
-              <div className="text-xs font-medium text-muted-foreground">Business Reference {index + 1}</div>
-              <div className="grid grid-cols-2 gap-2">
-                <div>
-                  <Label>Company</Label>
-                  <Input
-                    value={ref.company}
-                    onChange={(e) => updateBusinessReference(index, "company", e.target.value)}
-                    className="h-7 text-xs"
-                  />
+          <div className="space-y-3">
+            {formData.businessReferences.map((ref, index) => (
+              <div key={ref.id} className="border rounded-lg p-3 space-y-2">
+                <div className="flex items-center justify-between">
+                  <div className="text-xs font-medium text-muted-foreground">Business Reference {index + 1}</div>
+                  {formData.businessReferences.length > 1 && (
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="sm"
+                      className="h-6 px-2 text-xs text-muted-foreground hover:text-destructive"
+                      onClick={() => removeBusinessReference(index)}
+                    >
+                      <Trash2 className="h-3 w-3" />
+                    </Button>
+                  )}
+                </div>
+                <div className="grid grid-cols-2 gap-2">
+                  <div>
+                    <Label>Company</Label>
+                    <Input
+                      value={ref.company}
+                      onChange={(e) => updateBusinessReference(index, "company", e.target.value)}
+                      className="h-7 text-xs"
+                    />
+                  </div>
+                  <div>
+                    <Label>Contact</Label>
+                    <Input
+                      value={ref.contact}
+                      onChange={(e) => updateBusinessReference(index, "contact", e.target.value)}
+                      className="h-7 text-xs"
+                    />
+                  </div>
+                </div>
+                <div className="grid grid-cols-2 gap-2">
+                  <div>
+                    <Label>Title</Label>
+                    <Input
+                      value={ref.title}
+                      onChange={(e) => updateBusinessReference(index, "title", e.target.value)}
+                      className="h-7 text-xs"
+                    />
+                  </div>
+                  <div>
+                    <Label>Phone</Label>
+                    <Input
+                      value={ref.phone}
+                      onChange={(e) => updateBusinessReference(index, "phone", e.target.value)}
+                      className="h-7 text-xs"
+                    />
+                  </div>
                 </div>
                 <div>
-                  <Label>Contact</Label>
+                  <Label>Email</Label>
                   <Input
-                    value={ref.contact}
-                    onChange={(e) => updateBusinessReference(index, "contact", e.target.value)}
+                    value={ref.email}
+                    onChange={(e) => updateBusinessReference(index, "email", e.target.value)}
                     className="h-7 text-xs"
                   />
                 </div>
               </div>
-              <div className="grid grid-cols-2 gap-2">
-                <div>
-                  <Label>Title</Label>
-                  <Input
-                    value={ref.title}
-                    onChange={(e) => updateBusinessReference(index, "title", e.target.value)}
-                    className="h-7 text-xs"
-                  />
-                </div>
-                <div>
-                  <Label>Phone</Label>
-                  <Input
-                    value={ref.phone}
-                    onChange={(e) => updateBusinessReference(index, "phone", e.target.value)}
-                    className="h-7 text-xs"
-                  />
-                </div>
-              </div>
-              <div>
-                <Label>Email</Label>
-                <Input
-                  value={ref.email}
-                  onChange={(e) => updateBusinessReference(index, "email", e.target.value)}
-                  className="h-7 text-xs"
-                />
-              </div>
-            </div>
-          ))}
+            ))}
+            {formData.businessReferences.length < 3 && (
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                className="w-full text-xs"
+                onClick={addBusinessReference}
+              >
+                <Plus className="h-3 w-3 mr-1" /> Add business reference
+              </Button>
+            )}
+          </div>
         </SectionCard>
       </div>
 
