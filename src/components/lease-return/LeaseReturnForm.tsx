@@ -212,88 +212,90 @@ export function LeaseReturnForm({
 
   return (
     <div className="space-y-4">
-      {/* Letter Details */}
-      <SectionCard
-        title="Letter Details"
-        icon={FileText}
-        description="Check amount and customer, pre-filled from the Quote and FMV Lease"
-      >
-        <FieldGrid columns={2}>
-          <Field label="Check Amount" hint="Pre-filled from Quote Total Buyout">
-            <div className="relative">
-              <span className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground">$</span>
-              <Input
-                id="amount"
-                value={formData.amount}
-                onChange={(e) => handleAmountChange(e.target.value)}
-                className="pl-7 h-9 text-sm"
-                placeholder="0.00"
-              />
-            </div>
-          </Field>
-          <Field label="Customer Name" hint="Pre-filled from FMV Lease">
-            <Input
-              id="customerName"
-              value={formData.customerName}
-              onChange={(e) => updateField("customerName", e.target.value)}
-              className="h-9 text-sm"
-              placeholder="Company legal name"
-            />
-          </Field>
-        </FieldGrid>
-        {formData.amountOverridden && (
-          <p className="text-xs text-muted-foreground mt-2">Check amount was overridden manually.</p>
-        )}
-      </SectionCard>
-
-      {/* Lease Information */}
-      <SectionCard title="Lease Information" icon={FileSignature} description="Lease identifiers and end date">
-        <FieldGrid columns={3}>
-          <Field label="Lease Number">
-            <Input
-              id="leaseNumber"
-              value={formData.leaseNumber}
-              onChange={(e) => updateField("leaseNumber", e.target.value)}
-              className="h-9 text-sm"
-              placeholder="e.g., ABC-12345"
-            />
-          </Field>
-          <Field label="Lease End Date">
-            <Popover>
-              <PopoverTrigger asChild>
-                <Button
-                  variant="outline"
-                  className={cn(
-                    "w-full h-9 justify-start text-left font-normal",
-                    !formData.leaseEndDate && "text-muted-foreground",
-                  )}
-                >
-                  <CalendarIcon className="mr-2 h-4 w-4" />
-                  {formData.leaseEndDate ? format(formData.leaseEndDate, "MM/dd/yyyy") : "Select date"}
-                </Button>
-              </PopoverTrigger>
-              <PopoverContent className="w-auto p-0" align="start">
-                <Calendar
-                  mode="single"
-                  selected={formData.leaseEndDate || undefined}
-                  onSelect={(date) => updateField("leaseEndDate", date || null)}
-                  initialFocus
-                  className="pointer-events-auto"
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4 items-start">
+        {/* Letter Details */}
+        <SectionCard
+          title="Letter Details"
+          icon={FileText}
+          description="Check amount and customer, pre-filled from the Quote and FMV Lease"
+        >
+          <FieldGrid columns={2}>
+            <Field label="Check Amount" hint="Pre-filled from Quote Total Buyout">
+              <div className="relative">
+                <span className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground">$</span>
+                <Input
+                  id="amount"
+                  value={formData.amount}
+                  onChange={(e) => handleAmountChange(e.target.value)}
+                  className="pl-7 h-9 text-sm"
+                  placeholder="0.00"
                 />
-              </PopoverContent>
-            </Popover>
-          </Field>
-          <Field label="Lease Company">
-            <Input
-              id="leaseCompany"
-              value={formData.leaseCompany}
-              onChange={(e) => updateField("leaseCompany", e.target.value)}
-              className="h-9 text-sm"
-              placeholder="Leasing company name"
-            />
-          </Field>
-        </FieldGrid>
-      </SectionCard>
+              </div>
+            </Field>
+            <Field label="Customer Name" hint="Pre-filled from FMV Lease">
+              <Input
+                id="customerName"
+                value={formData.customerName}
+                onChange={(e) => updateField("customerName", e.target.value)}
+                className="h-9 text-sm"
+                placeholder="Company legal name"
+              />
+            </Field>
+          </FieldGrid>
+          {formData.amountOverridden && (
+            <p className="text-xs text-muted-foreground mt-2">Check amount was overridden manually.</p>
+          )}
+        </SectionCard>
+
+        {/* Lease Information */}
+        <SectionCard title="Lease Information" icon={FileSignature} description="Lease identifiers and end date">
+          <FieldGrid columns={3}>
+            <Field label="Lease Number">
+              <Input
+                id="leaseNumber"
+                value={formData.leaseNumber}
+                onChange={(e) => updateField("leaseNumber", e.target.value)}
+                className="h-9 text-sm"
+                placeholder="e.g., ABC-12345"
+              />
+            </Field>
+            <Field label="Lease End Date">
+              <Popover>
+                <PopoverTrigger asChild>
+                  <Button
+                    variant="outline"
+                    className={cn(
+                      "w-full h-9 justify-start text-left font-normal",
+                      !formData.leaseEndDate && "text-muted-foreground",
+                    )}
+                  >
+                    <CalendarIcon className="mr-2 h-4 w-4" />
+                    {formData.leaseEndDate ? format(formData.leaseEndDate, "MM/dd/yyyy") : "Select date"}
+                  </Button>
+                </PopoverTrigger>
+                <PopoverContent className="w-auto p-0" align="start">
+                  <Calendar
+                    mode="single"
+                    selected={formData.leaseEndDate || undefined}
+                    onSelect={(date) => updateField("leaseEndDate", date || null)}
+                    initialFocus
+                    className="pointer-events-auto"
+                  />
+                </PopoverContent>
+              </Popover>
+            </Field>
+            <Field label="Lease Company">
+              <Input
+                id="leaseCompany"
+                value={formData.leaseCompany}
+                onChange={(e) => updateField("leaseCompany", e.target.value)}
+                className="h-9 text-sm"
+                placeholder="Leasing company name"
+              />
+            </Field>
+          </FieldGrid>
+        </SectionCard>
+      </div>
 
       {/* Equipment */}
       <SectionCard
