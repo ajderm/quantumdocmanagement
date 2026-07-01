@@ -204,34 +204,6 @@ function DocumentHubContent() {
     fetchPermissions();
   }, [portalId, userId, deal?.properties?.dealstage, deal?.properties?.pipeline]);
 
-  // Stamp "Last Time App Used" on the deal.
-  // Fully isolated and non-blocking by design: this writes ONLY the
-  // last_time_app_used property in its own PATCH. If that property does not
-  // exist in a given portal (or the call otherwise fails), the error is
-  // swallowed and can never affect the real deal update (amount/financing/etc).
-  const pushLastAppActivity = useCallback(async () => {
-    const currentPortalId = portalId || localStorage.getItem("hs_portal_id");
-    const dealId = deal?.hsObjectId;
-    if (!currentPortalId || !dealId) return;
-    try {
-      await supabase.functions.invoke("hubspot-update-deal", {
-        body: {
-          portalId: currentPortalId,
-          dealId,
-          properties: { last_time_app_used: Date.now().toString() },
-        },
-      });
-    } catch {
-      // Intentionally ignored: last_time_app_used is best-effort telemetry.
-    }
-  }, [portalId, deal?.hsObjectId]);
-
-  // Write the timestamp once when the app is opened on a deal.
-  useEffect(() => {
-    if (!portalId || !deal?.hsObjectId) return;
-    pushLastAppActivity();
-  }, [portalId, deal?.hsObjectId, pushLastAppActivity]);
-
   // Quote state
   const [generating, setGenerating] = useState(false);
   const [saving, setSaving] = useState(false);
@@ -594,7 +566,7 @@ function DocumentHubContent() {
     setConfigsLoaded(false);
 
     const fetchDealerInfo = async () => {
-      const currentPortalId = portalId || localStorage.getItem("hs_portal_id");
+      const currentPortalId = portalId;
       if (!currentPortalId) return;
 
       try {
@@ -660,7 +632,7 @@ function DocumentHubContent() {
   // Load ALL saved configurations in bulk via edge function
   useEffect(() => {
     const loadAllConfigs = async () => {
-      const currentPortalId = portalId || localStorage.getItem("hs_portal_id");
+      const currentPortalId = portalId;
       const dealId = deal?.hsObjectId;
 
       if (!currentPortalId || !dealId) {
@@ -784,7 +756,7 @@ function DocumentHubContent() {
   // Silent auto-save function for Quote
   const performAutoSave = useCallback(
     async (dataToSave: QuoteFormData) => {
-      const currentPortalId = portalId || localStorage.getItem("hs_portal_id");
+      const currentPortalId = portalId;
       const dealId = deal?.hsObjectId;
 
       if (!currentPortalId || !dealId || !dataToSave) return;
@@ -821,7 +793,7 @@ function DocumentHubContent() {
       setFormData(data);
       setHasUnsavedChanges(true);
 
-      const currentPortalId = portalId || localStorage.getItem("hs_portal_id");
+      const currentPortalId = portalId;
       const dealId = deal?.hsObjectId;
       if (currentPortalId && dealId) {
         try {
@@ -848,7 +820,7 @@ function DocumentHubContent() {
   // Auto-save for installation
   const performInstallationAutoSave = useCallback(
     async (dataToSave: InstallationFormData) => {
-      const currentPortalId = portalId || localStorage.getItem("hs_portal_id");
+      const currentPortalId = portalId;
       const dealId = deal?.hsObjectId;
       const lineItemId = dataToSave.selectedLineItemId;
 
@@ -903,7 +875,7 @@ function DocumentHubContent() {
   // Auto-save for service agreement
   const performServiceAgreementAutoSave = useCallback(
     async (dataToSave: ServiceAgreementFormData) => {
-      const currentPortalId = portalId || localStorage.getItem("hs_portal_id");
+      const currentPortalId = portalId;
       const dealId = deal?.hsObjectId;
 
       if (!currentPortalId || !dealId || !dataToSave) return;
@@ -940,7 +912,7 @@ function DocumentHubContent() {
       setServiceAgreementFormData(data);
       setServiceAgreementHasUnsavedChanges(true);
 
-      const currentPortalId = portalId || localStorage.getItem("hs_portal_id");
+      const currentPortalId = portalId;
       const dealId = deal?.hsObjectId;
       if (currentPortalId && dealId) {
         try {
@@ -967,7 +939,7 @@ function DocumentHubContent() {
   // Auto-save for FMV Lease
   const performFMVLeaseAutoSave = useCallback(
     async (dataToSave: FMVLeaseFormData) => {
-      const currentPortalId = portalId || localStorage.getItem("hs_portal_id");
+      const currentPortalId = portalId;
       const dealId = deal?.hsObjectId;
 
       if (!currentPortalId || !dealId || !dataToSave) return;
@@ -1004,7 +976,7 @@ function DocumentHubContent() {
       setFmvLeaseFormData(data);
       setFmvLeaseHasUnsavedChanges(true);
 
-      const currentPortalId = portalId || localStorage.getItem("hs_portal_id");
+      const currentPortalId = portalId;
       const dealId = deal?.hsObjectId;
       if (currentPortalId && dealId) {
         try {
@@ -1031,7 +1003,7 @@ function DocumentHubContent() {
   // Auto-save for Lease Funding (per-line-item like Installation)
   const performLeaseFundingAutoSave = useCallback(
     async (dataToSave: LeaseFundingFormData) => {
-      const currentPortalId = portalId || localStorage.getItem("hs_portal_id");
+      const currentPortalId = portalId;
       const dealId = deal?.hsObjectId;
       const lineItemId = dataToSave.selectedLineItemId;
 
@@ -1086,7 +1058,7 @@ function DocumentHubContent() {
   // Auto-save for LOI
   const performLoiAutoSave = useCallback(
     async (dataToSave: LoiFormData) => {
-      const currentPortalId = portalId || localStorage.getItem("hs_portal_id");
+      const currentPortalId = portalId;
       const dealId = deal?.hsObjectId;
 
       if (!currentPortalId || !dealId || !dataToSave) return;
@@ -1123,7 +1095,7 @@ function DocumentHubContent() {
       setLoiFormData(data);
       setLoiHasUnsavedChanges(true);
 
-      const currentPortalId = portalId || localStorage.getItem("hs_portal_id");
+      const currentPortalId = portalId;
       const dealId = deal?.hsObjectId;
       if (currentPortalId && dealId) {
         try {
@@ -1150,7 +1122,7 @@ function DocumentHubContent() {
   // Auto-save for Lease Return
   const performLeaseReturnAutoSave = useCallback(
     async (dataToSave: LeaseReturnFormData) => {
-      const currentPortalId = portalId || localStorage.getItem("hs_portal_id");
+      const currentPortalId = portalId;
       const dealId = deal?.hsObjectId;
 
       if (!currentPortalId || !dealId || !dataToSave) return;
@@ -1187,7 +1159,7 @@ function DocumentHubContent() {
       setLeaseReturnFormData(data);
       setLeaseReturnHasUnsavedChanges(true);
 
-      const currentPortalId = portalId || localStorage.getItem("hs_portal_id");
+      const currentPortalId = portalId;
       const dealId = deal?.hsObjectId;
       if (currentPortalId && dealId) {
         try {
@@ -1214,7 +1186,7 @@ function DocumentHubContent() {
   // Auto-save for Interterritorial
   const performInterterritorialAutoSave = useCallback(
     async (dataToSave: InterterritorialFormData) => {
-      const currentPortalId = portalId || localStorage.getItem("hs_portal_id");
+      const currentPortalId = portalId;
       const dealId = deal?.hsObjectId;
 
       if (!currentPortalId || !dealId || !dataToSave) return;
@@ -1251,7 +1223,7 @@ function DocumentHubContent() {
       setInterterritorialFormData(data);
       setInterterritorialHasUnsavedChanges(true);
 
-      const currentPortalId = portalId || localStorage.getItem("hs_portal_id");
+      const currentPortalId = portalId;
       const dealId = deal?.hsObjectId;
       if (currentPortalId && dealId) {
         try {
@@ -1278,7 +1250,7 @@ function DocumentHubContent() {
   // Auto-save for New Customer
   const performNewCustomerAutoSave = useCallback(
     async (dataToSave: NewCustomerFormData) => {
-      const currentPortalId = portalId || localStorage.getItem("hs_portal_id");
+      const currentPortalId = portalId;
       const dealId = deal?.hsObjectId;
       if (!currentPortalId || !dealId || !dataToSave) return;
       const dataString = JSON.stringify(dataToSave);
@@ -1305,7 +1277,7 @@ function DocumentHubContent() {
       setNewCustomerFormData(data);
       setNewCustomerHasUnsavedChanges(true);
 
-      const currentPortalId = portalId || localStorage.getItem("hs_portal_id");
+      const currentPortalId = portalId;
       const dealId = deal?.hsObjectId;
       if (currentPortalId && dealId) {
         try {
@@ -1399,7 +1371,7 @@ function DocumentHubContent() {
       toast.error("No data to save");
       return;
     }
-    const currentPortalId = portalId || localStorage.getItem("hs_portal_id");
+    const currentPortalId = portalId;
     const dealId = deal?.hsObjectId;
     if (!currentPortalId || !dealId) {
       toast.error("Missing portal or deal information");
@@ -1453,7 +1425,7 @@ function DocumentHubContent() {
   // Relocation auto-save
   const performRelocationAutoSave = useCallback(
     async (dataToSave: RelocationFormData) => {
-      const currentPortalId = portalId || localStorage.getItem("hs_portal_id");
+      const currentPortalId = portalId;
       const dealId = deal?.hsObjectId;
       if (!currentPortalId || !dealId || !dataToSave) return;
       const dataString = JSON.stringify(dataToSave);
@@ -1480,7 +1452,7 @@ function DocumentHubContent() {
       setRelocationFormData(data);
       setRelocationHasUnsavedChanges(true);
 
-      const currentPortalId = portalId || localStorage.getItem("hs_portal_id");
+      const currentPortalId = portalId;
       const dealId = deal?.hsObjectId;
       if (currentPortalId && dealId) {
         try {
@@ -1504,7 +1476,7 @@ function DocumentHubContent() {
       toast.error("No data to save");
       return;
     }
-    const currentPortalId = portalId || localStorage.getItem("hs_portal_id");
+    const currentPortalId = portalId;
     const dealId = deal?.hsObjectId;
     if (!currentPortalId || !dealId) {
       toast.error("Missing portal or deal information");
@@ -1558,7 +1530,7 @@ function DocumentHubContent() {
   // Removal auto-save
   const performRemovalAutoSave = useCallback(
     async (dataToSave: RemovalFormData) => {
-      const currentPortalId = portalId || localStorage.getItem("hs_portal_id");
+      const currentPortalId = portalId;
       const dealId = deal?.hsObjectId;
       if (!currentPortalId || !dealId || !dataToSave) return;
       const dataString = JSON.stringify(dataToSave);
@@ -1585,7 +1557,7 @@ function DocumentHubContent() {
       setRemovalFormData(data);
       setRemovalHasUnsavedChanges(true);
 
-      const currentPortalId = portalId || localStorage.getItem("hs_portal_id");
+      const currentPortalId = portalId;
       const dealId = deal?.hsObjectId;
       if (currentPortalId && dealId) {
         try {
@@ -1609,7 +1581,7 @@ function DocumentHubContent() {
       toast.error("No data to save");
       return;
     }
-    const currentPortalId = portalId || localStorage.getItem("hs_portal_id");
+    const currentPortalId = portalId;
     const dealId = deal?.hsObjectId;
     if (!currentPortalId || !dealId) {
       toast.error("Missing portal or deal information");
@@ -1663,7 +1635,7 @@ function DocumentHubContent() {
   // Commission auto-save
   const performCommissionAutoSave = useCallback(
     async (dataToSave: CommissionFormData) => {
-      const currentPortalId = portalId || localStorage.getItem("hs_portal_id");
+      const currentPortalId = portalId;
       const dealId = deal?.hsObjectId;
       if (!currentPortalId || !dealId || !dataToSave) return;
       const dataString = JSON.stringify(dataToSave);
@@ -1689,7 +1661,7 @@ function DocumentHubContent() {
     (data: CommissionFormData) => {
       setCommissionFormData(data);
       setCommissionHasUnsavedChanges(true);
-      const currentPortalId = portalId || localStorage.getItem("hs_portal_id");
+      const currentPortalId = portalId;
       const dealId = deal?.hsObjectId;
       if (currentPortalId && dealId) {
         try {
@@ -1712,7 +1684,7 @@ function DocumentHubContent() {
       toast.error("No data to save");
       return;
     }
-    const currentPortalId = portalId || localStorage.getItem("hs_portal_id");
+    const currentPortalId = portalId;
     const dealId = deal?.hsObjectId;
     if (!currentPortalId || !dealId) {
       toast.error("Missing portal or deal information");
@@ -1769,7 +1741,7 @@ function DocumentHubContent() {
       toast.error("No data to save");
       return;
     }
-    const currentPortalId = portalId || localStorage.getItem("hs_portal_id");
+    const currentPortalId = portalId;
     const dealId = deal?.hsObjectId;
     if (!currentPortalId || !dealId) {
       toast.error("Missing portal or deal information");
@@ -1811,7 +1783,7 @@ function DocumentHubContent() {
       const fileName = `LOI_${sanitizedCompanyName}_${new Date().toISOString().split("T")[0]}.pdf`;
       pdf.save(fileName);
 
-      const currentPortalId = portalId || localStorage.getItem("hs_portal_id");
+      const currentPortalId = portalId;
       const currentDealId = deal?.hsObjectId;
 
       if (currentPortalId && currentDealId) {
@@ -1968,7 +1940,7 @@ function DocumentHubContent() {
 
   // Recover from localStorage backups (portal+deal scoped; prevents cross-tenant leakage)
   useEffect(() => {
-    const currentPortalId = portalId || localStorage.getItem("hs_portal_id");
+    const currentPortalId = portalId;
     const dealId = deal?.hsObjectId;
     if (!currentPortalId || !dealId) return;
 
@@ -2119,7 +2091,7 @@ function DocumentHubContent() {
       return;
     }
 
-    const currentPortalId = portalId || localStorage.getItem("hs_portal_id");
+    const currentPortalId = portalId;
     const dealId = deal?.hsObjectId;
 
     if (!currentPortalId || !dealId) {
@@ -2243,10 +2215,6 @@ function DocumentHubContent() {
       } catch (hsErr) {
         console.error("HubSpot sync error:", hsErr);
       }
-
-      // Stamp last-app-activity on save. Isolated from the write above and
-      // non-blocking, so a missing property can never fail the save.
-      pushLastAppActivity();
     } catch (err) {
       console.error("Save error:", err);
       toast.error("Failed to save configuration");
@@ -2257,7 +2225,7 @@ function DocumentHubContent() {
 
   const handleInstallationLineItemSwitch = async (newLineItemId: string, currentFormData: InstallationFormData) => {
     // Save the current line item's data before switching
-    const currentPortalId = portalId || localStorage.getItem("hs_portal_id");
+    const currentPortalId = portalId;
     const dealId = deal?.hsObjectId;
 
     if (currentPortalId && dealId && currentFormData.selectedLineItemId) {
@@ -2289,7 +2257,7 @@ function DocumentHubContent() {
       return;
     }
 
-    const currentPortalId = portalId || localStorage.getItem("hs_portal_id");
+    const currentPortalId = portalId;
     const dealId = deal?.hsObjectId;
 
     if (!currentPortalId || !dealId) {
@@ -2462,7 +2430,7 @@ function DocumentHubContent() {
 
   // Quote versioning functions
   const loadQuoteVersions = async () => {
-    const currentPortalId = portalId || localStorage.getItem("hs_portal_id");
+    const currentPortalId = portalId;
     const currentDealId = deal?.hsObjectId;
     if (!currentPortalId || !currentDealId) return;
 
@@ -2494,7 +2462,7 @@ function DocumentHubContent() {
   };
 
   const saveQuoteVersion = async (config: any, label?: string): Promise<string | null> => {
-    const currentPortalId = portalId || localStorage.getItem("hs_portal_id");
+    const currentPortalId = portalId;
     const currentDealId = deal?.hsObjectId;
     if (!currentPortalId || !currentDealId) return null;
 
@@ -2520,7 +2488,7 @@ function DocumentHubContent() {
   };
 
   const restoreQuoteVersion = async (versionId: string) => {
-    const currentPortalId = portalId || localStorage.getItem("hs_portal_id");
+    const currentPortalId = portalId;
     const currentDealId = deal?.hsObjectId;
     if (!currentPortalId || !currentDealId) return;
 
@@ -2556,7 +2524,7 @@ function DocumentHubContent() {
 
   const deleteQuoteVersion = async (versionId: string, quoteNumber: string) => {
     if (!confirm(`Delete version ${quoteNumber}? This cannot be undone.`)) return;
-    const currentPortalId = portalId || localStorage.getItem("hs_portal_id");
+    const currentPortalId = portalId;
     const currentDealId = deal?.hsObjectId;
     if (!currentPortalId || !currentDealId) return;
 
@@ -2585,7 +2553,7 @@ function DocumentHubContent() {
 
   // Quote template functions
   const loadQuoteTemplates = async () => {
-    const currentPortalId = portalId || localStorage.getItem("hs_portal_id");
+    const currentPortalId = portalId;
     if (!currentPortalId) return;
     try {
       const { data, error } = await supabase.functions.invoke("quote-templates", {
@@ -2604,7 +2572,7 @@ function DocumentHubContent() {
       toast.error("Please enter a template name");
       return;
     }
-    const currentPortalId = portalId || localStorage.getItem("hs_portal_id");
+    const currentPortalId = portalId;
     if (!currentPortalId) return;
 
     try {
@@ -2634,7 +2602,7 @@ function DocumentHubContent() {
   };
 
   const loadQuoteTemplate = async (templateId: string) => {
-    const currentPortalId = portalId || localStorage.getItem("hs_portal_id");
+    const currentPortalId = portalId;
     if (!currentPortalId) return;
 
     try {
@@ -2676,7 +2644,7 @@ function DocumentHubContent() {
   };
 
   const deleteQuoteTemplate = async (templateId: string) => {
-    const currentPortalId = portalId || localStorage.getItem("hs_portal_id");
+    const currentPortalId = portalId;
     if (!currentPortalId) return;
 
     try {
@@ -2694,7 +2662,7 @@ function DocumentHubContent() {
 
   // Feedback system functions
   const loadFeedback = async () => {
-    const currentPortalId = portalId || localStorage.getItem("hs_portal_id");
+    const currentPortalId = portalId;
     if (!currentPortalId) return;
     try {
       const { data, error } = await supabase.functions.invoke("app-feedback", {
@@ -2713,7 +2681,7 @@ function DocumentHubContent() {
       toast.error("Please enter a title");
       return;
     }
-    const currentPortalId = portalId || localStorage.getItem("hs_portal_id");
+    const currentPortalId = portalId;
     if (!currentPortalId) return;
 
     try {
@@ -2794,7 +2762,7 @@ function DocumentHubContent() {
       document.body.removeChild(a);
       URL.revokeObjectURL(url);
 
-      const currentPortalId = portalId || localStorage.getItem("hs_portal_id");
+      const currentPortalId = portalId;
       const currentDealId = deal?.hsObjectId;
 
       if (currentPortalId && currentDealId) {
@@ -2854,7 +2822,7 @@ function DocumentHubContent() {
 
       pdf.save(fileName);
 
-      const currentPortalId = portalId || localStorage.getItem("hs_portal_id");
+      const currentPortalId = portalId;
       const currentDealId = deal?.hsObjectId;
 
       if (currentPortalId && currentDealId) {
@@ -2913,7 +2881,7 @@ function DocumentHubContent() {
       return;
     }
 
-    const currentPortalId = portalId || localStorage.getItem("hs_portal_id");
+    const currentPortalId = portalId;
     const dealId = deal?.hsObjectId;
 
     if (!currentPortalId || !dealId) {
@@ -2970,7 +2938,7 @@ function DocumentHubContent() {
 
       pdf.save(fileName);
 
-      const currentPortalId = portalId || localStorage.getItem("hs_portal_id");
+      const currentPortalId = portalId;
       const currentDealId = deal?.hsObjectId;
 
       if (currentPortalId && currentDealId) {
@@ -3021,7 +2989,7 @@ function DocumentHubContent() {
       return;
     }
 
-    const currentPortalId = portalId || localStorage.getItem("hs_portal_id");
+    const currentPortalId = portalId;
     const dealId = deal?.hsObjectId;
 
     if (!currentPortalId || !dealId) {
@@ -3078,7 +3046,7 @@ function DocumentHubContent() {
 
       pdf.save(fileName);
 
-      const currentPortalId = portalId || localStorage.getItem("hs_portal_id");
+      const currentPortalId = portalId;
       const currentDealId = deal?.hsObjectId;
 
       if (currentPortalId && currentDealId) {
@@ -3124,7 +3092,7 @@ function DocumentHubContent() {
 
   // Lease Funding handlers
   const handleLeaseFundingLineItemSwitch = async (newLineItemId: string, currentFormData: LeaseFundingFormData) => {
-    const currentPortalId = portalId || localStorage.getItem("hs_portal_id");
+    const currentPortalId = portalId;
     const dealId = deal?.hsObjectId;
 
     if (currentPortalId && dealId && currentFormData.selectedLineItemId) {
@@ -3156,7 +3124,7 @@ function DocumentHubContent() {
       return;
     }
 
-    const currentPortalId = portalId || localStorage.getItem("hs_portal_id");
+    const currentPortalId = portalId;
     const dealId = deal?.hsObjectId;
 
     if (!currentPortalId || !dealId) {
@@ -3218,7 +3186,7 @@ function DocumentHubContent() {
 
       pdf.save(fileName);
 
-      const currentPortalId = portalId || localStorage.getItem("hs_portal_id");
+      const currentPortalId = portalId;
       const currentDealId = deal?.hsObjectId;
 
       if (currentPortalId && currentDealId) {
@@ -3269,7 +3237,7 @@ function DocumentHubContent() {
       return;
     }
 
-    const currentPortalId = portalId || localStorage.getItem("hs_portal_id");
+    const currentPortalId = portalId;
     const dealId = deal?.hsObjectId;
 
     if (!currentPortalId || !dealId) {
@@ -3326,7 +3294,7 @@ function DocumentHubContent() {
 
       pdf.save(fileName);
 
-      const currentPortalId = portalId || localStorage.getItem("hs_portal_id");
+      const currentPortalId = portalId;
       const currentDealId = deal?.hsObjectId;
 
       if (currentPortalId && currentDealId) {
@@ -3377,7 +3345,7 @@ function DocumentHubContent() {
       return;
     }
 
-    const currentPortalId = portalId || localStorage.getItem("hs_portal_id");
+    const currentPortalId = portalId;
     const dealId = deal?.hsObjectId;
 
     if (!currentPortalId || !dealId) {
@@ -3434,7 +3402,7 @@ function DocumentHubContent() {
 
       pdf.save(fileName);
 
-      const currentPortalId = portalId || localStorage.getItem("hs_portal_id");
+      const currentPortalId = portalId;
       const currentDealId = deal?.hsObjectId;
 
       if (currentPortalId && currentDealId) {
@@ -3497,7 +3465,7 @@ function DocumentHubContent() {
 
   const handleCustomDocSave = useCallback(
     async (docId: string) => {
-      const currentPortalId = portalId || localStorage.getItem("hs_portal_id");
+      const currentPortalId = portalId;
       const dealId = deal?.hsObjectId;
       const formDataToSave = customDocFormData[docId];
 
@@ -3610,7 +3578,7 @@ function DocumentHubContent() {
 
         pdf.save(fileName);
 
-        const currentPortalId = portalId || localStorage.getItem("hs_portal_id");
+        const currentPortalId = portalId;
         const currentDealId = deal?.hsObjectId;
 
         if (currentPortalId && currentDealId) {
@@ -3977,7 +3945,7 @@ function DocumentHubContent() {
                       lineItems={lineItems}
                       dealOwner={dealOwner}
                       onFormChange={handleFormChange}
-                      portalId={portalId || localStorage.getItem("hs_portal_id") || undefined}
+                      portalId={portalId || undefined}
                       savedConfig={savedConfig || undefined}
                       formCustomization={dealerSettings.form_customization?.quote}
                     />
@@ -4206,7 +4174,7 @@ function DocumentHubContent() {
                       dealOwner={dealOwner}
                       meterMethods={dealerSettings.meter_methods || []}
                       ccaValue={dealerSettings.cca_value || ""}
-                      portalId={portalId || localStorage.getItem("hs_portal_id") || ""}
+                      portalId={portalId || ""}
                       onFormChange={handleInstallationFormChange}
                       onLineItemSwitch={handleInstallationLineItemSwitch}
                       savedConfig={getCurrentInstallationSavedConfig()}
@@ -4541,7 +4509,7 @@ function DocumentHubContent() {
                             }
                           : null
                       }
-                      portalId={portalId || localStorage.getItem("hs_portal_id") || undefined}
+                      portalId={portalId || undefined}
                       onFormChange={handleLeaseFundingFormChange}
                       onLineItemSwitch={handleLeaseFundingLineItemSwitch}
                       savedConfig={getCurrentLeaseFundingSavedConfig()}
@@ -4610,7 +4578,7 @@ function DocumentHubContent() {
                           : null
                       }
                       labeledContacts={labeledContacts || null}
-                      portalId={portalId || localStorage.getItem("hs_portal_id") || undefined}
+                      portalId={portalId || undefined}
                       onFormChange={handleLoiFormChange}
                       savedConfig={loiSavedConfig || undefined}
                     />
@@ -4670,7 +4638,7 @@ function DocumentHubContent() {
                             }
                           : null
                       }
-                      portalId={portalId || localStorage.getItem("hs_portal_id") || undefined}
+                      portalId={portalId || undefined}
                       onFormChange={handleLeaseReturnFormChange}
                       savedConfig={leaseReturnSavedConfig}
                     />
@@ -4778,7 +4746,6 @@ function DocumentHubContent() {
                       }
                       quoteFormData={formData ? { phone: formData.phone } : null}
                       savedConfig={interterritorialSavedConfig}
-                      canEditCost={userPermissions.is_admin}
                     />
                     <div className="flex pt-3 border-t">
                       <Button
@@ -5106,7 +5073,7 @@ function DocumentHubContent() {
             {/* Document Packet Tab Content */}
             <TabsContent value="document_packet" className="mt-0">
               <DocumentPacketForm
-                portalId={portalId || localStorage.getItem("hs_portal_id") || ""}
+                portalId={portalId || ""}
                 dealId={deal?.hsObjectId || ""}
                 dealName={deal?.properties?.dealname || deal?.dealname || ""}
                 companyName={company?.properties?.name || company?.name || ""}
