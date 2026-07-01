@@ -1,15 +1,17 @@
-import { useState, useEffect, useRef } from 'react';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
-import { Textarea } from '@/components/ui/textarea';
-import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Calendar } from '@/components/ui/calendar';
-import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { CalendarIcon, Plus, Trash2 } from 'lucide-react';
-import { format } from 'date-fns';
-import { cn } from '@/lib/utils';
+import { useState, useEffect, useRef } from "react";
+import { SectionCard, FieldGrid, Field } from "@/components/shared";
+import { Switch } from "@/components/ui/switch";
+import { Building2, FileSignature, FileText, Package } from "lucide-react";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Textarea } from "@/components/ui/textarea";
+import { Button } from "@/components/ui/button";
+import { Calendar } from "@/components/ui/calendar";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { CalendarIcon, Plus, Trash2 } from "lucide-react";
+import { format } from "date-fns";
+import { cn } from "@/lib/utils";
 
 const PAYMENT_FREQUENCIES = [
   { value: "Monthly", label: "Monthly" },
@@ -40,7 +42,7 @@ export interface InterterritorialRemovalItem {
 export interface InterterritorialFormData {
   // Header
   requestedInstallDate: Date | null;
-  
+
   // Originating Dealer (pre-filled from Settings, overridable)
   originatingName: string;
   originatingBillTo: string;
@@ -48,7 +50,7 @@ export interface InterterritorialFormData {
   originatingAttn: string;
   originatingEmail: string;
   originatingCca: string;
-  
+
   // Installing Dealer (manual entry)
   installingName: string;
   installingAddress: string;
@@ -57,7 +59,7 @@ export interface InterterritorialFormData {
   installingEmail: string;
   installingCca: string;
   installingDealerNumber: string;
-  
+
   // Customer Installed To (from FMV Lease Equipment Address)
   customerName: string;
   customerAddress: string;
@@ -65,10 +67,10 @@ export interface InterterritorialFormData {
   customerAttn: string;
   customerEmail: string;
   customerFax: string;
-  
+
   // Equipment To Be Installed
   equipmentItems: InterterritorialEquipmentItem[];
-  
+
   // Service Agreement
   serviceBaseCharge: string;
   serviceIncludes: string;
@@ -76,9 +78,12 @@ export interface InterterritorialFormData {
   serviceOverageColor: string;
   serviceFrequency: string;
   serviceBillTo: string;
-  
+
   // Removal Equipment
   removalEquipment: InterterritorialRemovalItem[];
+  termsInclude?: boolean;
+  termsTemplateId?: string;
+  termsCustomText?: string;
 }
 
 interface DealerInfo {
@@ -103,13 +108,16 @@ interface FMVLeaseFormData {
 }
 
 interface ServiceAgreementFormData {
-  rates?: Record<string, {
-    baseRate?: string;
-    includesBW?: string;
-    includesColor?: string;
-    overagesBW?: string;
-    overagesColor?: string;
-  }>;
+  rates?: Record<
+    string,
+    {
+      baseRate?: string;
+      includesBW?: string;
+      includesColor?: string;
+      overagesBW?: string;
+      overagesColor?: string;
+    }
+  >;
   contractLengthMonths?: string;
   // Ship To fields for Customer Installed To
   shipToCompany?: string;
@@ -171,18 +179,20 @@ export function InterterritorialForm({
   useEffect(() => {
     if (hasInitializedRef.current) return;
 
-    const fillIfEmpty = (current: string, next: string) =>
-      current?.trim() ? current : next;
+    const fillIfEmpty = (current: string, next: string) => (current?.trim() ? current : next);
 
     const base = savedConfig ? { ...formData, ...savedConfig } : { ...formData };
 
     // Build originating dealer address from dealerInfo
-    const originatingAddress = dealerInfo?.address || '';
+    const originatingAddress = dealerInfo?.address || "";
 
     // Build customer address from Service Agreement Ship To
     const customerAddress = serviceAgreementFormData
-      ? `${serviceAgreementFormData.shipToAddress || ''}, ${serviceAgreementFormData.shipToCity || ''}, ${serviceAgreementFormData.shipToState || ''} ${serviceAgreementFormData.shipToZip || ''}`.replace(/^,\s*/, '').replace(/,\s*,/g, ',').trim()
-      : '';
+      ? `${serviceAgreementFormData.shipToAddress || ""}, ${serviceAgreementFormData.shipToCity || ""}, ${serviceAgreementFormData.shipToState || ""} ${serviceAgreementFormData.shipToZip || ""}`
+          .replace(/^,\s*/, "")
+          .replace(/,\s*,/g, ",")
+          .trim()
+      : "";
 
     // Initialize equipment items from line items
     const initialEquipmentItems: InterterritorialEquipmentItem[] = lineItems.map((item) => {
@@ -190,8 +200,8 @@ export function InterterritorialForm({
       return {
         id: item.id,
         qty: savedItem?.qty ?? item.quantity,
-        vendorProductCode: savedItem?.vendorProductCode ?? (item.sku || item.model || ''),
-        description: savedItem?.description ?? (item.description || item.name || ''),
+        vendorProductCode: savedItem?.vendorProductCode ?? (item.sku || item.model || ""),
+        description: savedItem?.description ?? (item.description || item.name || ""),
         price: savedItem?.price ?? item.price,
         cost: savedItem?.cost ?? (item.cost || 0),
         fee: savedItem?.fee ?? 0,
@@ -199,14 +209,12 @@ export function InterterritorialForm({
     });
 
     // Get first service agreement rate for defaults
-    const firstRate = serviceAgreementFormData?.rates
-      ? Object.values(serviceAgreementFormData.rates)[0]
-      : null;
+    const firstRate = serviceAgreementFormData?.rates ? Object.values(serviceAgreementFormData.rates)[0] : null;
 
     // Parse requestedInstallDate from saved config (handles string from JSON)
     let parsedInstallDate: Date | null = null;
     if (base.requestedInstallDate) {
-      if (typeof base.requestedInstallDate === 'string') {
+      if (typeof base.requestedInstallDate === "string") {
         parsedInstallDate = new Date(base.requestedInstallDate);
       } else {
         parsedInstallDate = base.requestedInstallDate;
@@ -216,49 +224,54 @@ export function InterterritorialForm({
     onChange({
       ...base,
       requestedInstallDate: parsedInstallDate,
-      
+
       // Originating Dealer - use Quote phone if available
-      originatingName: fillIfEmpty(base.originatingName, dealerInfo?.companyName || ''),
+      originatingName: fillIfEmpty(base.originatingName, dealerInfo?.companyName || ""),
       originatingBillTo: fillIfEmpty(base.originatingBillTo, originatingAddress),
-      originatingPhone: fillIfEmpty(base.originatingPhone, quoteFormData?.phone || dealerInfo?.phone || ''),
-      originatingAttn: fillIfEmpty(base.originatingAttn, dealOwner ? `${dealOwner.firstName || ''} ${dealOwner.lastName || ''}`.trim() : ''),
-      originatingEmail: fillIfEmpty(base.originatingEmail, dealOwner?.email || ''),
-      originatingCca: fillIfEmpty(base.originatingCca, dealerSettings.cca_value || ''),
-      
+      originatingPhone: fillIfEmpty(base.originatingPhone, quoteFormData?.phone || dealerInfo?.phone || ""),
+      originatingAttn: fillIfEmpty(
+        base.originatingAttn,
+        dealOwner ? `${dealOwner.firstName || ""} ${dealOwner.lastName || ""}`.trim() : "",
+      ),
+      originatingEmail: fillIfEmpty(base.originatingEmail, dealOwner?.email || ""),
+      originatingCca: fillIfEmpty(base.originatingCca, dealerSettings.cca_value || ""),
+
       // Installing Dealer - empty by default
-      installingName: base.installingName || '',
-      installingAddress: base.installingAddress || '',
-      installingPhone: base.installingPhone || '',
-      installingAttn: base.installingAttn || '',
-      installingEmail: base.installingEmail || '',
-      installingCca: base.installingCca || '',
-      installingDealerNumber: base.installingDealerNumber || '',
-      
+      installingName: base.installingName || "",
+      installingAddress: base.installingAddress || "",
+      installingPhone: base.installingPhone || "",
+      installingAttn: base.installingAttn || "",
+      installingEmail: base.installingEmail || "",
+      installingCca: base.installingCca || "",
+      installingDealerNumber: base.installingDealerNumber || "",
+
       // Customer Installed To - from Service Agreement Ship To
-      customerName: fillIfEmpty(base.customerName, serviceAgreementFormData?.shipToCompany || ''),
+      customerName: fillIfEmpty(base.customerName, serviceAgreementFormData?.shipToCompany || ""),
       customerAddress: fillIfEmpty(base.customerAddress, customerAddress),
-      customerPhone: fillIfEmpty(base.customerPhone, serviceAgreementFormData?.shipToPhone || ''),
-      customerAttn: fillIfEmpty(base.customerAttn, serviceAgreementFormData?.shipToAttn || ''),
-      customerEmail: fillIfEmpty(base.customerEmail, serviceAgreementFormData?.shipToEmail || ''),
-      customerFax: base.customerFax || '',
-      
+      customerPhone: fillIfEmpty(base.customerPhone, serviceAgreementFormData?.shipToPhone || ""),
+      customerAttn: fillIfEmpty(base.customerAttn, serviceAgreementFormData?.shipToAttn || ""),
+      customerEmail: fillIfEmpty(base.customerEmail, serviceAgreementFormData?.shipToEmail || ""),
+      customerFax: base.customerFax || "",
+
       // Equipment
       equipmentItems: base.equipmentItems?.length > 0 ? base.equipmentItems : initialEquipmentItems,
-      
+
       // Service Agreement
-      serviceBaseCharge: fillIfEmpty(base.serviceBaseCharge, firstRate?.baseRate || ''),
+      serviceBaseCharge: fillIfEmpty(base.serviceBaseCharge, firstRate?.baseRate || ""),
       serviceIncludes: fillIfEmpty(
         base.serviceIncludes,
         [
-          firstRate?.includesBW ? `${firstRate.includesBW} B/W` : '',
-          firstRate?.includesColor ? `${firstRate.includesColor} Color` : ''
-        ].filter(Boolean).join(', ')
+          firstRate?.includesBW ? `${firstRate.includesBW} B/W` : "",
+          firstRate?.includesColor ? `${firstRate.includesColor} Color` : "",
+        ]
+          .filter(Boolean)
+          .join(", "),
       ),
-      serviceOverageBW: fillIfEmpty(base.serviceOverageBW, firstRate?.overagesBW || ''),
-      serviceOverageColor: fillIfEmpty(base.serviceOverageColor, firstRate?.overagesColor || ''),
-      serviceFrequency: base.serviceFrequency || 'Monthly',
-      serviceBillTo: fillIfEmpty(base.serviceBillTo, 'Originating Dealer'),
-      
+      serviceOverageBW: fillIfEmpty(base.serviceOverageBW, firstRate?.overagesBW || ""),
+      serviceOverageColor: fillIfEmpty(base.serviceOverageColor, firstRate?.overagesColor || ""),
+      serviceFrequency: base.serviceFrequency || "Monthly",
+      serviceBillTo: fillIfEmpty(base.serviceBillTo, "Originating Dealer"),
+
       // Removal Equipment
       removalEquipment: base.removalEquipment || [],
     });
@@ -285,10 +298,10 @@ export function InterterritorialForm({
         {
           id: `removal-${Date.now()}`,
           qty: 1,
-          description: '',
-          serial: '',
-          meters: '',
-          instructions: '',
+          description: "",
+          serial: "",
+          meters: "",
+          instructions: "",
         },
       ],
     });
@@ -314,227 +327,206 @@ export function InterterritorialForm({
   return (
     <div className="space-y-6">
       {/* Header - Requested Install Date */}
-      <Card>
-        <CardHeader className="py-3">
-          <CardTitle className="text-sm">Request Details</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <div className="space-y-2">
-            <Label>Requested Install Date</Label>
-            <Popover>
-              <PopoverTrigger asChild>
-                <Button
-                  variant="outline"
-                  className={cn(
-                    "w-full justify-start text-left font-normal",
-                    !formData.requestedInstallDate && "text-muted-foreground"
-                  )}
-                >
-                  <CalendarIcon className="mr-2 h-4 w-4" />
-                  {formData.requestedInstallDate
-                    ? format(formData.requestedInstallDate, "MM/dd/yyyy")
-                    : "Select date"}
-                </Button>
-              </PopoverTrigger>
-              <PopoverContent className="w-auto p-0" align="start">
-                <Calendar
-                  mode="single"
-                  selected={formData.requestedInstallDate || undefined}
-                  onSelect={(date) => updateField('requestedInstallDate', date || null)}
-                  initialFocus
-                  className="pointer-events-auto"
-                />
-              </PopoverContent>
-            </Popover>
-          </div>
-        </CardContent>
-      </Card>
+      <SectionCard title="Request Details" icon={FileText}>
+        <div className="space-y-2">
+          <Label>Requested Install Date</Label>
+          <Popover>
+            <PopoverTrigger asChild>
+              <Button
+                variant="outline"
+                className={cn(
+                  "w-full justify-start text-left font-normal",
+                  !formData.requestedInstallDate && "text-muted-foreground",
+                )}
+              >
+                <CalendarIcon className="mr-2 h-4 w-4" />
+                {formData.requestedInstallDate ? format(formData.requestedInstallDate, "MM/dd/yyyy") : "Select date"}
+              </Button>
+            </PopoverTrigger>
+            <PopoverContent className="w-auto p-0" align="start">
+              <Calendar
+                mode="single"
+                selected={formData.requestedInstallDate || undefined}
+                onSelect={(date) => updateField("requestedInstallDate", date || null)}
+                initialFocus
+                className="pointer-events-auto"
+              />
+            </PopoverContent>
+          </Popover>
+        </div>
+      </SectionCard>
 
       {/* Three-Column Dealer Section */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
         {/* Originating Dealer */}
-        <Card>
-          <CardHeader className="py-3">
-            <CardTitle className="text-sm">Originating Dealer</CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-3">
-            <div className="space-y-1">
-              <Label>Name</Label>
-              <Input
-                value={formData.originatingName}
-                onChange={(e) => updateField('originatingName', e.target.value)}
-                className="h-8 text-sm"
-              />
-            </div>
-            <div className="space-y-1">
-              <Label>Bill To Address</Label>
-              <Input
-                value={formData.originatingBillTo}
-                onChange={(e) => updateField('originatingBillTo', e.target.value)}
-                className="h-8 text-sm"
-              />
-            </div>
-            <div className="space-y-1">
-              <Label>Phone</Label>
-              <Input
-                value={formData.originatingPhone}
-                onChange={(e) => updateField('originatingPhone', e.target.value)}
-                className="h-8 text-sm"
-              />
-            </div>
-            <div className="space-y-1">
-              <Label>ATTN (Sales Rep)</Label>
-              <Input
-                value={formData.originatingAttn}
-                onChange={(e) => updateField('originatingAttn', e.target.value)}
-                className="h-8 text-sm"
-              />
-            </div>
-            <div className="space-y-1">
-              <Label>Email</Label>
-              <Input
-                value={formData.originatingEmail}
-                onChange={(e) => updateField('originatingEmail', e.target.value)}
-                className="h-8 text-sm"
-              />
-            </div>
-            <div className="space-y-1">
-              <Label>CCA</Label>
-              <Input
-                value={formData.originatingCca}
-                onChange={(e) => updateField('originatingCca', e.target.value)}
-                className="h-8 text-sm"
-              />
-            </div>
-          </CardContent>
-        </Card>
+        <SectionCard title="Originating Dealer" icon={FileText}>
+          <div className="space-y-1">
+            <Label>Name</Label>
+            <Input
+              value={formData.originatingName}
+              onChange={(e) => updateField("originatingName", e.target.value)}
+              className="h-8 text-sm"
+            />
+          </div>
+          <div className="space-y-1">
+            <Label>Bill To Address</Label>
+            <Input
+              value={formData.originatingBillTo}
+              onChange={(e) => updateField("originatingBillTo", e.target.value)}
+              className="h-8 text-sm"
+            />
+          </div>
+          <div className="space-y-1">
+            <Label>Phone</Label>
+            <Input
+              value={formData.originatingPhone}
+              onChange={(e) => updateField("originatingPhone", e.target.value)}
+              className="h-8 text-sm"
+            />
+          </div>
+          <div className="space-y-1">
+            <Label>ATTN (Sales Rep)</Label>
+            <Input
+              value={formData.originatingAttn}
+              onChange={(e) => updateField("originatingAttn", e.target.value)}
+              className="h-8 text-sm"
+            />
+          </div>
+          <div className="space-y-1">
+            <Label>Email</Label>
+            <Input
+              value={formData.originatingEmail}
+              onChange={(e) => updateField("originatingEmail", e.target.value)}
+              className="h-8 text-sm"
+            />
+          </div>
+          <div className="space-y-1">
+            <Label>CCA</Label>
+            <Input
+              value={formData.originatingCca}
+              onChange={(e) => updateField("originatingCca", e.target.value)}
+              className="h-8 text-sm"
+            />
+          </div>
+        </SectionCard>
 
         {/* Installing Dealer */}
-        <Card>
-          <CardHeader className="py-3">
-            <CardTitle className="text-sm">Installing Dealer</CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-3">
-            <div className="space-y-1">
-              <Label>Name</Label>
-              <Input
-                value={formData.installingName}
-                onChange={(e) => updateField('installingName', e.target.value)}
-                className="h-8 text-sm"
-                placeholder="Enter installing dealer name"
-              />
-            </div>
-            <div className="space-y-1">
-              <Label>Address</Label>
-              <Input
-                value={formData.installingAddress}
-                onChange={(e) => updateField('installingAddress', e.target.value)}
-                className="h-8 text-sm"
-                placeholder="Enter address"
-              />
-            </div>
-            <div className="space-y-1">
-              <Label>Phone</Label>
-              <Input
-                value={formData.installingPhone}
-                onChange={(e) => updateField('installingPhone', e.target.value)}
-                className="h-8 text-sm"
-                placeholder="Enter phone"
-              />
-            </div>
-            <div className="space-y-1">
-              <Label>ATTN</Label>
-              <Input
-                value={formData.installingAttn}
-                onChange={(e) => updateField('installingAttn', e.target.value)}
-                className="h-8 text-sm"
-                placeholder="Enter contact name"
-              />
-            </div>
-            <div className="space-y-1">
-              <Label>Email</Label>
-              <Input
-                value={formData.installingEmail}
-                onChange={(e) => updateField('installingEmail', e.target.value)}
-                className="h-8 text-sm"
-                placeholder="Enter email"
-              />
-            </div>
-            <div className="space-y-1">
-              <Label>CCA</Label>
-              <Input
-                value={formData.installingCca}
-                onChange={(e) => updateField('installingCca', e.target.value)}
-                className="h-8 text-sm"
-                placeholder="Enter CCA"
-              />
-            </div>
-          </CardContent>
-        </Card>
+        <SectionCard title="Installing Dealer" icon={FileText}>
+          <div className="space-y-1">
+            <Label>Name</Label>
+            <Input
+              value={formData.installingName}
+              onChange={(e) => updateField("installingName", e.target.value)}
+              className="h-8 text-sm"
+              placeholder="Enter installing dealer name"
+            />
+          </div>
+          <div className="space-y-1">
+            <Label>Address</Label>
+            <Input
+              value={formData.installingAddress}
+              onChange={(e) => updateField("installingAddress", e.target.value)}
+              className="h-8 text-sm"
+              placeholder="Enter address"
+            />
+          </div>
+          <div className="space-y-1">
+            <Label>Phone</Label>
+            <Input
+              value={formData.installingPhone}
+              onChange={(e) => updateField("installingPhone", e.target.value)}
+              className="h-8 text-sm"
+              placeholder="Enter phone"
+            />
+          </div>
+          <div className="space-y-1">
+            <Label>ATTN</Label>
+            <Input
+              value={formData.installingAttn}
+              onChange={(e) => updateField("installingAttn", e.target.value)}
+              className="h-8 text-sm"
+              placeholder="Enter contact name"
+            />
+          </div>
+          <div className="space-y-1">
+            <Label>Email</Label>
+            <Input
+              value={formData.installingEmail}
+              onChange={(e) => updateField("installingEmail", e.target.value)}
+              className="h-8 text-sm"
+              placeholder="Enter email"
+            />
+          </div>
+          <div className="space-y-1">
+            <Label>CCA</Label>
+            <Input
+              value={formData.installingCca}
+              onChange={(e) => updateField("installingCca", e.target.value)}
+              className="h-8 text-sm"
+              placeholder="Enter CCA"
+            />
+          </div>
+        </SectionCard>
 
         {/* Customer Installed To */}
-        <Card>
-          <CardHeader className="py-3">
-            <CardTitle className="text-sm">Customer Installed To</CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-3">
-            <div className="space-y-1">
-              <Label>Name</Label>
-              <Input
-                value={formData.customerName}
-                onChange={(e) => updateField('customerName', e.target.value)}
-                className="h-8 text-sm"
-              />
-            </div>
-            <div className="space-y-1">
-              <Label>Address</Label>
-              <Input
-                value={formData.customerAddress}
-                onChange={(e) => updateField('customerAddress', e.target.value)}
-                className="h-8 text-sm"
-              />
-            </div>
-            <div className="space-y-1">
-              <Label>Phone</Label>
-              <Input
-                value={formData.customerPhone}
-                onChange={(e) => updateField('customerPhone', e.target.value)}
-                className="h-8 text-sm"
-              />
-            </div>
-            <div className="space-y-1">
-              <Label>ATTN</Label>
-              <Input
-                value={formData.customerAttn}
-                onChange={(e) => updateField('customerAttn', e.target.value)}
-                className="h-8 text-sm"
-              />
-            </div>
-            <div className="space-y-1">
-              <Label>Email</Label>
-              <Input
-                value={formData.customerEmail}
-                onChange={(e) => updateField('customerEmail', e.target.value)}
-                className="h-8 text-sm"
-              />
-            </div>
-            <div className="space-y-1">
-              <Label>Fax</Label>
-              <Input
-                value={formData.customerFax}
-                onChange={(e) => updateField('customerFax', e.target.value)}
-                className="h-8 text-sm"
-              />
-            </div>
-          </CardContent>
-        </Card>
+        <SectionCard title="Customer Installed To" icon={Building2}>
+          <div className="space-y-1">
+            <Label>Name</Label>
+            <Input
+              value={formData.customerName}
+              onChange={(e) => updateField("customerName", e.target.value)}
+              className="h-8 text-sm"
+            />
+          </div>
+          <div className="space-y-1">
+            <Label>Address</Label>
+            <Input
+              value={formData.customerAddress}
+              onChange={(e) => updateField("customerAddress", e.target.value)}
+              className="h-8 text-sm"
+            />
+          </div>
+          <div className="space-y-1">
+            <Label>Phone</Label>
+            <Input
+              value={formData.customerPhone}
+              onChange={(e) => updateField("customerPhone", e.target.value)}
+              className="h-8 text-sm"
+            />
+          </div>
+          <div className="space-y-1">
+            <Label>ATTN</Label>
+            <Input
+              value={formData.customerAttn}
+              onChange={(e) => updateField("customerAttn", e.target.value)}
+              className="h-8 text-sm"
+            />
+          </div>
+          <div className="space-y-1">
+            <Label>Email</Label>
+            <Input
+              value={formData.customerEmail}
+              onChange={(e) => updateField("customerEmail", e.target.value)}
+              className="h-8 text-sm"
+            />
+          </div>
+          <div className="space-y-1">
+            <Label>Fax</Label>
+            <Input
+              value={formData.customerFax}
+              onChange={(e) => updateField("customerFax", e.target.value)}
+              className="h-8 text-sm"
+            />
+          </div>
+        </SectionCard>
       </div>
 
       {/* Equipment To Be Installed */}
-      <Card>
-        <CardHeader className="py-3">
-          <CardTitle className="text-sm flex items-center justify-between">
-            <span>Equipment To Be Installed</span>
+      <SectionCard
+        title="Equipment To Be Installed"
+        icon={Package}
+        action={
+          <>
             <Button
               type="button"
               variant="outline"
@@ -543,8 +535,8 @@ export function InterterritorialForm({
                 const newItem: InterterritorialEquipmentItem = {
                   id: `manual-${Date.now()}`,
                   qty: 1,
-                  vendorProductCode: '',
-                  description: '',
+                  vendorProductCode: "",
+                  description: "",
                   price: 0,
                   cost: 0,
                   fee: 0,
@@ -555,184 +547,184 @@ export function InterterritorialForm({
               <Plus className="h-3 w-3 mr-1" />
               Add Equipment
             </Button>
-          </CardTitle>
-        </CardHeader>
-        <CardContent>
-          {formData.equipmentItems.length === 0 ? (
-            <p className="text-sm text-muted-foreground">No equipment items. Click "Add Equipment" to add items.</p>
-          ) : (
-            <div className="space-y-3">
-              {formData.equipmentItems.map((item, index) => (
-                <div key={item.id} className="border rounded-lg p-3 space-y-3 relative">
-                  <Button
-                    type="button"
-                    variant="ghost"
-                    size="sm"
-                    className="absolute top-2 right-2 h-7 w-7 p-0 text-muted-foreground hover:text-destructive"
-                    onClick={() => {
-                      onChange({
-                        ...formData,
-                        equipmentItems: formData.equipmentItems.filter((_, i) => i !== index),
-                      });
-                    }}
-                  >
-                    <Trash2 className="h-4 w-4" />
-                  </Button>
-                  <div className="grid grid-cols-12 gap-2 pr-10">
-                    <div className="col-span-1">
-                      <Label>Qty</Label>
-                      <Input
-                        type="number"
-                        value={item.qty}
-                        onChange={(e) => updateEquipmentItem(index, 'qty', parseInt(e.target.value) || 1)}
-                        className="h-8 text-sm text-center"
-                      />
-                    </div>
-                    <div className="col-span-3">
-                      <Label>Vendor Product Code</Label>
-                      <Input
-                        value={item.vendorProductCode}
-                        onChange={(e) => updateEquipmentItem(index, 'vendorProductCode', e.target.value)}
-                        className="h-8 text-sm"
-                      />
-                    </div>
-                    <div className="col-span-4">
-                      <Label>Description</Label>
-                      <Input
-                        value={item.description}
-                        onChange={(e) => updateEquipmentItem(index, 'description', e.target.value)}
-                        className="h-8 text-sm"
-                      />
-                    </div>
-                    <div className="col-span-1">
-                      <Label>Price</Label>
-                      <Input
-                        type="number"
-                        step="0.01"
-                        value={item.price}
-                        onChange={(e) => updateEquipmentItem(index, 'price', parseFloat(e.target.value) || 0)}
-                        className="h-8 text-sm"
-                      />
-                    </div>
-                    <div className="col-span-1">
-                      <Label>Cost</Label>
-                      <Input
-                        type="number"
-                        step="0.01"
-                        value={item.cost}
-                        onChange={(e) => updateEquipmentItem(index, 'cost', parseFloat(e.target.value) || 0)}
-                        className="h-8 text-sm"
-                      />
-                    </div>
-                    <div className="col-span-2">
-                      <Label>Fee</Label>
-                      <Input
-                        type="number"
-                        step="0.01"
-                        value={item.fee}
-                        onChange={(e) => updateEquipmentItem(index, 'fee', parseFloat(e.target.value) || 0)}
-                        className="h-8 text-sm"
-                      />
-                    </div>
+          </>
+        }
+      >
+        {formData.equipmentItems.length === 0 ? (
+          <p className="text-sm text-muted-foreground">No equipment items. Click "Add Equipment" to add items.</p>
+        ) : (
+          <div className="space-y-3">
+            {formData.equipmentItems.map((item, index) => (
+              <div key={item.id} className="border rounded-lg p-3 space-y-3 relative">
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="sm"
+                  className="absolute top-2 right-2 h-7 w-7 p-0 text-muted-foreground hover:text-destructive"
+                  onClick={() => {
+                    onChange({
+                      ...formData,
+                      equipmentItems: formData.equipmentItems.filter((_, i) => i !== index),
+                    });
+                  }}
+                >
+                  <Trash2 className="h-4 w-4" />
+                </Button>
+                <div className="grid grid-cols-12 gap-2 pr-10">
+                  <div className="col-span-1">
+                    <Label>Qty</Label>
+                    <Input
+                      type="number"
+                      value={item.qty}
+                      onChange={(e) => updateEquipmentItem(index, "qty", parseInt(e.target.value) || 1)}
+                      className="h-8 text-sm text-center"
+                    />
+                  </div>
+                  <div className="col-span-3">
+                    <Label>Vendor Product Code</Label>
+                    <Input
+                      value={item.vendorProductCode}
+                      onChange={(e) => updateEquipmentItem(index, "vendorProductCode", e.target.value)}
+                      className="h-8 text-sm"
+                    />
+                  </div>
+                  <div className="col-span-4">
+                    <Label>Description</Label>
+                    <Input
+                      value={item.description}
+                      onChange={(e) => updateEquipmentItem(index, "description", e.target.value)}
+                      className="h-8 text-sm"
+                    />
+                  </div>
+                  <div className="col-span-1">
+                    <Label>Price</Label>
+                    <Input
+                      type="number"
+                      step="0.01"
+                      value={item.price}
+                      onChange={(e) => updateEquipmentItem(index, "price", parseFloat(e.target.value) || 0)}
+                      className="h-8 text-sm"
+                    />
+                  </div>
+                  <div className="col-span-1">
+                    <Label>Cost</Label>
+                    <Input
+                      type="number"
+                      step="0.01"
+                      value={item.cost}
+                      onChange={(e) => updateEquipmentItem(index, "cost", parseFloat(e.target.value) || 0)}
+                      className="h-8 text-sm"
+                    />
+                  </div>
+                  <div className="col-span-2">
+                    <Label>Fee</Label>
+                    <Input
+                      type="number"
+                      step="0.01"
+                      value={item.fee}
+                      onChange={(e) => updateEquipmentItem(index, "fee", parseFloat(e.target.value) || 0)}
+                      className="h-8 text-sm"
+                    />
                   </div>
                 </div>
-              ))}
-              <div className="text-right text-sm pt-2 border-t space-y-0.5">
-                <div>Equipment Cost: ${formData.equipmentItems.reduce((sum, item) => sum + (item.cost || 0), 0).toFixed(2)}</div>
-                <div>Placement Fees: ${calculateTotalFee().toFixed(2)}</div>
-                <div className="font-semibold border-t pt-1">
-                  Total Billed to {formData.originatingName || 'Originating Dealer'}: ${(formData.equipmentItems.reduce((sum, item) => sum + (item.cost || 0), 0) + calculateTotalFee()).toFixed(2)}
-                </div>
+              </div>
+            ))}
+            <div className="text-right text-sm pt-2 border-t space-y-0.5">
+              <div>
+                Equipment Cost: ${formData.equipmentItems.reduce((sum, item) => sum + (item.cost || 0), 0).toFixed(2)}
+              </div>
+              <div>Placement Fees: ${calculateTotalFee().toFixed(2)}</div>
+              <div className="font-semibold border-t pt-1">
+                Total Billed to {formData.originatingName || "Originating Dealer"}: $
+                {(
+                  formData.equipmentItems.reduce((sum, item) => sum + (item.cost || 0), 0) + calculateTotalFee()
+                ).toFixed(2)}
               </div>
             </div>
-          )}
-        </CardContent>
-      </Card>
+          </div>
+        )}
+      </SectionCard>
 
       {/* Service Agreement & Removal Equipment Side by Side */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
         {/* Service Agreement */}
-        <Card>
-          <CardHeader className="py-3">
-            <CardTitle className="text-sm">Service Agreement</CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-3">
-            <div className="grid grid-cols-2 gap-2">
-              <div className="space-y-1">
-                <Label>Base Charge</Label>
-                <Input
-                  value={formData.serviceBaseCharge}
-                  onChange={(e) => updateField('serviceBaseCharge', e.target.value)}
-                  className="h-8 text-sm"
-                  placeholder="$0.00"
-                />
-              </div>
-              <div className="space-y-1">
-                <Label>Includes</Label>
-                <Input
-                  value={formData.serviceIncludes}
-                  onChange={(e) => updateField('serviceIncludes', e.target.value)}
-                  className="h-8 text-sm"
-                  placeholder="e.g., 5,000 BW"
-                />
-              </div>
+        <SectionCard title="Service Agreement" icon={FileText}>
+          <div className="grid grid-cols-2 gap-2">
+            <div className="space-y-1">
+              <Label>Base Charge</Label>
+              <Input
+                value={formData.serviceBaseCharge}
+                onChange={(e) => updateField("serviceBaseCharge", e.target.value)}
+                className="h-8 text-sm"
+                placeholder="$0.00"
+              />
             </div>
-            <div className="grid grid-cols-2 gap-2">
-              <div className="space-y-1">
-                <Label>CPC/Overage (Black)</Label>
-                <Input
-                  value={formData.serviceOverageBW}
-                  onChange={(e) => updateField('serviceOverageBW', e.target.value)}
-                  className="h-8 text-sm"
-                  placeholder="$0.0000"
-                />
-              </div>
-              <div className="space-y-1">
-                <Label>CPC/Overage (Color)</Label>
-                <Input
-                  value={formData.serviceOverageColor}
-                  onChange={(e) => updateField('serviceOverageColor', e.target.value)}
-                  className="h-8 text-sm"
-                  placeholder="$0.0000"
-                />
-              </div>
+            <div className="space-y-1">
+              <Label>Includes</Label>
+              <Input
+                value={formData.serviceIncludes}
+                onChange={(e) => updateField("serviceIncludes", e.target.value)}
+                className="h-8 text-sm"
+                placeholder="e.g., 5,000 BW"
+              />
             </div>
-            <div className="grid grid-cols-2 gap-2">
-              <div className="space-y-1">
-                <Label>Frequency</Label>
-                <Select
-                  value={formData.serviceFrequency}
-                  onValueChange={(value) => updateField('serviceFrequency', value)}
-                >
-                  <SelectTrigger className="h-8 text-sm">
-                    <SelectValue placeholder="Select frequency" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {PAYMENT_FREQUENCIES.map((freq) => (
-                      <SelectItem key={freq.value} value={freq.value}>
-                        {freq.label}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-              <div className="space-y-1">
-                <Label>Bill To</Label>
-                <Input
-                  value={formData.serviceBillTo}
-                  onChange={(e) => updateField('serviceBillTo', e.target.value)}
-                  className="h-8 text-sm"
-                />
-              </div>
+          </div>
+          <div className="grid grid-cols-2 gap-2">
+            <div className="space-y-1">
+              <Label>CPC/Overage (Black)</Label>
+              <Input
+                value={formData.serviceOverageBW}
+                onChange={(e) => updateField("serviceOverageBW", e.target.value)}
+                className="h-8 text-sm"
+                placeholder="$0.0000"
+              />
             </div>
-          </CardContent>
-        </Card>
+            <div className="space-y-1">
+              <Label>CPC/Overage (Color)</Label>
+              <Input
+                value={formData.serviceOverageColor}
+                onChange={(e) => updateField("serviceOverageColor", e.target.value)}
+                className="h-8 text-sm"
+                placeholder="$0.0000"
+              />
+            </div>
+          </div>
+          <div className="grid grid-cols-2 gap-2">
+            <div className="space-y-1">
+              <Label>Frequency</Label>
+              <Select
+                value={formData.serviceFrequency}
+                onValueChange={(value) => updateField("serviceFrequency", value)}
+              >
+                <SelectTrigger className="h-8 text-sm">
+                  <SelectValue placeholder="Select frequency" />
+                </SelectTrigger>
+                <SelectContent>
+                  {PAYMENT_FREQUENCIES.map((freq) => (
+                    <SelectItem key={freq.value} value={freq.value}>
+                      {freq.label}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="space-y-1">
+              <Label>Bill To</Label>
+              <Input
+                value={formData.serviceBillTo}
+                onChange={(e) => updateField("serviceBillTo", e.target.value)}
+                className="h-8 text-sm"
+              />
+            </div>
+          </div>
+        </SectionCard>
 
         {/* Removal Equipment */}
-        <Card>
-          <CardHeader className="py-3">
-            <CardTitle className="text-sm flex items-center justify-between">
-              <span>Removal Equipment</span>
+        <SectionCard
+          title="Removal Equipment"
+          icon={Package}
+          action={
+            <>
               <Button
                 type="button"
                 variant="outline"
@@ -743,77 +735,117 @@ export function InterterritorialForm({
                 <Plus className="h-3 w-3 mr-1" />
                 Add
               </Button>
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            {formData.removalEquipment.length === 0 ? (
-              <p className="text-sm text-muted-foreground text-center py-4">
-                No removal equipment. Click "Add" to add items.
-              </p>
-            ) : (
-              <div className="space-y-3">
-                {formData.removalEquipment.map((item, index) => (
-                  <div key={item.id} className="border rounded-lg p-2 space-y-2 relative">
-                    <Button
-                      type="button"
-                      variant="ghost"
-                      size="sm"
-                      className="absolute top-1 right-1 h-6 w-6 p-0"
-                      onClick={() => removeRemovalEquipment(index)}
-                    >
-                      <Trash2 className="h-3 w-3" />
-                    </Button>
-                    <div className="grid grid-cols-12 gap-2 pr-8">
-                      <div className="col-span-2">
-                        <Label>Qty</Label>
-                        <Input
-                          type="number"
-                          value={item.qty}
-                          onChange={(e) => updateRemovalEquipment(index, 'qty', parseInt(e.target.value) || 1)}
-                          className="h-7 text-xs"
-                        />
-                      </div>
-                      <div className="col-span-5">
-                        <Label>Description</Label>
-                        <Input
-                          value={item.description}
-                          onChange={(e) => updateRemovalEquipment(index, 'description', e.target.value)}
-                          className="h-7 text-xs"
-                        />
-                      </div>
-                      <div className="col-span-3">
-                        <Label>Serial</Label>
-                        <Input
-                          value={item.serial}
-                          onChange={(e) => updateRemovalEquipment(index, 'serial', e.target.value)}
-                          className="h-7 text-xs"
-                        />
-                      </div>
-                      <div className="col-span-2">
-                        <Label>Meters</Label>
-                        <Input
-                          value={item.meters}
-                          onChange={(e) => updateRemovalEquipment(index, 'meters', e.target.value)}
-                          className="h-7 text-xs"
-                        />
-                      </div>
-                    </div>
-                    <div className="space-y-1">
-                      <Label>Instructions</Label>
+            </>
+          }
+        >
+          {formData.removalEquipment.length === 0 ? (
+            <p className="text-sm text-muted-foreground text-center py-4">
+              No removal equipment. Click "Add" to add items.
+            </p>
+          ) : (
+            <div className="space-y-3">
+              {formData.removalEquipment.map((item, index) => (
+                <div key={item.id} className="border rounded-lg p-2 space-y-2 relative">
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="sm"
+                    className="absolute top-1 right-1 h-6 w-6 p-0"
+                    onClick={() => removeRemovalEquipment(index)}
+                  >
+                    <Trash2 className="h-3 w-3" />
+                  </Button>
+                  <div className="grid grid-cols-12 gap-2 pr-8">
+                    <div className="col-span-2">
+                      <Label>Qty</Label>
                       <Input
-                        value={item.instructions}
-                        onChange={(e) => updateRemovalEquipment(index, 'instructions', e.target.value)}
+                        type="number"
+                        value={item.qty}
+                        onChange={(e) => updateRemovalEquipment(index, "qty", parseInt(e.target.value) || 1)}
                         className="h-7 text-xs"
-                        placeholder="Removal instructions..."
+                      />
+                    </div>
+                    <div className="col-span-5">
+                      <Label>Description</Label>
+                      <Input
+                        value={item.description}
+                        onChange={(e) => updateRemovalEquipment(index, "description", e.target.value)}
+                        className="h-7 text-xs"
+                      />
+                    </div>
+                    <div className="col-span-3">
+                      <Label>Serial</Label>
+                      <Input
+                        value={item.serial}
+                        onChange={(e) => updateRemovalEquipment(index, "serial", e.target.value)}
+                        className="h-7 text-xs"
+                      />
+                    </div>
+                    <div className="col-span-2">
+                      <Label>Meters</Label>
+                      <Input
+                        value={item.meters}
+                        onChange={(e) => updateRemovalEquipment(index, "meters", e.target.value)}
+                        className="h-7 text-xs"
                       />
                     </div>
                   </div>
-                ))}
-              </div>
-            )}
-          </CardContent>
-        </Card>
+                  <div className="space-y-1">
+                    <Label>Instructions</Label>
+                    <Input
+                      value={item.instructions}
+                      onChange={(e) => updateRemovalEquipment(index, "instructions", e.target.value)}
+                      className="h-7 text-xs"
+                      placeholder="Removal instructions..."
+                    />
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+        </SectionCard>
       </div>
+
+      {/* Terms & conditions (new; form capture only - the preview is intentionally unchanged) */}
+      <SectionCard
+        title="Terms &amp; conditions"
+        icon={FileSignature}
+        description="Captured with the document. Document rendering is wired in a later phase."
+        action={
+          <label className="flex items-center gap-2 cursor-pointer">
+            <span className="text-xs text-muted-foreground">Include on document</span>
+            <Switch checked={!!formData.termsInclude} onCheckedChange={(c) => updateField("termsInclude", c)} />
+          </label>
+        }
+      >
+        <div className="space-y-3">
+          <FieldGrid columns={2}>
+            <Field label="Template" hint="Backend templates connect when Settings migrates to HubSpot">
+              <Select
+                value={formData.termsTemplateId || "custom"}
+                onValueChange={(v) => updateField("termsTemplateId", v === "custom" ? "" : v)}
+              >
+                <SelectTrigger className="h-9 text-sm">
+                  <SelectValue placeholder="Custom text only" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="custom">Custom text only</SelectItem>
+                  <SelectItem value="standard">Standard terms</SelectItem>
+                  <SelectItem value="government">Government / public sector</SelectItem>
+                </SelectContent>
+              </Select>
+            </Field>
+          </FieldGrid>
+          <Field label="Custom text">
+            <Textarea
+              value={formData.termsCustomText || ""}
+              onChange={(e) => updateField("termsCustomText", e.target.value)}
+              placeholder="Enter any document-specific terms and conditions..."
+              className="text-sm min-h-[96px]"
+            />
+          </Field>
+        </div>
+      </SectionCard>
     </div>
   );
 }
