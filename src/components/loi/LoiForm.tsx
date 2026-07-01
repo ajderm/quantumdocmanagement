@@ -311,126 +311,6 @@ export function LoiForm({
 
   return (
     <div className="space-y-4">
-      {/* Customer Company Header - for document output */}
-      <SectionCard title="Customer Company Header" icon={Building2}>
-        <p className="text-xs text-muted-foreground mb-2">
-          This information appears in the document header. Pre-populated from HubSpot Ship To address.
-        </p>
-
-        {/* Logo Upload */}
-        <div className="space-y-2">
-          <Label>Company Logo</Label>
-          <div className="flex items-center gap-4">
-            {formData.customerLogoUrl ? (
-              <div className="relative">
-                <img
-                  src={formData.customerLogoUrl}
-                  alt="Customer Logo"
-                  className="h-16 object-contain border rounded p-1"
-                />
-                <Button
-                  type="button"
-                  variant="ghost"
-                  size="sm"
-                  className="absolute -top-2 -right-2 h-6 w-6 p-0"
-                  onClick={() => updateField("customerLogoUrl", "")}
-                >
-                  <Trash2 className="h-3 w-3" />
-                </Button>
-              </div>
-            ) : (
-              <Button type="button" variant="outline" size="sm" onClick={() => fileInputRef.current?.click()}>
-                <Upload className="h-4 w-4 mr-2" />
-                Upload Logo
-              </Button>
-            )}
-            <input ref={fileInputRef} type="file" accept="image/*" className="hidden" onChange={handleLogoUpload} />
-          </div>
-        </div>
-
-        <div className="space-y-2">
-          <Label htmlFor="customerCompanyName">Company Name</Label>
-          <Input
-            id="customerCompanyName"
-            value={formData.customerCompanyName}
-            onChange={(e) => updateField("customerCompanyName", e.target.value)}
-            placeholder="Customer company name"
-          />
-        </div>
-
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          <div className="space-y-2">
-            <Label htmlFor="customerHeaderAddress">Address Line 1</Label>
-            <Input
-              id="customerHeaderAddress"
-              value={formData.customerHeaderAddress}
-              onChange={(e) => updateField("customerHeaderAddress", e.target.value)}
-              placeholder="Street address"
-            />
-          </div>
-          <div className="space-y-2">
-            <Label htmlFor="customerHeaderAddress2">Address Line 2</Label>
-            <Input
-              id="customerHeaderAddress2"
-              value={formData.customerHeaderAddress2}
-              onChange={(e) => updateField("customerHeaderAddress2", e.target.value)}
-              placeholder="Suite, unit, etc."
-            />
-          </div>
-        </div>
-
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-          <div className="space-y-2">
-            <Label htmlFor="customerHeaderCity">City</Label>
-            <Input
-              id="customerHeaderCity"
-              value={formData.customerHeaderCity}
-              onChange={(e) => updateField("customerHeaderCity", e.target.value)}
-              placeholder="City"
-            />
-          </div>
-          <div className="space-y-2">
-            <Label htmlFor="customerHeaderState">State</Label>
-            <Input
-              id="customerHeaderState"
-              value={formData.customerHeaderState}
-              onChange={(e) => updateField("customerHeaderState", e.target.value)}
-              placeholder="State"
-            />
-          </div>
-          <div className="space-y-2">
-            <Label htmlFor="customerHeaderZip">Zip</Label>
-            <Input
-              id="customerHeaderZip"
-              value={formData.customerHeaderZip}
-              onChange={(e) => updateField("customerHeaderZip", e.target.value)}
-              placeholder="ZIP Code"
-            />
-          </div>
-        </div>
-
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          <div className="space-y-2">
-            <Label htmlFor="customerHeaderPhone">Phone (optional)</Label>
-            <Input
-              id="customerHeaderPhone"
-              value={formData.customerHeaderPhone}
-              onChange={(e) => updateField("customerHeaderPhone", e.target.value)}
-              placeholder="(555) 123-4567"
-            />
-          </div>
-          <div className="space-y-2">
-            <Label htmlFor="customerHeaderWebsite">Website (optional)</Label>
-            <Input
-              id="customerHeaderWebsite"
-              value={formData.customerHeaderWebsite}
-              onChange={(e) => updateField("customerHeaderWebsite", e.target.value)}
-              placeholder="www.example.com"
-            />
-          </div>
-        </div>
-      </SectionCard>
-
       {/* Letter Details */}
       <SectionCard title="Letter Details" icon={FileText}>
         <div className="space-y-2">
@@ -461,116 +341,237 @@ export function LoiForm({
         </div>
       </SectionCard>
 
-      {/* Lease Company Information */}
-      <SectionCard title="Lease Company Information" icon={Building2}>
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4 items-start">
+        {/* Customer Company Header - for document output */}
+        <SectionCard title="Customer Company Header" icon={Building2}>
+          <p className="text-xs text-muted-foreground mb-2">
+            This information appears in the document header. Pre-populated from HubSpot Ship To address.
+          </p>
+
+          {/* Logo Upload */}
           <div className="space-y-2">
-            <Label>Lease Expiration Date</Label>
-            <Popover>
-              <PopoverTrigger asChild>
-                <Button
-                  variant="outline"
-                  className={cn(
-                    "w-full justify-start text-left font-normal",
-                    !formData.leaseExpirationDate && "text-muted-foreground",
-                  )}
-                >
-                  <CalendarIcon className="mr-2 h-4 w-4" />
-                  {formData.leaseExpirationDate ? format(formData.leaseExpirationDate, "MM/dd/yyyy") : "Select date"}
+            <Label>Company Logo</Label>
+            <div className="flex items-center gap-4">
+              {formData.customerLogoUrl ? (
+                <div className="relative">
+                  <img
+                    src={formData.customerLogoUrl}
+                    alt="Customer Logo"
+                    className="h-16 object-contain border rounded p-1"
+                  />
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="sm"
+                    className="absolute -top-2 -right-2 h-6 w-6 p-0"
+                    onClick={() => updateField("customerLogoUrl", "")}
+                  >
+                    <Trash2 className="h-3 w-3" />
+                  </Button>
+                </div>
+              ) : (
+                <Button type="button" variant="outline" size="sm" onClick={() => fileInputRef.current?.click()}>
+                  <Upload className="h-4 w-4 mr-2" />
+                  Upload Logo
                 </Button>
-              </PopoverTrigger>
-              <PopoverContent className="w-auto p-0" align="start">
-                <Calendar
-                  mode="single"
-                  selected={formData.leaseExpirationDate || undefined}
-                  onSelect={(date) => updateField("leaseExpirationDate", date || null)}
-                  initialFocus
-                  className="pointer-events-auto"
-                />
-              </PopoverContent>
-            </Popover>
+              )}
+              <input ref={fileInputRef} type="file" accept="image/*" className="hidden" onChange={handleLogoUpload} />
+            </div>
           </div>
-          <div className="space-y-2">
-            <Label>60 Day Letter Due</Label>
-            <Popover>
-              <PopoverTrigger asChild>
-                <Button
-                  variant="outline"
-                  className={cn(
-                    "w-full justify-start text-left font-normal",
-                    !formData.sixtyDayLetterDue && "text-muted-foreground",
-                  )}
-                >
-                  <CalendarIcon className="mr-2 h-4 w-4" />
-                  {formData.sixtyDayLetterDue ? format(formData.sixtyDayLetterDue, "MM/dd/yyyy") : "Auto-calculated"}
-                </Button>
-              </PopoverTrigger>
-              <PopoverContent className="w-auto p-0" align="start">
-                <Calendar
-                  mode="single"
-                  selected={formData.sixtyDayLetterDue || undefined}
-                  onSelect={(date) => updateField("sixtyDayLetterDue", date || null)}
-                  initialFocus
-                  className="pointer-events-auto"
-                />
-              </PopoverContent>
-            </Popover>
-            <p className="text-xs text-muted-foreground">Auto-calculated: 60 days before expiration</p>
-          </div>
-        </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <div className="space-y-2">
-            <Label htmlFor="leaseNumber">Lease Number</Label>
+            <Label htmlFor="customerCompanyName">Company Name</Label>
             <Input
-              id="leaseNumber"
-              value={formData.leaseNumber}
-              onChange={(e) => updateField("leaseNumber", e.target.value)}
-              placeholder="Enter lease number"
+              id="customerCompanyName"
+              value={formData.customerCompanyName}
+              onChange={(e) => updateField("customerCompanyName", e.target.value)}
+              placeholder="Customer company name"
             />
           </div>
-          <div className="space-y-2">
-            <Label htmlFor="leaseVendor">Lease Vendor</Label>
-            <Input
-              id="leaseVendor"
-              value={formData.leaseVendor}
-              onChange={(e) => updateField("leaseVendor", e.target.value)}
-              placeholder="Enter lease vendor name"
-            />
-          </div>
-        </div>
 
-        <div className="space-y-2">
-          <Label htmlFor="leaseAddress">Lease Address</Label>
-          <Input
-            id="leaseAddress"
-            value={formData.leaseAddress}
-            onChange={(e) => updateField("leaseAddress", e.target.value)}
-            placeholder="Enter lease company address"
-          />
-        </div>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div className="space-y-2">
+              <Label htmlFor="customerHeaderAddress">Address Line 1</Label>
+              <Input
+                id="customerHeaderAddress"
+                value={formData.customerHeaderAddress}
+                onChange={(e) => updateField("customerHeaderAddress", e.target.value)}
+                placeholder="Street address"
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="customerHeaderAddress2">Address Line 2</Label>
+              <Input
+                id="customerHeaderAddress2"
+                value={formData.customerHeaderAddress2}
+                onChange={(e) => updateField("customerHeaderAddress2", e.target.value)}
+                placeholder="Suite, unit, etc."
+              />
+            </div>
+          </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <div className="space-y-2">
+              <Label htmlFor="customerHeaderCity">City</Label>
+              <Input
+                id="customerHeaderCity"
+                value={formData.customerHeaderCity}
+                onChange={(e) => updateField("customerHeaderCity", e.target.value)}
+                placeholder="City"
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="customerHeaderState">State</Label>
+              <Input
+                id="customerHeaderState"
+                value={formData.customerHeaderState}
+                onChange={(e) => updateField("customerHeaderState", e.target.value)}
+                placeholder="State"
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="customerHeaderZip">Zip</Label>
+              <Input
+                id="customerHeaderZip"
+                value={formData.customerHeaderZip}
+                onChange={(e) => updateField("customerHeaderZip", e.target.value)}
+                placeholder="ZIP Code"
+              />
+            </div>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div className="space-y-2">
+              <Label htmlFor="customerHeaderPhone">Phone (optional)</Label>
+              <Input
+                id="customerHeaderPhone"
+                value={formData.customerHeaderPhone}
+                onChange={(e) => updateField("customerHeaderPhone", e.target.value)}
+                placeholder="(555) 123-4567"
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="customerHeaderWebsite">Website (optional)</Label>
+              <Input
+                id="customerHeaderWebsite"
+                value={formData.customerHeaderWebsite}
+                onChange={(e) => updateField("customerHeaderWebsite", e.target.value)}
+                placeholder="www.example.com"
+              />
+            </div>
+          </div>
+        </SectionCard>
+        {/* Lease Company Information */}
+        <SectionCard title="Lease Company Information" icon={Building2}>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div className="space-y-2">
+              <Label>Lease Expiration Date</Label>
+              <Popover>
+                <PopoverTrigger asChild>
+                  <Button
+                    variant="outline"
+                    className={cn(
+                      "w-full justify-start text-left font-normal",
+                      !formData.leaseExpirationDate && "text-muted-foreground",
+                    )}
+                  >
+                    <CalendarIcon className="mr-2 h-4 w-4" />
+                    {formData.leaseExpirationDate ? format(formData.leaseExpirationDate, "MM/dd/yyyy") : "Select date"}
+                  </Button>
+                </PopoverTrigger>
+                <PopoverContent className="w-auto p-0" align="start">
+                  <Calendar
+                    mode="single"
+                    selected={formData.leaseExpirationDate || undefined}
+                    onSelect={(date) => updateField("leaseExpirationDate", date || null)}
+                    initialFocus
+                    className="pointer-events-auto"
+                  />
+                </PopoverContent>
+              </Popover>
+            </div>
+            <div className="space-y-2">
+              <Label>60 Day Letter Due</Label>
+              <Popover>
+                <PopoverTrigger asChild>
+                  <Button
+                    variant="outline"
+                    className={cn(
+                      "w-full justify-start text-left font-normal",
+                      !formData.sixtyDayLetterDue && "text-muted-foreground",
+                    )}
+                  >
+                    <CalendarIcon className="mr-2 h-4 w-4" />
+                    {formData.sixtyDayLetterDue ? format(formData.sixtyDayLetterDue, "MM/dd/yyyy") : "Auto-calculated"}
+                  </Button>
+                </PopoverTrigger>
+                <PopoverContent className="w-auto p-0" align="start">
+                  <Calendar
+                    mode="single"
+                    selected={formData.sixtyDayLetterDue || undefined}
+                    onSelect={(date) => updateField("sixtyDayLetterDue", date || null)}
+                    initialFocus
+                    className="pointer-events-auto"
+                  />
+                </PopoverContent>
+              </Popover>
+              <p className="text-xs text-muted-foreground">Auto-calculated: 60 days before expiration</p>
+            </div>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div className="space-y-2">
+              <Label htmlFor="leaseNumber">Lease Number</Label>
+              <Input
+                id="leaseNumber"
+                value={formData.leaseNumber}
+                onChange={(e) => updateField("leaseNumber", e.target.value)}
+                placeholder="Enter lease number"
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="leaseVendor">Lease Vendor</Label>
+              <Input
+                id="leaseVendor"
+                value={formData.leaseVendor}
+                onChange={(e) => updateField("leaseVendor", e.target.value)}
+                placeholder="Enter lease vendor name"
+              />
+            </div>
+          </div>
+
           <div className="space-y-2">
-            <Label htmlFor="leaseCityState">City, State</Label>
+            <Label htmlFor="leaseAddress">Lease Address</Label>
             <Input
-              id="leaseCityState"
-              value={formData.leaseCityState}
-              onChange={(e) => updateField("leaseCityState", e.target.value)}
-              placeholder="City, State"
+              id="leaseAddress"
+              value={formData.leaseAddress}
+              onChange={(e) => updateField("leaseAddress", e.target.value)}
+              placeholder="Enter lease company address"
             />
           </div>
-          <div className="space-y-2">
-            <Label htmlFor="leaseZip">Zip</Label>
-            <Input
-              id="leaseZip"
-              value={formData.leaseZip}
-              onChange={(e) => updateField("leaseZip", e.target.value)}
-              placeholder="ZIP Code"
-            />
+
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div className="space-y-2">
+              <Label htmlFor="leaseCityState">City, State</Label>
+              <Input
+                id="leaseCityState"
+                value={formData.leaseCityState}
+                onChange={(e) => updateField("leaseCityState", e.target.value)}
+                placeholder="City, State"
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="leaseZip">Zip</Label>
+              <Input
+                id="leaseZip"
+                value={formData.leaseZip}
+                onChange={(e) => updateField("leaseZip", e.target.value)}
+                placeholder="ZIP Code"
+              />
+            </div>
           </div>
-        </div>
-      </SectionCard>
+        </SectionCard>
+      </div>
 
       {/* Customer Information */}
       <SectionCard title="Customer Information" icon={Building2}>
@@ -694,60 +695,60 @@ export function LoiForm({
         </div>
       </SectionCard>
 
-      {/* Termination Details */}
-      <SectionCard title="Termination Request Details" icon={FileText}>
-        <div className="space-y-2">
-          <Label htmlFor="contractNumber">Contract Number</Label>
-          <Input
-            id="contractNumber"
-            value={formData.contractNumber}
-            onChange={(e) => updateField("contractNumber", e.target.value)}
-            placeholder="Contract # to terminate"
-          />
-          <p className="text-xs text-muted-foreground">This is used in the termination request text</p>
-        </div>
-
-        <div className="space-y-2">
-          <Label htmlFor="returnInstructionsEmail">Return Instructions Email</Label>
-          <Input
-            id="returnInstructionsEmail"
-            type="email"
-            value={formData.returnInstructionsEmail}
-            onChange={(e) => updateField("returnInstructionsEmail", e.target.value)}
-            placeholder="Email for return instructions"
-          />
-          <p className="text-xs text-muted-foreground">Where the leasing company should send return instructions</p>
-        </div>
-      </SectionCard>
-
-      {/* Customer Signature */}
-      <SectionCard title="Customer Signature" icon={Building2}>
-        <p className="text-xs text-muted-foreground bg-muted p-2 rounded">
-          ℹ️ This section is completed by the customer who is requesting lease termination. Enter the customer contact's
-          name and title — they will sign this document.
-        </p>
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4 items-start">
+        {/* Termination Details */}
+        <SectionCard title="Termination Request Details" icon={FileText}>
           <div className="space-y-2">
-            <Label htmlFor="signerName">Customer Name</Label>
+            <Label htmlFor="contractNumber">Contract Number</Label>
             <Input
-              id="signerName"
-              value={formData.signerName}
-              onChange={(e) => updateField("signerName", e.target.value)}
-              placeholder="Customer's full name"
+              id="contractNumber"
+              value={formData.contractNumber}
+              onChange={(e) => updateField("contractNumber", e.target.value)}
+              placeholder="Contract # to terminate"
             />
+            <p className="text-xs text-muted-foreground">This is used in the termination request text</p>
           </div>
-          <div className="space-y-2">
-            <Label htmlFor="signerTitle">Customer Title</Label>
-            <Input
-              id="signerTitle"
-              value={formData.signerTitle}
-              onChange={(e) => updateField("signerTitle", e.target.value)}
-              placeholder="Customer's job title"
-            />
-          </div>
-        </div>
-      </SectionCard>
 
+          <div className="space-y-2">
+            <Label htmlFor="returnInstructionsEmail">Return Instructions Email</Label>
+            <Input
+              id="returnInstructionsEmail"
+              type="email"
+              value={formData.returnInstructionsEmail}
+              onChange={(e) => updateField("returnInstructionsEmail", e.target.value)}
+              placeholder="Email for return instructions"
+            />
+            <p className="text-xs text-muted-foreground">Where the leasing company should send return instructions</p>
+          </div>
+        </SectionCard>
+        {/* Customer Signature */}
+        <SectionCard title="Customer Signature" icon={Building2}>
+          <p className="text-xs text-muted-foreground bg-muted p-2 rounded">
+            ℹ️ This section is completed by the customer who is requesting lease termination. Enter the customer
+            contact's name and title — they will sign this document.
+          </p>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div className="space-y-2">
+              <Label htmlFor="signerName">Customer Name</Label>
+              <Input
+                id="signerName"
+                value={formData.signerName}
+                onChange={(e) => updateField("signerName", e.target.value)}
+                placeholder="Customer's full name"
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="signerTitle">Customer Title</Label>
+              <Input
+                id="signerTitle"
+                value={formData.signerTitle}
+                onChange={(e) => updateField("signerTitle", e.target.value)}
+                placeholder="Customer's job title"
+              />
+            </div>
+          </div>
+        </SectionCard>
+      </div>
     </div>
   );
 }
