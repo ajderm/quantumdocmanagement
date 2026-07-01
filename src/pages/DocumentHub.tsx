@@ -3739,7 +3739,14 @@ function DocumentHubContent() {
               <span className="h-1.5 w-1.5 rounded-full bg-qbs-green-500" />
               {loading ? "Syncing…" : "Synced"}
             </span>
-            {userPermissions.is_admin && (
+            {/*
+              Show Settings for admins, OR when no user roles have been
+              configured yet for this portal. Without the second condition the
+              app locks everyone out of Settings before roles exist, since
+              Settings is where roles are managed. Once roles are configured
+              (with at least one admin) this reverts to admin-only automatically.
+            */}
+            {(userPermissions.is_admin || userPermissions.reason === "no_roles_configured") && (
               <Button
                 variant="ghost"
                 size="sm"
