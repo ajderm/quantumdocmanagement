@@ -1,10 +1,13 @@
 import { useState, useEffect, useRef } from "react";
+import { SectionCard, FieldGrid, Field } from "@/components/shared";
+import { Switch } from "@/components/ui/switch";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { FileSignature, FileText, MapPin, MessageSquare, Package, PenLine } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Checkbox } from "@/components/ui/checkbox";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Plus, Trash2 } from "lucide-react";
 
 export interface RemovalEquipmentItem {
@@ -47,6 +50,9 @@ export interface RemovalFormData {
 
   // Signature section
   salesRepresentative: string;
+  termsInclude?: boolean;
+  termsTemplateId?: string;
+  termsCustomText?: string;
 }
 
 interface Company {
@@ -263,7 +269,7 @@ export function RemovalForm({
         labeledContacts,
         dealOwner,
         lineItems,
-      })
+      }),
     );
 
     hasAppliedHubspotSeedRef.current = true;
@@ -329,193 +335,186 @@ export function RemovalForm({
   return (
     <div className="space-y-4">
       {/* Header Information */}
-      <Card>
-        <CardHeader className="py-3">
-          <CardTitle className="text-sm">Header Information</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-            <div className="space-y-2">
-              <Label htmlFor="idNumber">ID Number</Label>
-              <Input
-                id="idNumber"
-                value={formData.idNumber}
-                onChange={(e) => updateField("idNumber", e.target.value)}
-                placeholder="e.g., RM-12345"
-              />
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="meterBlack">Meter Black</Label>
-              <Input
-                id="meterBlack"
-                value={formData.meterBlack}
-                onChange={(e) => updateField("meterBlack", e.target.value)}
-                placeholder="0"
-              />
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="meterColor">Meter Color</Label>
-              <Input
-                id="meterColor"
-                value={formData.meterColor}
-                onChange={(e) => updateField("meterColor", e.target.value)}
-                placeholder="0"
-              />
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="meterTotal">Meter Total</Label>
-              <Input
-                id="meterTotal"
-                value={formData.meterTotal}
-                onChange={(e) => updateField("meterTotal", e.target.value)}
-                placeholder="0"
-              />
-            </div>
+      <SectionCard title="Header Information" icon={FileText}>
+        <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+          <div className="space-y-2">
+            <Label htmlFor="idNumber">ID Number</Label>
+            <Input
+              id="idNumber"
+              value={formData.idNumber}
+              onChange={(e) => updateField("idNumber", e.target.value)}
+              placeholder="e.g., RM-12345"
+            />
           </div>
-        </CardContent>
-      </Card>
+          <div className="space-y-2">
+            <Label htmlFor="meterBlack">Meter Black</Label>
+            <Input
+              id="meterBlack"
+              value={formData.meterBlack}
+              onChange={(e) => updateField("meterBlack", e.target.value)}
+              placeholder="0"
+            />
+          </div>
+          <div className="space-y-2">
+            <Label htmlFor="meterColor">Meter Color</Label>
+            <Input
+              id="meterColor"
+              value={formData.meterColor}
+              onChange={(e) => updateField("meterColor", e.target.value)}
+              placeholder="0"
+            />
+          </div>
+          <div className="space-y-2">
+            <Label htmlFor="meterTotal">Meter Total</Label>
+            <Input
+              id="meterTotal"
+              value={formData.meterTotal}
+              onChange={(e) => updateField("meterTotal", e.target.value)}
+              placeholder="0"
+            />
+          </div>
+        </div>
+      </SectionCard>
 
       {/* Ship To / Bill To */}
-      <Card>
-        <CardHeader className="py-3">
-          <CardTitle className="text-sm">Ship To / Bill To</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            {/* Ship To */}
-            <div className="space-y-3">
-              <div className="text-sm font-semibold text-muted-foreground">Ship To</div>
+      <SectionCard title="Ship To / Bill To" icon={MapPin}>
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+          {/* Ship To */}
+          <div className="space-y-3">
+            <div className="text-sm font-semibold text-muted-foreground">Ship To</div>
+            <div className="space-y-2">
+              <Label htmlFor="shipToCustomer">Customer</Label>
+              <Input
+                id="shipToCustomer"
+                value={formData.shipToCustomer}
+                onChange={(e) => updateField("shipToCustomer", e.target.value)}
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="shipToAddress">Address</Label>
+              <Input
+                id="shipToAddress"
+                value={formData.shipToAddress}
+                onChange={(e) => updateField("shipToAddress", e.target.value)}
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="shipToCityZip">City, State Zip</Label>
+              <Input
+                id="shipToCityZip"
+                value={formData.shipToCityZip}
+                onChange={(e) => updateField("shipToCityZip", e.target.value)}
+              />
+            </div>
+            <div className="grid grid-cols-2 gap-2">
               <div className="space-y-2">
-                <Label htmlFor="shipToCustomer">Customer</Label>
+                <Label htmlFor="shipToPhone">Phone</Label>
                 <Input
-                  id="shipToCustomer"
-                  value={formData.shipToCustomer}
-                  onChange={(e) => updateField("shipToCustomer", e.target.value)}
+                  id="shipToPhone"
+                  value={formData.shipToPhone}
+                  onChange={(e) => updateField("shipToPhone", e.target.value)}
                 />
               </div>
               <div className="space-y-2">
-                <Label htmlFor="shipToAddress">Address</Label>
+                <Label htmlFor="shipToContact">Contact</Label>
                 <Input
-                  id="shipToAddress"
-                  value={formData.shipToAddress}
-                  onChange={(e) => updateField("shipToAddress", e.target.value)}
-                />
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="shipToCityZip">City, State Zip</Label>
-                <Input
-                  id="shipToCityZip"
-                  value={formData.shipToCityZip}
-                  onChange={(e) => updateField("shipToCityZip", e.target.value)}
-                />
-              </div>
-              <div className="grid grid-cols-2 gap-2">
-                <div className="space-y-2">
-                  <Label htmlFor="shipToPhone">Phone</Label>
-                  <Input
-                    id="shipToPhone"
-                    value={formData.shipToPhone}
-                    onChange={(e) => updateField("shipToPhone", e.target.value)}
-                  />
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="shipToContact">Contact</Label>
-                  <Input
-                    id="shipToContact"
-                    value={formData.shipToContact}
-                    onChange={(e) => updateField("shipToContact", e.target.value)}
-                  />
-                </div>
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="shipToEmail">Email</Label>
-                <Input
-                  id="shipToEmail"
-                  value={formData.shipToEmail}
-                  onChange={(e) => updateField("shipToEmail", e.target.value)}
+                  id="shipToContact"
+                  value={formData.shipToContact}
+                  onChange={(e) => updateField("shipToContact", e.target.value)}
                 />
               </div>
             </div>
-
-            {/* Bill To */}
-            <div className="space-y-3">
-              <div className="flex items-center justify-between">
-                <div className="text-sm font-semibold text-muted-foreground">Bill To</div>
-                <div className="flex items-center gap-2">
-                  <Checkbox
-                    id="billToSameAsShipTo"
-                    checked={formData.billToSameAsShipTo}
-                    onCheckedChange={(checked) => updateField("billToSameAsShipTo", checked === true)}
-                  />
-                  <Label htmlFor="billToSameAsShipTo" className="text-xs">Same as Ship To</Label>
-                </div>
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="billToCustomer">Customer</Label>
-                <Input
-                  id="billToCustomer"
-                  value={formData.billToCustomer}
-                  onChange={(e) => updateField("billToCustomer", e.target.value)}
-                  disabled={formData.billToSameAsShipTo}
-                />
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="billToAddress">Address</Label>
-                <Input
-                  id="billToAddress"
-                  value={formData.billToAddress}
-                  onChange={(e) => updateField("billToAddress", e.target.value)}
-                  disabled={formData.billToSameAsShipTo}
-                />
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="billToCityZip">City, State Zip</Label>
-                <Input
-                  id="billToCityZip"
-                  value={formData.billToCityZip}
-                  onChange={(e) => updateField("billToCityZip", e.target.value)}
-                  disabled={formData.billToSameAsShipTo}
-                />
-              </div>
-              <div className="grid grid-cols-2 gap-2">
-                <div className="space-y-2">
-                  <Label htmlFor="billToPhone">Phone</Label>
-                  <Input
-                    id="billToPhone"
-                    value={formData.billToPhone}
-                    onChange={(e) => updateField("billToPhone", e.target.value)}
-                    disabled={formData.billToSameAsShipTo}
-                  />
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="billToContact">Contact</Label>
-                  <Input
-                    id="billToContact"
-                    value={formData.billToContact}
-                    onChange={(e) => updateField("billToContact", e.target.value)}
-                    disabled={formData.billToSameAsShipTo}
-                  />
-                </div>
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="billToEmail">Email</Label>
-                <Input
-                  id="billToEmail"
-                  value={formData.billToEmail}
-                  onChange={(e) => updateField("billToEmail", e.target.value)}
-                  disabled={formData.billToSameAsShipTo}
-                />
-              </div>
+            <div className="space-y-2">
+              <Label htmlFor="shipToEmail">Email</Label>
+              <Input
+                id="shipToEmail"
+                value={formData.shipToEmail}
+                onChange={(e) => updateField("shipToEmail", e.target.value)}
+              />
             </div>
           </div>
-        </CardContent>
-      </Card>
+
+          {/* Bill To */}
+          <div className="space-y-3">
+            <div className="flex items-center justify-between">
+              <div className="text-sm font-semibold text-muted-foreground">Bill To</div>
+              <div className="flex items-center gap-2">
+                <Checkbox
+                  id="billToSameAsShipTo"
+                  checked={formData.billToSameAsShipTo}
+                  onCheckedChange={(checked) => updateField("billToSameAsShipTo", checked === true)}
+                />
+                <Label htmlFor="billToSameAsShipTo" className="text-xs">
+                  Same as Ship To
+                </Label>
+              </div>
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="billToCustomer">Customer</Label>
+              <Input
+                id="billToCustomer"
+                value={formData.billToCustomer}
+                onChange={(e) => updateField("billToCustomer", e.target.value)}
+                disabled={formData.billToSameAsShipTo}
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="billToAddress">Address</Label>
+              <Input
+                id="billToAddress"
+                value={formData.billToAddress}
+                onChange={(e) => updateField("billToAddress", e.target.value)}
+                disabled={formData.billToSameAsShipTo}
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="billToCityZip">City, State Zip</Label>
+              <Input
+                id="billToCityZip"
+                value={formData.billToCityZip}
+                onChange={(e) => updateField("billToCityZip", e.target.value)}
+                disabled={formData.billToSameAsShipTo}
+              />
+            </div>
+            <div className="grid grid-cols-2 gap-2">
+              <div className="space-y-2">
+                <Label htmlFor="billToPhone">Phone</Label>
+                <Input
+                  id="billToPhone"
+                  value={formData.billToPhone}
+                  onChange={(e) => updateField("billToPhone", e.target.value)}
+                  disabled={formData.billToSameAsShipTo}
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="billToContact">Contact</Label>
+                <Input
+                  id="billToContact"
+                  value={formData.billToContact}
+                  onChange={(e) => updateField("billToContact", e.target.value)}
+                  disabled={formData.billToSameAsShipTo}
+                />
+              </div>
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="billToEmail">Email</Label>
+              <Input
+                id="billToEmail"
+                value={formData.billToEmail}
+                onChange={(e) => updateField("billToEmail", e.target.value)}
+                disabled={formData.billToSameAsShipTo}
+              />
+            </div>
+          </div>
+        </div>
+      </SectionCard>
 
       {/* Equipment */}
-      <Card>
-        <CardHeader className="py-3">
-          <CardTitle className="text-sm flex items-center justify-between">
-            <span>Equipment ({formData.equipmentItems.length}/{MAX_EQUIPMENT_ROWS})</span>
+      <SectionCard
+        title={`Equipment (${formData.equipmentItems.length}/${MAX_EQUIPMENT_ROWS})`}
+        icon={Package}
+        action={
+          <>
             <Button
               type="button"
               variant="outline"
@@ -526,104 +525,132 @@ export function RemovalForm({
               <Plus className="h-4 w-4 mr-1" />
               Add Row
             </Button>
-          </CardTitle>
-        </CardHeader>
-        <CardContent>
-          <div className="space-y-2">
-            <div className="grid grid-cols-12 gap-2 text-xs font-medium text-muted-foreground px-1">
-              <div className="col-span-1">Qty</div>
-              <div className="col-span-2">Item #</div>
-              <div className="col-span-5">Make * Model * Description</div>
-              <div className="col-span-3">Serial #</div>
-              <div className="col-span-1"></div>
-            </div>
-            {formData.equipmentItems.map((item, index) => (
-              <div key={item.id} className="grid grid-cols-12 gap-2">
-                <div className="col-span-1">
-                  <Input
-                    value={item.qty}
-                    onChange={(e) => updateEquipmentItem(index, "qty", e.target.value)}
-                    placeholder="1"
-                    className="h-8 text-sm"
-                  />
-                </div>
-                <div className="col-span-2">
-                  <Input
-                    value={item.itemNumber}
-                    onChange={(e) => updateEquipmentItem(index, "itemNumber", e.target.value)}
-                    placeholder="Item #"
-                    className="h-8 text-sm"
-                  />
-                </div>
-                <div className="col-span-5">
-                  <Input
-                    value={item.makeModelDescription}
-                    onChange={(e) => updateEquipmentItem(index, "makeModelDescription", e.target.value)}
-                    placeholder="Make * Model * Description"
-                    className="h-8 text-sm"
-                  />
-                </div>
-                <div className="col-span-3">
-                  <Input
-                    value={item.serialNumber}
-                    onChange={(e) => updateEquipmentItem(index, "serialNumber", e.target.value)}
-                    placeholder="Serial #"
-                    className="h-8 text-sm"
-                  />
-                </div>
-                <div className="col-span-1 flex justify-center">
-                  <Button
-                    type="button"
-                    variant="ghost"
-                    size="sm"
-                    onClick={() => removeEquipmentRow(index)}
-                    disabled={formData.equipmentItems.length <= 1}
-                    className="h-8 w-8 p-0"
-                  >
-                    <Trash2 className="h-4 w-4 text-muted-foreground hover:text-destructive" />
-                  </Button>
-                </div>
-              </div>
-            ))}
+          </>
+        }
+      >
+        <div className="space-y-2">
+          <div className="grid grid-cols-12 gap-2 text-xs font-medium text-muted-foreground px-1">
+            <div className="col-span-1">Qty</div>
+            <div className="col-span-2">Item #</div>
+            <div className="col-span-5">Make * Model * Description</div>
+            <div className="col-span-3">Serial #</div>
+            <div className="col-span-1"></div>
           </div>
-        </CardContent>
-      </Card>
+          {formData.equipmentItems.map((item, index) => (
+            <div key={item.id} className="grid grid-cols-12 gap-2">
+              <div className="col-span-1">
+                <Input
+                  value={item.qty}
+                  onChange={(e) => updateEquipmentItem(index, "qty", e.target.value)}
+                  placeholder="1"
+                  className="h-8 text-sm"
+                />
+              </div>
+              <div className="col-span-2">
+                <Input
+                  value={item.itemNumber}
+                  onChange={(e) => updateEquipmentItem(index, "itemNumber", e.target.value)}
+                  placeholder="Item #"
+                  className="h-8 text-sm"
+                />
+              </div>
+              <div className="col-span-5">
+                <Input
+                  value={item.makeModelDescription}
+                  onChange={(e) => updateEquipmentItem(index, "makeModelDescription", e.target.value)}
+                  placeholder="Make * Model * Description"
+                  className="h-8 text-sm"
+                />
+              </div>
+              <div className="col-span-3">
+                <Input
+                  value={item.serialNumber}
+                  onChange={(e) => updateEquipmentItem(index, "serialNumber", e.target.value)}
+                  placeholder="Serial #"
+                  className="h-8 text-sm"
+                />
+              </div>
+              <div className="col-span-1 flex justify-center">
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => removeEquipmentRow(index)}
+                  disabled={formData.equipmentItems.length <= 1}
+                  className="h-8 w-8 p-0"
+                >
+                  <Trash2 className="h-4 w-4 text-muted-foreground hover:text-destructive" />
+                </Button>
+              </div>
+            </div>
+          ))}
+        </div>
+      </SectionCard>
 
       {/* Additional Comments */}
-      <Card>
-        <CardHeader className="py-3">
-          <CardTitle className="text-sm">Additional Comments</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <Textarea
-            value={formData.additionalComments}
-            onChange={(e) => updateField("additionalComments", e.target.value)}
-            placeholder="Enter any additional comments or notes..."
-            rows={3}
-          />
-        </CardContent>
-      </Card>
+      <SectionCard title="Additional Comments" icon={MessageSquare}>
+        <Textarea
+          value={formData.additionalComments}
+          onChange={(e) => updateField("additionalComments", e.target.value)}
+          placeholder="Enter any additional comments or notes..."
+          rows={3}
+        />
+      </SectionCard>
 
       {/* Signature Information */}
-      <Card>
-        <CardHeader className="py-3">
-          <CardTitle className="text-sm">Signature Information</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <div className="space-y-2">
-            <Label htmlFor="salesRepresentative">Sales Representative</Label>
-            <Input
-              id="salesRepresentative"
-              value={formData.salesRepresentative}
-              onChange={(e) => updateField("salesRepresentative", e.target.value)}
-              placeholder="Sales rep name"
+      <SectionCard title="Signature Information" icon={PenLine}>
+        <div className="space-y-2">
+          <Label htmlFor="salesRepresentative">Sales Representative</Label>
+          <Input
+            id="salesRepresentative"
+            value={formData.salesRepresentative}
+            onChange={(e) => updateField("salesRepresentative", e.target.value)}
+            placeholder="Sales rep name"
+          />
+          <p className="text-xs text-muted-foreground">Customer signature fields appear on the output document only</p>
+        </div>
+      </SectionCard>
+
+      {/* Terms & conditions (new; form capture only - the preview is intentionally unchanged) */}
+      <SectionCard
+        title="Terms &amp; conditions"
+        icon={FileSignature}
+        description="Captured with the document. Document rendering is wired in a later phase."
+        action={
+          <label className="flex items-center gap-2 cursor-pointer">
+            <span className="text-xs text-muted-foreground">Include on document</span>
+            <Switch checked={!!formData.termsInclude} onCheckedChange={(c) => updateField("termsInclude", c)} />
+          </label>
+        }
+      >
+        <div className="space-y-3">
+          <FieldGrid columns={2}>
+            <Field label="Template" hint="Backend templates connect when Settings migrates to HubSpot">
+              <Select
+                value={formData.termsTemplateId || "custom"}
+                onValueChange={(v) => updateField("termsTemplateId", v === "custom" ? "" : v)}
+              >
+                <SelectTrigger className="h-9 text-sm">
+                  <SelectValue placeholder="Custom text only" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="custom">Custom text only</SelectItem>
+                  <SelectItem value="standard">Standard terms</SelectItem>
+                  <SelectItem value="government">Government / public sector</SelectItem>
+                </SelectContent>
+              </Select>
+            </Field>
+          </FieldGrid>
+          <Field label="Custom text">
+            <Textarea
+              value={formData.termsCustomText || ""}
+              onChange={(e) => updateField("termsCustomText", e.target.value)}
+              placeholder="Enter any document-specific terms and conditions..."
+              className="text-sm min-h-[96px]"
             />
-            <p className="text-xs text-muted-foreground">
-              Customer signature fields appear on the output document only
-            </p>
-          </div>
-        </CardContent>
-      </Card>
+          </Field>
+        </div>
+      </SectionCard>
     </div>
   );
 }
