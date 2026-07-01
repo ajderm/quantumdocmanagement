@@ -1,13 +1,14 @@
-import { useEffect, useCallback } from 'react';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
-import { Textarea } from '@/components/ui/textarea';
-import { Separator } from '@/components/ui/separator';
-import { DynamicFieldRenderer, evaluateFormula, formatFieldNumber } from './DynamicFieldRenderer';
-import { TableSectionRenderer } from './TableSectionRenderer';
-import type { CustomDocument, DocumentSection, DocumentField } from '@/components/admin/types';
-import { EXISTING_DOCUMENT_FIELDS } from '@/components/admin/types';
+import { useEffect, useCallback } from "react";
+import { SectionCard } from "@/components/shared";
+import { FileText, LayoutGrid, AlignLeft, Calculator, PenLine, FileSignature } from "lucide-react";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Textarea } from "@/components/ui/textarea";
+import { Separator } from "@/components/ui/separator";
+import { DynamicFieldRenderer, evaluateFormula, formatFieldNumber } from "./DynamicFieldRenderer";
+import { TableSectionRenderer } from "./TableSectionRenderer";
+import type { CustomDocument, DocumentSection, DocumentField } from "@/components/admin/types";
+import { EXISTING_DOCUMENT_FIELDS } from "@/components/admin/types";
 
 interface LabeledContact {
   firstName: string;
@@ -67,112 +68,119 @@ export function CustomDocumentForm({
   fieldMappings,
 }: CustomDocumentFormProps) {
   // Resolve value from existing document fields
-  const resolveExistingField = useCallback((key: string): string => {
-    const mappings: Record<string, () => string> = {
-      companyName: () => company?.properties?.name || company?.name || '',
-      companyAddress: () => company?.properties?.address || company?.address || '',
-      companyCity: () => company?.properties?.city || company?.city || '',
-      companyState: () => company?.properties?.state || company?.state || '',
-      companyZip: () => company?.properties?.zip || company?.zip || '',
-      companyPhone: () => company?.properties?.phone || company?.phone || '',
-      customerNumber: () => company?.properties?.customer_number || '',
-      
-      shipToCompany: () => company?.properties?.name || company?.name || '',
-      shipToAddress: () => company?.properties?.delivery_address || company?.deliveryAddress || '',
-      shipToCity: () => company?.properties?.delivery_city || company?.deliveryCity || '',
-      shipToState: () => company?.properties?.delivery_state || company?.deliveryState || '',
-      shipToZip: () => company?.properties?.delivery_zip || company?.deliveryZip || '',
-      shipToContact: () => labeledContacts?.shippingContact 
-        ? `${labeledContacts.shippingContact.firstName} ${labeledContacts.shippingContact.lastName}`.trim() 
-        : '',
-      shipToEmail: () => labeledContacts?.shippingContact?.email || '',
-      shipToPhone: () => labeledContacts?.shippingContact?.phone || '',
-      
-      billToCompany: () => company?.properties?.name || company?.name || '',
-      billToAddress: () => company?.properties?.address || company?.address || '',
-      billToCity: () => company?.properties?.city || company?.city || '',
-      billToState: () => company?.properties?.state || company?.state || '',
-      billToZip: () => company?.properties?.zip || company?.zip || '',
-      apContactName: () => labeledContacts?.apContact 
-        ? `${labeledContacts.apContact.firstName} ${labeledContacts.apContact.lastName}`.trim() 
-        : '',
-      apContactEmail: () => labeledContacts?.apContact?.email || '',
-      apContactPhone: () => labeledContacts?.apContact?.phone || '',
-      
-      dealName: () => deal?.properties?.dealname || deal?.dealname || '',
-      dealAmount: () => deal?.properties?.amount || deal?.amount || '',
-      closeDate: () => deal?.properties?.closedate || deal?.closedate || '',
-      
-      ownerName: () => dealOwner 
-        ? `${dealOwner.firstName || ''} ${dealOwner.lastName || ''}`.trim() 
-        : '',
-      ownerEmail: () => dealOwner?.email || '',
-      ownerPhone: () => dealOwner?.phone || '',
-      
-      itContactName: () => labeledContacts?.itContact 
-        ? `${labeledContacts.itContact.firstName} ${labeledContacts.itContact.lastName}`.trim() 
-        : '',
-      itContactEmail: () => labeledContacts?.itContact?.email || '',
-      itContactPhone: () => labeledContacts?.itContact?.phone || '',
-    };
-    
-    return mappings[key]?.() || '';
-  }, [company, deal, dealOwner, labeledContacts]);
+  const resolveExistingField = useCallback(
+    (key: string): string => {
+      const mappings: Record<string, () => string> = {
+        companyName: () => company?.properties?.name || company?.name || "",
+        companyAddress: () => company?.properties?.address || company?.address || "",
+        companyCity: () => company?.properties?.city || company?.city || "",
+        companyState: () => company?.properties?.state || company?.state || "",
+        companyZip: () => company?.properties?.zip || company?.zip || "",
+        companyPhone: () => company?.properties?.phone || company?.phone || "",
+        customerNumber: () => company?.properties?.customer_number || "",
+
+        shipToCompany: () => company?.properties?.name || company?.name || "",
+        shipToAddress: () => company?.properties?.delivery_address || company?.deliveryAddress || "",
+        shipToCity: () => company?.properties?.delivery_city || company?.deliveryCity || "",
+        shipToState: () => company?.properties?.delivery_state || company?.deliveryState || "",
+        shipToZip: () => company?.properties?.delivery_zip || company?.deliveryZip || "",
+        shipToContact: () =>
+          labeledContacts?.shippingContact
+            ? `${labeledContacts.shippingContact.firstName} ${labeledContacts.shippingContact.lastName}`.trim()
+            : "",
+        shipToEmail: () => labeledContacts?.shippingContact?.email || "",
+        shipToPhone: () => labeledContacts?.shippingContact?.phone || "",
+
+        billToCompany: () => company?.properties?.name || company?.name || "",
+        billToAddress: () => company?.properties?.address || company?.address || "",
+        billToCity: () => company?.properties?.city || company?.city || "",
+        billToState: () => company?.properties?.state || company?.state || "",
+        billToZip: () => company?.properties?.zip || company?.zip || "",
+        apContactName: () =>
+          labeledContacts?.apContact
+            ? `${labeledContacts.apContact.firstName} ${labeledContacts.apContact.lastName}`.trim()
+            : "",
+        apContactEmail: () => labeledContacts?.apContact?.email || "",
+        apContactPhone: () => labeledContacts?.apContact?.phone || "",
+
+        dealName: () => deal?.properties?.dealname || deal?.dealname || "",
+        dealAmount: () => deal?.properties?.amount || deal?.amount || "",
+        closeDate: () => deal?.properties?.closedate || deal?.closedate || "",
+
+        ownerName: () => (dealOwner ? `${dealOwner.firstName || ""} ${dealOwner.lastName || ""}`.trim() : ""),
+        ownerEmail: () => dealOwner?.email || "",
+        ownerPhone: () => dealOwner?.phone || "",
+
+        itContactName: () =>
+          labeledContacts?.itContact
+            ? `${labeledContacts.itContact.firstName} ${labeledContacts.itContact.lastName}`.trim()
+            : "",
+        itContactEmail: () => labeledContacts?.itContact?.email || "",
+        itContactPhone: () => labeledContacts?.itContact?.phone || "",
+      };
+
+      return mappings[key]?.() || "";
+    },
+    [company, deal, dealOwner, labeledContacts],
+  );
 
   // Resolve value from HubSpot field mapping - uses raw properties first, then structured data
   // Now supports association_path for company-contact resolution
-  const resolveHubSpotField = useCallback((
-    object: string, 
-    property: string,
-    associationPath?: string,
-    associationLabel?: string
-  ): string => {
-    // Handle company-contact path (contact associated with company, not deal)
-    if (object === 'contact' && associationPath === 'company_contact' && associationLabel) {
-      const contact = companyContacts?.[associationLabel];
-      if (contact) {
-        // Check properties first, then direct field (firstName, lastName, email, phone)
-        const propValue = contact.properties?.[property];
-        if (propValue) return String(propValue);
-        // Fallback to direct contact fields
-        const directFields = { firstName: contact.firstName, lastName: contact.lastName, email: contact.email, phone: contact.phone };
-        return directFields[property as keyof typeof directFields] || '';
+  const resolveHubSpotField = useCallback(
+    (object: string, property: string, associationPath?: string, associationLabel?: string): string => {
+      // Handle company-contact path (contact associated with company, not deal)
+      if (object === "contact" && associationPath === "company_contact" && associationLabel) {
+        const contact = companyContacts?.[associationLabel];
+        if (contact) {
+          // Check properties first, then direct field (firstName, lastName, email, phone)
+          const propValue = contact.properties?.[property];
+          if (propValue) return String(propValue);
+          // Fallback to direct contact fields
+          const directFields = {
+            firstName: contact.firstName,
+            lastName: contact.lastName,
+            email: contact.email,
+            phone: contact.phone,
+          };
+          return directFields[property as keyof typeof directFields] || "";
+        }
+        return "";
       }
-      return '';
-    }
 
-    // First try raw properties (from field mappings)
-    if (properties) {
+      // First try raw properties (from field mappings)
+      if (properties) {
+        switch (object) {
+          case "company":
+            if (properties.company?.[property]) return String(properties.company[property]);
+            break;
+          case "deal":
+            if (properties.deal?.[property]) return String(properties.deal[property]);
+            break;
+          case "owner":
+            if (properties.owner?.[property]) return String(properties.owner[property]);
+            break;
+        }
+      }
+
+      // Fallback to structured data
       switch (object) {
-        case 'company':
-          if (properties.company?.[property]) return String(properties.company[property]);
-          break;
-        case 'deal':
-          if (properties.deal?.[property]) return String(properties.deal[property]);
-          break;
-        case 'owner':
-          if (properties.owner?.[property]) return String(properties.owner[property]);
-          break;
+        case "company":
+          return String(company?.properties?.[property] || company?.[property] || "");
+        case "deal":
+          return String(deal?.properties?.[property] || deal?.[property] || "");
+        case "contact": {
+          const sc = labeledContacts?.shippingContact;
+          const directFields = { firstName: sc?.firstName, lastName: sc?.lastName, email: sc?.email, phone: sc?.phone };
+          return directFields[property as keyof typeof directFields] || "";
+        }
+        case "owner":
+          return String(dealOwner?.[property] || "");
+        default:
+          return "";
       }
-    }
-    
-    // Fallback to structured data
-    switch (object) {
-      case 'company':
-        return String(company?.properties?.[property] || company?.[property] || '');
-      case 'deal':
-        return String(deal?.properties?.[property] || deal?.[property] || '');
-      case 'contact': {
-        const sc = labeledContacts?.shippingContact;
-        const directFields = { firstName: sc?.firstName, lastName: sc?.lastName, email: sc?.email, phone: sc?.phone };
-        return directFields[property as keyof typeof directFields] || '';
-      }
-      case 'owner':
-        return String(dealOwner?.[property] || '');
-      default:
-        return '';
-    }
-  }, [company, deal, dealOwner, labeledContacts, companyContacts, properties]);
+    },
+    [company, deal, dealOwner, labeledContacts, companyContacts, properties],
+  );
 
   // Pre-populate fields on mount
   useEffect(() => {
@@ -184,27 +192,27 @@ export function CustomDocumentForm({
     const docMappings = fieldMappings?.[document.code] || fieldMappings?.global || [];
 
     sections.forEach((section) => {
-      if (section.type === 'fields' && section.fields) {
+      if (section.type === "fields" && section.fields) {
         section.fields.forEach((field) => {
           // Only pre-populate if field is empty
           if (!initialData[field.id]) {
-            let value = '';
-            
-            if (field.mapping.source === 'existing' && field.mapping.existingFieldKey) {
+            let value = "";
+
+            if (field.mapping.source === "existing" && field.mapping.existingFieldKey) {
               value = resolveExistingField(field.mapping.existingFieldKey);
-            } else if (field.mapping.source === 'hubspot' && field.mapping.object && field.mapping.property) {
+            } else if (field.mapping.source === "hubspot" && field.mapping.object && field.mapping.property) {
               // Check if there's a field mapping with association_path
               const fieldMapping = docMappings.find(
-                m => m.hubspot_object === field.mapping.object && m.hubspot_property === field.mapping.property
+                (m) => m.hubspot_object === field.mapping.object && m.hubspot_property === field.mapping.property,
               );
               value = resolveHubSpotField(
-                field.mapping.object, 
+                field.mapping.object,
                 field.mapping.property,
                 fieldMapping?.association_path,
-                fieldMapping?.association_label
+                fieldMapping?.association_label,
               );
             }
-            
+
             if (value) {
               initialData[field.id] = value;
               hasChanges = true;
@@ -229,146 +237,116 @@ export function CustomDocumentForm({
 
   const renderSection = (section: DocumentSection) => {
     switch (section.type) {
-      case 'header':
+      case "header":
         return (
-          <Card key={section.id}>
-            <CardHeader className="pb-3">
-              <CardTitle className="text-lg">{section.title}</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <p className="text-sm text-muted-foreground">
-                Header section will display dealer logo and company information on the generated document.
-              </p>
-            </CardContent>
-          </Card>
+          <SectionCard key={section.id} title={section.title} icon={FileText}>
+            <p className="text-sm text-muted-foreground">
+              Header section will display dealer logo and company information on the generated document.
+            </p>
+          </SectionCard>
         );
 
-      case 'fields':
+      case "fields":
         return (
-          <Card key={section.id}>
-            <CardHeader className="pb-3">
-              <CardTitle className="text-lg">{section.title}</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="grid grid-cols-6 gap-4">
-                {(section.fields || []).map((field) => (
-                  <DynamicFieldRenderer
-                    key={field.id}
-                    field={field}
-                    value={formData[field.id]}
-                    onChange={(value) => updateField(field.id, value)}
-                    allFieldValues={formData}
-                  />
-                ))}
-              </div>
-            </CardContent>
-          </Card>
+          <SectionCard key={section.id} title={section.title} icon={LayoutGrid}>
+            <div className="grid grid-cols-6 gap-4">
+              {(section.fields || []).map((field) => (
+                <DynamicFieldRenderer
+                  key={field.id}
+                  field={field}
+                  value={formData[field.id]}
+                  onChange={(value) => updateField(field.id, value)}
+                  allFieldValues={formData}
+                />
+              ))}
+            </div>
+          </SectionCard>
         );
 
-      case 'table':
+      case "table":
         return (
-          <Card key={section.id}>
-            <CardContent className="pt-6">
-              <TableSectionRenderer
-                section={section}
-                rows={formData[`table_${section.id}`] || []}
-                onChange={(rows) => updateTableRows(section.id, rows)}
-                lineItems={lineItems}
-              />
-            </CardContent>
-          </Card>
+          <div key={section.id} className="rounded-xl border border-border bg-card shadow-[var(--shadow-soft)] p-4">
+            <TableSectionRenderer
+              section={section}
+              rows={formData[`table_${section.id}`] || []}
+              onChange={(rows) => updateTableRows(section.id, rows)}
+              lineItems={lineItems}
+            />
+          </div>
         );
 
-      case 'text_block':
+      case "text_block":
         return (
-          <Card key={section.id}>
-            <CardHeader className="pb-3">
-              <CardTitle className="text-lg">{section.title}</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <Textarea
-                value={formData[`textblock_${section.id}`] || section.content || ''}
-                onChange={(e) => updateField(`textblock_${section.id}`, e.target.value)}
-                rows={5}
-                placeholder="Enter content..."
-                className="text-sm"
-              />
-              <p className="text-xs text-muted-foreground mt-1">
-                Use merge fields like {'{{company.name}}'}, {'{{deal.dealname}}'}, {'{{owner.firstName}}'} to auto-populate.
-              </p>
-            </CardContent>
-          </Card>
+          <SectionCard key={section.id} title={section.title} icon={AlignLeft}>
+            <Textarea
+              value={formData[`textblock_${section.id}`] || section.content || ""}
+              onChange={(e) => updateField(`textblock_${section.id}`, e.target.value)}
+              rows={5}
+              placeholder="Enter content..."
+              className="text-sm"
+            />
+            <p className="text-xs text-muted-foreground mt-1">
+              Use merge fields like {"{{company.name}}"}, {"{{deal.dealname}}"}, {"{{owner.firstName}}"} to
+              auto-populate.
+            </p>
+          </SectionCard>
         );
 
-      case 'calculated_summary':
+      case "calculated_summary":
         return (
-          <Card key={section.id}>
-            <CardHeader className="pb-3">
-              <CardTitle className="text-lg">{section.title}</CardTitle>
-            </CardHeader>
-            <CardContent>
+          <SectionCard key={section.id} title={section.title} icon={Calculator}>
+            <div className="space-y-2">
+              {(section.summaryRows || []).map((row) => {
+                const result = evaluateFormula(row.formula, formData);
+                return (
+                  <div
+                    key={row.id}
+                    className={`flex justify-between items-center py-1 ${row.bold ? "font-bold border-t pt-2" : ""}`}
+                  >
+                    <span className="text-sm">{row.label}</span>
+                    <span className="text-sm font-medium">{formatFieldNumber(result, 2, row.prefix, row.suffix)}</span>
+                  </div>
+                );
+              })}
+            </div>
+          </SectionCard>
+        );
+
+      case "signature":
+        return (
+          <SectionCard key={section.id} title={section.title} icon={PenLine}>
+            <div className="grid grid-cols-2 gap-4">
               <div className="space-y-2">
-                {(section.summaryRows || []).map((row) => {
-                  const result = evaluateFormula(row.formula, formData);
-                  return (
-                    <div key={row.id} className={`flex justify-between items-center py-1 ${row.bold ? 'font-bold border-t pt-2' : ''}`}>
-                      <span className="text-sm">{row.label}</span>
-                      <span className="text-sm font-medium">
-                        {formatFieldNumber(result, 2, row.prefix, row.suffix)}
-                      </span>
-                    </div>
-                  );
-                })}
+                <Label>{section.signerLabel || "Signature"}</Label>
+                <Input
+                  value={formData[`sig_${section.id}_name`] || ""}
+                  onChange={(e) => updateField(`sig_${section.id}_name`, e.target.value)}
+                  placeholder="Type full name"
+                  className="font-script italic"
+                />
               </div>
-            </CardContent>
-          </Card>
-        );
-
-      case 'signature':
-        return (
-          <Card key={section.id}>
-            <CardHeader className="pb-3">
-              <CardTitle className="text-lg">{section.title}</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="grid grid-cols-2 gap-4">
+              {section.includeDateLine && (
                 <div className="space-y-2">
-                  <Label>{section.signerLabel || 'Signature'}</Label>
+                  <Label>Date</Label>
                   <Input
-                    value={formData[`sig_${section.id}_name`] || ''}
-                    onChange={(e) => updateField(`sig_${section.id}_name`, e.target.value)}
-                    placeholder="Type full name"
-                    className="font-script italic"
+                    value={formData[`sig_${section.id}_date`] || new Date().toLocaleDateString()}
+                    onChange={(e) => updateField(`sig_${section.id}_date`, e.target.value)}
                   />
                 </div>
-                {section.includeDateLine && (
-                  <div className="space-y-2">
-                    <Label>Date</Label>
-                    <Input
-                      value={formData[`sig_${section.id}_date`] || new Date().toLocaleDateString()}
-                      onChange={(e) => updateField(`sig_${section.id}_date`, e.target.value)}
-                    />
-                  </div>
-                )}
-              </div>
-            </CardContent>
-          </Card>
+              )}
+            </div>
+          </SectionCard>
         );
 
-      case 'terms':
+      case "terms":
         return (
-          <Card key={section.id}>
-            <CardHeader className="pb-3">
-              <CardTitle className="text-lg">Terms & Conditions</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <p className="text-sm text-muted-foreground">
-                {section.showTerms 
-                  ? 'Terms and conditions will be displayed on the generated document.' 
-                  : 'Terms section is hidden.'}
-              </p>
-            </CardContent>
-          </Card>
+          <SectionCard key={section.id} title="Terms & Conditions" icon={FileSignature}>
+            <p className="text-sm text-muted-foreground">
+              {section.showTerms
+                ? "Terms and conditions will be displayed on the generated document."
+                : "Terms section is hidden."}
+            </p>
+          </SectionCard>
         );
 
       default:
@@ -381,12 +359,10 @@ export function CustomDocumentForm({
   return (
     <div className="space-y-4">
       {sections.length === 0 ? (
-        <Card>
-          <CardContent className="py-8 text-center text-muted-foreground">
-            <p>This document has no sections configured.</p>
-            <p className="text-sm">Edit the document in Admin Settings to add sections.</p>
-          </CardContent>
-        </Card>
+        <div className="rounded-xl border border-border bg-card shadow-[var(--shadow-soft)] py-8 text-center text-muted-foreground">
+          <p>This document has no sections configured.</p>
+          <p className="text-sm">Edit the document in Admin Settings to add sections.</p>
+        </div>
       ) : (
         sections.map(renderSection)
       )}
