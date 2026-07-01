@@ -102,12 +102,8 @@ export default function AdminSettings({
   onBack?: () => void;
 } = {}) {
   const [searchParams] = useSearchParams();
-  // Support multiple param names + localStorage fallback (new tab may not include URL params)
-  const portalId =
-    portalIdProp ||
-    searchParams.get("portalId") ||
-    searchParams.get("portal_id") ||
-    (typeof window !== "undefined" ? window.localStorage.getItem("hs_portal_id") : null);
+  // Tenant identity comes only from the embed URL or an explicit prop, never a persisted cross-tenant value
+  const portalId = portalIdProp || searchParams.get("portalId") || searchParams.get("portal_id");
 
   const [saving, setSaving] = useState(false);
   const [loading, setLoading] = useState(true);
