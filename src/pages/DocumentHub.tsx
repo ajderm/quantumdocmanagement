@@ -3949,22 +3949,23 @@ function DocumentHubContent() {
                       formCustomization={dealerSettings.form_customization?.quote}
                     />
 
-                    {/* Quote Version & Number */}
-                    <div className="pt-3 border-t">
-                      <div className="flex items-center justify-between mb-3">
-                        <div className="flex items-center gap-2">
-                          <Label className="text-sm font-semibold text-muted-foreground">Quote #</Label>
-                          <span className="text-sm font-bold text-primary bg-primary/5 px-2 py-0.5 rounded">
+                    {/* Quote number, versions & actions */}
+                    <div className="rounded-xl border border-border bg-card p-4 space-y-3">
+                      <div className="flex items-center justify-between gap-2">
+                        <div className="flex items-center gap-2 min-w-0">
+                          <span className="eyebrow text-muted-foreground">Quote #</span>
+                          <span className="text-sm font-bold text-primary bg-primary/5 px-2 py-0.5 rounded truncate">
                             {currentQuoteNumber || formData?.quoteNumber || "—"}
                           </span>
                         </div>
                         {quoteVersions.length > 0 && (
-                          <Badge variant="secondary" className="text-[10px]">
+                          <Badge variant="secondary" className="text-[10px] shrink-0">
                             {quoteVersions.length} version{quoteVersions.length !== 1 ? "s" : ""}
                           </Badge>
                         )}
                       </div>
-                      {quoteVersions.length > 0 && (
+
+                      {quoteVersions.length > 0 ? (
                         <div className="flex flex-wrap gap-1.5">
                           {quoteVersions.map((v) => (
                             <div key={v.id} className="relative group inline-flex">
@@ -3995,49 +3996,42 @@ function DocumentHubContent() {
                             </div>
                           ))}
                         </div>
-                      )}
-                      {quoteVersions.length === 0 && (
+                      ) : (
                         <p className="text-xs text-muted-foreground italic">
                           A new quote number will be assigned when you Generate PDF.
                         </p>
                       )}
-                    </div>
 
-                    {/* Actions */}
-                    <div className="pt-4 border-t border-border/60 space-y-3">
-                      <div className="flex gap-2">
-                        <Button variant="outline" onClick={handleSave} disabled={saving} className="flex-1">
-                          {saving ? (
-                            <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                          ) : (
-                            <Save className="h-4 w-4 mr-2" />
-                          )}
+                      {/* Actions */}
+                      <div className="flex items-center gap-2 pt-3 border-t border-border/60">
+                        <Button variant="default" size="sm" onClick={handleSave} disabled={saving} className="gap-2">
+                          {saving ? <Loader2 className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4" />}
                           {saving ? "Saving..." : "Save"}
                         </Button>
-                      </div>
-                      <div className="flex gap-2">
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          className="flex-1 text-xs"
-                          onClick={() => setShowTemplateDialog(true)}
-                        >
-                          <FolderOpen className="h-3.5 w-3.5 mr-1" />
-                          Load Template
-                        </Button>
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          className="flex-1 text-xs"
-                          onClick={() => {
-                            setTemplateName("");
-                            setTemplateShared(true);
-                            setShowSaveTemplateDialog(true);
-                          }}
-                        >
-                          <BookTemplate className="h-3.5 w-3.5 mr-1" />
-                          Save as Template
-                        </Button>
+                        <div className="ml-auto flex items-center gap-1">
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            className="text-xs"
+                            onClick={() => setShowTemplateDialog(true)}
+                          >
+                            <FolderOpen className="h-3.5 w-3.5 mr-1" />
+                            Load template
+                          </Button>
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            className="text-xs"
+                            onClick={() => {
+                              setTemplateName("");
+                              setTemplateShared(true);
+                              setShowSaveTemplateDialog(true);
+                            }}
+                          >
+                            <BookTemplate className="h-3.5 w-3.5 mr-1" />
+                            Save as template
+                          </Button>
+                        </div>
                       </div>
                     </div>
 
