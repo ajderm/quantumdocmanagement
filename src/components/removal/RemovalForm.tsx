@@ -587,29 +587,33 @@ export function RemovalForm({
         </div>
       </SectionCard>
 
-      {/* Additional Comments */}
-      <SectionCard title="Additional Comments" icon={MessageSquare}>
-        <Textarea
-          value={formData.additionalComments}
-          onChange={(e) => updateField("additionalComments", e.target.value)}
-          placeholder="Enter any additional comments or notes..."
-          rows={3}
-        />
-      </SectionCard>
-
-      {/* Signature Information */}
-      <SectionCard title="Signature Information" icon={PenLine}>
-        <div className="space-y-2">
-          <Label htmlFor="salesRepresentative">Sales Representative</Label>
-          <Input
-            id="salesRepresentative"
-            value={formData.salesRepresentative}
-            onChange={(e) => updateField("salesRepresentative", e.target.value)}
-            placeholder="Sales rep name"
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4 items-start">
+        {/* Additional Comments */}
+        <SectionCard title="Additional Comments" icon={MessageSquare}>
+          <Textarea
+            value={formData.additionalComments}
+            onChange={(e) => updateField("additionalComments", e.target.value)}
+            placeholder="Enter any additional comments or notes..."
+            rows={3}
           />
-          <p className="text-xs text-muted-foreground">Customer signature fields appear on the output document only</p>
-        </div>
-      </SectionCard>
+        </SectionCard>
+
+        {/* Signature Information */}
+        <SectionCard title="Signature Information" icon={PenLine}>
+          <div className="space-y-2">
+            <Label htmlFor="salesRepresentative">Sales Representative</Label>
+            <Input
+              id="salesRepresentative"
+              value={formData.salesRepresentative}
+              onChange={(e) => updateField("salesRepresentative", e.target.value)}
+              placeholder="Sales rep name"
+            />
+            <p className="text-xs text-muted-foreground">
+              Customer signature fields appear on the output document only
+            </p>
+          </div>
+        </SectionCard>
+      </div>
 
       {/* Terms & conditions (new; form capture only - the preview is intentionally unchanged) */}
       <SectionCard
