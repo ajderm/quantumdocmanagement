@@ -252,275 +252,281 @@ const RelocationForm: React.FC<RelocationFormProps> = ({ formData, onChange }) =
         </div>
       </SectionCard>
 
-      {/* Current Location */}
-      <SectionCard title="Current Location" icon={MapPin}>
-        <div className="grid grid-cols-2 gap-6">
-          {/* Left Column */}
-          <div className="space-y-4">
-            <div>
-              <Label htmlFor="currentCompanyName">Company Name</Label>
-              <Input
-                id="currentCompanyName"
-                value={formData.currentCompanyName}
-                onChange={(e) => updateField("currentCompanyName", e.target.value)}
-              />
-            </div>
-            <div>
-              <Label htmlFor="currentAddress">Address</Label>
-              <Input
-                id="currentAddress"
-                value={formData.currentAddress}
-                onChange={(e) => updateField("currentAddress", e.target.value)}
-              />
-            </div>
-            <div className="grid grid-cols-3 gap-2">
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4 items-start">
+        {/* Current Location */}
+        <SectionCard title="Current Location" icon={MapPin}>
+          <div className="grid grid-cols-2 gap-6">
+            {/* Left Column */}
+            <div className="space-y-4">
               <div>
-                <Label htmlFor="currentCity">City</Label>
+                <Label htmlFor="currentCompanyName">Company Name</Label>
                 <Input
-                  id="currentCity"
-                  value={formData.currentCity}
-                  onChange={(e) => updateField("currentCity", e.target.value)}
+                  id="currentCompanyName"
+                  value={formData.currentCompanyName}
+                  onChange={(e) => updateField("currentCompanyName", e.target.value)}
                 />
               </div>
               <div>
-                <Label htmlFor="currentState">State</Label>
+                <Label htmlFor="currentAddress">Address</Label>
                 <Input
-                  id="currentState"
-                  value={formData.currentState}
-                  onChange={(e) => updateField("currentState", e.target.value)}
+                  id="currentAddress"
+                  value={formData.currentAddress}
+                  onChange={(e) => updateField("currentAddress", e.target.value)}
                 />
+              </div>
+              <div className="grid grid-cols-3 gap-2">
+                <div>
+                  <Label htmlFor="currentCity">City</Label>
+                  <Input
+                    id="currentCity"
+                    value={formData.currentCity}
+                    onChange={(e) => updateField("currentCity", e.target.value)}
+                  />
+                </div>
+                <div>
+                  <Label htmlFor="currentState">State</Label>
+                  <Input
+                    id="currentState"
+                    value={formData.currentState}
+                    onChange={(e) => updateField("currentState", e.target.value)}
+                  />
+                </div>
+                <div>
+                  <Label htmlFor="currentZip">Zip</Label>
+                  <Input
+                    id="currentZip"
+                    value={formData.currentZip}
+                    onChange={(e) => updateField("currentZip", e.target.value)}
+                  />
+                </div>
+              </div>
+              <div className="flex gap-6 pt-2">
+                <div className="flex items-center gap-2">
+                  <Checkbox
+                    id="currentStairs"
+                    checked={formData.currentStairs}
+                    onCheckedChange={(c) => updateField("currentStairs", !!c)}
+                  />
+                  <Label htmlFor="currentStairs" className="text-sm">
+                    Stairs?
+                  </Label>
+                </div>
+                <div className="flex items-center gap-2">
+                  <Checkbox
+                    id="currentElevator"
+                    checked={formData.currentElevator}
+                    onCheckedChange={(c) => updateField("currentElevator", !!c)}
+                  />
+                  <Label htmlFor="currentElevator" className="text-sm">
+                    Elevator?
+                  </Label>
+                </div>
+                <div className="flex items-center gap-2">
+                  <Checkbox
+                    id="currentLoadingDock"
+                    checked={formData.currentLoadingDock}
+                    onCheckedChange={(c) => updateField("currentLoadingDock", !!c)}
+                  />
+                  <Label htmlFor="currentLoadingDock" className="text-sm">
+                    Loading Dock?
+                  </Label>
+                </div>
               </div>
               <div>
-                <Label htmlFor="currentZip">Zip</Label>
-                <Input
-                  id="currentZip"
-                  value={formData.currentZip}
-                  onChange={(e) => updateField("currentZip", e.target.value)}
+                <Label htmlFor="currentSpecialInstructions">Special Instructions</Label>
+                <Textarea
+                  id="currentSpecialInstructions"
+                  value={formData.currentSpecialInstructions}
+                  onChange={(e) => updateField("currentSpecialInstructions", e.target.value)}
+                  rows={3}
                 />
               </div>
             </div>
-            <div className="flex gap-6 pt-2">
-              <div className="flex items-center gap-2">
-                <Checkbox
-                  id="currentStairs"
-                  checked={formData.currentStairs}
-                  onCheckedChange={(c) => updateField("currentStairs", !!c)}
-                />
-                <Label htmlFor="currentStairs" className="text-sm">
-                  Stairs?
-                </Label>
-              </div>
-              <div className="flex items-center gap-2">
-                <Checkbox
-                  id="currentElevator"
-                  checked={formData.currentElevator}
-                  onCheckedChange={(c) => updateField("currentElevator", !!c)}
-                />
-                <Label htmlFor="currentElevator" className="text-sm">
-                  Elevator?
-                </Label>
-              </div>
-              <div className="flex items-center gap-2">
-                <Checkbox
-                  id="currentLoadingDock"
-                  checked={formData.currentLoadingDock}
-                  onCheckedChange={(c) => updateField("currentLoadingDock", !!c)}
-                />
-                <Label htmlFor="currentLoadingDock" className="text-sm">
-                  Loading Dock?
-                </Label>
-              </div>
-            </div>
-            <div>
-              <Label htmlFor="currentSpecialInstructions">Special Instructions</Label>
-              <Textarea
-                id="currentSpecialInstructions"
-                value={formData.currentSpecialInstructions}
-                onChange={(e) => updateField("currentSpecialInstructions", e.target.value)}
-                rows={3}
-              />
-            </div>
-          </div>
 
-          {/* Right Column */}
-          <div className="space-y-4">
-            <div>
-              <Label htmlFor="currentContact">Contact</Label>
-              <Input
-                id="currentContact"
-                value={formData.currentContact}
-                onChange={(e) => updateField("currentContact", e.target.value)}
-              />
-            </div>
-            <div>
-              <Label htmlFor="currentDepartment">Department</Label>
-              <Input
-                id="currentDepartment"
-                value={formData.currentDepartment}
-                onChange={(e) => updateField("currentDepartment", e.target.value)}
-              />
-            </div>
-            <div>
-              <Label htmlFor="currentSuite">Suite</Label>
-              <Input
-                id="currentSuite"
-                value={formData.currentSuite}
-                onChange={(e) => updateField("currentSuite", e.target.value)}
-              />
-            </div>
-            <div>
-              <Label htmlFor="currentPhone">Phone #</Label>
-              <Input
-                id="currentPhone"
-                value={formData.currentPhone}
-                onChange={(e) => updateField("currentPhone", e.target.value)}
-              />
-            </div>
-            <div>
-              <Label htmlFor="currentEmail">Email</Label>
-              <Input
-                id="currentEmail"
-                type="email"
-                value={formData.currentEmail}
-                onChange={(e) => updateField("currentEmail", e.target.value)}
-              />
-            </div>
-          </div>
-        </div>
-      </SectionCard>
-
-      {/* Destination */}
-      <SectionCard title="Destination" icon={MapPin}>
-        <div className="grid grid-cols-2 gap-6">
-          {/* Left Column */}
-          <div className="space-y-4">
-            <div>
-              <Label htmlFor="destCompanyName">Company Name</Label>
-              <Input
-                id="destCompanyName"
-                value={formData.destCompanyName}
-                onChange={(e) => updateField("destCompanyName", e.target.value)}
-              />
-            </div>
-            <div>
-              <Label htmlFor="destAddress">Address</Label>
-              <Input
-                id="destAddress"
-                value={formData.destAddress}
-                onChange={(e) => updateField("destAddress", e.target.value)}
-              />
-            </div>
-            <div className="grid grid-cols-3 gap-2">
+            {/* Right Column */}
+            <div className="space-y-4">
               <div>
-                <Label htmlFor="destCity">City</Label>
+                <Label htmlFor="currentContact">Contact</Label>
                 <Input
-                  id="destCity"
-                  value={formData.destCity}
-                  onChange={(e) => updateField("destCity", e.target.value)}
+                  id="currentContact"
+                  value={formData.currentContact}
+                  onChange={(e) => updateField("currentContact", e.target.value)}
                 />
               </div>
               <div>
-                <Label htmlFor="destState">State</Label>
+                <Label htmlFor="currentDepartment">Department</Label>
                 <Input
-                  id="destState"
-                  value={formData.destState}
-                  onChange={(e) => updateField("destState", e.target.value)}
+                  id="currentDepartment"
+                  value={formData.currentDepartment}
+                  onChange={(e) => updateField("currentDepartment", e.target.value)}
                 />
               </div>
               <div>
-                <Label htmlFor="destZip">Zip</Label>
-                <Input id="destZip" value={formData.destZip} onChange={(e) => updateField("destZip", e.target.value)} />
-              </div>
-            </div>
-            <div className="flex gap-6 pt-2">
-              <div className="flex items-center gap-2">
-                <Checkbox
-                  id="destStairs"
-                  checked={formData.destStairs}
-                  onCheckedChange={(c) => updateField("destStairs", !!c)}
+                <Label htmlFor="currentSuite">Suite</Label>
+                <Input
+                  id="currentSuite"
+                  value={formData.currentSuite}
+                  onChange={(e) => updateField("currentSuite", e.target.value)}
                 />
-                <Label htmlFor="destStairs" className="text-sm">
-                  Stairs?
-                </Label>
               </div>
-              <div className="flex items-center gap-2">
-                <Checkbox
-                  id="destElevator"
-                  checked={formData.destElevator}
-                  onCheckedChange={(c) => updateField("destElevator", !!c)}
+              <div>
+                <Label htmlFor="currentPhone">Phone #</Label>
+                <Input
+                  id="currentPhone"
+                  value={formData.currentPhone}
+                  onChange={(e) => updateField("currentPhone", e.target.value)}
                 />
-                <Label htmlFor="destElevator" className="text-sm">
-                  Elevator?
-                </Label>
               </div>
-              <div className="flex items-center gap-2">
-                <Checkbox
-                  id="destLoadingDock"
-                  checked={formData.destLoadingDock}
-                  onCheckedChange={(c) => updateField("destLoadingDock", !!c)}
+              <div>
+                <Label htmlFor="currentEmail">Email</Label>
+                <Input
+                  id="currentEmail"
+                  type="email"
+                  value={formData.currentEmail}
+                  onChange={(e) => updateField("currentEmail", e.target.value)}
                 />
-                <Label htmlFor="destLoadingDock" className="text-sm">
-                  Loading Dock?
-                </Label>
               </div>
-            </div>
-            <div>
-              <Label htmlFor="destSpecialInstructions">Special Instructions</Label>
-              <Textarea
-                id="destSpecialInstructions"
-                value={formData.destSpecialInstructions}
-                onChange={(e) => updateField("destSpecialInstructions", e.target.value)}
-                rows={3}
-              />
             </div>
           </div>
+        </SectionCard>
 
-          {/* Right Column */}
-          <div className="space-y-4">
-            <div>
-              <Label htmlFor="destContact">Contact</Label>
-              <Input
-                id="destContact"
-                value={formData.destContact}
-                onChange={(e) => updateField("destContact", e.target.value)}
-              />
+        {/* Destination */}
+        <SectionCard title="Destination" icon={MapPin}>
+          <div className="grid grid-cols-2 gap-6">
+            {/* Left Column */}
+            <div className="space-y-4">
+              <div>
+                <Label htmlFor="destCompanyName">Company Name</Label>
+                <Input
+                  id="destCompanyName"
+                  value={formData.destCompanyName}
+                  onChange={(e) => updateField("destCompanyName", e.target.value)}
+                />
+              </div>
+              <div>
+                <Label htmlFor="destAddress">Address</Label>
+                <Input
+                  id="destAddress"
+                  value={formData.destAddress}
+                  onChange={(e) => updateField("destAddress", e.target.value)}
+                />
+              </div>
+              <div className="grid grid-cols-3 gap-2">
+                <div>
+                  <Label htmlFor="destCity">City</Label>
+                  <Input
+                    id="destCity"
+                    value={formData.destCity}
+                    onChange={(e) => updateField("destCity", e.target.value)}
+                  />
+                </div>
+                <div>
+                  <Label htmlFor="destState">State</Label>
+                  <Input
+                    id="destState"
+                    value={formData.destState}
+                    onChange={(e) => updateField("destState", e.target.value)}
+                  />
+                </div>
+                <div>
+                  <Label htmlFor="destZip">Zip</Label>
+                  <Input
+                    id="destZip"
+                    value={formData.destZip}
+                    onChange={(e) => updateField("destZip", e.target.value)}
+                  />
+                </div>
+              </div>
+              <div className="flex gap-6 pt-2">
+                <div className="flex items-center gap-2">
+                  <Checkbox
+                    id="destStairs"
+                    checked={formData.destStairs}
+                    onCheckedChange={(c) => updateField("destStairs", !!c)}
+                  />
+                  <Label htmlFor="destStairs" className="text-sm">
+                    Stairs?
+                  </Label>
+                </div>
+                <div className="flex items-center gap-2">
+                  <Checkbox
+                    id="destElevator"
+                    checked={formData.destElevator}
+                    onCheckedChange={(c) => updateField("destElevator", !!c)}
+                  />
+                  <Label htmlFor="destElevator" className="text-sm">
+                    Elevator?
+                  </Label>
+                </div>
+                <div className="flex items-center gap-2">
+                  <Checkbox
+                    id="destLoadingDock"
+                    checked={formData.destLoadingDock}
+                    onCheckedChange={(c) => updateField("destLoadingDock", !!c)}
+                  />
+                  <Label htmlFor="destLoadingDock" className="text-sm">
+                    Loading Dock?
+                  </Label>
+                </div>
+              </div>
+              <div>
+                <Label htmlFor="destSpecialInstructions">Special Instructions</Label>
+                <Textarea
+                  id="destSpecialInstructions"
+                  value={formData.destSpecialInstructions}
+                  onChange={(e) => updateField("destSpecialInstructions", e.target.value)}
+                  rows={3}
+                />
+              </div>
             </div>
-            <div>
-              <Label htmlFor="destDepartment">Department</Label>
-              <Input
-                id="destDepartment"
-                value={formData.destDepartment}
-                onChange={(e) => updateField("destDepartment", e.target.value)}
-              />
-            </div>
-            <div>
-              <Label htmlFor="destSuite">Suite</Label>
-              <Input
-                id="destSuite"
-                value={formData.destSuite}
-                onChange={(e) => updateField("destSuite", e.target.value)}
-              />
-            </div>
-            <div>
-              <Label htmlFor="destPhone">Phone #</Label>
-              <Input
-                id="destPhone"
-                value={formData.destPhone}
-                onChange={(e) => updateField("destPhone", e.target.value)}
-              />
-            </div>
-            <div>
-              <Label htmlFor="destEmail">Email</Label>
-              <Input
-                id="destEmail"
-                type="email"
-                value={formData.destEmail}
-                onChange={(e) => updateField("destEmail", e.target.value)}
-              />
+
+            {/* Right Column */}
+            <div className="space-y-4">
+              <div>
+                <Label htmlFor="destContact">Contact</Label>
+                <Input
+                  id="destContact"
+                  value={formData.destContact}
+                  onChange={(e) => updateField("destContact", e.target.value)}
+                />
+              </div>
+              <div>
+                <Label htmlFor="destDepartment">Department</Label>
+                <Input
+                  id="destDepartment"
+                  value={formData.destDepartment}
+                  onChange={(e) => updateField("destDepartment", e.target.value)}
+                />
+              </div>
+              <div>
+                <Label htmlFor="destSuite">Suite</Label>
+                <Input
+                  id="destSuite"
+                  value={formData.destSuite}
+                  onChange={(e) => updateField("destSuite", e.target.value)}
+                />
+              </div>
+              <div>
+                <Label htmlFor="destPhone">Phone #</Label>
+                <Input
+                  id="destPhone"
+                  value={formData.destPhone}
+                  onChange={(e) => updateField("destPhone", e.target.value)}
+                />
+              </div>
+              <div>
+                <Label htmlFor="destEmail">Email</Label>
+                <Input
+                  id="destEmail"
+                  type="email"
+                  value={formData.destEmail}
+                  onChange={(e) => updateField("destEmail", e.target.value)}
+                />
+              </div>
             </div>
           </div>
-        </div>
-      </SectionCard>
+        </SectionCard>
+      </div>
 
       {/* Equipment */}
       <SectionCard
