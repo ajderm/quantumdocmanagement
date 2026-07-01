@@ -42,7 +42,7 @@ export default function LeasingPartners({
   onBack?: () => void;
 } = {}) {
   const [searchParams] = useSearchParams();
-  const portalId = portalIdProp || searchParams.get("portalId") || localStorage.getItem("hs_portal_id");
+  const portalId = portalIdProp || searchParams.get("portalId");
 
   const [loading, setLoading] = useState(true);
   const [uploading, setUploading] = useState(false);
