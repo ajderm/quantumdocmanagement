@@ -31,7 +31,7 @@ import { Alert, AlertDescription } from "@/components/ui/alert";
 import { supabase } from "@/integrations/supabase/client";
 import { ProductSearchModal, HubSpotProduct } from "./ProductSearchModal";
 import { getLabel, isSectionVisible, type FormCustomizationConfig } from "@/lib/formCustomization";
-import { SectionCard, FieldGrid, Field, EmptyState , DealTermsOverride } from "@/components/shared";
+import { SectionCard, FieldGrid, Field, EmptyState, DealTermsOverride } from "@/components/shared";
 
 export interface QuoteLineItem {
   id: string;
@@ -966,21 +966,28 @@ export function QuoteForm({
               description="Customer billing details from the deal"
             >
               <FieldGrid columns={2}>
-                <Field label={getLabel(formCustomization, "companyName", "Company Name")} className="sm:col-span-2">
+                <Field label={getLabel(formCustomization, "companyName", "Company Name")}>
                   <Input
                     value={formData.companyName}
                     onChange={(e) => updateField("companyName", e.target.value)}
                     className="h-9 text-sm"
                   />
                 </Field>
-                <Field label={getLabel(formCustomization, "address", "Address")} className="sm:col-span-2">
+                <Field label={getLabel(formCustomization, "phone", "Phone")}>
+                  <Input
+                    value={formData.phone}
+                    onChange={(e) => updateField("phone", e.target.value)}
+                    className="h-9 text-sm"
+                  />
+                </Field>
+                <Field label={getLabel(formCustomization, "address", "Address")}>
                   <Input
                     value={formData.address}
                     onChange={(e) => updateField("address", e.target.value)}
                     className="h-9 text-sm"
                   />
                 </Field>
-                <Field label="Address Line 2" className="sm:col-span-2">
+                <Field label="Address Line 2">
                   <Input
                     value={formData.address2}
                     onChange={(e) => updateField("address2", e.target.value)}
@@ -1010,13 +1017,6 @@ export function QuoteForm({
                     />
                   </Field>
                 </div>
-                <Field label={getLabel(formCustomization, "phone", "Phone")} className="sm:col-span-2">
-                  <Input
-                    value={formData.phone}
-                    onChange={(e) => updateField("phone", e.target.value)}
-                    className="h-9 text-sm"
-                  />
-                </Field>
               </FieldGrid>
             </SectionCard>
           )}
@@ -1511,541 +1511,543 @@ export function QuoteForm({
             );
           })()}
 
-        {/* Configuration */}
-        <SectionCard
-          title="Configuration"
-          icon={Settings2}
-          description="Deal references, document display, and leasing setup"
-        >
-          <div className="space-y-4">
-            <FieldGrid columns={4}>
-              <Field label="Contract Number">
-                <Input
-                  value={formData.contractNumber}
-                  onChange={(e) => updateField("contractNumber", e.target.value)}
-                  className="h-9 text-sm"
-                  placeholder="e.g., DIR-CPO-5428"
-                />
-              </Field>
-              <Field label="RFP Number">
-                <Input
-                  value={formData.rfpNumber}
-                  onChange={(e) => updateField("rfpNumber", e.target.value)}
-                  className="h-9 text-sm"
-                  placeholder="e.g., RFP-2568"
-                />
-              </Field>
-              <Field label="Price Display">
-                <Select
-                  value={formData.priceDisplay}
-                  onValueChange={(v) => updateField("priceDisplay", v as "both" | "purchase_only" | "lease_only")}
-                >
-                  <SelectTrigger className="h-9 text-sm">
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="both">Purchase &amp; Lease</SelectItem>
-                    <SelectItem value="purchase_only">Purchase Only</SelectItem>
-                    <SelectItem value="lease_only">Lease Only</SelectItem>
-                  </SelectContent>
-                </Select>
-              </Field>
-              <Field label="Equipment Display">
-                <Select
-                  value={formData.equipmentDisplay || "total_only"}
-                  onValueChange={(v) => updateField("equipmentDisplay", v as "itemized" | "total_only")}
-                >
-                  <SelectTrigger className="h-9 text-sm">
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="itemized">Itemized Pricing</SelectItem>
-                    <SelectItem value="total_only">Total Only</SelectItem>
-                  </SelectContent>
-                </Select>
-              </Field>
-            </FieldGrid>
-            <FieldGrid columns={4}>
-              <Field label="Leasing Company">
-                <Select value={formData.leasingCompanyId} onValueChange={(v) => updateField("leasingCompanyId", v)}>
-                  <SelectTrigger className="h-9 text-sm">
-                    <SelectValue placeholder="Select leasing company" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {leasingCompanies.length > 0 ? (
-                      leasingCompanies.map((company) => (
-                        <SelectItem key={company} value={company}>
-                          {company}
-                        </SelectItem>
-                      ))
-                    ) : (
-                      <SelectItem value="none" disabled>
-                        No rate sheet uploaded
-                      </SelectItem>
-                    )}
-                  </SelectContent>
-                </Select>
-              </Field>
-              <Field label="Lease Program">
-                <Select
-                  value={formData.leaseProgram}
-                  onValueChange={(v) => updateField("leaseProgram", v as "fmv" | "dollar_buyout" | "rental")}
-                >
-                  <SelectTrigger className="h-9 text-sm">
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="fmv">FMV (Fair Market Value)</SelectItem>
-                    <SelectItem value="dollar_buyout">$1 Buyout</SelectItem>
-                    <SelectItem value="rental">Rental (Month-to-Month)</SelectItem>
-                  </SelectContent>
-                </Select>
-              </Field>
-              <Field label="Leasing Price">
-                <Select
-                  value={formData.leasingPriceType}
-                  onValueChange={(v) => updateField("leasingPriceType", v as "without_buyout" | "with_buyout")}
-                >
-                  <SelectTrigger className="h-9 text-sm">
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="without_buyout">Without Buyout</SelectItem>
-                    <SelectItem value="with_buyout">With Buyout</SelectItem>
-                  </SelectContent>
-                </Select>
-              </Field>
-              <Field label="Financing line">
-                <label className="flex items-center gap-2 h-9 cursor-pointer">
-                  <Switch
-                    checked={formData.showFinancingProvider}
-                    onCheckedChange={(c) => updateField("showFinancingProvider", c)}
-                  />
-                  <span className="text-xs text-muted-foreground">Show "Financing provided by"</span>
-                </label>
-              </Field>
-            </FieldGrid>
-          </div>
-        </SectionCard>
-
-        {/* Pricing */}
-        {isSectionVisible(formCustomization, "pricing") && (
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 items-start">
+          {/* Configuration */}
           <SectionCard
-            title="Pricing"
-            icon={DollarSign}
-            description="Sell price and lease terms with per-term overrides"
+            title="Configuration"
+            icon={Settings2}
+            description="Deal references, document display, and leasing setup"
           >
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 min-w-0">
-              <div className="space-y-3">
-                <Field
-                  label={
-                    formData.leaseProgram === "rental"
-                      ? "Total Sell Price (optional for rentals)"
-                      : getLabel(formCustomization, "retailPrice", "Total Sell Price")
-                  }
-                >
-                  <CurrencyInput
-                    value={formData.retailPrice}
-                    onChange={(v) => updateField("retailPrice", v)}
+            <div className="space-y-4">
+              <FieldGrid columns={2}>
+                <Field label="Contract Number">
+                  <Input
+                    value={formData.contractNumber}
+                    onChange={(e) => updateField("contractNumber", e.target.value)}
                     className="h-9 text-sm"
-                    prefix={true}
-                    placeholder={formData.leaseProgram === "rental" ? "Enter after rental ends" : undefined}
+                    placeholder="e.g., DIR-CPO-5428"
                   />
                 </Field>
-              </div>
-              <div>
-                <Label className="text-xs mb-2 block">
-                  {formData.leaseProgram === "fmv"
-                    ? "FMV"
-                    : formData.leaseProgram === "rental"
-                      ? "Rental"
-                      : "$1 Buyout"}{" "}
-                  {formData.leaseProgram === "rental" ? "Term" : "Lease Terms (up to 3)"}
-                </Label>
+                <Field label="RFP Number">
+                  <Input
+                    value={formData.rfpNumber}
+                    onChange={(e) => updateField("rfpNumber", e.target.value)}
+                    className="h-9 text-sm"
+                    placeholder="e.g., RFP-2568"
+                  />
+                </Field>
+                <Field label="Price Display">
+                  <Select
+                    value={formData.priceDisplay}
+                    onValueChange={(v) => updateField("priceDisplay", v as "both" | "purchase_only" | "lease_only")}
+                  >
+                    <SelectTrigger className="h-9 text-sm">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="both">Purchase &amp; Lease</SelectItem>
+                      <SelectItem value="purchase_only">Purchase Only</SelectItem>
+                      <SelectItem value="lease_only">Lease Only</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </Field>
+                <Field label="Equipment Display">
+                  <Select
+                    value={formData.equipmentDisplay || "total_only"}
+                    onValueChange={(v) => updateField("equipmentDisplay", v as "itemized" | "total_only")}
+                  >
+                    <SelectTrigger className="h-9 text-sm">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="itemized">Itemized Pricing</SelectItem>
+                      <SelectItem value="total_only">Total Only</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </Field>
+              </FieldGrid>
+              <FieldGrid columns={2}>
+                <Field label="Leasing Company">
+                  <Select value={formData.leasingCompanyId} onValueChange={(v) => updateField("leasingCompanyId", v)}>
+                    <SelectTrigger className="h-9 text-sm">
+                      <SelectValue placeholder="Select leasing company" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {leasingCompanies.length > 0 ? (
+                        leasingCompanies.map((company) => (
+                          <SelectItem key={company} value={company}>
+                            {company}
+                          </SelectItem>
+                        ))
+                      ) : (
+                        <SelectItem value="none" disabled>
+                          No rate sheet uploaded
+                        </SelectItem>
+                      )}
+                    </SelectContent>
+                  </Select>
+                </Field>
+                <Field label="Lease Program">
+                  <Select
+                    value={formData.leaseProgram}
+                    onValueChange={(v) => updateField("leaseProgram", v as "fmv" | "dollar_buyout" | "rental")}
+                  >
+                    <SelectTrigger className="h-9 text-sm">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="fmv">FMV (Fair Market Value)</SelectItem>
+                      <SelectItem value="dollar_buyout">$1 Buyout</SelectItem>
+                      <SelectItem value="rental">Rental (Month-to-Month)</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </Field>
+                <Field label="Leasing Price">
+                  <Select
+                    value={formData.leasingPriceType}
+                    onValueChange={(v) => updateField("leasingPriceType", v as "without_buyout" | "with_buyout")}
+                  >
+                    <SelectTrigger className="h-9 text-sm">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="without_buyout">Without Buyout</SelectItem>
+                      <SelectItem value="with_buyout">With Buyout</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </Field>
+                <Field label="Financing line">
+                  <label className="flex items-center gap-2 h-9 cursor-pointer">
+                    <Switch
+                      checked={formData.showFinancingProvider}
+                      onCheckedChange={(c) => updateField("showFinancingProvider", c)}
+                    />
+                    <span className="text-xs text-muted-foreground">Show "Financing provided by"</span>
+                  </label>
+                </Field>
+              </FieldGrid>
+            </div>
+          </SectionCard>
 
-                {!hasRatesForSelection && hasRateSheet && formData.leasingCompanyId && (
-                  <Alert className="mb-3 bg-amber-50 border-amber-200">
-                    <AlertTriangle className="h-4 w-4 text-amber-600" />
-                    <AlertDescription className="text-amber-800 text-xs">
-                      No rates available for <strong>{formData.leasingCompanyId}</strong> with{" "}
-                      <strong>
-                        {formData.leaseProgram === "fmv"
-                          ? "FMV"
-                          : formData.leaseProgram === "rental"
-                            ? "Rental"
-                            : "$1 Buyout"}
-                      </strong>{" "}
-                      program. Please select a different leasing company or lease program.
-                    </AlertDescription>
-                  </Alert>
-                )}
-
-                <div className="flex flex-wrap gap-2">
-                  {availableTerms.map((t) => (
-                    <Button
-                      key={t}
-                      type="button"
-                      variant={formData.selectedTerms.includes(t) ? "default" : "outline"}
-                      size="sm"
-                      onClick={() => toggleTerm(t)}
-                      disabled={!formData.selectedTerms.includes(t) && formData.selectedTerms.length >= 3}
-                      className="h-7 text-xs"
-                    >
-                      {t} mo
-                    </Button>
-                  ))}
+          {/* Pricing */}
+          {isSectionVisible(formCustomization, "pricing") && (
+            <SectionCard
+              title="Pricing"
+              icon={DollarSign}
+              description="Sell price and lease terms with per-term overrides"
+            >
+              <div className="space-y-4 min-w-0">
+                <div className="space-y-3 max-w-sm">
+                  <Field
+                    label={
+                      formData.leaseProgram === "rental"
+                        ? "Total Sell Price (optional for rentals)"
+                        : getLabel(formCustomization, "retailPrice", "Total Sell Price")
+                    }
+                  >
+                    <CurrencyInput
+                      value={formData.retailPrice}
+                      onChange={(v) => updateField("retailPrice", v)}
+                      className="h-9 text-sm"
+                      prefix={true}
+                      placeholder={formData.leaseProgram === "rental" ? "Enter after rental ends" : undefined}
+                    />
+                  </Field>
                 </div>
-                <div className="mt-3 space-y-2">
-                  {formData.selectedTerms.map((t) => {
-                    const calculatedPayment = calculateLeasePayment(t);
-                    const hasOverride =
-                      formData.paymentOverrides[t] !== null &&
-                      formData.paymentOverrides[t] !== undefined &&
-                      formData.paymentOverrides[t]! > 0;
-                    const effectivePayment = getEffectivePayment(t);
-                    return (
-                      <div key={t} className="flex items-center gap-2 text-sm bg-muted/50 rounded-lg px-3 py-2">
-                        <span className="min-w-[70px]">{t} months</span>
-                        <span
-                          className={`font-medium min-w-[90px] ${hasOverride ? "text-muted-foreground line-through" : ""}`}
-                        >
-                          ${(calculatedPayment ?? 0).toLocaleString()}/mo
-                        </span>
-                        <div className="flex items-center gap-1 ml-auto">
-                          <span className="text-xs text-muted-foreground">Override:</span>
-                          <div className="relative w-24">
-                            <span className="absolute left-2 top-1/2 -translate-y-1/2 text-muted-foreground text-xs">
-                              $
-                            </span>
-                            <Input
-                              type="text"
-                              value={paymentOverrideTexts[t] || ""}
-                              onChange={(e) => handlePaymentOverrideChange(t, e.target.value)}
-                              placeholder={(calculatedPayment ?? 0).toLocaleString()}
-                              className="h-7 text-xs pl-5 pr-7"
-                            />
+                <div>
+                  <Label className="text-xs mb-2 block">
+                    {formData.leaseProgram === "fmv"
+                      ? "FMV"
+                      : formData.leaseProgram === "rental"
+                        ? "Rental"
+                        : "$1 Buyout"}{" "}
+                    {formData.leaseProgram === "rental" ? "Term" : "Lease Terms (up to 3)"}
+                  </Label>
+
+                  {!hasRatesForSelection && hasRateSheet && formData.leasingCompanyId && (
+                    <Alert className="mb-3 bg-amber-50 border-amber-200">
+                      <AlertTriangle className="h-4 w-4 text-amber-600" />
+                      <AlertDescription className="text-amber-800 text-xs">
+                        No rates available for <strong>{formData.leasingCompanyId}</strong> with{" "}
+                        <strong>
+                          {formData.leaseProgram === "fmv"
+                            ? "FMV"
+                            : formData.leaseProgram === "rental"
+                              ? "Rental"
+                              : "$1 Buyout"}
+                        </strong>{" "}
+                        program. Please select a different leasing company or lease program.
+                      </AlertDescription>
+                    </Alert>
+                  )}
+
+                  <div className="flex flex-wrap gap-2">
+                    {availableTerms.map((t) => (
+                      <Button
+                        key={t}
+                        type="button"
+                        variant={formData.selectedTerms.includes(t) ? "default" : "outline"}
+                        size="sm"
+                        onClick={() => toggleTerm(t)}
+                        disabled={!formData.selectedTerms.includes(t) && formData.selectedTerms.length >= 3}
+                        className="h-7 text-xs"
+                      >
+                        {t} mo
+                      </Button>
+                    ))}
+                  </div>
+                  <div className="mt-3 space-y-2">
+                    {formData.selectedTerms.map((t) => {
+                      const calculatedPayment = calculateLeasePayment(t);
+                      const hasOverride =
+                        formData.paymentOverrides[t] !== null &&
+                        formData.paymentOverrides[t] !== undefined &&
+                        formData.paymentOverrides[t]! > 0;
+                      const effectivePayment = getEffectivePayment(t);
+                      return (
+                        <div key={t} className="flex items-center gap-2 text-sm bg-muted/50 rounded-lg px-3 py-2">
+                          <span className="min-w-[70px]">{t} months</span>
+                          <span
+                            className={`font-medium min-w-[90px] ${hasOverride ? "text-muted-foreground line-through" : ""}`}
+                          >
+                            ${(calculatedPayment ?? 0).toLocaleString()}/mo
+                          </span>
+                          <div className="flex items-center gap-1 ml-auto">
+                            <span className="text-xs text-muted-foreground">Override:</span>
+                            <div className="relative w-24">
+                              <span className="absolute left-2 top-1/2 -translate-y-1/2 text-muted-foreground text-xs">
+                                $
+                              </span>
+                              <Input
+                                type="text"
+                                value={paymentOverrideTexts[t] || ""}
+                                onChange={(e) => handlePaymentOverrideChange(t, e.target.value)}
+                                placeholder={(calculatedPayment ?? 0).toLocaleString()}
+                                className="h-7 text-xs pl-5 pr-7"
+                              />
+                              {hasOverride && (
+                                <button
+                                  type="button"
+                                  onClick={() => clearPaymentOverride(t)}
+                                  className="absolute right-1.5 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
+                                >
+                                  <X className="h-3 w-3" />
+                                </button>
+                              )}
+                            </div>
                             {hasOverride && (
-                              <button
-                                type="button"
-                                onClick={() => clearPaymentOverride(t)}
-                                className="absolute right-1.5 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
-                              >
-                                <X className="h-3 w-3" />
-                              </button>
+                              <span className="font-medium text-primary min-w-[80px]">
+                                ${(effectivePayment ?? 0).toLocaleString()}/mo
+                              </span>
                             )}
                           </div>
-                          {hasOverride && (
-                            <span className="font-medium text-primary min-w-[80px]">
-                              ${(effectivePayment ?? 0).toLocaleString()}/mo
-                            </span>
-                          )}
                         </div>
-                      </div>
-                    );
-                  })}
+                      );
+                    })}
+                  </div>
                 </div>
               </div>
-            </div>
-          </SectionCard>
-        )}
+            </SectionCard>
+          )}
+        </div>
 
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4 items-start">
-        {/* Service Agreement */}
-        {isSectionVisible(formCustomization, "serviceAgreement") && (
-          <SectionCard
-            title="Service Agreement"
-            icon={Wrench}
-            description="Included volume, overage rates, and base rate"
-          >
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 min-w-0">
-              <FieldGrid columns={2}>
-                <Field label={getLabel(formCustomization, "includedBWCopies", "Included B/W")}>
-                  <Input
-                    type="number"
-                    min="0"
-                    value={formData.includedBWCopies || ""}
-                    onChange={(e) => updateField("includedBWCopies", parseInt(e.target.value) || 0)}
-                    className="h-9 text-sm"
-                    placeholder="15000"
-                  />
-                </Field>
-                <Field label={getLabel(formCustomization, "includedColorCopies", "Included Color")}>
-                  <Input
-                    type="number"
-                    min="0"
-                    value={formData.includedColorCopies || ""}
-                    onChange={(e) => updateField("includedColorCopies", parseInt(e.target.value) || 0)}
-                    className="h-9 text-sm"
-                    placeholder="5000"
-                  />
-                </Field>
-              </FieldGrid>
-              <FieldGrid columns={2}>
-                <Field label={getLabel(formCustomization, "overageBWRate", "Overage B/W Rate")}>
-                  <div className="relative">
-                    <span className="absolute left-2 top-1/2 -translate-y-1/2 text-muted-foreground text-sm">$</span>
+          {/* Service Agreement */}
+          {isSectionVisible(formCustomization, "serviceAgreement") && (
+            <SectionCard
+              title="Service Agreement"
+              icon={Wrench}
+              description="Included volume, overage rates, and base rate"
+            >
+              <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 min-w-0">
+                <FieldGrid columns={2}>
+                  <Field label={getLabel(formCustomization, "includedBWCopies", "Included B/W")}>
                     <Input
-                      type="text"
-                      value={overageBWText}
-                      onChange={(e) => {
-                        const val = e.target.value;
-                        if (val === "" || /^\d*\.?\d*$/.test(val)) {
-                          setOverageBWText(val);
-                          const num = parseFloat(val);
-                          if (!isNaN(num)) {
-                            updateField("overageBWRate", num);
-                          } else if (val === "") {
+                      type="number"
+                      min="0"
+                      value={formData.includedBWCopies || ""}
+                      onChange={(e) => updateField("includedBWCopies", parseInt(e.target.value) || 0)}
+                      className="h-9 text-sm"
+                      placeholder="15000"
+                    />
+                  </Field>
+                  <Field label={getLabel(formCustomization, "includedColorCopies", "Included Color")}>
+                    <Input
+                      type="number"
+                      min="0"
+                      value={formData.includedColorCopies || ""}
+                      onChange={(e) => updateField("includedColorCopies", parseInt(e.target.value) || 0)}
+                      className="h-9 text-sm"
+                      placeholder="5000"
+                    />
+                  </Field>
+                </FieldGrid>
+                <FieldGrid columns={2}>
+                  <Field label={getLabel(formCustomization, "overageBWRate", "Overage B/W Rate")}>
+                    <div className="relative">
+                      <span className="absolute left-2 top-1/2 -translate-y-1/2 text-muted-foreground text-sm">$</span>
+                      <Input
+                        type="text"
+                        value={overageBWText}
+                        onChange={(e) => {
+                          const val = e.target.value;
+                          if (val === "" || /^\d*\.?\d*$/.test(val)) {
+                            setOverageBWText(val);
+                            const num = parseFloat(val);
+                            if (!isNaN(num)) {
+                              updateField("overageBWRate", num);
+                            } else if (val === "") {
+                              updateField("overageBWRate", 0);
+                            }
+                          }
+                        }}
+                        onBlur={() => {
+                          if (overageBWText === "" || overageBWText === ".") {
+                            setOverageBWText("");
                             updateField("overageBWRate", 0);
+                          } else {
+                            const num = parseFloat(overageBWText);
+                            if (!isNaN(num)) {
+                              setOverageBWText(num === 0 ? "" : String(num));
+                            }
                           }
-                        }
-                      }}
-                      onBlur={() => {
-                        if (overageBWText === "" || overageBWText === ".") {
-                          setOverageBWText("");
-                          updateField("overageBWRate", 0);
-                        } else {
-                          const num = parseFloat(overageBWText);
-                          if (!isNaN(num)) {
-                            setOverageBWText(num === 0 ? "" : String(num));
+                        }}
+                        className="h-9 text-sm pl-5"
+                        placeholder="0.0108"
+                      />
+                    </div>
+                  </Field>
+                  <Field label={getLabel(formCustomization, "overageColorRate", "Overage Color Rate")}>
+                    <div className="relative">
+                      <span className="absolute left-2 top-1/2 -translate-y-1/2 text-muted-foreground text-sm">$</span>
+                      <Input
+                        type="text"
+                        value={overageColorText}
+                        onChange={(e) => {
+                          const val = e.target.value;
+                          if (val === "" || /^\d*\.?\d*$/.test(val)) {
+                            setOverageColorText(val);
+                            const num = parseFloat(val);
+                            if (!isNaN(num)) {
+                              updateField("overageColorRate", num);
+                            } else if (val === "") {
+                              updateField("overageColorRate", 0);
+                            }
                           }
-                        }
-                      }}
-                      className="h-9 text-sm pl-5"
-                      placeholder="0.0108"
-                    />
+                        }}
+                        onBlur={() => {
+                          if (overageColorText === "" || overageColorText === ".") {
+                            setOverageColorText("");
+                            updateField("overageColorRate", 0);
+                          } else {
+                            const num = parseFloat(overageColorText);
+                            if (!isNaN(num)) {
+                              setOverageColorText(num === 0 ? "" : String(num));
+                            }
+                          }
+                        }}
+                        className="h-9 text-sm pl-5"
+                        placeholder="0.065"
+                      />
+                    </div>
+                  </Field>
+                </FieldGrid>
+              </div>
+              <div className="mt-4 p-3 bg-muted/50 rounded-lg">
+                <div className="flex justify-between items-center mb-3">
+                  <span className="text-sm font-medium">Billing Period</span>
+                  <Select
+                    value={formData.serviceBillingPeriod || "monthly"}
+                    onValueChange={(value) =>
+                      setFormData((prev) => ({
+                        ...prev,
+                        serviceBillingPeriod: value as "monthly" | "quarterly" | "annual",
+                      }))
+                    }
+                  >
+                    <SelectTrigger className="h-8 w-40 text-sm">
+                      <SelectValue placeholder="Select period" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="monthly">Monthly</SelectItem>
+                      <SelectItem value="quarterly">Quarterly</SelectItem>
+                      <SelectItem value="annual">Annual</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div className="flex justify-between items-center">
+                  <div className="flex items-center gap-2">
+                    <span className="text-sm font-medium">
+                      {(() => {
+                        const periodLabel =
+                          formData.serviceBillingPeriod === "quarterly"
+                            ? "per quarter"
+                            : formData.serviceBillingPeriod === "annual"
+                              ? "per year"
+                              : "per month";
+                        return getLabel(formCustomization, "serviceBaseRate", `Base Rate (${periodLabel})`);
+                      })()}
+                    </span>
+                    {formData.baseRateManuallySet && (
+                      <button
+                        type="button"
+                        onClick={clearManualBaseRate}
+                        className="text-xs text-muted-foreground hover:text-foreground underline"
+                      >
+                        Reset to calculated
+                      </button>
+                    )}
                   </div>
-                </Field>
-                <Field label={getLabel(formCustomization, "overageColorRate", "Overage Color Rate")}>
-                  <div className="relative">
+                  <div className="relative w-32">
                     <span className="absolute left-2 top-1/2 -translate-y-1/2 text-muted-foreground text-sm">$</span>
                     <Input
-                      type="text"
-                      value={overageColorText}
-                      onChange={(e) => {
-                        const val = e.target.value;
-                        if (val === "" || /^\d*\.?\d*$/.test(val)) {
-                          setOverageColorText(val);
-                          const num = parseFloat(val);
-                          if (!isNaN(num)) {
-                            updateField("overageColorRate", num);
-                          } else if (val === "") {
-                            updateField("overageColorRate", 0);
-                          }
-                        }
-                      }}
-                      onBlur={() => {
-                        if (overageColorText === "" || overageColorText === ".") {
-                          setOverageColorText("");
-                          updateField("overageColorRate", 0);
-                        } else {
-                          const num = parseFloat(overageColorText);
-                          if (!isNaN(num)) {
-                            setOverageColorText(num === 0 ? "" : String(num));
-                          }
-                        }
-                      }}
-                      className="h-9 text-sm pl-5"
-                      placeholder="0.065"
+                      type="number"
+                      step="0.01"
+                      value={formData.serviceBaseRate || ""}
+                      onChange={(e) => handleBaseRateChange(parseFloat(e.target.value) || 0)}
+                      className="h-8 text-sm pl-5 font-medium"
                     />
                   </div>
-                </Field>
-              </FieldGrid>
-            </div>
-            <div className="mt-4 p-3 bg-muted/50 rounded-lg">
-              <div className="flex justify-between items-center mb-3">
-                <span className="text-sm font-medium">Billing Period</span>
-                <Select
-                  value={formData.serviceBillingPeriod || "monthly"}
-                  onValueChange={(value) =>
-                    setFormData((prev) => ({
-                      ...prev,
-                      serviceBillingPeriod: value as "monthly" | "quarterly" | "annual",
-                    }))
-                  }
-                >
-                  <SelectTrigger className="h-8 w-40 text-sm">
-                    <SelectValue placeholder="Select period" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="monthly">Monthly</SelectItem>
-                    <SelectItem value="quarterly">Quarterly</SelectItem>
-                    <SelectItem value="annual">Annual</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-              <div className="flex justify-between items-center">
-                <div className="flex items-center gap-2">
-                  <span className="text-sm font-medium">
+                </div>
+                <div className="flex justify-between items-center mt-2 pt-2 border-t border-border">
+                  <span className="text-sm font-medium text-muted-foreground">Annual Total</span>
+                  <span className="text-sm font-semibold">
+                    $
                     {(() => {
-                      const periodLabel =
+                      const periodsPerYear =
                         formData.serviceBillingPeriod === "quarterly"
-                          ? "per quarter"
+                          ? 4
                           : formData.serviceBillingPeriod === "annual"
-                            ? "per year"
-                            : "per month";
-                      return getLabel(formCustomization, "serviceBaseRate", `Base Rate (${periodLabel})`);
+                            ? 1
+                            : 12;
+                      const annual = (formData.serviceBaseRate || 0) * periodsPerYear;
+                      return annual.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
                     })()}
                   </span>
-                  {formData.baseRateManuallySet && (
-                    <button
-                      type="button"
-                      onClick={clearManualBaseRate}
-                      className="text-xs text-muted-foreground hover:text-foreground underline"
-                    >
-                      Reset to calculated
-                    </button>
-                  )}
-                </div>
-                <div className="relative w-32">
-                  <span className="absolute left-2 top-1/2 -translate-y-1/2 text-muted-foreground text-sm">$</span>
-                  <Input
-                    type="number"
-                    step="0.01"
-                    value={formData.serviceBaseRate || ""}
-                    onChange={(e) => handleBaseRateChange(parseFloat(e.target.value) || 0)}
-                    className="h-8 text-sm pl-5 font-medium"
-                  />
                 </div>
               </div>
-              <div className="flex justify-between items-center mt-2 pt-2 border-t border-border">
-                <span className="text-sm font-medium text-muted-foreground">Annual Total</span>
-                <span className="text-sm font-semibold">
-                  $
-                  {(() => {
-                    const periodsPerYear =
-                      formData.serviceBillingPeriod === "quarterly"
-                        ? 4
-                        : formData.serviceBillingPeriod === "annual"
-                          ? 1
-                          : 12;
-                    const annual = (formData.serviceBaseRate || 0) * periodsPerYear;
-                    return annual.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
-                  })()}
-                </span>
-              </div>
-            </div>
-          </SectionCard>
-        )}
+            </SectionCard>
+          )}
 
-        {/* Buyout Information */}
-        {isSectionVisible(formCustomization, "buyout") && (
-          <SectionCard
-            title="Buyout Information"
-            icon={ReceiptText}
-            description="Existing-lease buyout inputs and total"
-          >
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 min-w-0">
-              <FieldGrid columns={2}>
-                <Field label="Payments Remaining">
-                  <Input
-                    type="number"
-                    min="0"
-                    value={formData.paymentsRemaining || ""}
-                    onChange={(e) => updateField("paymentsRemaining", parseInt(e.target.value) || 0)}
-                    className="h-9 text-sm"
-                    placeholder="0"
-                  />
-                </Field>
-                <Field label="Current Payment">
-                  <div className="relative">
+          {/* Buyout Information */}
+          {isSectionVisible(formCustomization, "buyout") && (
+            <SectionCard
+              title="Buyout Information"
+              icon={ReceiptText}
+              description="Existing-lease buyout inputs and total"
+            >
+              <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 min-w-0">
+                <FieldGrid columns={2}>
+                  <Field label="Payments Remaining">
+                    <Input
+                      type="number"
+                      min="0"
+                      value={formData.paymentsRemaining || ""}
+                      onChange={(e) => updateField("paymentsRemaining", parseInt(e.target.value) || 0)}
+                      className="h-9 text-sm"
+                      placeholder="0"
+                    />
+                  </Field>
+                  <Field label="Current Payment">
+                    <div className="relative">
+                      <span className="absolute left-2 top-1/2 -translate-y-1/2 text-muted-foreground text-sm">$</span>
+                      <Input
+                        type="text"
+                        value={paymentAmountText}
+                        onChange={(e) => {
+                          const val = e.target.value;
+                          if (val === "" || /^\d*\.?\d*$/.test(val)) {
+                            setPaymentAmountText(val);
+                            const num = parseFloat(val);
+                            if (!isNaN(num)) updateField("paymentAmount", num);
+                            else if (val === "") updateField("paymentAmount", 0);
+                          }
+                        }}
+                        className="h-9 text-sm pl-5"
+                        placeholder="0.00"
+                      />
+                    </div>
+                  </Field>
+                </FieldGrid>
+                <FieldGrid columns={2}>
+                  <Field label="Early Term. Fee">
+                    <div className="relative">
+                      <span className="absolute left-2 top-1/2 -translate-y-1/2 text-muted-foreground text-sm">$</span>
+                      <Input
+                        type="text"
+                        value={earlyTerminationFeeText}
+                        onChange={(e) => {
+                          const val = e.target.value;
+                          if (val === "" || /^\d*\.?\d*$/.test(val)) {
+                            setEarlyTerminationFeeText(val);
+                            const num = parseFloat(val);
+                            if (!isNaN(num)) updateField("earlyTerminationFee", num);
+                            else if (val === "") updateField("earlyTerminationFee", 0);
+                          }
+                        }}
+                        className="h-9 text-sm pl-5"
+                        placeholder="0.00"
+                      />
+                    </div>
+                  </Field>
+                  <Field label="Return Shipping">
+                    <div className="relative">
+                      <span className="absolute left-2 top-1/2 -translate-y-1/2 text-muted-foreground text-sm">$</span>
+                      <Input
+                        type="text"
+                        value={returnShippingText}
+                        onChange={(e) => {
+                          const val = e.target.value;
+                          if (val === "" || /^\d*\.?\d*$/.test(val)) {
+                            setReturnShippingText(val);
+                            const num = parseFloat(val);
+                            if (!isNaN(num)) updateField("returnShipping", num);
+                            else if (val === "") updateField("returnShipping", 0);
+                          }
+                        }}
+                        className="h-9 text-sm pl-5"
+                        placeholder="0.00"
+                      />
+                    </div>
+                  </Field>
+                </FieldGrid>
+              </div>
+              <div className="mt-4 p-3 bg-muted/50 rounded-lg">
+                <div className="flex justify-between items-center">
+                  <div className="flex items-center gap-2">
+                    <span className="text-sm font-medium">Total Buyout</span>
+                    {formData.totalBuyoutManuallySet && (
+                      <button
+                        type="button"
+                        onClick={() => updateField("totalBuyoutManuallySet", false)}
+                        className="text-xs text-muted-foreground hover:text-foreground underline"
+                      >
+                        Reset to calculated
+                      </button>
+                    )}
+                  </div>
+                  <div className="relative w-32">
                     <span className="absolute left-2 top-1/2 -translate-y-1/2 text-muted-foreground text-sm">$</span>
                     <Input
-                      type="text"
-                      value={paymentAmountText}
+                      type="number"
+                      step="0.01"
+                      value={
+                        formData.totalBuyoutManuallySet && formData.totalBuyoutOverride !== undefined
+                          ? formData.totalBuyoutOverride
+                          : totalBuyout
+                      }
                       onChange={(e) => {
-                        const val = e.target.value;
-                        if (val === "" || /^\d*\.?\d*$/.test(val)) {
-                          setPaymentAmountText(val);
-                          const num = parseFloat(val);
-                          if (!isNaN(num)) updateField("paymentAmount", num);
-                          else if (val === "") updateField("paymentAmount", 0);
-                        }
+                        const val = parseFloat(e.target.value) || 0;
+                        updateField("totalBuyoutOverride", val);
+                        updateField("totalBuyoutManuallySet", true);
                       }}
-                      className="h-9 text-sm pl-5"
-                      placeholder="0.00"
+                      className="h-8 text-sm pl-5 font-medium"
                     />
                   </div>
-                </Field>
-              </FieldGrid>
-              <FieldGrid columns={2}>
-                <Field label="Early Term. Fee">
-                  <div className="relative">
-                    <span className="absolute left-2 top-1/2 -translate-y-1/2 text-muted-foreground text-sm">$</span>
-                    <Input
-                      type="text"
-                      value={earlyTerminationFeeText}
-                      onChange={(e) => {
-                        const val = e.target.value;
-                        if (val === "" || /^\d*\.?\d*$/.test(val)) {
-                          setEarlyTerminationFeeText(val);
-                          const num = parseFloat(val);
-                          if (!isNaN(num)) updateField("earlyTerminationFee", num);
-                          else if (val === "") updateField("earlyTerminationFee", 0);
-                        }
-                      }}
-                      className="h-9 text-sm pl-5"
-                      placeholder="0.00"
-                    />
-                  </div>
-                </Field>
-                <Field label="Return Shipping">
-                  <div className="relative">
-                    <span className="absolute left-2 top-1/2 -translate-y-1/2 text-muted-foreground text-sm">$</span>
-                    <Input
-                      type="text"
-                      value={returnShippingText}
-                      onChange={(e) => {
-                        const val = e.target.value;
-                        if (val === "" || /^\d*\.?\d*$/.test(val)) {
-                          setReturnShippingText(val);
-                          const num = parseFloat(val);
-                          if (!isNaN(num)) updateField("returnShipping", num);
-                          else if (val === "") updateField("returnShipping", 0);
-                        }
-                      }}
-                      className="h-9 text-sm pl-5"
-                      placeholder="0.00"
-                    />
-                  </div>
-                </Field>
-              </FieldGrid>
-            </div>
-            <div className="mt-4 p-3 bg-muted/50 rounded-lg">
-              <div className="flex justify-between items-center">
-                <div className="flex items-center gap-2">
-                  <span className="text-sm font-medium">Total Buyout</span>
-                  {formData.totalBuyoutManuallySet && (
-                    <button
-                      type="button"
-                      onClick={() => updateField("totalBuyoutManuallySet", false)}
-                      className="text-xs text-muted-foreground hover:text-foreground underline"
-                    >
-                      Reset to calculated
-                    </button>
-                  )}
-                </div>
-                <div className="relative w-32">
-                  <span className="absolute left-2 top-1/2 -translate-y-1/2 text-muted-foreground text-sm">$</span>
-                  <Input
-                    type="number"
-                    step="0.01"
-                    value={
-                      formData.totalBuyoutManuallySet && formData.totalBuyoutOverride !== undefined
-                        ? formData.totalBuyoutOverride
-                        : totalBuyout
-                    }
-                    onChange={(e) => {
-                      const val = parseFloat(e.target.value) || 0;
-                      updateField("totalBuyoutOverride", val);
-                      updateField("totalBuyoutManuallySet", true);
-                    }}
-                    className="h-8 text-sm pl-5 font-medium"
-                  />
                 </div>
               </div>
-            </div>
-          </SectionCard>
-        )}
+            </SectionCard>
+          )}
         </div>
 
         <DealTermsOverride
