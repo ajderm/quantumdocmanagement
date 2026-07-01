@@ -1,25 +1,17 @@
 import { useState, useEffect, useRef, useMemo } from "react";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Calendar } from "@/components/ui/calendar";
-import {
-  Popover,
-  PopoverContent,
-  PopoverTrigger,
-} from "@/components/ui/popover";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Button } from "@/components/ui/button";
-import { CalendarIcon, Package } from "lucide-react";
+import { CalendarIcon, Package, FileText, DollarSign, FileSignature } from "lucide-react";
 import { format } from "date-fns";
 import { cn } from "@/lib/utils";
 import { supabase } from "@/integrations/supabase/client";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Switch } from "@/components/ui/switch";
+import { Textarea } from "@/components/ui/textarea";
+import { SectionCard, FieldGrid, Field } from "@/components/shared";
 import { Badge } from "@/components/ui/badge";
 
 export interface LeaseFundingFormData {
@@ -38,6 +30,9 @@ export interface LeaseFundingFormData {
   rate: string;
   invoiceFundingAmount: string;
   invoiceFundingAmountOverridden: boolean;
+  termsInclude?: boolean;
+  termsTemplateId?: string;
+  termsCustomText?: string;
 }
 
 interface LineItem {
@@ -145,11 +140,23 @@ export function LeaseFundingForm({
       selectedLineItemId: lineItemId || "",
       date: new Date(),
       customerName: fmvLeaseFormData?.companyLegalName || company?.name || "",
-      locationBranch: fmvLeaseFormData ? 
-        [fmvLeaseFormData.equipmentAddress, fmvLeaseFormData.equipmentCity, fmvLeaseFormData.equipmentState, fmvLeaseFormData.equipmentZip].filter(Boolean).join(", ") :
-        buildAddress(company),
+      locationBranch: fmvLeaseFormData
+        ? [
+            fmvLeaseFormData.equipmentAddress,
+            fmvLeaseFormData.equipmentCity,
+            fmvLeaseFormData.equipmentState,
+            fmvLeaseFormData.equipmentZip,
+          ]
+            .filter(Boolean)
+            .join(", ")
+        : buildAddress(company),
       salesRepresentative: dealOwner ? `${dealOwner.firstName || ""} ${dealOwner.lastName || ""}`.trim() : "",
-      equipmentMakeModel: lineItem ? `${lineItem.model || lineItem.name || ""} - ${lineItem.description || ""}`.trim().replace(/^-\s*/, "").replace(/\s*-$/, "") : "",
+      equipmentMakeModel: lineItem
+        ? `${lineItem.model || lineItem.name || ""} - ${lineItem.description || ""}`
+            .trim()
+            .replace(/^-\s*/, "")
+            .replace(/\s*-$/, "")
+        : "",
       idNumber: "",
       serialNumber: lineItem?.serial || "",
       leaseVendor: "",
@@ -165,17 +172,16 @@ export function LeaseFundingForm({
   const [formData, setFormData] = useState<LeaseFundingFormData>(() => createInitialFormData());
 
   const expandedLineItems = useMemo((): ExpandedLineItem[] => {
-    const hardwareItems = lineItems.filter(
-      (item) => item.category?.toLowerCase() === "hardware" || !item.category
-    );
+    const hardwareItems = lineItems.filter((item) => item.category?.toLowerCase() === "hardware" || !item.category);
 
     const result: ExpandedLineItem[] = [];
     hardwareItems.forEach((item) => {
       const qty = Math.max(1, item.quantity || 1);
       for (let i = 0; i < qty; i++) {
-        const displayName = qty > 1
-          ? `${item.model || item.name || "Hardware"} (${i + 1} of ${qty})`
-          : item.model || item.name || "Hardware";
+        const displayName =
+          qty > 1
+            ? `${item.model || item.name || "Hardware"} (${i + 1} of ${qty})`
+            : item.model || item.name || "Hardware";
         result.push({
           id: `${item.id}_${i}`,
           originalItem: item,
@@ -191,7 +197,7 @@ export function LeaseFundingForm({
   useEffect(() => {
     const fetchLeasingCompanies = async () => {
       if (!portalId) return;
-      
+
       setLoadingCompanies(true);
       try {
         const { data, error } = await supabase.functions.invoke("get-rate-factors", {
@@ -250,7 +256,7 @@ export function LeaseFundingForm({
 
     if (payment > 0 && rate > 0) {
       const calculated = payment / rate;
-      setFormData(prev => ({
+      setFormData((prev) => ({
         ...prev,
         invoiceFundingAmount: calculated.toFixed(2),
       }));
@@ -265,13 +271,13 @@ export function LeaseFundingForm({
 
   const updateField = (field: keyof LeaseFundingFormData, value: any) => {
     if (field === "invoiceFundingAmount") {
-      setFormData(prev => ({
+      setFormData((prev) => ({
         ...prev,
         [field]: value,
         invoiceFundingAmountOverridden: true,
       }));
     } else {
-      setFormData(prev => ({ ...prev, [field]: value }));
+      setFormData((prev) => ({ ...prev, [field]: value }));
     }
   };
 
@@ -290,156 +296,251 @@ export function LeaseFundingForm({
     <div className="space-y-4">
       {/* Hardware Item Selector */}
       {expandedLineItems.length > 0 && (
-        <Card className="border-primary/20">
-          <CardHeader className="py-3">
-            <CardTitle className="text-sm flex items-center gap-2">
-              <Package className="h-4 w-4" />
-              Select Hardware Item
-              <Badge variant="secondary" className="ml-auto">
-                {expandedLineItems.length} hardware item{expandedLineItems.length !== 1 ? 's' : ''}
-              </Badge>
-            </CardTitle>
-          </CardHeader>
-          <CardContent className="py-3">
-            <Select value={formData.selectedLineItemId} onValueChange={handleLineItemChange}>
-              <SelectTrigger><SelectValue placeholder="Select a hardware item" /></SelectTrigger>
-              <SelectContent>
-                {expandedLineItems.map((item) => (
-                  <SelectItem key={item.id} value={item.id}>{item.displayName}</SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </CardContent>
-        </Card>
+        <SectionCard
+          title="Select Hardware Item"
+          icon={Package}
+          description="Choose which hardware unit this funding form covers"
+          action={
+            <Badge variant="secondary">
+              {expandedLineItems.length} hardware item{expandedLineItems.length !== 1 ? "s" : ""}
+            </Badge>
+          }
+        >
+          <Select value={formData.selectedLineItemId} onValueChange={handleLineItemChange}>
+            <SelectTrigger className="h-9 text-sm">
+              <SelectValue placeholder="Select a hardware item" />
+            </SelectTrigger>
+            <SelectContent>
+              {expandedLineItems.map((item) => (
+                <SelectItem key={item.id} value={item.id}>
+                  {item.displayName}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </SectionCard>
       )}
 
       {/* Lease Information */}
-      <Card>
-        <CardHeader className="py-3">
-          <CardTitle className="text-sm">Lease Information</CardTitle>
-        </CardHeader>
-        <CardContent className="space-y-4">
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div className="space-y-2">
-              <Label>Date</Label>
+      <SectionCard title="Lease Information" icon={FileText} description="Date, rep, customer, and equipment location">
+        <div className="space-y-4">
+          <FieldGrid columns={2}>
+            <Field label="Date">
               <Popover>
                 <PopoverTrigger asChild>
-                  <Button variant="outline" className={cn("w-full justify-start text-left font-normal", !formData.date && "text-muted-foreground")}>
+                  <Button
+                    variant="outline"
+                    className={cn(
+                      "w-full h-9 justify-start text-left font-normal",
+                      !formData.date && "text-muted-foreground",
+                    )}
+                  >
                     <CalendarIcon className="mr-2 h-4 w-4" />
                     {formData.date ? format(formData.date, "MM/dd/yyyy") : "Select date"}
                   </Button>
                 </PopoverTrigger>
                 <PopoverContent className="w-auto p-0" align="start">
-                  <Calendar mode="single" selected={formData.date || undefined} onSelect={(date) => updateField("date", date || null)} initialFocus className="pointer-events-auto" />
+                  <Calendar
+                    mode="single"
+                    selected={formData.date || undefined}
+                    onSelect={(date) => updateField("date", date || null)}
+                    initialFocus
+                    className="pointer-events-auto"
+                  />
                 </PopoverContent>
               </Popover>
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="salesRep">Sales Representative</Label>
-              <Input id="salesRep" value={formData.salesRepresentative} onChange={(e) => updateField("salesRepresentative", e.target.value)} />
-            </div>
-          </div>
-          <div className="space-y-2">
-            <Label htmlFor="customerName">Customer Name</Label>
-            <Input id="customerName" value={formData.customerName} onChange={(e) => updateField("customerName", e.target.value)} />
-          </div>
-          <div className="space-y-2">
-            <Label htmlFor="locationBranch">Location / Branch (Equipment)</Label>
-            <Input id="locationBranch" value={formData.locationBranch} onChange={(e) => updateField("locationBranch", e.target.value)} />
-          </div>
-        </CardContent>
-      </Card>
+            </Field>
+            <Field label="Sales Representative">
+              <Input
+                id="salesRep"
+                value={formData.salesRepresentative}
+                onChange={(e) => updateField("salesRepresentative", e.target.value)}
+                className="h-9 text-sm"
+              />
+            </Field>
+          </FieldGrid>
+          <Field label="Customer Name">
+            <Input
+              id="customerName"
+              value={formData.customerName}
+              onChange={(e) => updateField("customerName", e.target.value)}
+              className="h-9 text-sm"
+            />
+          </Field>
+          <Field label="Location / Branch (Equipment)">
+            <Input
+              id="locationBranch"
+              value={formData.locationBranch}
+              onChange={(e) => updateField("locationBranch", e.target.value)}
+              className="h-9 text-sm"
+            />
+          </Field>
+        </div>
+      </SectionCard>
 
-      {/* Equipment Section */}
-      <Card>
-        <CardHeader className="py-3">
-          <CardTitle className="text-sm">Equipment</CardTitle>
-        </CardHeader>
-        <CardContent className="space-y-4">
-          <div className="space-y-2">
-            <Label htmlFor="equipmentMakeModel">Equipment Make / Model</Label>
-            <Input id="equipmentMakeModel" value={formData.equipmentMakeModel} onChange={(e) => updateField("equipmentMakeModel", e.target.value)} />
-          </div>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div className="space-y-2">
-              <Label htmlFor="idNumber">ID Number</Label>
-              <Input id="idNumber" value={formData.idNumber} onChange={(e) => updateField("idNumber", e.target.value)} placeholder="Enter ID number" />
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="serialNumber">Serial Number</Label>
-              <Input id="serialNumber" value={formData.serialNumber} onChange={(e) => updateField("serialNumber", e.target.value)} placeholder="Enter serial number" />
-            </div>
-          </div>
-        </CardContent>
-      </Card>
+      {/* Equipment */}
+      <SectionCard title="Equipment" icon={Package} description="Equipment and identifiers being funded">
+        <div className="space-y-4">
+          <Field label="Equipment Make / Model">
+            <Input
+              id="equipmentMakeModel"
+              value={formData.equipmentMakeModel}
+              onChange={(e) => updateField("equipmentMakeModel", e.target.value)}
+              className="h-9 text-sm"
+            />
+          </Field>
+          <FieldGrid columns={2}>
+            <Field label="ID Number">
+              <Input
+                id="idNumber"
+                value={formData.idNumber}
+                onChange={(e) => updateField("idNumber", e.target.value)}
+                className="h-9 text-sm"
+                placeholder="Enter ID number"
+              />
+            </Field>
+            <Field label="Serial Number">
+              <Input
+                id="serialNumber"
+                value={formData.serialNumber}
+                onChange={(e) => updateField("serialNumber", e.target.value)}
+                className="h-9 text-sm"
+                placeholder="Enter serial number"
+              />
+            </Field>
+          </FieldGrid>
+        </div>
+      </SectionCard>
 
-      {/* Lease Terms Section */}
-      <Card>
-        <CardHeader className="py-3">
-          <CardTitle className="text-sm">Lease Terms</CardTitle>
-        </CardHeader>
-        <CardContent className="space-y-4">
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div className="space-y-2">
-              <Label htmlFor="leaseVendor">Lease Vendor</Label>
+      {/* Lease Terms */}
+      <SectionCard title="Lease Terms" icon={DollarSign} description="Vendor, type, term, payment, and funding amount">
+        <div className="space-y-4">
+          <FieldGrid columns={2}>
+            <Field label="Lease Vendor">
               <Select value={formData.leaseVendor} onValueChange={(value) => updateField("leaseVendor", value)}>
-                <SelectTrigger id="leaseVendor"><SelectValue placeholder={loadingCompanies ? "Loading..." : "Select lease vendor"} /></SelectTrigger>
+                <SelectTrigger id="leaseVendor" className="h-9 text-sm">
+                  <SelectValue placeholder={loadingCompanies ? "Loading..." : "Select lease vendor"} />
+                </SelectTrigger>
                 <SelectContent>
                   {leasingCompanies.length > 0 ? (
                     leasingCompanies.map((company) => (
-                      <SelectItem key={company} value={company}>{company}</SelectItem>
+                      <SelectItem key={company} value={company}>
+                        {company}
+                      </SelectItem>
                     ))
                   ) : (
-                    <SelectItem value="none" disabled>No vendors available</SelectItem>
+                    <SelectItem value="none" disabled>
+                      No vendors available
+                    </SelectItem>
                   )}
                 </SelectContent>
               </Select>
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="leaseType">Lease Type</Label>
+            </Field>
+            <Field label="Lease Type">
               <Select value={formData.leaseType} onValueChange={(value) => updateField("leaseType", value)}>
-                <SelectTrigger id="leaseType"><SelectValue placeholder="Select lease type" /></SelectTrigger>
+                <SelectTrigger id="leaseType" className="h-9 text-sm">
+                  <SelectValue placeholder="Select lease type" />
+                </SelectTrigger>
                 <SelectContent>
                   {LEASE_TYPES.map((type) => (
-                    <SelectItem key={type.value} value={type.value}>{type.label}</SelectItem>
+                    <SelectItem key={type.value} value={type.value}>
+                      {type.label}
+                    </SelectItem>
                   ))}
                 </SelectContent>
               </Select>
-            </div>
-          </div>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div className="space-y-2">
-              <Label htmlFor="termLength">Term Length (Months)</Label>
-              <Input id="termLength" type="number" value={formData.termLength} onChange={(e) => updateField("termLength", e.target.value)} placeholder="e.g., 36" />
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="monthlyPayment">Monthly Payment</Label>
+            </Field>
+          </FieldGrid>
+          <FieldGrid columns={2}>
+            <Field label="Term Length (Months)">
+              <Input
+                id="termLength"
+                type="number"
+                value={formData.termLength}
+                onChange={(e) => updateField("termLength", e.target.value)}
+                className="h-9 text-sm"
+                placeholder="e.g., 36"
+              />
+            </Field>
+            <Field label="Monthly Payment">
               <div className="relative">
                 <span className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground">$</span>
-                <Input id="monthlyPayment" value={formData.monthlyPayment} onChange={(e) => updateField("monthlyPayment", e.target.value)} className="pl-7" placeholder="0.00" />
+                <Input
+                  id="monthlyPayment"
+                  value={formData.monthlyPayment}
+                  onChange={(e) => updateField("monthlyPayment", e.target.value)}
+                  className="pl-7 h-9 text-sm"
+                  placeholder="0.00"
+                />
               </div>
-            </div>
-          </div>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div className="space-y-2">
-              <Label htmlFor="rate">Rate Factor</Label>
-              <Input id="rate" value={formData.rate} onChange={(e) => updateField("rate", e.target.value)} placeholder="e.g., 0.032" />
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="invoiceFundingAmount">
-                Invoice/Funding Amount
-                {formData.invoiceFundingAmountOverridden && (
-                  <span className="text-xs text-muted-foreground ml-2">(overridden)</span>
-                )}
-              </Label>
+            </Field>
+          </FieldGrid>
+          <FieldGrid columns={2}>
+            <Field label="Rate Factor">
+              <Input
+                id="rate"
+                value={formData.rate}
+                onChange={(e) => updateField("rate", e.target.value)}
+                className="h-9 text-sm"
+                placeholder="e.g., 0.032"
+              />
+            </Field>
+            <Field label={`Invoice/Funding Amount${formData.invoiceFundingAmountOverridden ? "  (overridden)" : ""}`}>
               <div className="relative">
                 <span className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground">$</span>
-                <Input id="invoiceFundingAmount" value={formData.invoiceFundingAmount} onChange={(e) => updateField("invoiceFundingAmount", e.target.value)} className="pl-7" placeholder="0.00" />
+                <Input
+                  id="invoiceFundingAmount"
+                  value={formData.invoiceFundingAmount}
+                  onChange={(e) => updateField("invoiceFundingAmount", e.target.value)}
+                  className="pl-7 h-9 text-sm"
+                  placeholder="0.00"
+                />
               </div>
-            </div>
-          </div>
-        </CardContent>
-      </Card>
+            </Field>
+          </FieldGrid>
+        </div>
+      </SectionCard>
+
+      {/* Terms & conditions (new; form capture only - the preview is intentionally unchanged) */}
+      <SectionCard
+        title="Terms &amp; conditions"
+        icon={FileSignature}
+        description="Captured with the document. Document rendering is wired in a later phase."
+        action={
+          <label className="flex items-center gap-2 cursor-pointer">
+            <span className="text-xs text-muted-foreground">Include on document</span>
+            <Switch checked={!!formData.termsInclude} onCheckedChange={(c) => updateField("termsInclude", c)} />
+          </label>
+        }
+      >
+        <div className="space-y-3">
+          <FieldGrid columns={2}>
+            <Field label="Template" hint="Backend templates connect when Settings migrates to HubSpot">
+              <Select
+                value={formData.termsTemplateId || "custom"}
+                onValueChange={(v) => updateField("termsTemplateId", v === "custom" ? "" : v)}
+              >
+                <SelectTrigger className="h-9 text-sm">
+                  <SelectValue placeholder="Custom text only" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="custom">Custom text only</SelectItem>
+                  <SelectItem value="standard">Standard terms</SelectItem>
+                  <SelectItem value="government">Government / public sector</SelectItem>
+                </SelectContent>
+              </Select>
+            </Field>
+          </FieldGrid>
+          <Field label="Custom text">
+            <Textarea
+              value={formData.termsCustomText || ""}
+              onChange={(e) => updateField("termsCustomText", e.target.value)}
+              placeholder="Enter any document-specific terms and conditions..."
+              className="text-sm min-h-[96px]"
+            />
+          </Field>
+        </div>
+      </SectionCard>
     </div>
   );
 }
