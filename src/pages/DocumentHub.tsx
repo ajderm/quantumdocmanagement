@@ -5089,7 +5089,7 @@ function DocumentHubContent() {
           <QuotePreview
             ref={previewRef}
             formData={formData}
-            dealerInfo={formData?.overrideTerms ? { ...(dealerInfo || {}), termsAndConditions: formData.overrideTermsText || "" } : (dealerInfo || undefined)}
+            dealerInfo={formData?.overrideTerms ? ({ ...(dealerInfo || {}), termsAndConditions: formData.overrideTermsText || "" } as any) : (dealerInfo || undefined)}
             documentStyles={dealerSettings.document_styles}
             formCustomization={dealerSettings.form_customization?.quote}
             documentTerms={formData?.overrideTerms ? { ...documentTerms, quote_fmv: formData.overrideTermsText || "", quote_dollar_buyout: formData.overrideTermsText || "", quote_rental: formData.overrideTermsText || "" } : documentTerms}
@@ -5133,7 +5133,7 @@ function DocumentHubContent() {
                 <div className="shadow-lg border">
                   <QuotePreview
                     formData={formData}
-                    dealerInfo={formData?.overrideTerms ? { ...(dealerInfo || {}), termsAndConditions: formData.overrideTermsText || "" } : (dealerInfo || undefined)}
+                    dealerInfo={formData?.overrideTerms ? ({ ...(dealerInfo || {}), termsAndConditions: formData.overrideTermsText || "" } as any) : (dealerInfo || undefined)}
                     documentStyles={dealerSettings.document_styles}
                     formCustomization={dealerSettings.form_customization?.quote}
                     documentTerms={formData?.overrideTerms ? { ...documentTerms, quote_fmv: formData.overrideTermsText || "", quote_dollar_buyout: formData.overrideTermsText || "", quote_rental: formData.overrideTermsText || "" } : documentTerms}
