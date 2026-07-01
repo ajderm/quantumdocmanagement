@@ -1,9 +1,8 @@
 import { forwardRef } from 'react';
 import type { QuoteFormData } from './QuoteForm';
-import type { DocumentStyles } from '@/components/commission/CommissionPreview';
+import type { DocumentStyles } from '@/lib/documentFontSizes';
 import { getLabel, isSectionVisible, type FormCustomizationConfig } from '@/lib/formCustomization';
-
-import { buildDocumentFontCss } from "@/lib/documentFontSizes";
+import { DocPage, DocLetterhead, DocSection, DocSignature } from '@/components/doc/DocPrimitives';
 interface QuotePreviewProps {
   formData: QuoteFormData;
   dealerInfo?: {
@@ -64,75 +63,46 @@ export const QuotePreview = forwardRef<HTMLDivElement, QuotePreviewProps>(
     // Get lease program display name
     const leaseTypeName = isRental ? 'Monthly Rental' : formData.leaseProgram === 'fmv' ? 'FMV Lease' : '$1 Buyout Lease';
 
-    const _docScopeId = 'doc-quote';
-    const _docFontCss = buildDocumentFontCss(_docScopeId, documentStyles);
-
     return (
-        <div 
-        ref={ref}
-        data-doc-scope={_docScopeId}
-        className="bg-white p-8 min-h-[11in] w-[8.5in] text-[13px] leading-tight"
-        style={{ fontFamily: documentStyles?.fontFamily || 'Arial, sans-serif', color: documentStyles?.fontColor || '#000000' }}
-      >
-          {_docFontCss && <style>{_docFontCss}</style>}
+      <DocPage ref={ref} scopeId="doc-quote" documentStyles={documentStyles}>
         {/* Header */}
-        <div className="flex justify-between items-start mb-6">
-          <div>
-            {dealerInfo && (
-              <>
-                {dealerInfo.logoUrl && (
-                  <img 
-                    src={dealerInfo.logoUrl} 
-                    alt={dealerInfo.companyName} 
-                    className="h-12 mb-2 object-contain"
-                    crossOrigin="anonymous"
-                  />
-                )}
-                <p className="font-bold text-[13px]">{dealerInfo.companyName}</p>
-                <p className="text-[12px]">{dealerInfo.address}</p>
-                <p className="text-[12px]">{dealerInfo.phone}</p>
-                <p className="text-[12px]">{dealerInfo.website}</p>
-              </>
-            )}
-          </div>
-          <div className="text-right">
-            <h1 className="text-2xl font-bold mb-2">Quote</h1>
-            <table className="text-right ml-auto">
-              <tbody>
-                <tr>
-                  <td className="pr-4">{getLabel(formCustomization, 'quoteNumber', 'Quote Number')}:</td>
-                  <td className="font-semibold" data-quote-number>{formData.quoteNumber}</td>
-                </tr>
-                <tr>
-                  <td className="pr-4">{getLabel(formCustomization, 'quoteDate', 'Quote Date')}:</td>
-                  <td>{formatDate(formData.quoteDate)}</td>
-                </tr>
-                <tr>
-                  <td className="pr-4">{getLabel(formCustomization, 'preparedBy', 'Prepared By')}:</td>
-                  <td>{formData.preparedBy}</td>
-                </tr>
-              </tbody>
-            </table>
-          </div>
-        </div>
+        <DocLetterhead
+          dealerInfo={dealerInfo}
+          title="Quote"
+          metaRows={[
+            {
+              label: getLabel(formCustomization, 'quoteNumber', 'Quote Number'),
+              value: <span data-quote-number>{formData.quoteNumber}</span>,
+              emphasize: true,
+            },
+            {
+              label: getLabel(formCustomization, 'quoteDate', 'Quote Date'),
+              value: formatDate(formData.quoteDate),
+            },
+            {
+              label: getLabel(formCustomization, 'preparedBy', 'Prepared By'),
+              value: formData.preparedBy,
+            },
+          ]}
+        />
 
         {/* Prepared For */}
         {isSectionVisible(formCustomization, 'customerInfo') && (
-        <div className="mb-6">
-          <p className="font-bold mb-1">Prepared For:</p>
+        <DocSection title="Prepared For" documentStyles={documentStyles}>
           <p className="font-semibold">{formData.companyName}</p>
           <p>{formData.address}</p>
           {formData.address2 && <p>{formData.address2}</p>}
           <p>{formData.city}, {formData.state} {formData.zip}</p>
           {formData.phone && <p>{formData.phone}</p>}
-        </div>
+        </DocSection>
         )}
 
         {/* Equipment Table */}
         {isSectionVisible(formCustomization, 'equipment') && (
-        <div className="mb-6">
-          <div className="flex justify-between items-baseline mb-2">
-            <p className="font-bold">EQUIPMENT</p>
+        <DocSection
+          title="EQUIPMENT"
+          documentStyles={documentStyles}
+          action={
             <div className="flex gap-4">
               {formData.rfpNumber && (
                 <p className="text-[13px]"><span className="font-semibold">RFP #:</span> {formData.rfpNumber}</p>
@@ -141,7 +111,8 @@ export const QuotePreview = forwardRef<HTMLDivElement, QuotePreviewProps>(
                 <p className="text-[13px]"><span className="font-semibold">Contract #:</span> {formData.contractNumber}</p>
               )}
             </div>
-          </div>
+          }
+        >
           <table className="w-full border-collapse table-fixed text-[12px]">
             <thead>
               <tr className="border-b-2 border-black">
@@ -206,7 +177,7 @@ export const QuotePreview = forwardRef<HTMLDivElement, QuotePreviewProps>(
               )}
             </tbody>
           </table>
-        </div>
+        </DocSection>
         )}
 
         {/* Combined Pricing Table - Purchase | Lease | Service Agreement */}
@@ -353,20 +324,19 @@ export const QuotePreview = forwardRef<HTMLDivElement, QuotePreviewProps>(
             || dealerInfo?.termsAndConditions
             || '';
           return tcText ? (
-            <div className="mb-6 text-[13px]">
-              <p className="font-bold mb-1">Terms & Conditions:</p>
+            <DocSection title="Terms & Conditions" documentStyles={documentStyles} className="text-[13px]">
               <p className="whitespace-pre-wrap">{tcText}</p>
-            </div>
+            </DocSection>
           ) : null;
         })()}
 
         {/* Signature */}
-        <div className="mb-6">
+        <DocSignature>
           <p className="mb-1">Sincerely,</p>
           <p className="font-semibold">{formData.preparedBy}</p>
           {formData.preparedByPhone && <p>{formData.preparedByPhone}</p>}
           {formData.preparedByEmail && <p>{formData.preparedByEmail}</p>}
-        </div>
+        </DocSignature>
 
         {/* Acceptance Section */}
         {isSectionVisible(formCustomization, 'acceptance') && (
@@ -401,7 +371,7 @@ export const QuotePreview = forwardRef<HTMLDivElement, QuotePreviewProps>(
             award of the contract.
           </p>
         </div>
-      </div>
+      </DocPage>
     );
   }
 );
