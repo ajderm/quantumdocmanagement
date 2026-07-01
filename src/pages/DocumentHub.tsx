@@ -53,6 +53,7 @@ import {
 import { QuoteForm, QuoteFormData } from "@/components/quote/QuoteForm";
 import { QuotePreview } from "@/components/quote/QuotePreview";
 import { SummaryRail, type SummaryMetric } from "@/components/shared";
+import { quantumLogo } from "@/assets/quantumLogo";
 import { InstallationForm, InstallationFormData } from "@/components/installation/InstallationForm";
 import { InstallationPreview } from "@/components/installation/InstallationPreview";
 import { ServiceAgreementForm, ServiceAgreementFormData } from "@/components/service-agreement/ServiceAgreementForm";
@@ -3687,10 +3688,12 @@ function DocumentHubContent() {
         />
         <div className="relative flex items-center justify-between h-[52px] px-4">
           <div className="flex items-center gap-2.5 min-w-0">
-            <div className="h-7 w-7 rounded-lg bg-qbs-gold-500/15 ring-1 ring-qbs-gold-500/40 flex items-center justify-center shrink-0">
-              <span className="brand-serif text-[18px] leading-none not-italic" style={{ fontStyle: "normal" }}>
-                Q
-              </span>
+            <div className="h-8 w-8 flex items-center justify-center shrink-0">
+              <img
+                src={quantumLogo}
+                alt="Quantum Document Management"
+                className="h-8 w-8 object-contain"
+              />
             </div>
             <div className="min-w-0">
               <div className="text-sm font-semibold tracking-tight leading-tight truncate">
@@ -4168,56 +4171,45 @@ function DocumentHubContent() {
               <div className="space-y-4">
                 <div>
                   <h3 className="text-sm font-semibold tracking-tight">Installation Document</h3>
-                  <p className="text-xs text-muted-foreground mt-0.5">
-                    Create an installation document for each hardware item
-                  </p>
+                  <p className="text-xs text-muted-foreground mt-0.5">Create an installation document for each hardware item</p>
                 </div>
                 <div className="grid grid-cols-1 xl:grid-cols-[minmax(0,1fr)_320px] gap-4 items-start">
                   <div className="space-y-4 min-w-0">
                     <InstallationForm
-                      deal={deal}
-                      company={company}
-                      contacts={contacts}
-                      lineItems={lineItems}
-                      dealOwner={dealOwner}
-                      meterMethods={dealerSettings.meter_methods || []}
-                      ccaValue={dealerSettings.cca_value || ""}
-                      portalId={portalId || localStorage.getItem("hs_portal_id") || ""}
-                      onFormChange={handleInstallationFormChange}
-                      onLineItemSwitch={handleInstallationLineItemSwitch}
-                      savedConfig={getCurrentInstallationSavedConfig()}
-                      labeledContacts={labeledContacts || undefined}
-                      quoteLineItems={(formData?.lineItems || savedConfig?.lineItems)?.map((li) => ({
-                        id: li.id,
-                        model: li.model,
-                        description: li.description,
-                        quantity: li.quantity,
-                        productType: li.productType || "",
-                        parentLineItemId: li.parentLineItemId || "",
-                        itemNumber: li.itemNumber || "",
-                      }))}
-                      defaultMeterMethod={
-                        serviceAgreementFormData?.meterMethod ||
-                        lineItems.find((li: any) => li.meterMethod)?.meterMethod ||
-                        ""
-                      }
-                    />
+                    deal={deal}
+                    company={company}
+                    contacts={contacts}
+                    lineItems={lineItems}
+                    dealOwner={dealOwner}
+                    meterMethods={dealerSettings.meter_methods || []}
+                    ccaValue={dealerSettings.cca_value || ""}
+                    portalId={portalId || localStorage.getItem("hs_portal_id") || ""}
+                    onFormChange={handleInstallationFormChange}
+                    onLineItemSwitch={handleInstallationLineItemSwitch}
+                    savedConfig={getCurrentInstallationSavedConfig()}
+                    labeledContacts={labeledContacts || undefined}
+                    quoteLineItems={(formData?.lineItems || savedConfig?.lineItems)?.map((li) => ({
+                      id: li.id,
+                      model: li.model,
+                      description: li.description,
+                      quantity: li.quantity,
+                      productType: li.productType || "",
+                      parentLineItemId: li.parentLineItemId || "",
+                      itemNumber: li.itemNumber || "",
+                    }))}
+                    defaultMeterMethod={
+                      serviceAgreementFormData?.meterMethod ||
+                      lineItems.find((li: any) => li.meterMethod)?.meterMethod ||
+                      ""
+                    }
+                  />
                     {installationFormData?.selectedLineItemId && (
-                      <div className="flex pt-3 border-t">
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          onClick={handleInstallationSave}
-                          disabled={installationSaving}
-                        >
-                          {installationSaving ? (
-                            <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                          ) : (
-                            <Save className="h-4 w-4 mr-2" />
-                          )}
-                          {installationSaving ? "Saving..." : "Save"}
-                        </Button>
-                      </div>
+                    <div className="flex pt-3 border-t">
+                      <Button variant="outline" size="sm" onClick={handleInstallationSave} disabled={installationSaving}>
+                        {installationSaving ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <Save className="h-4 w-4 mr-2" />}
+                        {installationSaving ? "Saving..." : "Save"}
+                      </Button>
+                    </div>
                     )}
                   </div>
                   <SummaryRail
@@ -4228,7 +4220,7 @@ function DocumentHubContent() {
                     canGenerate={userPermissions.can_generate && !!installationFormData?.selectedLineItemId}
                     generateLabel="Generate PDF"
                     onPreview={handleInstallationPreview}
-                    autosave={installationSaving ? "saving" : installationFormData ? "saved" : "idle"}
+                    autosave={installationSaving ? "saving" : (installationFormData ? "saved" : "idle")}
                   />
                 </div>
               </div>
@@ -4239,118 +4231,107 @@ function DocumentHubContent() {
               <div className="space-y-4">
                 <div>
                   <h3 className="text-sm font-semibold tracking-tight">Service Agreement</h3>
-                  <p className="text-xs text-muted-foreground mt-0.5">
-                    Create a service agreement with maintenance terms and rates
-                  </p>
+                  <p className="text-xs text-muted-foreground mt-0.5">Create a service agreement with maintenance terms and rates</p>
                 </div>
                 <div className="grid grid-cols-1 xl:grid-cols-[minmax(0,1fr)_320px] gap-4 items-start">
                   <div className="space-y-4 min-w-0">
                     <ServiceAgreementForm
-                      formData={
-                        serviceAgreementFormData || {
-                          customerNumber: "",
-                          customerNumberOverride: "",
-                          meterMethod: "",
-                          shipToCompany: "",
-                          shipToAddress: "",
-                          shipToCity: "",
-                          shipToState: "",
-                          shipToZip: "",
-                          shipToAttn: "",
-                          shipToPhone: "",
-                          shipToEmail: "",
-                          billToCompany: "",
-                          billToAddress: "",
-                          billToCity: "",
-                          billToState: "",
-                          billToZip: "",
-                          billToAttn: "",
-                          billToPhone: "",
-                          billToEmail: "",
-                          maintenanceType: "",
-                          paperStaples: "",
-                          drumToner: "",
-                          effectiveDate: null,
-                          contractLengthMonths: "",
-                          billingPeriod: "monthly",
-                          rates: {},
-                        }
+                    formData={
+                      serviceAgreementFormData || {
+                        customerNumber: "",
+                        customerNumberOverride: "",
+                        meterMethod: "",
+                        shipToCompany: "",
+                        shipToAddress: "",
+                        shipToCity: "",
+                        shipToState: "",
+                        shipToZip: "",
+                        shipToAttn: "",
+                        shipToPhone: "",
+                        shipToEmail: "",
+                        billToCompany: "",
+                        billToAddress: "",
+                        billToCity: "",
+                        billToState: "",
+                        billToZip: "",
+                        billToAttn: "",
+                        billToPhone: "",
+                        billToEmail: "",
+                        maintenanceType: "",
+                        paperStaples: "",
+                        drumToner: "",
+                        effectiveDate: null,
+                        contractLengthMonths: "",
+                        billingPeriod: "monthly",
+                        rates: {},
                       }
-                      onChange={handleServiceAgreementFormChange}
-                      company={
-                        company
-                          ? {
-                              name: company.name,
-                              customerNumber: company.customerNumber,
-                              // Ship To (Delivery) Address
-                              deliveryAddress: company.deliveryAddress,
-                              deliveryAddress2: company.deliveryAddress2,
-                              deliveryCity: company.deliveryCity,
-                              deliveryState: company.deliveryState,
-                              deliveryZip: company.deliveryZip,
-                              // Bill To (AP) Address
-                              apAddress: company.apAddress,
-                              apAddress2: company.apAddress2,
-                              apCity: company.apCity,
-                              apState: company.apState,
-                              apZip: company.apZip,
-                              // Fallback address
-                              address: company.address,
-                              address2: company.address2,
-                              city: company.city,
-                              state: company.state,
-                              zip: company.zip,
-                            }
-                          : null
-                      }
-                      lineItems={
-                        formData?.lineItems?.length
-                          ? formData.lineItems.map((li) => ({
-                              id: li.id,
-                              name: li.description || li.model,
-                              model: li.model,
-                              description: li.description,
-                              quantity: li.quantity,
-                              price: li.price,
-                              cost: li.cost,
-                              sku: li.model,
-                              category: li.productType || "",
-                              itemNumber: li.itemNumber || "",
-                              parentLineItemId: li.parentLineItemId || "",
-                              serial: li.serial || "",
-                              equipmentId: li.equipmentId || "",
-                            }))
-                          : lineItems
-                      }
-                      dealerSettings={dealerSettings}
-                      savedConfig={serviceAgreementSavedConfig}
-                      labeledContacts={labeledContacts || { shippingContact: null, apContact: null, itContact: null }}
-                      quoteFormData={
-                        formData
-                          ? {
-                              includedBWCopies: String(formData.includedBWCopies),
-                              includedColorCopies: String(formData.includedColorCopies),
-                              overageBWRate: String(formData.overageBWRate),
-                              overageColorRate: String(formData.overageColorRate),
-                              serviceBaseRate: String(formData.serviceBaseRate),
-                              serviceBillingPeriod: formData.serviceBillingPeriod || "monthly",
-                            }
-                          : null
-                      }
-                      installationConfigs={installationSavedConfig}
-                    />
+                    }
+                    onChange={handleServiceAgreementFormChange}
+                    company={
+                      company
+                        ? {
+                            name: company.name,
+                            customerNumber: company.customerNumber,
+                            // Ship To (Delivery) Address
+                            deliveryAddress: company.deliveryAddress,
+                            deliveryAddress2: company.deliveryAddress2,
+                            deliveryCity: company.deliveryCity,
+                            deliveryState: company.deliveryState,
+                            deliveryZip: company.deliveryZip,
+                            // Bill To (AP) Address
+                            apAddress: company.apAddress,
+                            apAddress2: company.apAddress2,
+                            apCity: company.apCity,
+                            apState: company.apState,
+                            apZip: company.apZip,
+                            // Fallback address
+                            address: company.address,
+                            address2: company.address2,
+                            city: company.city,
+                            state: company.state,
+                            zip: company.zip,
+                          }
+                        : null
+                    }
+                    lineItems={
+                      formData?.lineItems?.length
+                        ? formData.lineItems.map((li) => ({
+                            id: li.id,
+                            name: li.description || li.model,
+                            model: li.model,
+                            description: li.description,
+                            quantity: li.quantity,
+                            price: li.price,
+                            cost: li.cost,
+                            sku: li.model,
+                            category: li.productType || "",
+                            itemNumber: li.itemNumber || "",
+                            parentLineItemId: li.parentLineItemId || "",
+                            serial: li.serial || "",
+                            equipmentId: li.equipmentId || "",
+                          }))
+                        : lineItems
+                    }
+                    dealerSettings={dealerSettings}
+                    savedConfig={serviceAgreementSavedConfig}
+                    labeledContacts={labeledContacts || { shippingContact: null, apContact: null, itContact: null }}
+                    quoteFormData={
+                      formData
+                        ? {
+                            includedBWCopies: String(formData.includedBWCopies),
+                            includedColorCopies: String(formData.includedColorCopies),
+                            overageBWRate: String(formData.overageBWRate),
+                            overageColorRate: String(formData.overageColorRate),
+                            serviceBaseRate: String(formData.serviceBaseRate),
+                            serviceBillingPeriod: formData.serviceBillingPeriod || "monthly",
+                          }
+                        : null
+                    }
+                    installationConfigs={installationSavedConfig}
+                  />
                     <div className="flex pt-3 border-t">
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        onClick={handleServiceAgreementSave}
-                        disabled={serviceAgreementSaving}
-                      >
-                        {serviceAgreementSaving ? (
-                          <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                        ) : (
-                          <Save className="h-4 w-4 mr-2" />
-                        )}
+                      <Button variant="outline" size="sm" onClick={handleServiceAgreementSave} disabled={serviceAgreementSaving}>
+                        {serviceAgreementSaving ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <Save className="h-4 w-4 mr-2" />}
                         {serviceAgreementSaving ? "Saving..." : "Save"}
                       </Button>
                     </div>
@@ -4362,7 +4343,7 @@ function DocumentHubContent() {
                     canGenerate={userPermissions.can_generate}
                     generateLabel="Generate PDF"
                     onPreview={handleServiceAgreementPreview}
-                    autosave={serviceAgreementSaving ? "saving" : serviceAgreementFormData ? "saved" : "idle"}
+                    autosave={serviceAgreementSaving ? "saving" : (serviceAgreementFormData ? "saved" : "idle")}
                   />
                 </div>
               </div>
@@ -4378,93 +4359,83 @@ function DocumentHubContent() {
                 <div className="grid grid-cols-1 xl:grid-cols-[minmax(0,1fr)_320px] gap-4 items-start">
                   <div className="space-y-4 min-w-0">
                     <FMVLeaseForm
-                      formData={
-                        fmvLeaseFormData || {
-                          companyLegalName: "",
-                          phone: "",
-                          billingAddress: "",
-                          billingCity: "",
-                          billingState: "",
-                          billingZip: "",
-                          equipmentAddress: "",
-                          equipmentCity: "",
-                          equipmentState: "",
-                          equipmentZip: "",
-                          equipmentItems: [],
-                          termInMonths: "",
-                          paymentFrequency: "monthly",
-                          firstPaymentDate: null,
-                          paymentAmount: "",
-                        }
+                    formData={
+                      fmvLeaseFormData || {
+                        companyLegalName: "",
+                        phone: "",
+                        billingAddress: "",
+                        billingCity: "",
+                        billingState: "",
+                        billingZip: "",
+                        equipmentAddress: "",
+                        equipmentCity: "",
+                        equipmentState: "",
+                        equipmentZip: "",
+                        equipmentItems: [],
+                        termInMonths: "",
+                        paymentFrequency: "monthly",
+                        firstPaymentDate: null,
+                        paymentAmount: "",
                       }
-                      onChange={handleFMVLeaseFormChange}
-                      company={
-                        company
-                          ? {
-                              name: company.name,
-                              phone: company.phone,
-                              deliveryAddress: company.deliveryAddress,
-                              deliveryAddress2: company.deliveryAddress2,
-                              deliveryCity: company.deliveryCity,
-                              deliveryState: company.deliveryState,
-                              deliveryZip: company.deliveryZip,
-                              apAddress: company.apAddress,
-                              apAddress2: company.apAddress2,
-                              apCity: company.apCity,
-                              apState: company.apState,
-                              apZip: company.apZip,
-                              address: company.address,
-                              address2: company.address2,
-                              city: company.city,
-                              state: company.state,
-                              zip: company.zip,
-                            }
-                          : null
-                      }
-                      lineItems={lineItems}
-                      savedConfig={fmvLeaseSavedConfig}
-                      serviceAgreementFormData={
-                        serviceAgreementFormData
-                          ? {
-                              contractLengthMonths: serviceAgreementFormData.contractLengthMonths,
-                              effectiveDate: serviceAgreementFormData.effectiveDate,
-                            }
-                          : null
-                      }
-                      quoteFormData={
-                        formData
-                          ? {
-                              serviceBaseRate: formData.serviceBaseRate,
-                            }
-                          : null
-                      }
-                    />
+                    }
+                    onChange={handleFMVLeaseFormChange}
+                    company={
+                      company
+                        ? {
+                            name: company.name,
+                            phone: company.phone,
+                            deliveryAddress: company.deliveryAddress,
+                            deliveryAddress2: company.deliveryAddress2,
+                            deliveryCity: company.deliveryCity,
+                            deliveryState: company.deliveryState,
+                            deliveryZip: company.deliveryZip,
+                            apAddress: company.apAddress,
+                            apAddress2: company.apAddress2,
+                            apCity: company.apCity,
+                            apState: company.apState,
+                            apZip: company.apZip,
+                            address: company.address,
+                            address2: company.address2,
+                            city: company.city,
+                            state: company.state,
+                            zip: company.zip,
+                          }
+                        : null
+                    }
+                    lineItems={lineItems}
+                    savedConfig={fmvLeaseSavedConfig}
+                    serviceAgreementFormData={
+                      serviceAgreementFormData
+                        ? {
+                            contractLengthMonths: serviceAgreementFormData.contractLengthMonths,
+                            effectiveDate: serviceAgreementFormData.effectiveDate,
+                          }
+                        : null
+                    }
+                    quoteFormData={
+                      formData
+                        ? {
+                            serviceBaseRate: formData.serviceBaseRate,
+                          }
+                        : null
+                    }
+                  />
                     <div className="flex pt-3 border-t">
                       <Button variant="outline" size="sm" onClick={handleFMVLeaseSave} disabled={fmvLeaseSaving}>
-                        {fmvLeaseSaving ? (
-                          <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                        ) : (
-                          <Save className="h-4 w-4 mr-2" />
-                        )}
+                        {fmvLeaseSaving ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <Save className="h-4 w-4 mr-2" />}
                         {fmvLeaseSaving ? "Saving..." : "Save"}
                       </Button>
                     </div>
                   </div>
                   <SummaryRail
                     title="FMV lease summary"
-                    metrics={[
-                      {
-                        label: "Monthly payment",
-                        value: fmvLeaseFormData?.paymentAmount ? `$${fmvLeaseFormData.paymentAmount}` : "—",
-                        emphasis: true,
-                      },
-                    ]}
+                    metrics={[{ label: "Monthly payment", value: fmvLeaseFormData?.paymentAmount ? `$${fmvLeaseFormData.paymentAmount}` : "—", emphasis: true }]}
                     onGenerate={handleFMVLeaseGeneratePDF}
                     generating={fmvLeaseGenerating}
                     canGenerate={userPermissions.can_generate}
                     generateLabel="Generate PDF"
                     onPreview={handleFMVLeasePreview}
-                    autosave={fmvLeaseSaving ? "saving" : fmvLeaseFormData ? "saved" : "idle"}
+                    autosave={fmvLeaseSaving ? "saving" : (fmvLeaseFormData ? "saved" : "idle")}
                   />
                 </div>
               </div>
@@ -4475,82 +4446,65 @@ function DocumentHubContent() {
               <div className="space-y-4">
                 <div>
                   <h3 className="text-sm font-semibold tracking-tight">Lease Funding Document</h3>
-                  <p className="text-xs text-muted-foreground mt-0.5">
-                    Create a lease funding document for each hardware item
-                  </p>
+                  <p className="text-xs text-muted-foreground mt-0.5">Create a lease funding document for each hardware item</p>
                 </div>
                 <div className="grid grid-cols-1 xl:grid-cols-[minmax(0,1fr)_320px] gap-4 items-start">
                   <div className="space-y-4 min-w-0">
                     <LeaseFundingForm
-                      deal={deal}
-                      company={
-                        company
-                          ? {
-                              name: company.name,
-                              deliveryAddress: company.deliveryAddress,
-                              deliveryAddress2: company.deliveryAddress2,
-                              deliveryCity: company.deliveryCity,
-                              deliveryState: company.deliveryState,
-                              deliveryZip: company.deliveryZip,
-                              address: company.address,
-                              address2: company.address2,
-                              city: company.city,
-                              state: company.state,
-                              zip: company.zip,
-                            }
-                          : null
-                      }
-                      lineItems={lineItems}
-                      dealOwner={dealOwner}
-                      fmvLeaseFormData={
-                        fmvLeaseFormData
-                          ? {
-                              companyLegalName: fmvLeaseFormData.companyLegalName,
-                              equipmentAddress: fmvLeaseFormData.equipmentAddress,
-                              equipmentCity: fmvLeaseFormData.equipmentCity,
-                              equipmentState: fmvLeaseFormData.equipmentState,
-                              equipmentZip: fmvLeaseFormData.equipmentZip,
-                              termInMonths: fmvLeaseFormData.termInMonths,
-                              paymentAmount: fmvLeaseFormData.paymentAmount,
-                            }
-                          : null
-                      }
-                      portalId={portalId || localStorage.getItem("hs_portal_id") || undefined}
-                      onFormChange={handleLeaseFundingFormChange}
-                      onLineItemSwitch={handleLeaseFundingLineItemSwitch}
-                      savedConfig={getCurrentLeaseFundingSavedConfig()}
-                    />
+                    deal={deal}
+                    company={
+                      company
+                        ? {
+                            name: company.name,
+                            deliveryAddress: company.deliveryAddress,
+                            deliveryAddress2: company.deliveryAddress2,
+                            deliveryCity: company.deliveryCity,
+                            deliveryState: company.deliveryState,
+                            deliveryZip: company.deliveryZip,
+                            address: company.address,
+                            address2: company.address2,
+                            city: company.city,
+                            state: company.state,
+                            zip: company.zip,
+                          }
+                        : null
+                    }
+                    lineItems={lineItems}
+                    dealOwner={dealOwner}
+                    fmvLeaseFormData={
+                      fmvLeaseFormData
+                        ? {
+                            companyLegalName: fmvLeaseFormData.companyLegalName,
+                            equipmentAddress: fmvLeaseFormData.equipmentAddress,
+                            equipmentCity: fmvLeaseFormData.equipmentCity,
+                            equipmentState: fmvLeaseFormData.equipmentState,
+                            equipmentZip: fmvLeaseFormData.equipmentZip,
+                            termInMonths: fmvLeaseFormData.termInMonths,
+                            paymentAmount: fmvLeaseFormData.paymentAmount,
+                          }
+                        : null
+                    }
+                    portalId={portalId || localStorage.getItem("hs_portal_id") || undefined}
+                    onFormChange={handleLeaseFundingFormChange}
+                    onLineItemSwitch={handleLeaseFundingLineItemSwitch}
+                    savedConfig={getCurrentLeaseFundingSavedConfig()}
+                  />
                     <div className="flex pt-3 border-t">
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        onClick={handleLeaseFundingSave}
-                        disabled={leaseFundingSaving}
-                      >
-                        {leaseFundingSaving ? (
-                          <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                        ) : (
-                          <Save className="h-4 w-4 mr-2" />
-                        )}
+                      <Button variant="outline" size="sm" onClick={handleLeaseFundingSave} disabled={leaseFundingSaving}>
+                        {leaseFundingSaving ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <Save className="h-4 w-4 mr-2" />}
                         {leaseFundingSaving ? "Saving..." : "Save"}
                       </Button>
                     </div>
                   </div>
                   <SummaryRail
                     title="Lease funding summary"
-                    metrics={[
-                      {
-                        label: "Monthly payment",
-                        value: leaseFundingFormData?.monthlyPayment ? `$${leaseFundingFormData.monthlyPayment}` : "—",
-                        emphasis: true,
-                      },
-                    ]}
+                    metrics={[{ label: "Monthly payment", value: leaseFundingFormData?.monthlyPayment ? `$${leaseFundingFormData.monthlyPayment}` : "—", emphasis: true }]}
                     onGenerate={handleLeaseFundingGeneratePDF}
                     generating={leaseFundingGenerating}
                     canGenerate={userPermissions.can_generate}
                     generateLabel="Generate PDF"
                     onPreview={handleLeaseFundingPreview}
-                    autosave={leaseFundingSaving ? "saving" : leaseFundingFormData ? "saved" : "idle"}
+                    autosave={leaseFundingSaving ? "saving" : (leaseFundingFormData ? "saved" : "idle")}
                   />
                 </div>
               </div>
@@ -4566,35 +4520,31 @@ function DocumentHubContent() {
                 <div className="grid grid-cols-1 xl:grid-cols-[minmax(0,1fr)_320px] gap-4 items-start">
                   <div className="space-y-4 min-w-0">
                     <LoiForm
-                      company={company}
-                      lineItems={lineItems || []}
-                      dealOwner={dealOwner}
-                      fmvLeaseFormData={
-                        fmvLeaseFormData
-                          ? {
-                              companyLegalName: fmvLeaseFormData.companyLegalName,
-                              billingAddress: fmvLeaseFormData.billingAddress,
-                              billingCity: fmvLeaseFormData.billingCity,
-                              billingState: fmvLeaseFormData.billingState,
-                              billingZip: fmvLeaseFormData.billingZip,
-                              phone: fmvLeaseFormData.phone,
-                              termInMonths: fmvLeaseFormData.termInMonths,
-                              paymentAmount: fmvLeaseFormData.paymentAmount,
-                            }
-                          : null
-                      }
-                      labeledContacts={labeledContacts || null}
-                      portalId={portalId || localStorage.getItem("hs_portal_id") || undefined}
-                      onFormChange={handleLoiFormChange}
-                      savedConfig={loiSavedConfig || undefined}
-                    />
+                    company={company}
+                    lineItems={lineItems || []}
+                    dealOwner={dealOwner}
+                    fmvLeaseFormData={
+                      fmvLeaseFormData
+                        ? {
+                            companyLegalName: fmvLeaseFormData.companyLegalName,
+                            billingAddress: fmvLeaseFormData.billingAddress,
+                            billingCity: fmvLeaseFormData.billingCity,
+                            billingState: fmvLeaseFormData.billingState,
+                            billingZip: fmvLeaseFormData.billingZip,
+                            phone: fmvLeaseFormData.phone,
+                            termInMonths: fmvLeaseFormData.termInMonths,
+                            paymentAmount: fmvLeaseFormData.paymentAmount,
+                          }
+                        : null
+                    }
+                    labeledContacts={labeledContacts || null}
+                    portalId={portalId || localStorage.getItem("hs_portal_id") || undefined}
+                    onFormChange={handleLoiFormChange}
+                    savedConfig={loiSavedConfig || undefined}
+                  />
                     <div className="flex pt-3 border-t">
                       <Button variant="outline" size="sm" onClick={handleLoiSave} disabled={loiSaving}>
-                        {loiSaving ? (
-                          <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                        ) : (
-                          <Save className="h-4 w-4 mr-2" />
-                        )}
+                        {loiSaving ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <Save className="h-4 w-4 mr-2" />}
                         {loiSaving ? "Saving..." : "Save"}
                       </Button>
                     </div>
@@ -4606,7 +4556,7 @@ function DocumentHubContent() {
                     canGenerate={userPermissions.can_generate}
                     generateLabel="Generate PDF"
                     onPreview={handleLoiPreview}
-                    autosave={loiSaving ? "saving" : loiFormData ? "saved" : "idle"}
+                    autosave={loiSaving ? "saving" : (loiFormData ? "saved" : "idle")}
                   />
                 </div>
               </div>
@@ -4617,44 +4567,38 @@ function DocumentHubContent() {
               <div className="space-y-4">
                 <div>
                   <h3 className="text-sm font-semibold tracking-tight">Lease Return Letter</h3>
-                  <p className="text-xs text-muted-foreground mt-0.5">
-                    Create a lease return letter for equipment being returned to the leasing company
-                  </p>
+                  <p className="text-xs text-muted-foreground mt-0.5">Create a lease return letter for equipment being returned to the leasing company</p>
                 </div>
                 <div className="grid grid-cols-1 xl:grid-cols-[minmax(0,1fr)_320px] gap-4 items-start">
                   <div className="space-y-4 min-w-0">
                     <LeaseReturnForm
-                      deal={deal}
-                      company={company}
-                      dealOwner={dealOwner}
-                      quoteFormData={
-                        formData
-                          ? {
-                              paymentAmount: formData.paymentAmount,
-                              paymentsRemaining: formData.paymentsRemaining,
-                              earlyTerminationFee: formData.earlyTerminationFee,
-                              returnShipping: formData.returnShipping,
-                            }
-                          : null
-                      }
-                      fmvLeaseFormData={
-                        fmvLeaseFormData
-                          ? {
-                              companyLegalName: fmvLeaseFormData.companyLegalName,
-                            }
-                          : null
-                      }
-                      portalId={portalId || localStorage.getItem("hs_portal_id") || undefined}
-                      onFormChange={handleLeaseReturnFormChange}
-                      savedConfig={leaseReturnSavedConfig}
-                    />
+                    deal={deal}
+                    company={company}
+                    dealOwner={dealOwner}
+                    quoteFormData={
+                      formData
+                        ? {
+                            paymentAmount: formData.paymentAmount,
+                            paymentsRemaining: formData.paymentsRemaining,
+                            earlyTerminationFee: formData.earlyTerminationFee,
+                            returnShipping: formData.returnShipping,
+                          }
+                        : null
+                    }
+                    fmvLeaseFormData={
+                      fmvLeaseFormData
+                        ? {
+                            companyLegalName: fmvLeaseFormData.companyLegalName,
+                          }
+                        : null
+                    }
+                    portalId={portalId || localStorage.getItem("hs_portal_id") || undefined}
+                    onFormChange={handleLeaseReturnFormChange}
+                    savedConfig={leaseReturnSavedConfig}
+                  />
                     <div className="flex pt-3 border-t">
                       <Button variant="outline" size="sm" onClick={handleLeaseReturnSave} disabled={leaseReturnSaving}>
-                        {leaseReturnSaving ? (
-                          <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                        ) : (
-                          <Save className="h-4 w-4 mr-2" />
-                        )}
+                        {leaseReturnSaving ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <Save className="h-4 w-4 mr-2" />}
                         {leaseReturnSaving ? "Saving..." : "Save"}
                       </Button>
                     </div>
@@ -4666,7 +4610,7 @@ function DocumentHubContent() {
                     canGenerate={userPermissions.can_generate}
                     generateLabel="Generate PDF"
                     onPreview={handleLeaseReturnPreview}
-                    autosave={leaseReturnSaving ? "saving" : leaseReturnFormData ? "saved" : "idle"}
+                    autosave={leaseReturnSaving ? "saving" : (leaseReturnFormData ? "saved" : "idle")}
                   />
                 </div>
               </div>
@@ -4677,93 +4621,82 @@ function DocumentHubContent() {
               <div className="space-y-4">
                 <div>
                   <h3 className="text-sm font-semibold tracking-tight">Interterritorial Agreement</h3>
-                  <p className="text-xs text-muted-foreground mt-0.5">
-                    Coordinate service between home and servicing dealers
-                  </p>
+                  <p className="text-xs text-muted-foreground mt-0.5">Coordinate service between home and servicing dealers</p>
                 </div>
                 <div className="grid grid-cols-1 xl:grid-cols-[minmax(0,1fr)_320px] gap-4 items-start">
                   <div className="space-y-4 min-w-0">
                     <InterterritorialForm
-                      formData={
-                        interterritorialFormData || {
-                          requestedInstallDate: null,
-                          originatingName: "",
-                          originatingBillTo: "",
-                          originatingPhone: "",
-                          originatingAttn: "",
-                          originatingEmail: "",
-                          originatingCca: "",
-                          installingName: "",
-                          installingAddress: "",
-                          installingPhone: "",
-                          installingAttn: "",
-                          installingEmail: "",
-                          installingCca: "",
-                          installingDealerNumber: "",
-                          customerName: "",
-                          customerAddress: "",
-                          customerPhone: "",
-                          customerAttn: "",
-                          customerEmail: "",
-                          customerFax: "",
-                          equipmentItems: [],
-                          serviceBaseCharge: "",
-                          serviceIncludes: "",
-                          serviceOverageBW: "",
-                          serviceOverageColor: "",
-                          serviceFrequency: "Monthly",
-                          serviceBillTo: "Originating Dealer",
-                          removalEquipment: [],
-                        }
+                    formData={
+                      interterritorialFormData || {
+                        requestedInstallDate: null,
+                        originatingName: "",
+                        originatingBillTo: "",
+                        originatingPhone: "",
+                        originatingAttn: "",
+                        originatingEmail: "",
+                        originatingCca: "",
+                        installingName: "",
+                        installingAddress: "",
+                        installingPhone: "",
+                        installingAttn: "",
+                        installingEmail: "",
+                        installingCca: "",
+                        installingDealerNumber: "",
+                        customerName: "",
+                        customerAddress: "",
+                        customerPhone: "",
+                        customerAttn: "",
+                        customerEmail: "",
+                        customerFax: "",
+                        equipmentItems: [],
+                        serviceBaseCharge: "",
+                        serviceIncludes: "",
+                        serviceOverageBW: "",
+                        serviceOverageColor: "",
+                        serviceFrequency: "Monthly",
+                        serviceBillTo: "Originating Dealer",
+                        removalEquipment: [],
                       }
-                      onChange={handleInterterritorialFormChange}
-                      dealerInfo={dealerInfo}
-                      dealerSettings={dealerSettings}
-                      dealOwner={dealOwner}
-                      lineItems={lineItems}
-                      fmvLeaseFormData={
-                        fmvLeaseFormData
-                          ? {
-                              companyLegalName: fmvLeaseFormData.companyLegalName,
-                              equipmentAddress: fmvLeaseFormData.equipmentAddress,
-                              equipmentCity: fmvLeaseFormData.equipmentCity,
-                              equipmentState: fmvLeaseFormData.equipmentState,
-                              equipmentZip: fmvLeaseFormData.equipmentZip,
-                              phone: fmvLeaseFormData.phone,
-                            }
-                          : null
-                      }
-                      serviceAgreementFormData={
-                        serviceAgreementFormData
-                          ? {
-                              rates: serviceAgreementFormData.rates,
-                              contractLengthMonths: serviceAgreementFormData.contractLengthMonths,
-                              shipToCompany: serviceAgreementFormData.shipToCompany,
-                              shipToAddress: serviceAgreementFormData.shipToAddress,
-                              shipToCity: serviceAgreementFormData.shipToCity,
-                              shipToState: serviceAgreementFormData.shipToState,
-                              shipToZip: serviceAgreementFormData.shipToZip,
-                              shipToAttn: serviceAgreementFormData.shipToAttn,
-                              shipToPhone: serviceAgreementFormData.shipToPhone,
-                              shipToEmail: serviceAgreementFormData.shipToEmail,
-                            }
-                          : null
-                      }
-                      quoteFormData={formData ? { phone: formData.phone } : null}
-                      savedConfig={interterritorialSavedConfig}
-                    />
+                    }
+                    onChange={handleInterterritorialFormChange}
+                    dealerInfo={dealerInfo}
+                    dealerSettings={dealerSettings}
+                    dealOwner={dealOwner}
+                    lineItems={lineItems}
+                    fmvLeaseFormData={
+                      fmvLeaseFormData
+                        ? {
+                            companyLegalName: fmvLeaseFormData.companyLegalName,
+                            equipmentAddress: fmvLeaseFormData.equipmentAddress,
+                            equipmentCity: fmvLeaseFormData.equipmentCity,
+                            equipmentState: fmvLeaseFormData.equipmentState,
+                            equipmentZip: fmvLeaseFormData.equipmentZip,
+                            phone: fmvLeaseFormData.phone,
+                          }
+                        : null
+                    }
+                    serviceAgreementFormData={
+                      serviceAgreementFormData
+                        ? {
+                            rates: serviceAgreementFormData.rates,
+                            contractLengthMonths: serviceAgreementFormData.contractLengthMonths,
+                            shipToCompany: serviceAgreementFormData.shipToCompany,
+                            shipToAddress: serviceAgreementFormData.shipToAddress,
+                            shipToCity: serviceAgreementFormData.shipToCity,
+                            shipToState: serviceAgreementFormData.shipToState,
+                            shipToZip: serviceAgreementFormData.shipToZip,
+                            shipToAttn: serviceAgreementFormData.shipToAttn,
+                            shipToPhone: serviceAgreementFormData.shipToPhone,
+                            shipToEmail: serviceAgreementFormData.shipToEmail,
+                          }
+                        : null
+                    }
+                    quoteFormData={formData ? { phone: formData.phone } : null}
+                    savedConfig={interterritorialSavedConfig}
+                  />
                     <div className="flex pt-3 border-t">
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        onClick={handleInterterritorialSave}
-                        disabled={interterritorialSaving}
-                      >
-                        {interterritorialSaving ? (
-                          <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                        ) : (
-                          <Save className="h-4 w-4 mr-2" />
-                        )}
+                      <Button variant="outline" size="sm" onClick={handleInterterritorialSave} disabled={interterritorialSaving}>
+                        {interterritorialSaving ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <Save className="h-4 w-4 mr-2" />}
                         {interterritorialSaving ? "Saving..." : "Save"}
                       </Button>
                     </div>
@@ -4775,7 +4708,7 @@ function DocumentHubContent() {
                     canGenerate={userPermissions.can_generate}
                     generateLabel="Generate PDF"
                     onPreview={handleInterterritorialPreview}
-                    autosave={interterritorialSaving ? "saving" : interterritorialFormData ? "saved" : "idle"}
+                    autosave={interterritorialSaving ? "saving" : (interterritorialFormData ? "saved" : "idle")}
                   />
                 </div>
               </div>
@@ -4786,89 +4719,83 @@ function DocumentHubContent() {
               <div className="space-y-4">
                 <div>
                   <h3 className="text-sm font-semibold tracking-tight">New Customer Application</h3>
-                  <p className="text-xs text-muted-foreground mt-0.5">
-                    Create a new customer application form for credit/account setup
-                  </p>
+                  <p className="text-xs text-muted-foreground mt-0.5">Create a new customer application form for credit/account setup</p>
                 </div>
                 <div className="grid grid-cols-1 xl:grid-cols-[minmax(0,1fr)_320px] gap-4 items-start">
                   <div className="space-y-4 min-w-0">
                     <NewCustomerForm
-                      formData={
-                        newCustomerFormData || {
-                          companyName: "",
-                          tradeName: "",
-                          businessDescription: "",
-                          taxId: "",
-                          taxIdState: "",
-                          yearEstablished: "",
-                          yearsOwned: "",
-                          creditRequested: "",
-                          businessType: "",
-                          hqAddress: "",
-                          hqAddress2: "",
-                          hqCity: "",
-                          hqState: "",
-                          hqZip: "",
-                          hqPhone: "",
-                          hqFax: "",
-                          hqEmail: "",
-                          branchSameAsHq: false,
-                          branchAddress: "",
-                          branchAddress2: "",
-                          branchCity: "",
-                          branchState: "",
-                          branchZip: "",
-                          branchPhone: "",
-                          branchFax: "",
-                          branchEmail: "",
-                          billingSameAsHq: false,
-                          billingSameAsBranch: false,
-                          billingAddress: "",
-                          billingAddress2: "",
-                          billingCity: "",
-                          billingState: "",
-                          billingZip: "",
-                          billingPhone: "",
-                          billingFax: "",
-                          billingEmail: "",
-                          principalName: "",
-                          principalTitle: "",
-                          principalPhone: "",
-                          principalEmail: "",
-                          equipmentContactName: "",
-                          equipmentContactTitle: "",
-                          equipmentContactPhone: "",
-                          equipmentContactEmail: "",
-                          apContactName: "",
-                          apContactTitle: "",
-                          apContactPhone: "",
-                          apContactEmail: "",
-                          interestOfficeMachines: false,
-                          interestFurniture: false,
-                          interestSupplies: false,
-                          interestOther: "",
-                          bankReferences: [],
-                          businessReferences: [],
-                          invoiceDelivery: "email",
-                          invoiceEmail: "",
-                          invoiceSecondaryEmail: "",
-                          paymentMethod: "",
-                        }
+                    formData={
+                      newCustomerFormData || {
+                        companyName: "",
+                        tradeName: "",
+                        businessDescription: "",
+                        taxId: "",
+                        taxIdState: "",
+                        yearEstablished: "",
+                        yearsOwned: "",
+                        creditRequested: "",
+                        businessType: "",
+                        hqAddress: "",
+                        hqAddress2: "",
+                        hqCity: "",
+                        hqState: "",
+                        hqZip: "",
+                        hqPhone: "",
+                        hqFax: "",
+                        hqEmail: "",
+                        branchSameAsHq: false,
+                        branchAddress: "",
+                        branchAddress2: "",
+                        branchCity: "",
+                        branchState: "",
+                        branchZip: "",
+                        branchPhone: "",
+                        branchFax: "",
+                        branchEmail: "",
+                        billingSameAsHq: false,
+                        billingSameAsBranch: false,
+                        billingAddress: "",
+                        billingAddress2: "",
+                        billingCity: "",
+                        billingState: "",
+                        billingZip: "",
+                        billingPhone: "",
+                        billingFax: "",
+                        billingEmail: "",
+                        principalName: "",
+                        principalTitle: "",
+                        principalPhone: "",
+                        principalEmail: "",
+                        equipmentContactName: "",
+                        equipmentContactTitle: "",
+                        equipmentContactPhone: "",
+                        equipmentContactEmail: "",
+                        apContactName: "",
+                        apContactTitle: "",
+                        apContactPhone: "",
+                        apContactEmail: "",
+                        interestOfficeMachines: false,
+                        interestFurniture: false,
+                        interestSupplies: false,
+                        interestOther: "",
+                        bankReferences: [],
+                        businessReferences: [],
+                        invoiceDelivery: "email",
+                        invoiceEmail: "",
+                        invoiceSecondaryEmail: "",
+                        paymentMethod: "",
                       }
-                      onChange={handleNewCustomerFormChange}
-                      company={company}
-                      dealOwner={dealOwner}
-                      labeledContacts={labeledContacts || undefined}
-                      savedConfig={newCustomerSavedConfig}
-                      onClearAll={handleNewCustomerClearAll}
-                    />
+                    }
+                    onChange={handleNewCustomerFormChange}
+                    company={company}
+                    dealOwner={dealOwner}
+                    labeledContacts={labeledContacts || undefined}
+                    savedConfig={newCustomerSavedConfig}
+                    onClearAll={handleNewCustomerClearAll}
+                  />
                     <div className="flex pt-3 border-t">
                       <Button variant="outline" size="sm" onClick={handleNewCustomerSave} disabled={newCustomerSaving}>
-                        {newCustomerSaving ? (
-                          <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                        ) : (
-                          <Save className="h-4 w-4 mr-2" />
-                        )}
+                        {newCustomerSaving ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <Save className="h-4 w-4 mr-2" />}
                         {newCustomerSaving ? "Saving..." : "Save"}
                       </Button>
                     </div>
@@ -4880,7 +4807,7 @@ function DocumentHubContent() {
                     canGenerate={userPermissions.can_generate}
                     generateLabel="Generate PDF"
                     onPreview={handleNewCustomerPreview}
-                    autosave={newCustomerSaving ? "saving" : newCustomerFormData ? "saved" : "idle"}
+                    autosave={newCustomerSaving ? "saving" : (newCustomerFormData ? "saved" : "idle")}
                   />
                 </div>
               </div>
@@ -4898,11 +4825,7 @@ function DocumentHubContent() {
                     <RelocationForm formData={relocationFormData} onChange={handleRelocationFormChange} />
                     <div className="flex pt-3 border-t">
                       <Button variant="outline" size="sm" onClick={handleRelocationSave} disabled={relocationSaving}>
-                        {relocationSaving ? (
-                          <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                        ) : (
-                          <Save className="h-4 w-4 mr-2" />
-                        )}
+                        {relocationSaving ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <Save className="h-4 w-4 mr-2" />}
                         {relocationSaving ? "Saving..." : "Save"}
                       </Button>
                     </div>
@@ -4914,7 +4837,7 @@ function DocumentHubContent() {
                     canGenerate={userPermissions.can_generate}
                     generateLabel="Generate PDF"
                     onPreview={handleRelocationPreview}
-                    autosave={relocationSaving ? "saving" : relocationFormData ? "saved" : "idle"}
+                    autosave={relocationSaving ? "saving" : (relocationFormData ? "saved" : "idle")}
                   />
                 </div>
               </div>
@@ -4925,27 +4848,21 @@ function DocumentHubContent() {
               <div className="space-y-4">
                 <div>
                   <h3 className="text-sm font-semibold tracking-tight">Equipment Removal Receipt</h3>
-                  <p className="text-xs text-muted-foreground mt-0.5">
-                    Create an equipment removal receipt for equipment being picked up
-                  </p>
+                  <p className="text-xs text-muted-foreground mt-0.5">Create an equipment removal receipt for equipment being picked up</p>
                 </div>
                 <div className="grid grid-cols-1 xl:grid-cols-[minmax(0,1fr)_320px] gap-4 items-start">
                   <div className="space-y-4 min-w-0">
                     <RemovalForm
-                      company={company}
-                      labeledContacts={labeledContacts}
-                      dealOwner={dealOwner}
-                      lineItems={lineItems}
-                      onFormChange={handleRemovalFormChange}
-                      savedConfig={removalSavedConfig}
-                    />
+                    company={company}
+                    labeledContacts={labeledContacts}
+                    dealOwner={dealOwner}
+                    lineItems={lineItems}
+                    onFormChange={handleRemovalFormChange}
+                    savedConfig={removalSavedConfig}
+                  />
                     <div className="flex pt-3 border-t">
                       <Button variant="outline" size="sm" onClick={handleRemovalSave} disabled={removalSaving}>
-                        {removalSaving ? (
-                          <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                        ) : (
-                          <Save className="h-4 w-4 mr-2" />
-                        )}
+                        {removalSaving ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <Save className="h-4 w-4 mr-2" />}
                         {removalSaving ? "Saving..." : "Save"}
                       </Button>
                     </div>
@@ -4957,7 +4874,7 @@ function DocumentHubContent() {
                     canGenerate={userPermissions.can_generate}
                     generateLabel="Generate PDF"
                     onPreview={handleRemovalPreview}
-                    autosave={removalSaving ? "saving" : removalFormData ? "saved" : "idle"}
+                    autosave={removalSaving ? "saving" : (removalFormData ? "saved" : "idle")}
                   />
                 </div>
               </div>
@@ -4973,43 +4890,33 @@ function DocumentHubContent() {
                 <div className="grid grid-cols-1 xl:grid-cols-[minmax(0,1fr)_320px] gap-4 items-start">
                   <div className="space-y-4 min-w-0">
                     <CommissionForm
-                      deal={deal}
-                      company={company}
-                      contacts={contacts}
-                      lineItems={lineItems}
-                      dealOwner={dealOwner}
-                      portalId={portalId}
-                      onFormChange={handleCommissionFormChange}
-                      savedConfig={commissionSavedConfig}
-                      quoteConfig={formData || savedConfig}
-                      commissionUsers={commissionUsers}
-                    />
+                    deal={deal}
+                    company={company}
+                    contacts={contacts}
+                    lineItems={lineItems}
+                    dealOwner={dealOwner}
+                    portalId={portalId}
+                    onFormChange={handleCommissionFormChange}
+                    savedConfig={commissionSavedConfig}
+                    quoteConfig={formData || savedConfig}
+                    commissionUsers={commissionUsers}
+                  />
                     <div className="flex pt-3 border-t">
                       <Button variant="outline" size="sm" onClick={handleCommissionSave} disabled={commissionSaving}>
-                        {commissionSaving ? (
-                          <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                        ) : (
-                          <Save className="h-4 w-4 mr-2" />
-                        )}
+                        {commissionSaving ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <Save className="h-4 w-4 mr-2" />}
                         {commissionSaving ? "Saving..." : "Save"}
                       </Button>
                     </div>
                   </div>
                   <SummaryRail
                     title="Commission summary"
-                    metrics={[
-                      {
-                        label: "Commission rate",
-                        value: `${commissionFormData?.commissionPercentage ?? 0}%`,
-                        emphasis: true,
-                      },
-                    ]}
+                    metrics={[{ label: "Commission rate", value: `${commissionFormData?.commissionPercentage ?? 0}%`, emphasis: true }]}
                     onGenerate={handleCommissionGeneratePDF}
                     generating={commissionGenerating}
                     canGenerate={userPermissions.can_generate}
                     generateLabel="Generate PDF"
                     onPreview={handleCommissionPreview}
-                    autosave={commissionSaving ? "saving" : commissionFormData ? "saved" : "idle"}
+                    autosave={commissionSaving ? "saving" : (commissionFormData ? "saved" : "idle")}
                   />
                 </div>
               </div>
