@@ -1,4 +1,4 @@
-import { useState, useRef, useCallback, useEffect } from "react";
+import { useState, useRef, useCallback, useEffect, lazy, Suspense } from "react";
 
 type TimerId = ReturnType<typeof setTimeout>;
 import { HubSpotProvider, useHubSpot } from "@/hooks/useHubSpot";
@@ -87,7 +87,7 @@ import { CustomDocumentForm, CustomDocumentPreview, DynamicIcon } from "@/compon
 import type { CustomDocument } from "@/components/admin/types";
 import type { FormCustomizationConfig, FormCustomizationMap } from "@/lib/formCustomization";
 import { DocumentPacketForm } from "@/components/document-packet/DocumentPacketForm";
-import AdminSettings from "@/pages/admin/AdminSettings";
+const AdminSettings = lazy(() => import("@/pages/admin/AdminSettings"));
 
 const documentTypes = [
   { code: "quote", name: "Quote", icon: FileText },
@@ -5089,10 +5089,23 @@ function DocumentHubContent() {
           <QuotePreview
             ref={previewRef}
             formData={formData}
-            dealerInfo={formData?.overrideTerms ? ({ ...(dealerInfo || {}), termsAndConditions: formData.overrideTermsText || "" } as any) : (dealerInfo || undefined)}
+            dealerInfo={
+              formData?.overrideTerms
+                ? ({ ...(dealerInfo || {}), termsAndConditions: formData.overrideTermsText || "" } as any)
+                : dealerInfo || undefined
+            }
             documentStyles={dealerSettings.document_styles}
             formCustomization={dealerSettings.form_customization?.quote}
-            documentTerms={formData?.overrideTerms ? { ...documentTerms, quote_fmv: formData.overrideTermsText || "", quote_dollar_buyout: formData.overrideTermsText || "", quote_rental: formData.overrideTermsText || "" } : documentTerms}
+            documentTerms={
+              formData?.overrideTerms
+                ? {
+                    ...documentTerms,
+                    quote_fmv: formData.overrideTermsText || "",
+                    quote_dollar_buyout: formData.overrideTermsText || "",
+                    quote_rental: formData.overrideTermsText || "",
+                  }
+                : documentTerms
+            }
           />
         )}
       </div>
@@ -5133,10 +5146,23 @@ function DocumentHubContent() {
                 <div className="shadow-lg border">
                   <QuotePreview
                     formData={formData}
-                    dealerInfo={formData?.overrideTerms ? ({ ...(dealerInfo || {}), termsAndConditions: formData.overrideTermsText || "" } as any) : (dealerInfo || undefined)}
+                    dealerInfo={
+                      formData?.overrideTerms
+                        ? ({ ...(dealerInfo || {}), termsAndConditions: formData.overrideTermsText || "" } as any)
+                        : dealerInfo || undefined
+                    }
                     documentStyles={dealerSettings.document_styles}
                     formCustomization={dealerSettings.form_customization?.quote}
-                    documentTerms={formData?.overrideTerms ? { ...documentTerms, quote_fmv: formData.overrideTermsText || "", quote_dollar_buyout: formData.overrideTermsText || "", quote_rental: formData.overrideTermsText || "" } : documentTerms}
+                    documentTerms={
+                      formData?.overrideTerms
+                        ? {
+                            ...documentTerms,
+                            quote_fmv: formData.overrideTermsText || "",
+                            quote_dollar_buyout: formData.overrideTermsText || "",
+                            quote_rental: formData.overrideTermsText || "",
+                          }
+                        : documentTerms
+                    }
                   />
                 </div>
               )}
@@ -5197,7 +5223,11 @@ function DocumentHubContent() {
                 : undefined
             }
             lineItems={lineItems}
-            termsAndConditions={serviceAgreementFormData?.overrideTerms ? (serviceAgreementFormData?.overrideTermsText || "") : documentTerms.service_agreement}
+            termsAndConditions={
+              serviceAgreementFormData?.overrideTerms
+                ? serviceAgreementFormData?.overrideTermsText || ""
+                : documentTerms.service_agreement
+            }
             documentStyles={dealerSettings.document_styles}
             installationConfigs={installationSavedConfig}
           />
@@ -5228,7 +5258,11 @@ function DocumentHubContent() {
                         : undefined
                     }
                     lineItems={lineItems}
-                    termsAndConditions={serviceAgreementFormData?.overrideTerms ? (serviceAgreementFormData?.overrideTermsText || "") : documentTerms.service_agreement}
+                    termsAndConditions={
+                      serviceAgreementFormData?.overrideTerms
+                        ? serviceAgreementFormData?.overrideTermsText || ""
+                        : documentTerms.service_agreement
+                    }
                     documentStyles={dealerSettings.document_styles}
                     installationConfigs={installationSavedConfig}
                   />
@@ -5256,7 +5290,9 @@ function DocumentHubContent() {
                   }
                 : undefined
             }
-            termsAndConditions={fmvLeaseFormData?.overrideTerms ? (fmvLeaseFormData?.overrideTermsText || "") : documentTerms.fmv_lease}
+            termsAndConditions={
+              fmvLeaseFormData?.overrideTerms ? fmvLeaseFormData?.overrideTermsText || "" : documentTerms.fmv_lease
+            }
           />
         )}
       </div>
@@ -5284,7 +5320,11 @@ function DocumentHubContent() {
                           }
                         : undefined
                     }
-                    termsAndConditions={fmvLeaseFormData?.overrideTerms ? (fmvLeaseFormData?.overrideTermsText || "") : documentTerms.fmv_lease}
+                    termsAndConditions={
+                      fmvLeaseFormData?.overrideTerms
+                        ? fmvLeaseFormData?.overrideTermsText || ""
+                        : documentTerms.fmv_lease
+                    }
                   />
                 </div>
               )}
@@ -5435,7 +5475,11 @@ function DocumentHubContent() {
                   }
                 : undefined
             }
-            termsAndConditions={interterritorialFormData?.overrideTerms ? (interterritorialFormData?.overrideTermsText || "") : documentTerms.interterritorial}
+            termsAndConditions={
+              interterritorialFormData?.overrideTerms
+                ? interterritorialFormData?.overrideTermsText || ""
+                : documentTerms.interterritorial
+            }
           />
         )}
       </div>
@@ -5463,7 +5507,11 @@ function DocumentHubContent() {
                           }
                         : undefined
                     }
-                    termsAndConditions={interterritorialFormData?.overrideTerms ? (interterritorialFormData?.overrideTermsText || "") : documentTerms.interterritorial}
+                    termsAndConditions={
+                      interterritorialFormData?.overrideTerms
+                        ? interterritorialFormData?.overrideTermsText || ""
+                        : documentTerms.interterritorial
+                    }
                   />
                 </div>
               )}
@@ -5488,7 +5536,11 @@ function DocumentHubContent() {
                   }
                 : undefined
             }
-            termsAndConditions={newCustomerFormData?.overrideTerms ? (newCustomerFormData?.overrideTermsText || "") : documentTerms.new_customer}
+            termsAndConditions={
+              newCustomerFormData?.overrideTerms
+                ? newCustomerFormData?.overrideTermsText || ""
+                : documentTerms.new_customer
+            }
           />
         )}
       </div>
@@ -5515,7 +5567,11 @@ function DocumentHubContent() {
                           }
                         : undefined
                     }
-                    termsAndConditions={newCustomerFormData?.overrideTerms ? (newCustomerFormData?.overrideTermsText || "") : documentTerms.new_customer}
+                    termsAndConditions={
+                      newCustomerFormData?.overrideTerms
+                        ? newCustomerFormData?.overrideTermsText || ""
+                        : documentTerms.new_customer
+                    }
                   />
                 </div>
               )}
@@ -5914,7 +5970,15 @@ function DocumentHubContent() {
 
       {showSettings && (
         <div className="fixed inset-0 z-[60] overflow-auto bg-background">
-          <AdminSettings embedded portalId={portalId || undefined} onBack={() => setShowSettings(false)} />
+          <Suspense
+            fallback={
+              <div className="flex items-center justify-center h-full text-sm text-muted-foreground">
+                Loading settings…
+              </div>
+            }
+          >
+            <AdminSettings embedded portalId={portalId || undefined} onBack={() => setShowSettings(false)} />
+          </Suspense>
         </div>
       )}
     </div>
