@@ -911,107 +911,110 @@ export function QuoteForm({
   return (
     <>
       <div className="space-y-4">
-        {/* Quote Details */}
-        {isSectionVisible(formCustomization, "customerInfo") && (
-          <SectionCard title="Quote Details" icon={FileText} description="Quote metadata and the preparing sales rep">
-            <FieldGrid columns={2}>
-              <Field label={getLabel(formCustomization, "quoteDate", "Quote Date")}>
-                <Input
-                  type="date"
-                  value={formData.quoteDate}
-                  onChange={(e) => updateField("quoteDate", e.target.value)}
-                  className="h-9 text-sm"
-                />
-              </Field>
-              <Field label={getLabel(formCustomization, "preparedBy", "Prepared By")}>
-                <Input
-                  value={formData.preparedBy}
-                  onChange={(e) => updateField("preparedBy", e.target.value)}
-                  className="h-9 text-sm"
-                />
-              </Field>
-              <Field label="Sales Rep Email">
-                <Input
-                  type="email"
-                  value={formData.preparedByEmail}
-                  onChange={(e) => updateField("preparedByEmail", e.target.value)}
-                  className="h-9 text-sm"
-                />
-              </Field>
-              <Field label="Sales Rep Phone">
-                <Input
-                  value={formData.preparedByPhone}
-                  onChange={(e) => updateField("preparedByPhone", e.target.value)}
-                  className="h-9 text-sm"
-                />
-              </Field>
-            </FieldGrid>
-          </SectionCard>
-        )}
+        {/* Quote Details + Prepared For (paired) */}
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 items-start">
+          {/* Quote Details */}
+          {isSectionVisible(formCustomization, "customerInfo") && (
+            <SectionCard title="Quote Details" icon={FileText} description="Quote metadata and the preparing sales rep">
+              <FieldGrid columns={2}>
+                <Field label={getLabel(formCustomization, "quoteDate", "Quote Date")}>
+                  <Input
+                    type="date"
+                    value={formData.quoteDate}
+                    onChange={(e) => updateField("quoteDate", e.target.value)}
+                    className="h-9 text-sm"
+                  />
+                </Field>
+                <Field label={getLabel(formCustomization, "preparedBy", "Prepared By")}>
+                  <Input
+                    value={formData.preparedBy}
+                    onChange={(e) => updateField("preparedBy", e.target.value)}
+                    className="h-9 text-sm"
+                  />
+                </Field>
+                <Field label="Sales Rep Email">
+                  <Input
+                    type="email"
+                    value={formData.preparedByEmail}
+                    onChange={(e) => updateField("preparedByEmail", e.target.value)}
+                    className="h-9 text-sm"
+                  />
+                </Field>
+                <Field label="Sales Rep Phone">
+                  <Input
+                    value={formData.preparedByPhone}
+                    onChange={(e) => updateField("preparedByPhone", e.target.value)}
+                    className="h-9 text-sm"
+                  />
+                </Field>
+              </FieldGrid>
+            </SectionCard>
+          )}
 
-        {/* Prepared For */}
-        {isSectionVisible(formCustomization, "customerInfo") && (
-          <SectionCard
-            title="Prepared For"
-            icon={Building2}
-            fromHubSpot
-            description="Customer billing details from the deal"
-          >
-            <FieldGrid columns={2}>
-              <Field label={getLabel(formCustomization, "companyName", "Company Name")} className="sm:col-span-2">
-                <Input
-                  value={formData.companyName}
-                  onChange={(e) => updateField("companyName", e.target.value)}
-                  className="h-9 text-sm"
-                />
-              </Field>
-              <Field label={getLabel(formCustomization, "address", "Address")} className="sm:col-span-2">
-                <Input
-                  value={formData.address}
-                  onChange={(e) => updateField("address", e.target.value)}
-                  className="h-9 text-sm"
-                />
-              </Field>
-              <Field label="Address Line 2" className="sm:col-span-2">
-                <Input
-                  value={formData.address2}
-                  onChange={(e) => updateField("address2", e.target.value)}
-                  className="h-9 text-sm"
-                />
-              </Field>
-              <Field label="City">
-                <Input
-                  value={formData.city}
-                  onChange={(e) => updateField("city", e.target.value)}
-                  className="h-9 text-sm"
-                />
-              </Field>
-              <div className="grid grid-cols-2 gap-3 min-w-0">
-                <Field label="State">
+          {/* Prepared For */}
+          {isSectionVisible(formCustomization, "customerInfo") && (
+            <SectionCard
+              title="Prepared For"
+              icon={Building2}
+              fromHubSpot
+              description="Customer billing details from the deal"
+            >
+              <FieldGrid columns={2}>
+                <Field label={getLabel(formCustomization, "companyName", "Company Name")} className="sm:col-span-2">
                   <Input
-                    value={formData.state}
-                    onChange={(e) => updateField("state", e.target.value)}
+                    value={formData.companyName}
+                    onChange={(e) => updateField("companyName", e.target.value)}
                     className="h-9 text-sm"
                   />
                 </Field>
-                <Field label="Zip">
+                <Field label={getLabel(formCustomization, "address", "Address")} className="sm:col-span-2">
                   <Input
-                    value={formData.zip}
-                    onChange={(e) => updateField("zip", e.target.value)}
+                    value={formData.address}
+                    onChange={(e) => updateField("address", e.target.value)}
                     className="h-9 text-sm"
                   />
                 </Field>
-              </div>
-              <Field label={getLabel(formCustomization, "phone", "Phone")} className="sm:col-span-2">
-                <Input
-                  value={formData.phone}
-                  onChange={(e) => updateField("phone", e.target.value)}
-                  className="h-9 text-sm"
-                />
-              </Field>
-            </FieldGrid>
-          </SectionCard>
-        )}
+                <Field label="Address Line 2" className="sm:col-span-2">
+                  <Input
+                    value={formData.address2}
+                    onChange={(e) => updateField("address2", e.target.value)}
+                    className="h-9 text-sm"
+                  />
+                </Field>
+                <Field label="City">
+                  <Input
+                    value={formData.city}
+                    onChange={(e) => updateField("city", e.target.value)}
+                    className="h-9 text-sm"
+                  />
+                </Field>
+                <div className="grid grid-cols-2 gap-3 min-w-0">
+                  <Field label="State">
+                    <Input
+                      value={formData.state}
+                      onChange={(e) => updateField("state", e.target.value)}
+                      className="h-9 text-sm"
+                    />
+                  </Field>
+                  <Field label="Zip">
+                    <Input
+                      value={formData.zip}
+                      onChange={(e) => updateField("zip", e.target.value)}
+                      className="h-9 text-sm"
+                    />
+                  </Field>
+                </div>
+                <Field label={getLabel(formCustomization, "phone", "Phone")} className="sm:col-span-2">
+                  <Input
+                    value={formData.phone}
+                    onChange={(e) => updateField("phone", e.target.value)}
+                    className="h-9 text-sm"
+                  />
+                </Field>
+              </FieldGrid>
+            </SectionCard>
+          )}
+        </div>
 
         {/* Equipment - pairing-centric layout */}
         {isSectionVisible(formCustomization, "equipment") &&
