@@ -377,9 +377,8 @@ export function RemovalForm({
       </SectionCard>
 
       {/* Ship To / Bill To */}
-      <SectionCard title="Ship To / Bill To" icon={MapPin}>
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-          {/* Ship To */}
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4 items-start">
+        <SectionCard title="Ship To" icon={MapPin}>
           <div className="space-y-3">
             <div className="text-sm font-semibold text-muted-foreground">Ship To</div>
             <div className="space-y-2">
@@ -433,8 +432,8 @@ export function RemovalForm({
               />
             </div>
           </div>
-
-          {/* Bill To */}
+        </SectionCard>
+        <SectionCard title="Bill To" icon={MapPin}>
           <div className="space-y-3">
             <div className="flex items-center justify-between">
               <div className="text-sm font-semibold text-muted-foreground">Bill To</div>
@@ -506,8 +505,8 @@ export function RemovalForm({
               />
             </div>
           </div>
-        </div>
-      </SectionCard>
+        </SectionCard>
+      </div>
 
       {/* Equipment */}
       <SectionCard
@@ -615,46 +614,6 @@ export function RemovalForm({
         </SectionCard>
       </div>
 
-      {/* Terms & conditions (new; form capture only - the preview is intentionally unchanged) */}
-      <SectionCard
-        title="Terms &amp; conditions"
-        icon={FileSignature}
-        description="Captured with the document. Document rendering is wired in a later phase."
-        action={
-          <label className="flex items-center gap-2 cursor-pointer">
-            <span className="text-xs text-muted-foreground">Include on document</span>
-            <Switch checked={!!formData.termsInclude} onCheckedChange={(c) => updateField("termsInclude", c)} />
-          </label>
-        }
-      >
-        <div className="space-y-3">
-          <FieldGrid columns={2}>
-            <Field label="Template" hint="Backend templates connect when Settings migrates to HubSpot">
-              <Select
-                value={formData.termsTemplateId || "custom"}
-                onValueChange={(v) => updateField("termsTemplateId", v === "custom" ? "" : v)}
-              >
-                <SelectTrigger className="h-9 text-sm">
-                  <SelectValue placeholder="Custom text only" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="custom">Custom text only</SelectItem>
-                  <SelectItem value="standard">Standard terms</SelectItem>
-                  <SelectItem value="government">Government / public sector</SelectItem>
-                </SelectContent>
-              </Select>
-            </Field>
-          </FieldGrid>
-          <Field label="Custom text">
-            <Textarea
-              value={formData.termsCustomText || ""}
-              onChange={(e) => updateField("termsCustomText", e.target.value)}
-              placeholder="Enter any document-specific terms and conditions..."
-              className="text-sm min-h-[96px]"
-            />
-          </Field>
-        </div>
-      </SectionCard>
     </div>
   );
 }
