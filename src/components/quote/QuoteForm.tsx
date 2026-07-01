@@ -31,7 +31,7 @@ import { Alert, AlertDescription } from "@/components/ui/alert";
 import { supabase } from "@/integrations/supabase/client";
 import { ProductSearchModal, HubSpotProduct } from "./ProductSearchModal";
 import { getLabel, isSectionVisible, type FormCustomizationConfig } from "@/lib/formCustomization";
-import { SectionCard, FieldGrid, Field, EmptyState } from "@/components/shared";
+import { SectionCard, FieldGrid, Field, EmptyState , DealTermsOverride } from "@/components/shared";
 
 export interface QuoteLineItem {
   id: string;
@@ -53,6 +53,8 @@ export interface QuoteLineItem {
   equipmentId?: string;
 }
 export interface QuoteFormData {
+  overrideTerms?: boolean;
+  overrideTermsText?: string;
   quoteNumber: string;
   quoteDate: string;
   preparedBy: string;
@@ -111,6 +113,7 @@ export interface QuoteFormData {
 }
 
 interface QuoteFormProps {
+  standardTerms?: string;
   deal: any;
   company: any;
   contacts: any[];
@@ -152,6 +155,7 @@ const DEFAULT_RATE_FACTORS: Record<number, number> = {
 };
 
 export function QuoteForm({
+  standardTerms,
   deal,
   company,
   lineItems,
@@ -211,6 +215,8 @@ export function QuoteForm({
     termsInclude: false,
     termsTemplateId: "",
     termsCustomText: "",
+    overrideTerms: false,
+    overrideTermsText: "",
   });
 
   // Local state for payment override text inputs
@@ -1743,6 +1749,7 @@ export function QuoteForm({
           </SectionCard>
         )}
 
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 items-start">
         {/* Service Agreement */}
         {isSectionVisible(formCustomization, "serviceAgreement") && (
           <SectionCard
@@ -2039,52 +2046,15 @@ export function QuoteForm({
             </div>
           </SectionCard>
         )}
+        </div>
 
-        {/* Terms & conditions (new; form capture only - QuotePreview is intentionally unchanged) */}
-        <SectionCard
-          title="Terms &amp; conditions"
-          icon={FileSignature}
-          description="Captured with the quote. Document rendering is wired in a later phase."
-          action={
-            <label className="flex items-center gap-2 cursor-pointer">
-              <span className="text-xs text-muted-foreground">Include on document</span>
-              <Switch checked={!!formData.termsInclude} onCheckedChange={(c) => updateField("termsInclude", c)} />
-            </label>
-          }
-        >
-          <div className="space-y-3">
-            <FieldGrid columns={2}>
-              <Field label="Template" hint="Backend templates connect when Settings migrates to HubSpot">
-                <Select
-                  value={formData.termsTemplateId || "custom"}
-                  onValueChange={(v) => updateField("termsTemplateId", v === "custom" ? "" : v)}
-                >
-                  <SelectTrigger className="h-9 text-sm">
-                    <SelectValue placeholder="Custom text only" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="custom">Custom text only</SelectItem>
-                    <SelectItem value="standard">Standard terms</SelectItem>
-                    <SelectItem value="government">Government / public sector</SelectItem>
-                  </SelectContent>
-                </Select>
-              </Field>
-            </FieldGrid>
-            <Field label="Custom text">
-              <Textarea
-                value={formData.termsCustomText || ""}
-                onChange={(e) => updateField("termsCustomText", e.target.value)}
-                placeholder="Enter any quote-specific terms and conditions..."
-                className="text-sm min-h-[96px]"
-              />
-            </Field>
-            {!formData.termsInclude && (
-              <p className="text-[11px] text-muted-foreground">
-                Terms are saved with the quote but will not be marked for the document until the toggle above is on.
-              </p>
-            )}
-          </div>
-        </SectionCard>
+        <DealTermsOverride
+          enabled={!!formData.overrideTerms}
+          text={formData.overrideTermsText || ""}
+          standardTerms={standardTerms}
+          onToggle={(v) => updateField("overrideTerms", v)}
+          onChangeText={(v) => updateField("overrideTermsText", v)}
+        />
       </div>
 
       <ProductSearchModal

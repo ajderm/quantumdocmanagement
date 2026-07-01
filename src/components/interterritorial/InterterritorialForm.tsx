@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from "react";
-import { SectionCard, FieldGrid, Field } from "@/components/shared";
+import { SectionCard, FieldGrid, Field , DealTermsOverride } from "@/components/shared";
 import { Switch } from "@/components/ui/switch";
 import { Building2, FileSignature, FileText, Package } from "lucide-react";
 import { Input } from "@/components/ui/input";
@@ -40,6 +40,8 @@ export interface InterterritorialRemovalItem {
 }
 
 export interface InterterritorialFormData {
+  overrideTerms?: boolean;
+  overrideTermsText?: string;
   // Header
   requestedInstallDate: Date | null;
 
@@ -147,6 +149,7 @@ interface QuoteFormData {
 }
 
 interface InterterritorialFormProps {
+  standardTerms?: string;
   formData: InterterritorialFormData;
   onChange: (data: InterterritorialFormData) => void;
   dealerInfo: DealerInfo | null;
@@ -162,6 +165,7 @@ interface InterterritorialFormProps {
 const MAX_REMOVAL_EQUIPMENT = 10;
 
 export function InterterritorialForm({
+  standardTerms,
   formData,
   onChange,
   dealerInfo,
@@ -806,46 +810,13 @@ export function InterterritorialForm({
         </SectionCard>
       </div>
 
-      {/* Terms & conditions (new; form capture only - the preview is intentionally unchanged) */}
-      <SectionCard
-        title="Terms &amp; conditions"
-        icon={FileSignature}
-        description="Captured with the document. Document rendering is wired in a later phase."
-        action={
-          <label className="flex items-center gap-2 cursor-pointer">
-            <span className="text-xs text-muted-foreground">Include on document</span>
-            <Switch checked={!!formData.termsInclude} onCheckedChange={(c) => updateField("termsInclude", c)} />
-          </label>
-        }
-      >
-        <div className="space-y-3">
-          <FieldGrid columns={2}>
-            <Field label="Template" hint="Backend templates connect when Settings migrates to HubSpot">
-              <Select
-                value={formData.termsTemplateId || "custom"}
-                onValueChange={(v) => updateField("termsTemplateId", v === "custom" ? "" : v)}
-              >
-                <SelectTrigger className="h-9 text-sm">
-                  <SelectValue placeholder="Custom text only" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="custom">Custom text only</SelectItem>
-                  <SelectItem value="standard">Standard terms</SelectItem>
-                  <SelectItem value="government">Government / public sector</SelectItem>
-                </SelectContent>
-              </Select>
-            </Field>
-          </FieldGrid>
-          <Field label="Custom text">
-            <Textarea
-              value={formData.termsCustomText || ""}
-              onChange={(e) => updateField("termsCustomText", e.target.value)}
-              placeholder="Enter any document-specific terms and conditions..."
-              className="text-sm min-h-[96px]"
-            />
-          </Field>
-        </div>
-      </SectionCard>
+      <DealTermsOverride
+        enabled={!!formData.overrideTerms}
+        text={formData.overrideTermsText || ""}
+        standardTerms={standardTerms}
+        onToggle={(v) => updateField("overrideTerms", v)}
+        onChangeText={(v) => updateField("overrideTermsText", v)}
+      />
     </div>
   );
 }
