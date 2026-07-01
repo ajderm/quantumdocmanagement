@@ -46,6 +46,8 @@ export interface QuoteLineItem {
   hs_product_id?: string;
   productType?: string;
   parentLineItemId?: string;
+  /** Intentionally not paired to a hardware unit (billed on its own). */
+  standalone?: boolean;
   itemNumber?: string;
   serial?: string;
   equipmentId?: string;
@@ -842,6 +844,50 @@ export function QuoteForm({
     }));
   };
 
+  // Adds a new item that is intentionally standalone (not paired to any unit).
+  const addStandaloneItem = () => {
+    setFormData((prev) => ({
+      ...prev,
+      lineItems: [
+        ...prev.lineItems,
+        {
+          id: `item-${Date.now()}`,
+          quantity: 1,
+          model: "",
+          description: "",
+          price: 0,
+          cost: 0,
+          markupPercent: 0,
+          msrp: 0,
+          dealerSource: "",
+          productType: "",
+          parentLineItemId: "",
+          standalone: true,
+          itemNumber: "",
+        },
+      ],
+    }));
+  };
+
+  // Handle the "Pair with..." selector: a hardware id pairs (and clears the
+  // standalone flag); the sentinel promotes the item to intentional standalone.
+  const STANDALONE_VALUE = "__standalone__";
+  const pairItem = (index: number, value: string) => {
+    setFormData((prev) => {
+      const items = [...prev.lineItems];
+      const it = { ...items[index] };
+      if (value === STANDALONE_VALUE) {
+        it.parentLineItemId = "";
+        it.standalone = true;
+      } else {
+        it.parentLineItemId = value;
+        it.standalone = false;
+      }
+      items[index] = it;
+      return { ...prev, lineItems: items };
+    });
+  };
+
   const toggleTerm = (term: number) => {
     setFormData((prev) => {
       const t = prev.selectedTerms;
@@ -976,11 +1022,11 @@ export function QuoteForm({
             const hardwareIds = new Set(hardwareUnits.map((h) => h.id));
             const childrenOf = (hwId: string) =>
               items.filter((li) => li.parentLineItemId === hwId && (li.productType || "").toLowerCase() !== "hardware");
-            const unassigned = items.filter(
-              (li) =>
-                (li.productType || "").toLowerCase() !== "hardware" &&
-                (!li.parentLineItemId || !hardwareIds.has(li.parentLineItemId)),
-            );
+            const isLoose = (li: QuoteLineItem) =>
+              (li.productType || "").toLowerCase() !== "hardware" &&
+              (!li.parentLineItemId || !hardwareIds.has(li.parentLineItemId));
+            const standaloneItems = items.filter((li) => isLoose(li) && li.standalone === true);
+            const unassigned = items.filter((li) => isLoose(li) && li.standalone !== true);
             const money = (n: number) =>
               `$${(n || 0).toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
             const isExpanded = (id: string) => expandedRows.has(id);
@@ -1109,6 +1155,88 @@ export function QuoteForm({
                 </div>
               </div>
             );
+
+            const looseRow = (item: QuoteLineItem, idx: number) => {
+              const pairValue = item.standalone
+                ? STANDALONE_VALUE
+                : item.parentLineItemId && hardwareIds.has(item.parentLineItemId)
+                  ? item.parentLineItemId
+                  : "";
+              return (
+                <div key={item.id} className="rounded-md border border-border bg-background">
+                  <div className="flex items-center gap-2 px-2 py-1.5">
+                    <div className="w-28 shrink-0">{typeSelect(item, idx)}</div>
+                    <Input
+                      value={item.model}
+                      onChange={(e) => updateLineItem(idx, "model", e.target.value)}
+                      placeholder="Model / item"
+                      className="h-8 text-sm flex-1 min-w-0"
+                    />
+                    <Input
+                      type="number"
+                      min="1"
+                      value={item.quantity}
+                      onChange={(e) => updateLineItem(idx, "quantity", parseInt(e.target.value) || 1)}
+                      className="h-8 text-sm w-14 shrink-0"
+                      title="Qty"
+                    />
+                    <div className="w-28 shrink-0">{priceInput(item, idx)}</div>
+                    <Select value={pairValue} onValueChange={(v) => pairItem(idx, v)}>
+                      <SelectTrigger className="h-8 text-xs w-40 shrink-0">
+                        <SelectValue placeholder="Pair with..." />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value={STANDALONE_VALUE}>Leave uncoupled (standalone)</SelectItem>
+                        {hardwareUnits.map((hw) => (
+                          <SelectItem key={hw.id} value={hw.id}>
+                            {hw.model || hw.description || "Hardware unit"}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                    <button
+                      type="button"
+                      onClick={() => toggle(item.id)}
+                      className="h-8 w-6 flex items-center justify-center text-muted-foreground hover:text-foreground rounded hover:bg-muted/50 shrink-0"
+                      title="More detail"
+                    >
+                      {isExpanded(item.id) ? (
+                        <ChevronDown className="h-3.5 w-3.5" />
+                      ) : (
+                        <ChevronRight className="h-3.5 w-3.5" />
+                      )}
+                    </button>
+                    {item.quantity > 1 && hardwareUnits.length > 1 && (
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => splitLineItem(idx)}
+                        className="h-8 w-8 p-0 text-qbs-navy shrink-0"
+                        title="Split into individual units to pair separately"
+                      >
+                        <Scissors className="h-3.5 w-3.5" />
+                      </Button>
+                    )}
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => removeLineItem(idx)}
+                      className="h-8 w-8 p-0 text-destructive shrink-0"
+                    >
+                      <Trash2 className="h-3.5 w-3.5" />
+                    </Button>
+                  </div>
+                  {isExpanded(item.id) && (
+                    <div className="px-2 pb-2">
+                      {pricingTrio(item, idx)}
+                      {advancedFields(item, idx)}
+                    </div>
+                  )}
+                </div>
+              );
+            };
 
             return (
               <SectionCard
@@ -1315,6 +1443,20 @@ export function QuoteForm({
                       );
                     })}
 
+                    {/* Standalone items (intentionally not paired) */}
+                    {standaloneItems.length > 0 && (
+                      <div className="rounded-lg border border-border bg-muted/30 p-3 space-y-2">
+                        <div className="flex items-center gap-2 text-xs font-semibold text-foreground/80">
+                          <Package className="h-3.5 w-3.5 shrink-0" />
+                          Standalone items
+                          <span className="font-normal text-muted-foreground">
+                            Not paired to a hardware unit. Billed on their own.
+                          </span>
+                        </div>
+                        {standaloneItems.map((item) => looseRow(item, indexById.get(item.id)!))}
+                      </div>
+                    )}
+
                     {/* Unassigned add-ons */}
                     {unassigned.length > 0 && (
                       <div
@@ -1325,106 +1467,35 @@ export function QuoteForm({
                           <AlertTriangle className="h-3.5 w-3.5 shrink-0" />
                           Unassigned add-ons
                           <span className="font-normal text-qbs-gold-700/80">
-                            {hardwareUnits.length > 0
-                              ? "Pair each item with a hardware unit so fulfillment never sees an orphan."
-                              : "Add a hardware unit, then pair these to it."}
+                            Pair with a hardware unit, or mark as standalone to bill on its own.
                           </span>
                         </div>
-                        {unassigned.map((item) => {
-                          const idx = indexById.get(item.id)!;
-                          return (
-                            <div key={item.id} className="rounded-md border border-border bg-background">
-                              <div className="flex items-center gap-2 px-2 py-1.5">
-                                <div className="w-28 shrink-0">{typeSelect(item, idx)}</div>
-                                <Input
-                                  value={item.model}
-                                  onChange={(e) => updateLineItem(idx, "model", e.target.value)}
-                                  placeholder="Model / item"
-                                  className="h-8 text-sm flex-1 min-w-0"
-                                />
-                                <Input
-                                  type="number"
-                                  min="1"
-                                  value={item.quantity}
-                                  onChange={(e) => updateLineItem(idx, "quantity", parseInt(e.target.value) || 1)}
-                                  className="h-8 text-sm w-14 shrink-0"
-                                  title="Qty"
-                                />
-                                <div className="w-28 shrink-0">{priceInput(item, idx)}</div>
-                                {hardwareUnits.length > 0 ? (
-                                  <Select value="" onValueChange={(v) => updateLineItem(idx, "parentLineItemId", v)}>
-                                    <SelectTrigger className="h-8 text-xs w-36 shrink-0">
-                                      <SelectValue placeholder="Pair with..." />
-                                    </SelectTrigger>
-                                    <SelectContent>
-                                      {hardwareUnits.map((hw) => (
-                                        <SelectItem key={hw.id} value={hw.id}>
-                                          {hw.model || hw.description || "Hardware unit"}
-                                        </SelectItem>
-                                      ))}
-                                    </SelectContent>
-                                  </Select>
-                                ) : (
-                                  <span className="text-xs text-muted-foreground w-36 shrink-0 text-center">
-                                    No units yet
-                                  </span>
-                                )}
-                                <button
-                                  type="button"
-                                  onClick={() => toggle(item.id)}
-                                  className="h-8 w-6 flex items-center justify-center text-muted-foreground hover:text-foreground rounded hover:bg-muted/50 shrink-0"
-                                  title="More detail"
-                                >
-                                  {isExpanded(item.id) ? (
-                                    <ChevronDown className="h-3.5 w-3.5" />
-                                  ) : (
-                                    <ChevronRight className="h-3.5 w-3.5" />
-                                  )}
-                                </button>
-                                {item.quantity > 1 && hardwareUnits.length > 1 && (
-                                  <Button
-                                    type="button"
-                                    variant="ghost"
-                                    size="sm"
-                                    onClick={() => splitLineItem(idx)}
-                                    className="h-8 w-8 p-0 text-qbs-navy shrink-0"
-                                    title="Split into individual units to pair separately"
-                                  >
-                                    <Scissors className="h-3.5 w-3.5" />
-                                  </Button>
-                                )}
-                                <Button
-                                  type="button"
-                                  variant="ghost"
-                                  size="sm"
-                                  onClick={() => removeLineItem(idx)}
-                                  className="h-8 w-8 p-0 text-destructive shrink-0"
-                                >
-                                  <Trash2 className="h-3.5 w-3.5" />
-                                </Button>
-                              </div>
-                              {isExpanded(item.id) && (
-                                <div className="px-2 pb-2">
-                                  {pricingTrio(item, idx)}
-                                  {advancedFields(item, idx)}
-                                </div>
-                              )}
-                            </div>
-                          );
-                        })}
+                        {unassigned.map((item) => looseRow(item, indexById.get(item.id)!))}
                       </div>
                     )}
 
-                    <Button
-                      type="button"
-                      variant="ghost"
-                      size="sm"
-                      onClick={addLineItem}
-                      className="h-8 text-xs text-muted-foreground"
-                    >
-                      <Plus className="h-3 w-3 mr-1" />
-                      Add manual line
-                    </Button>
+                    <div className="flex gap-2">
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        size="sm"
+                        onClick={addHardwareUnit}
+                        className="h-8 text-xs text-muted-foreground"
+                      >
+                        <Plus className="h-3 w-3 mr-1" />
+                        Add hardware unit
+                      </Button>
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        size="sm"
+                        onClick={addStandaloneItem}
+                        className="h-8 text-xs text-muted-foreground"
+                      >
+                        <Plus className="h-3 w-3 mr-1" />
+                        Add standalone item
+                      </Button>
+                    </div>
                   </div>
                 )}
               </SectionCard>
