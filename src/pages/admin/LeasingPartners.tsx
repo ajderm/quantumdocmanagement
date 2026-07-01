@@ -1,8 +1,8 @@
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
-import { Badge } from '@/components/ui/badge';
-import { Separator } from '@/components/ui/separator';
-import { 
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
+import { Separator } from "@/components/ui/separator";
+import {
   FileSpreadsheet,
   Loader2,
   ArrowLeft,
@@ -13,12 +13,12 @@ import {
   Clock,
   Building2,
   ExternalLink,
-  Cog
-} from 'lucide-react';
-import { useState, useEffect, useRef } from 'react';
-import { Link, useSearchParams } from 'react-router-dom';
-import { supabase } from '@/integrations/supabase/client';
-import { toast } from 'sonner';
+  Cog,
+} from "lucide-react";
+import { useState, useEffect, useRef } from "react";
+import { Link, useSearchParams } from "react-router-dom";
+import { supabase } from "@/integrations/supabase/client";
+import { toast } from "sonner";
 
 interface RateSheet {
   id: string;
@@ -33,18 +33,25 @@ interface RateFactorData {
   availableTerms: number[];
 }
 
-export default function LeasingPartners() {
+export default function LeasingPartners({
+  embedded = false,
+  portalId: portalIdProp,
+}: {
+  embedded?: boolean;
+  portalId?: string;
+  onBack?: () => void;
+} = {}) {
   const [searchParams] = useSearchParams();
-  const portalId = searchParams.get('portalId') || localStorage.getItem('hs_portal_id');
-  
+  const portalId = portalIdProp || searchParams.get("portalId") || localStorage.getItem("hs_portal_id");
+
   const [loading, setLoading] = useState(true);
   const [uploading, setUploading] = useState(false);
   const [rateData, setRateData] = useState<RateFactorData>({
     rateSheet: null,
     leasingCompanies: [],
-    availableTerms: []
+    availableTerms: [],
   });
-  
+
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   // Fetch rate sheet data on mount
@@ -56,21 +63,21 @@ export default function LeasingPartners() {
       }
 
       try {
-        const { data, error } = await supabase.functions.invoke('get-rate-factors', {
-          body: { portalId }
+        const { data, error } = await supabase.functions.invoke("get-rate-factors", {
+          body: { portalId },
         });
 
         if (error) {
-          console.error('Failed to fetch rate data:', error);
+          console.error("Failed to fetch rate data:", error);
         } else if (data) {
           setRateData({
             rateSheet: data.rateSheet,
             leasingCompanies: data.leasingCompanies || [],
-            availableTerms: data.availableTerms || []
+            availableTerms: data.availableTerms || [],
           });
         }
       } catch (err) {
-        console.error('Error fetching data:', err);
+        console.error("Error fetching data:", err);
       } finally {
         setLoading(false);
       }
@@ -84,31 +91,31 @@ export default function LeasingPartners() {
     if (!file || !portalId) return;
 
     // Validate file type
-    if (!file.name.endsWith('.csv')) {
-      toast.error('Please upload a CSV file');
+    if (!file.name.endsWith(".csv")) {
+      toast.error("Please upload a CSV file");
       return;
     }
 
     setUploading(true);
     try {
       const formData = new FormData();
-      formData.append('file', file);
-      formData.append('portalId', portalId);
+      formData.append("file", file);
+      formData.append("portalId", portalId);
 
-      const { data, error } = await supabase.functions.invoke('upload-rate-sheet', {
-        body: formData
+      const { data, error } = await supabase.functions.invoke("upload-rate-sheet", {
+        body: formData,
       });
 
       if (error) {
-        console.error('Upload failed:', error);
-        toast.error('Failed to upload rate sheet');
+        console.error("Upload failed:", error);
+        toast.error("Failed to upload rate sheet");
         return;
       }
 
       if (data?.error) {
         toast.error(data.error);
         if (data.details) {
-          console.error('Upload details:', data.details);
+          console.error("Upload details:", data.details);
         }
         return;
       }
@@ -119,74 +126,86 @@ export default function LeasingPartners() {
           id: data.rateSheetId,
           fileName: data.fileName,
           uploadedAt: new Date().toISOString(),
-          rowCount: data.rowCount
+          rowCount: data.rowCount,
         },
         leasingCompanies: data.leasingCompanies || [],
-        availableTerms: data.availableTerms || []
+        availableTerms: data.availableTerms || [],
       });
 
-      toast.success(`Successfully imported ${data.rowCount} rates from ${data.leasingCompanies?.length || 0} companies`);
-      
+      toast.success(
+        `Successfully imported ${data.rowCount} rates from ${data.leasingCompanies?.length || 0} companies`,
+      );
+
       if (data.warnings?.length > 0) {
         toast.warning(`${data.warnings.length} rows had warnings`);
       }
     } catch (err) {
-      console.error('Error uploading:', err);
-      toast.error('Failed to upload rate sheet');
+      console.error("Error uploading:", err);
+      toast.error("Failed to upload rate sheet");
     } finally {
       setUploading(false);
       // Reset file input
       if (fileInputRef.current) {
-        fileInputRef.current.value = '';
+        fileInputRef.current.value = "";
       }
     }
   };
 
   const formatDate = (dateString: string) => {
-    return new Date(dateString).toLocaleDateString('en-US', {
-      month: 'short',
-      day: 'numeric',
-      year: 'numeric',
-      hour: '2-digit',
-      minute: '2-digit'
+    return new Date(dateString).toLocaleDateString("en-US", {
+      month: "short",
+      day: "numeric",
+      year: "numeric",
+      hour: "2-digit",
+      minute: "2-digit",
     });
   };
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-background flex items-center justify-center">
+      <div
+        className={
+          embedded
+            ? "flex items-center justify-center py-16"
+            : "min-h-screen bg-background flex items-center justify-center"
+        }
+      >
         <Loader2 className="h-8 w-8 animate-spin text-primary" />
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen bg-background">
-      {/* Header */}
-      <header className="sticky top-0 z-50 border-b bg-card">
-        <div className="flex items-center h-14 px-6">
-          <div className="flex items-center gap-3">
-            <div className="h-8 w-8 rounded-lg bg-primary flex items-center justify-center">
-              <FileText className="h-4 w-4 text-primary-foreground" />
-            </div>
-            <div>
-              <h1 className="text-sm font-semibold">Document Settings</h1>
-              <span className="text-xs text-muted-foreground">Leasing Rate Sheet</span>
+    <div className={embedded ? "w-full" : "min-h-screen bg-background"}>
+      {/* Header (standalone only) */}
+      {!embedded && (
+        <header className="sticky top-0 z-50 border-b bg-card">
+          <div className="flex items-center h-14 px-6">
+            <div className="flex items-center gap-3">
+              <div className="h-8 w-8 rounded-lg bg-primary flex items-center justify-center">
+                <FileText className="h-4 w-4 text-primary-foreground" />
+              </div>
+              <div>
+                <h1 className="text-sm font-semibold">Document Settings</h1>
+                <span className="text-xs text-muted-foreground">Leasing Rate Sheet</span>
+              </div>
             </div>
           </div>
-        </div>
-      </header>
+        </header>
+      )}
 
-      <div className="max-w-4xl mx-auto p-6">
-        {/* Back link */}
-        <Button variant="ghost" size="sm" className="mb-4" asChild>
-          <Link to={`/admin${portalId ? `?portalId=${portalId}` : ''}`}>
-            <ArrowLeft className="h-4 w-4 mr-2" />
-            Back to Settings
-          </Link>
-        </Button>
+      <div className={embedded ? "" : "max-w-4xl mx-auto p-6"}>
+        {/* Back link (standalone only) */}
+        {!embedded && (
+          <Button variant="ghost" size="sm" className="mb-4" asChild>
+            <Link to={`/admin${portalId ? `?portalId=${portalId}` : ""}`}>
+              <ArrowLeft className="h-4 w-4 mr-2" />
+              Back to Settings
+            </Link>
+          </Button>
+        )}
 
-        {/* Header */}
+        {/* Title */}
         <div className="mb-8">
           <h1 className="text-2xl font-bold text-foreground">Leasing Rate Sheet</h1>
           <p className="text-muted-foreground mt-1">
@@ -202,14 +221,15 @@ export default function LeasingPartners() {
               Rate Sheet Processor
             </CardTitle>
             <CardDescription>
-              Use Quantum's Document Processor to convert multiple leasing companies' rate files into a single CSV ready for upload
+              Use Quantum's Document Processor to convert multiple leasing companies' rate files into a single CSV ready
+              for upload
             </CardDescription>
           </CardHeader>
           <CardContent>
-            <Button 
-              variant="outline" 
+            <Button
+              variant="outline"
               className="w-full justify-between"
-              onClick={() => window.open('https://qbsdocumentprocessor.lovable.app/', '_blank')}
+              onClick={() => window.open("https://qbsdocumentprocessor.lovable.app/", "_blank")}
             >
               <span className="flex items-center gap-2">
                 <Cog className="h-4 w-4" />
@@ -227,42 +247,30 @@ export default function LeasingPartners() {
               <FileSpreadsheet className="h-5 w-5" />
               Rate Sheet Upload
             </CardTitle>
-            <CardDescription>
-              Upload a CSV file with your leasing companies and rate factors
-            </CardDescription>
+            <CardDescription>Upload a CSV file with your leasing companies and rate factors</CardDescription>
           </CardHeader>
           <CardContent>
-            <div 
+            <div
               className="border-2 border-dashed border-border rounded-lg p-8 text-center hover:border-primary/50 transition-colors cursor-pointer"
               onClick={() => fileInputRef.current?.click()}
             >
               {uploading ? (
                 <>
                   <Loader2 className="h-10 w-10 mx-auto text-primary mb-4 animate-spin" />
-                  <p className="text-sm text-muted-foreground">
-                    Processing your rate sheet...
-                  </p>
+                  <p className="text-sm text-muted-foreground">Processing your rate sheet...</p>
                 </>
               ) : (
                 <>
                   <Upload className="h-10 w-10 mx-auto text-muted-foreground mb-4" />
-                  <p className="text-sm text-muted-foreground mb-2">
-                    Click to upload or drag and drop your CSV file
-                  </p>
+                  <p className="text-sm text-muted-foreground mb-2">Click to upload or drag and drop your CSV file</p>
                   <Button variant="outline" disabled={uploading}>
                     Choose File
                   </Button>
                 </>
               )}
-              <input
-                ref={fileInputRef}
-                type="file"
-                accept=".csv"
-                onChange={handleFileUpload}
-                className="hidden"
-              />
+              <input ref={fileInputRef} type="file" accept=".csv" onChange={handleFileUpload} className="hidden" />
             </div>
-            
+
             {/* Expected format */}
             <div className="mt-4 p-4 bg-muted/50 rounded-lg">
               <h4 className="font-medium text-sm mb-2">Expected CSV columns:</h4>
@@ -315,9 +323,7 @@ export default function LeasingPartners() {
           <Card className="mb-6">
             <CardContent className="py-8 text-center">
               <AlertCircle className="h-10 w-10 mx-auto text-muted-foreground mb-4" />
-              <p className="text-muted-foreground">
-                No rate sheet uploaded yet. Upload a CSV file to get started.
-              </p>
+              <p className="text-muted-foreground">No rate sheet uploaded yet. Upload a CSV file to get started.</p>
             </CardContent>
           </Card>
         )}
@@ -348,7 +354,7 @@ export default function LeasingPartners() {
                   </div>
                 ))}
               </div>
-              
+
               {rateData.availableTerms.length > 0 && (
                 <>
                   <Separator className="my-4" />
