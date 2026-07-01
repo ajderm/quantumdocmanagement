@@ -4165,884 +4165,854 @@ function DocumentHubContent() {
 
             {/* Installation Tab Content */}
             <TabsContent value="installation" className="mt-0">
-              <Card>
-                <CardHeader className="pb-3">
-                  <CardTitle className="flex items-center gap-2">
-                    Generate Installation Document
-                    {hardwareLineItems.length > 0 && (
-                      <Badge variant="secondary" className="ml-2">
-                        {hardwareLineItems.length} hardware item{hardwareLineItems.length !== 1 ? "s" : ""}
-                      </Badge>
+              <div className="space-y-4">
+                <div>
+                  <h3 className="text-sm font-semibold tracking-tight">Installation Document</h3>
+                  <p className="text-xs text-muted-foreground mt-0.5">
+                    Create an installation document for each hardware item
+                  </p>
+                </div>
+                <div className="grid grid-cols-1 xl:grid-cols-[minmax(0,1fr)_320px] gap-4 items-start">
+                  <div className="space-y-4 min-w-0">
+                    <InstallationForm
+                      deal={deal}
+                      company={company}
+                      contacts={contacts}
+                      lineItems={lineItems}
+                      dealOwner={dealOwner}
+                      meterMethods={dealerSettings.meter_methods || []}
+                      ccaValue={dealerSettings.cca_value || ""}
+                      portalId={portalId || localStorage.getItem("hs_portal_id") || ""}
+                      onFormChange={handleInstallationFormChange}
+                      onLineItemSwitch={handleInstallationLineItemSwitch}
+                      savedConfig={getCurrentInstallationSavedConfig()}
+                      labeledContacts={labeledContacts || undefined}
+                      quoteLineItems={(formData?.lineItems || savedConfig?.lineItems)?.map((li) => ({
+                        id: li.id,
+                        model: li.model,
+                        description: li.description,
+                        quantity: li.quantity,
+                        productType: li.productType || "",
+                        parentLineItemId: li.parentLineItemId || "",
+                        itemNumber: li.itemNumber || "",
+                      }))}
+                      defaultMeterMethod={
+                        serviceAgreementFormData?.meterMethod ||
+                        lineItems.find((li: any) => li.meterMethod)?.meterMethod ||
+                        ""
+                      }
+                    />
+                    {installationFormData?.selectedLineItemId && (
+                      <div className="flex pt-3 border-t">
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={handleInstallationSave}
+                          disabled={installationSaving}
+                        >
+                          {installationSaving ? (
+                            <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                          ) : (
+                            <Save className="h-4 w-4 mr-2" />
+                          )}
+                          {installationSaving ? "Saving..." : "Save"}
+                        </Button>
+                      </div>
                     )}
-                  </CardTitle>
-                  <CardDescription>Create an installation document for each hardware item</CardDescription>
-                </CardHeader>
-                <CardContent className="space-y-4">
-                  <InstallationForm
-                    deal={deal}
-                    company={company}
-                    contacts={contacts}
-                    lineItems={lineItems}
-                    dealOwner={dealOwner}
-                    meterMethods={dealerSettings.meter_methods || []}
-                    ccaValue={dealerSettings.cca_value || ""}
-                    portalId={portalId || localStorage.getItem("hs_portal_id") || ""}
-                    onFormChange={handleInstallationFormChange}
-                    onLineItemSwitch={handleInstallationLineItemSwitch}
-                    savedConfig={getCurrentInstallationSavedConfig()}
-                    labeledContacts={labeledContacts || undefined}
-                    quoteLineItems={(formData?.lineItems || savedConfig?.lineItems)?.map((li) => ({
-                      id: li.id,
-                      model: li.model,
-                      description: li.description,
-                      quantity: li.quantity,
-                      productType: li.productType || "",
-                      parentLineItemId: li.parentLineItemId || "",
-                      itemNumber: li.itemNumber || "",
-                    }))}
-                    defaultMeterMethod={
-                      serviceAgreementFormData?.meterMethod ||
-                      lineItems.find((li: any) => li.meterMethod)?.meterMethod ||
-                      ""
-                    }
+                  </div>
+                  <SummaryRail
+                    title="Installation summary"
+                    metrics={[{ label: "Hardware items", value: hardwareLineItems.length, emphasis: true }]}
+                    onGenerate={handleInstallationGeneratePDF}
+                    generating={installationGenerating}
+                    canGenerate={userPermissions.can_generate && !!installationFormData?.selectedLineItemId}
+                    generateLabel="Generate PDF"
+                    onPreview={handleInstallationPreview}
+                    autosave={installationSaving ? "saving" : installationFormData ? "saved" : "idle"}
                   />
-
-                  {/* Actions */}
-                  {installationFormData?.selectedLineItemId && (
-                    <div className="flex gap-2 pt-4 border-t">
-                      <Button variant="outline" onClick={handleInstallationSave} disabled={installationSaving}>
-                        {installationSaving ? (
-                          <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                        ) : (
-                          <Save className="h-4 w-4 mr-2" />
-                        )}
-                        {installationSaving ? "Saving..." : "Save"}
-                      </Button>
-                      <Button
-                        className="flex-1"
-                        onClick={handleInstallationGeneratePDF}
-                        disabled={installationGenerating}
-                      >
-                        {installationGenerating ? (
-                          <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                        ) : (
-                          <Download className="h-4 w-4 mr-2" />
-                        )}
-                        {installationGenerating ? "Generating..." : "Generate PDF"}
-                      </Button>
-                      <Button variant="outline" onClick={handleInstallationPreview}>
-                        <Eye className="h-4 w-4 mr-2" />
-                        Preview
-                      </Button>
-                    </div>
-                  )}
-                </CardContent>
-              </Card>
+                </div>
+              </div>
             </TabsContent>
 
             {/* Service Agreement Tab Content */}
             <TabsContent value="service_agreement" className="mt-0">
-              <Card>
-                <CardHeader className="pb-3">
-                  <CardTitle className="flex items-center gap-2">Generate Service Agreement</CardTitle>
-                  <CardDescription>Create a service agreement with maintenance terms and rates</CardDescription>
-                </CardHeader>
-                <CardContent className="space-y-4">
-                  <ServiceAgreementForm
-                    formData={
-                      serviceAgreementFormData || {
-                        customerNumber: "",
-                        customerNumberOverride: "",
-                        meterMethod: "",
-                        shipToCompany: "",
-                        shipToAddress: "",
-                        shipToCity: "",
-                        shipToState: "",
-                        shipToZip: "",
-                        shipToAttn: "",
-                        shipToPhone: "",
-                        shipToEmail: "",
-                        billToCompany: "",
-                        billToAddress: "",
-                        billToCity: "",
-                        billToState: "",
-                        billToZip: "",
-                        billToAttn: "",
-                        billToPhone: "",
-                        billToEmail: "",
-                        maintenanceType: "",
-                        paperStaples: "",
-                        drumToner: "",
-                        effectiveDate: null,
-                        contractLengthMonths: "",
-                        billingPeriod: "monthly",
-                        rates: {},
+              <div className="space-y-4">
+                <div>
+                  <h3 className="text-sm font-semibold tracking-tight">Service Agreement</h3>
+                  <p className="text-xs text-muted-foreground mt-0.5">
+                    Create a service agreement with maintenance terms and rates
+                  </p>
+                </div>
+                <div className="grid grid-cols-1 xl:grid-cols-[minmax(0,1fr)_320px] gap-4 items-start">
+                  <div className="space-y-4 min-w-0">
+                    <ServiceAgreementForm
+                      formData={
+                        serviceAgreementFormData || {
+                          customerNumber: "",
+                          customerNumberOverride: "",
+                          meterMethod: "",
+                          shipToCompany: "",
+                          shipToAddress: "",
+                          shipToCity: "",
+                          shipToState: "",
+                          shipToZip: "",
+                          shipToAttn: "",
+                          shipToPhone: "",
+                          shipToEmail: "",
+                          billToCompany: "",
+                          billToAddress: "",
+                          billToCity: "",
+                          billToState: "",
+                          billToZip: "",
+                          billToAttn: "",
+                          billToPhone: "",
+                          billToEmail: "",
+                          maintenanceType: "",
+                          paperStaples: "",
+                          drumToner: "",
+                          effectiveDate: null,
+                          contractLengthMonths: "",
+                          billingPeriod: "monthly",
+                          rates: {},
+                        }
                       }
-                    }
-                    onChange={handleServiceAgreementFormChange}
-                    company={
-                      company
-                        ? {
-                            name: company.name,
-                            customerNumber: company.customerNumber,
-                            // Ship To (Delivery) Address
-                            deliveryAddress: company.deliveryAddress,
-                            deliveryAddress2: company.deliveryAddress2,
-                            deliveryCity: company.deliveryCity,
-                            deliveryState: company.deliveryState,
-                            deliveryZip: company.deliveryZip,
-                            // Bill To (AP) Address
-                            apAddress: company.apAddress,
-                            apAddress2: company.apAddress2,
-                            apCity: company.apCity,
-                            apState: company.apState,
-                            apZip: company.apZip,
-                            // Fallback address
-                            address: company.address,
-                            address2: company.address2,
-                            city: company.city,
-                            state: company.state,
-                            zip: company.zip,
-                          }
-                        : null
-                    }
-                    lineItems={
-                      formData?.lineItems?.length
-                        ? formData.lineItems.map((li) => ({
-                            id: li.id,
-                            name: li.description || li.model,
-                            model: li.model,
-                            description: li.description,
-                            quantity: li.quantity,
-                            price: li.price,
-                            cost: li.cost,
-                            sku: li.model,
-                            category: li.productType || "",
-                            itemNumber: li.itemNumber || "",
-                            parentLineItemId: li.parentLineItemId || "",
-                            serial: li.serial || "",
-                            equipmentId: li.equipmentId || "",
-                          }))
-                        : lineItems
-                    }
-                    dealerSettings={dealerSettings}
-                    savedConfig={serviceAgreementSavedConfig}
-                    labeledContacts={labeledContacts || { shippingContact: null, apContact: null, itContact: null }}
-                    quoteFormData={
-                      formData
-                        ? {
-                            includedBWCopies: String(formData.includedBWCopies),
-                            includedColorCopies: String(formData.includedColorCopies),
-                            overageBWRate: String(formData.overageBWRate),
-                            overageColorRate: String(formData.overageColorRate),
-                            serviceBaseRate: String(formData.serviceBaseRate),
-                            serviceBillingPeriod: formData.serviceBillingPeriod || "monthly",
-                          }
-                        : null
-                    }
-                    installationConfigs={installationSavedConfig}
-                  />
-
-                  {/* Actions */}
-                  <div className="flex gap-2 pt-4 border-t">
-                    <Button variant="outline" onClick={handleServiceAgreementSave} disabled={serviceAgreementSaving}>
-                      {serviceAgreementSaving ? (
-                        <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                      ) : (
-                        <Save className="h-4 w-4 mr-2" />
-                      )}
-                      {serviceAgreementSaving ? "Saving..." : "Save"}
-                    </Button>
-                    <Button
-                      className="flex-1"
-                      onClick={handleServiceAgreementGeneratePDF}
-                      disabled={serviceAgreementGenerating}
-                    >
-                      {serviceAgreementGenerating ? (
-                        <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                      ) : (
-                        <Download className="h-4 w-4 mr-2" />
-                      )}
-                      {serviceAgreementGenerating ? "Generating..." : "Generate PDF"}
-                    </Button>
-                    <Button variant="outline" onClick={handleServiceAgreementPreview}>
-                      <Eye className="h-4 w-4 mr-2" />
-                      Preview
-                    </Button>
+                      onChange={handleServiceAgreementFormChange}
+                      company={
+                        company
+                          ? {
+                              name: company.name,
+                              customerNumber: company.customerNumber,
+                              // Ship To (Delivery) Address
+                              deliveryAddress: company.deliveryAddress,
+                              deliveryAddress2: company.deliveryAddress2,
+                              deliveryCity: company.deliveryCity,
+                              deliveryState: company.deliveryState,
+                              deliveryZip: company.deliveryZip,
+                              // Bill To (AP) Address
+                              apAddress: company.apAddress,
+                              apAddress2: company.apAddress2,
+                              apCity: company.apCity,
+                              apState: company.apState,
+                              apZip: company.apZip,
+                              // Fallback address
+                              address: company.address,
+                              address2: company.address2,
+                              city: company.city,
+                              state: company.state,
+                              zip: company.zip,
+                            }
+                          : null
+                      }
+                      lineItems={
+                        formData?.lineItems?.length
+                          ? formData.lineItems.map((li) => ({
+                              id: li.id,
+                              name: li.description || li.model,
+                              model: li.model,
+                              description: li.description,
+                              quantity: li.quantity,
+                              price: li.price,
+                              cost: li.cost,
+                              sku: li.model,
+                              category: li.productType || "",
+                              itemNumber: li.itemNumber || "",
+                              parentLineItemId: li.parentLineItemId || "",
+                              serial: li.serial || "",
+                              equipmentId: li.equipmentId || "",
+                            }))
+                          : lineItems
+                      }
+                      dealerSettings={dealerSettings}
+                      savedConfig={serviceAgreementSavedConfig}
+                      labeledContacts={labeledContacts || { shippingContact: null, apContact: null, itContact: null }}
+                      quoteFormData={
+                        formData
+                          ? {
+                              includedBWCopies: String(formData.includedBWCopies),
+                              includedColorCopies: String(formData.includedColorCopies),
+                              overageBWRate: String(formData.overageBWRate),
+                              overageColorRate: String(formData.overageColorRate),
+                              serviceBaseRate: String(formData.serviceBaseRate),
+                              serviceBillingPeriod: formData.serviceBillingPeriod || "monthly",
+                            }
+                          : null
+                      }
+                      installationConfigs={installationSavedConfig}
+                    />
+                    <div className="flex pt-3 border-t">
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={handleServiceAgreementSave}
+                        disabled={serviceAgreementSaving}
+                      >
+                        {serviceAgreementSaving ? (
+                          <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                        ) : (
+                          <Save className="h-4 w-4 mr-2" />
+                        )}
+                        {serviceAgreementSaving ? "Saving..." : "Save"}
+                      </Button>
+                    </div>
                   </div>
-                </CardContent>
-              </Card>
+                  <SummaryRail
+                    title="Service agreement summary"
+                    onGenerate={handleServiceAgreementGeneratePDF}
+                    generating={serviceAgreementGenerating}
+                    canGenerate={userPermissions.can_generate}
+                    generateLabel="Generate PDF"
+                    onPreview={handleServiceAgreementPreview}
+                    autosave={serviceAgreementSaving ? "saving" : serviceAgreementFormData ? "saved" : "idle"}
+                  />
+                </div>
+              </div>
             </TabsContent>
 
             {/* FMV Lease Tab Content */}
             <TabsContent value="fmv_lease" className="mt-0">
-              <Card>
-                <CardHeader className="pb-3">
-                  <CardTitle className="flex items-center gap-2">
-                    <FileSpreadsheet className="h-5 w-5" />
-                    Generate FMV Lease Agreement
-                  </CardTitle>
-                  <CardDescription>
-                    Create an FMV lease agreement with customer, equipment, and payment details
-                  </CardDescription>
-                </CardHeader>
-                <CardContent className="space-y-4">
-                  <FMVLeaseForm
-                    formData={
-                      fmvLeaseFormData || {
-                        companyLegalName: "",
-                        phone: "",
-                        billingAddress: "",
-                        billingCity: "",
-                        billingState: "",
-                        billingZip: "",
-                        equipmentAddress: "",
-                        equipmentCity: "",
-                        equipmentState: "",
-                        equipmentZip: "",
-                        equipmentItems: [],
-                        termInMonths: "",
-                        paymentFrequency: "monthly",
-                        firstPaymentDate: null,
-                        paymentAmount: "",
+              <div className="space-y-4">
+                <div>
+                  <h3 className="text-sm font-semibold tracking-tight">FMV Lease Agreement</h3>
+                  <p className="text-xs text-muted-foreground mt-0.5">Create a fair market value lease agreement</p>
+                </div>
+                <div className="grid grid-cols-1 xl:grid-cols-[minmax(0,1fr)_320px] gap-4 items-start">
+                  <div className="space-y-4 min-w-0">
+                    <FMVLeaseForm
+                      formData={
+                        fmvLeaseFormData || {
+                          companyLegalName: "",
+                          phone: "",
+                          billingAddress: "",
+                          billingCity: "",
+                          billingState: "",
+                          billingZip: "",
+                          equipmentAddress: "",
+                          equipmentCity: "",
+                          equipmentState: "",
+                          equipmentZip: "",
+                          equipmentItems: [],
+                          termInMonths: "",
+                          paymentFrequency: "monthly",
+                          firstPaymentDate: null,
+                          paymentAmount: "",
+                        }
                       }
-                    }
-                    onChange={handleFMVLeaseFormChange}
-                    company={
-                      company
-                        ? {
-                            name: company.name,
-                            phone: company.phone,
-                            deliveryAddress: company.deliveryAddress,
-                            deliveryAddress2: company.deliveryAddress2,
-                            deliveryCity: company.deliveryCity,
-                            deliveryState: company.deliveryState,
-                            deliveryZip: company.deliveryZip,
-                            apAddress: company.apAddress,
-                            apAddress2: company.apAddress2,
-                            apCity: company.apCity,
-                            apState: company.apState,
-                            apZip: company.apZip,
-                            address: company.address,
-                            address2: company.address2,
-                            city: company.city,
-                            state: company.state,
-                            zip: company.zip,
-                          }
-                        : null
-                    }
-                    lineItems={lineItems}
-                    savedConfig={fmvLeaseSavedConfig}
-                    serviceAgreementFormData={
-                      serviceAgreementFormData
-                        ? {
-                            contractLengthMonths: serviceAgreementFormData.contractLengthMonths,
-                            effectiveDate: serviceAgreementFormData.effectiveDate,
-                          }
-                        : null
-                    }
-                    quoteFormData={
-                      formData
-                        ? {
-                            serviceBaseRate: formData.serviceBaseRate,
-                          }
-                        : null
-                    }
-                  />
-
-                  {/* Actions */}
-                  <div className="flex gap-2 pt-4 border-t">
-                    <Button variant="outline" onClick={handleFMVLeaseSave} disabled={fmvLeaseSaving}>
-                      {fmvLeaseSaving ? (
-                        <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                      ) : (
-                        <Save className="h-4 w-4 mr-2" />
-                      )}
-                      {fmvLeaseSaving ? "Saving..." : "Save"}
-                    </Button>
-                    <Button className="flex-1" onClick={handleFMVLeaseGeneratePDF} disabled={fmvLeaseGenerating}>
-                      {fmvLeaseGenerating ? (
-                        <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                      ) : (
-                        <Download className="h-4 w-4 mr-2" />
-                      )}
-                      {fmvLeaseGenerating ? "Generating..." : "Generate PDF"}
-                    </Button>
-                    <Button variant="outline" onClick={handleFMVLeasePreview}>
-                      <Eye className="h-4 w-4 mr-2" />
-                      Preview
-                    </Button>
+                      onChange={handleFMVLeaseFormChange}
+                      company={
+                        company
+                          ? {
+                              name: company.name,
+                              phone: company.phone,
+                              deliveryAddress: company.deliveryAddress,
+                              deliveryAddress2: company.deliveryAddress2,
+                              deliveryCity: company.deliveryCity,
+                              deliveryState: company.deliveryState,
+                              deliveryZip: company.deliveryZip,
+                              apAddress: company.apAddress,
+                              apAddress2: company.apAddress2,
+                              apCity: company.apCity,
+                              apState: company.apState,
+                              apZip: company.apZip,
+                              address: company.address,
+                              address2: company.address2,
+                              city: company.city,
+                              state: company.state,
+                              zip: company.zip,
+                            }
+                          : null
+                      }
+                      lineItems={lineItems}
+                      savedConfig={fmvLeaseSavedConfig}
+                      serviceAgreementFormData={
+                        serviceAgreementFormData
+                          ? {
+                              contractLengthMonths: serviceAgreementFormData.contractLengthMonths,
+                              effectiveDate: serviceAgreementFormData.effectiveDate,
+                            }
+                          : null
+                      }
+                      quoteFormData={
+                        formData
+                          ? {
+                              serviceBaseRate: formData.serviceBaseRate,
+                            }
+                          : null
+                      }
+                    />
+                    <div className="flex pt-3 border-t">
+                      <Button variant="outline" size="sm" onClick={handleFMVLeaseSave} disabled={fmvLeaseSaving}>
+                        {fmvLeaseSaving ? (
+                          <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                        ) : (
+                          <Save className="h-4 w-4 mr-2" />
+                        )}
+                        {fmvLeaseSaving ? "Saving..." : "Save"}
+                      </Button>
+                    </div>
                   </div>
-                </CardContent>
-              </Card>
+                  <SummaryRail
+                    title="FMV lease summary"
+                    metrics={[
+                      {
+                        label: "Monthly payment",
+                        value: fmvLeaseFormData?.paymentAmount ? `$${fmvLeaseFormData.paymentAmount}` : "—",
+                        emphasis: true,
+                      },
+                    ]}
+                    onGenerate={handleFMVLeaseGeneratePDF}
+                    generating={fmvLeaseGenerating}
+                    canGenerate={userPermissions.can_generate}
+                    generateLabel="Generate PDF"
+                    onPreview={handleFMVLeasePreview}
+                    autosave={fmvLeaseSaving ? "saving" : fmvLeaseFormData ? "saved" : "idle"}
+                  />
+                </div>
+              </div>
             </TabsContent>
 
             {/* Lease Funding Tab Content */}
             <TabsContent value="lease_funding" className="mt-0">
-              <Card>
-                <CardHeader className="pb-3">
-                  <CardTitle className="flex items-center gap-2">
-                    <Receipt className="h-5 w-5" />
-                    Generate Lease Funding Document
-                    {hardwareLineItems.length > 0 && (
-                      <Badge variant="secondary" className="ml-2">
-                        {hardwareLineItems.length} hardware item{hardwareLineItems.length !== 1 ? "s" : ""}
-                      </Badge>
-                    )}
-                  </CardTitle>
-                  <CardDescription>Create a lease funding document for each hardware item</CardDescription>
-                </CardHeader>
-                <CardContent className="space-y-4">
-                  <LeaseFundingForm
-                    deal={deal}
-                    company={
-                      company
-                        ? {
-                            name: company.name,
-                            deliveryAddress: company.deliveryAddress,
-                            deliveryAddress2: company.deliveryAddress2,
-                            deliveryCity: company.deliveryCity,
-                            deliveryState: company.deliveryState,
-                            deliveryZip: company.deliveryZip,
-                            address: company.address,
-                            address2: company.address2,
-                            city: company.city,
-                            state: company.state,
-                            zip: company.zip,
-                          }
-                        : null
-                    }
-                    lineItems={lineItems}
-                    dealOwner={dealOwner}
-                    fmvLeaseFormData={
-                      fmvLeaseFormData
-                        ? {
-                            companyLegalName: fmvLeaseFormData.companyLegalName,
-                            equipmentAddress: fmvLeaseFormData.equipmentAddress,
-                            equipmentCity: fmvLeaseFormData.equipmentCity,
-                            equipmentState: fmvLeaseFormData.equipmentState,
-                            equipmentZip: fmvLeaseFormData.equipmentZip,
-                            termInMonths: fmvLeaseFormData.termInMonths,
-                            paymentAmount: fmvLeaseFormData.paymentAmount,
-                          }
-                        : null
-                    }
-                    portalId={portalId || localStorage.getItem("hs_portal_id") || undefined}
-                    onFormChange={handleLeaseFundingFormChange}
-                    onLineItemSwitch={handleLeaseFundingLineItemSwitch}
-                    savedConfig={getCurrentLeaseFundingSavedConfig()}
-                  />
-
-                  {/* Actions */}
-                  <div className="flex gap-2 pt-4 border-t">
-                    <Button variant="outline" onClick={handleLeaseFundingSave} disabled={leaseFundingSaving}>
-                      {leaseFundingSaving ? (
-                        <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                      ) : (
-                        <Save className="h-4 w-4 mr-2" />
-                      )}
-                      {leaseFundingSaving ? "Saving..." : "Save"}
-                    </Button>
-                    <Button
-                      className="flex-1"
-                      onClick={handleLeaseFundingGeneratePDF}
-                      disabled={leaseFundingGenerating}
-                    >
-                      {leaseFundingGenerating ? (
-                        <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                      ) : (
-                        <Download className="h-4 w-4 mr-2" />
-                      )}
-                      {leaseFundingGenerating ? "Generating..." : "Generate PDF"}
-                    </Button>
-                    <Button variant="outline" onClick={handleLeaseFundingPreview}>
-                      <Eye className="h-4 w-4 mr-2" />
-                      Preview
-                    </Button>
+              <div className="space-y-4">
+                <div>
+                  <h3 className="text-sm font-semibold tracking-tight">Lease Funding Document</h3>
+                  <p className="text-xs text-muted-foreground mt-0.5">
+                    Create a lease funding document for each hardware item
+                  </p>
+                </div>
+                <div className="grid grid-cols-1 xl:grid-cols-[minmax(0,1fr)_320px] gap-4 items-start">
+                  <div className="space-y-4 min-w-0">
+                    <LeaseFundingForm
+                      deal={deal}
+                      company={
+                        company
+                          ? {
+                              name: company.name,
+                              deliveryAddress: company.deliveryAddress,
+                              deliveryAddress2: company.deliveryAddress2,
+                              deliveryCity: company.deliveryCity,
+                              deliveryState: company.deliveryState,
+                              deliveryZip: company.deliveryZip,
+                              address: company.address,
+                              address2: company.address2,
+                              city: company.city,
+                              state: company.state,
+                              zip: company.zip,
+                            }
+                          : null
+                      }
+                      lineItems={lineItems}
+                      dealOwner={dealOwner}
+                      fmvLeaseFormData={
+                        fmvLeaseFormData
+                          ? {
+                              companyLegalName: fmvLeaseFormData.companyLegalName,
+                              equipmentAddress: fmvLeaseFormData.equipmentAddress,
+                              equipmentCity: fmvLeaseFormData.equipmentCity,
+                              equipmentState: fmvLeaseFormData.equipmentState,
+                              equipmentZip: fmvLeaseFormData.equipmentZip,
+                              termInMonths: fmvLeaseFormData.termInMonths,
+                              paymentAmount: fmvLeaseFormData.paymentAmount,
+                            }
+                          : null
+                      }
+                      portalId={portalId || localStorage.getItem("hs_portal_id") || undefined}
+                      onFormChange={handleLeaseFundingFormChange}
+                      onLineItemSwitch={handleLeaseFundingLineItemSwitch}
+                      savedConfig={getCurrentLeaseFundingSavedConfig()}
+                    />
+                    <div className="flex pt-3 border-t">
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={handleLeaseFundingSave}
+                        disabled={leaseFundingSaving}
+                      >
+                        {leaseFundingSaving ? (
+                          <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                        ) : (
+                          <Save className="h-4 w-4 mr-2" />
+                        )}
+                        {leaseFundingSaving ? "Saving..." : "Save"}
+                      </Button>
+                    </div>
                   </div>
-                </CardContent>
-              </Card>
+                  <SummaryRail
+                    title="Lease funding summary"
+                    metrics={[
+                      {
+                        label: "Monthly payment",
+                        value: leaseFundingFormData?.monthlyPayment ? `$${leaseFundingFormData.monthlyPayment}` : "—",
+                        emphasis: true,
+                      },
+                    ]}
+                    onGenerate={handleLeaseFundingGeneratePDF}
+                    generating={leaseFundingGenerating}
+                    canGenerate={userPermissions.can_generate}
+                    generateLabel="Generate PDF"
+                    onPreview={handleLeaseFundingPreview}
+                    autosave={leaseFundingSaving ? "saving" : leaseFundingFormData ? "saved" : "idle"}
+                  />
+                </div>
+              </div>
             </TabsContent>
 
             {/* Letter of Intent Tab Content */}
             <TabsContent value="loi" className="mt-0">
-              <Card>
-                <CardHeader className="pb-3">
-                  <CardTitle className="flex items-center gap-2">Letter of Intent</CardTitle>
-                  <CardDescription>
-                    Create a non-binding letter of intent for lease terms with a leasing company
-                  </CardDescription>
-                </CardHeader>
-                <CardContent className="space-y-4">
-                  <LoiForm
-                    company={company}
-                    lineItems={lineItems || []}
-                    dealOwner={dealOwner}
-                    fmvLeaseFormData={
-                      fmvLeaseFormData
-                        ? {
-                            companyLegalName: fmvLeaseFormData.companyLegalName,
-                            billingAddress: fmvLeaseFormData.billingAddress,
-                            billingCity: fmvLeaseFormData.billingCity,
-                            billingState: fmvLeaseFormData.billingState,
-                            billingZip: fmvLeaseFormData.billingZip,
-                            phone: fmvLeaseFormData.phone,
-                            termInMonths: fmvLeaseFormData.termInMonths,
-                            paymentAmount: fmvLeaseFormData.paymentAmount,
-                          }
-                        : null
-                    }
-                    labeledContacts={labeledContacts || null}
-                    portalId={portalId || localStorage.getItem("hs_portal_id") || undefined}
-                    onFormChange={handleLoiFormChange}
-                    savedConfig={loiSavedConfig || undefined}
-                  />
-
-                  {/* Actions */}
-                  <div className="flex gap-2 pt-4 border-t">
-                    <Button variant="outline" onClick={handleLoiSave} disabled={loiSaving}>
-                      {loiSaving ? (
-                        <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                      ) : (
-                        <Save className="h-4 w-4 mr-2" />
-                      )}
-                      {loiSaving ? "Saving..." : "Save"}
-                    </Button>
-                    <Button className="flex-1" onClick={handleLoiGeneratePDF} disabled={loiGenerating}>
-                      {loiGenerating ? (
-                        <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                      ) : (
-                        <Download className="h-4 w-4 mr-2" />
-                      )}
-                      {loiGenerating ? "Generating..." : "Generate PDF"}
-                    </Button>
-                    <Button variant="outline" onClick={handleLoiPreview}>
-                      <Eye className="h-4 w-4 mr-2" />
-                      Preview
-                    </Button>
+              <div className="space-y-4">
+                <div>
+                  <h3 className="text-sm font-semibold tracking-tight">Letter of Intent</h3>
+                  <p className="text-xs text-muted-foreground mt-0.5">Create a letter of intent for the deal</p>
+                </div>
+                <div className="grid grid-cols-1 xl:grid-cols-[minmax(0,1fr)_320px] gap-4 items-start">
+                  <div className="space-y-4 min-w-0">
+                    <LoiForm
+                      company={company}
+                      lineItems={lineItems || []}
+                      dealOwner={dealOwner}
+                      fmvLeaseFormData={
+                        fmvLeaseFormData
+                          ? {
+                              companyLegalName: fmvLeaseFormData.companyLegalName,
+                              billingAddress: fmvLeaseFormData.billingAddress,
+                              billingCity: fmvLeaseFormData.billingCity,
+                              billingState: fmvLeaseFormData.billingState,
+                              billingZip: fmvLeaseFormData.billingZip,
+                              phone: fmvLeaseFormData.phone,
+                              termInMonths: fmvLeaseFormData.termInMonths,
+                              paymentAmount: fmvLeaseFormData.paymentAmount,
+                            }
+                          : null
+                      }
+                      labeledContacts={labeledContacts || null}
+                      portalId={portalId || localStorage.getItem("hs_portal_id") || undefined}
+                      onFormChange={handleLoiFormChange}
+                      savedConfig={loiSavedConfig || undefined}
+                    />
+                    <div className="flex pt-3 border-t">
+                      <Button variant="outline" size="sm" onClick={handleLoiSave} disabled={loiSaving}>
+                        {loiSaving ? (
+                          <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                        ) : (
+                          <Save className="h-4 w-4 mr-2" />
+                        )}
+                        {loiSaving ? "Saving..." : "Save"}
+                      </Button>
+                    </div>
                   </div>
-                </CardContent>
-              </Card>
+                  <SummaryRail
+                    title="Letter of intent summary"
+                    onGenerate={handleLoiGeneratePDF}
+                    generating={loiGenerating}
+                    canGenerate={userPermissions.can_generate}
+                    generateLabel="Generate PDF"
+                    onPreview={handleLoiPreview}
+                    autosave={loiSaving ? "saving" : loiFormData ? "saved" : "idle"}
+                  />
+                </div>
+              </div>
             </TabsContent>
 
             {/* Lease Return Tab Content */}
             <TabsContent value="lease_return" className="mt-0">
-              <Card>
-                <CardHeader className="pb-3">
-                  <CardTitle className="flex items-center gap-2">
-                    <MailOpen className="h-5 w-5" />
-                    Generate Lease Return Letter
-                  </CardTitle>
-                  <CardDescription>
+              <div className="space-y-4">
+                <div>
+                  <h3 className="text-sm font-semibold tracking-tight">Lease Return Letter</h3>
+                  <p className="text-xs text-muted-foreground mt-0.5">
                     Create a lease return letter for equipment being returned to the leasing company
-                  </CardDescription>
-                </CardHeader>
-                <CardContent className="space-y-4">
-                  <LeaseReturnForm
-                    deal={deal}
-                    company={company}
-                    dealOwner={dealOwner}
-                    quoteFormData={
-                      formData
-                        ? {
-                            paymentAmount: formData.paymentAmount,
-                            paymentsRemaining: formData.paymentsRemaining,
-                            earlyTerminationFee: formData.earlyTerminationFee,
-                            returnShipping: formData.returnShipping,
-                          }
-                        : null
-                    }
-                    fmvLeaseFormData={
-                      fmvLeaseFormData
-                        ? {
-                            companyLegalName: fmvLeaseFormData.companyLegalName,
-                          }
-                        : null
-                    }
-                    portalId={portalId || localStorage.getItem("hs_portal_id") || undefined}
-                    onFormChange={handleLeaseReturnFormChange}
-                    savedConfig={leaseReturnSavedConfig}
-                  />
-
-                  {/* Actions */}
-                  <div className="flex gap-2 pt-4 border-t">
-                    <Button variant="outline" onClick={handleLeaseReturnSave} disabled={leaseReturnSaving}>
-                      {leaseReturnSaving ? (
-                        <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                      ) : (
-                        <Save className="h-4 w-4 mr-2" />
-                      )}
-                      {leaseReturnSaving ? "Saving..." : "Save"}
-                    </Button>
-                    <Button className="flex-1" onClick={handleLeaseReturnGeneratePDF} disabled={leaseReturnGenerating}>
-                      {leaseReturnGenerating ? (
-                        <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                      ) : (
-                        <Download className="h-4 w-4 mr-2" />
-                      )}
-                      {leaseReturnGenerating ? "Generating..." : "Generate PDF"}
-                    </Button>
-                    <Button variant="outline" onClick={handleLeaseReturnPreview}>
-                      <Eye className="h-4 w-4 mr-2" />
-                      Preview
-                    </Button>
+                  </p>
+                </div>
+                <div className="grid grid-cols-1 xl:grid-cols-[minmax(0,1fr)_320px] gap-4 items-start">
+                  <div className="space-y-4 min-w-0">
+                    <LeaseReturnForm
+                      deal={deal}
+                      company={company}
+                      dealOwner={dealOwner}
+                      quoteFormData={
+                        formData
+                          ? {
+                              paymentAmount: formData.paymentAmount,
+                              paymentsRemaining: formData.paymentsRemaining,
+                              earlyTerminationFee: formData.earlyTerminationFee,
+                              returnShipping: formData.returnShipping,
+                            }
+                          : null
+                      }
+                      fmvLeaseFormData={
+                        fmvLeaseFormData
+                          ? {
+                              companyLegalName: fmvLeaseFormData.companyLegalName,
+                            }
+                          : null
+                      }
+                      portalId={portalId || localStorage.getItem("hs_portal_id") || undefined}
+                      onFormChange={handleLeaseReturnFormChange}
+                      savedConfig={leaseReturnSavedConfig}
+                    />
+                    <div className="flex pt-3 border-t">
+                      <Button variant="outline" size="sm" onClick={handleLeaseReturnSave} disabled={leaseReturnSaving}>
+                        {leaseReturnSaving ? (
+                          <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                        ) : (
+                          <Save className="h-4 w-4 mr-2" />
+                        )}
+                        {leaseReturnSaving ? "Saving..." : "Save"}
+                      </Button>
+                    </div>
                   </div>
-                </CardContent>
-              </Card>
+                  <SummaryRail
+                    title="Lease return summary"
+                    onGenerate={handleLeaseReturnGeneratePDF}
+                    generating={leaseReturnGenerating}
+                    canGenerate={userPermissions.can_generate}
+                    generateLabel="Generate PDF"
+                    onPreview={handleLeaseReturnPreview}
+                    autosave={leaseReturnSaving ? "saving" : leaseReturnFormData ? "saved" : "idle"}
+                  />
+                </div>
+              </div>
             </TabsContent>
 
             {/* Interterritorial Tab Content */}
             <TabsContent value="interterritorial" className="mt-0">
-              <Card>
-                <CardHeader className="pb-3">
-                  <CardTitle className="flex items-center gap-2">
-                    <MapPin className="h-5 w-5" />
-                    Interterritorial Equipment Placement Request
-                  </CardTitle>
-                  <CardDescription>
-                    Create an interterritorial request for equipment placement by another dealer
-                  </CardDescription>
-                </CardHeader>
-                <CardContent className="space-y-4">
-                  <InterterritorialForm
-                    formData={
-                      interterritorialFormData || {
-                        requestedInstallDate: null,
-                        originatingName: "",
-                        originatingBillTo: "",
-                        originatingPhone: "",
-                        originatingAttn: "",
-                        originatingEmail: "",
-                        originatingCca: "",
-                        installingName: "",
-                        installingAddress: "",
-                        installingPhone: "",
-                        installingAttn: "",
-                        installingEmail: "",
-                        installingCca: "",
-                        installingDealerNumber: "",
-                        customerName: "",
-                        customerAddress: "",
-                        customerPhone: "",
-                        customerAttn: "",
-                        customerEmail: "",
-                        customerFax: "",
-                        equipmentItems: [],
-                        serviceBaseCharge: "",
-                        serviceIncludes: "",
-                        serviceOverageBW: "",
-                        serviceOverageColor: "",
-                        serviceFrequency: "Monthly",
-                        serviceBillTo: "Originating Dealer",
-                        removalEquipment: [],
+              <div className="space-y-4">
+                <div>
+                  <h3 className="text-sm font-semibold tracking-tight">Interterritorial Agreement</h3>
+                  <p className="text-xs text-muted-foreground mt-0.5">
+                    Coordinate service between home and servicing dealers
+                  </p>
+                </div>
+                <div className="grid grid-cols-1 xl:grid-cols-[minmax(0,1fr)_320px] gap-4 items-start">
+                  <div className="space-y-4 min-w-0">
+                    <InterterritorialForm
+                      formData={
+                        interterritorialFormData || {
+                          requestedInstallDate: null,
+                          originatingName: "",
+                          originatingBillTo: "",
+                          originatingPhone: "",
+                          originatingAttn: "",
+                          originatingEmail: "",
+                          originatingCca: "",
+                          installingName: "",
+                          installingAddress: "",
+                          installingPhone: "",
+                          installingAttn: "",
+                          installingEmail: "",
+                          installingCca: "",
+                          installingDealerNumber: "",
+                          customerName: "",
+                          customerAddress: "",
+                          customerPhone: "",
+                          customerAttn: "",
+                          customerEmail: "",
+                          customerFax: "",
+                          equipmentItems: [],
+                          serviceBaseCharge: "",
+                          serviceIncludes: "",
+                          serviceOverageBW: "",
+                          serviceOverageColor: "",
+                          serviceFrequency: "Monthly",
+                          serviceBillTo: "Originating Dealer",
+                          removalEquipment: [],
+                        }
                       }
-                    }
-                    onChange={handleInterterritorialFormChange}
-                    dealerInfo={dealerInfo}
-                    dealerSettings={dealerSettings}
-                    dealOwner={dealOwner}
-                    lineItems={lineItems}
-                    fmvLeaseFormData={
-                      fmvLeaseFormData
-                        ? {
-                            companyLegalName: fmvLeaseFormData.companyLegalName,
-                            equipmentAddress: fmvLeaseFormData.equipmentAddress,
-                            equipmentCity: fmvLeaseFormData.equipmentCity,
-                            equipmentState: fmvLeaseFormData.equipmentState,
-                            equipmentZip: fmvLeaseFormData.equipmentZip,
-                            phone: fmvLeaseFormData.phone,
-                          }
-                        : null
-                    }
-                    serviceAgreementFormData={
-                      serviceAgreementFormData
-                        ? {
-                            rates: serviceAgreementFormData.rates,
-                            contractLengthMonths: serviceAgreementFormData.contractLengthMonths,
-                            shipToCompany: serviceAgreementFormData.shipToCompany,
-                            shipToAddress: serviceAgreementFormData.shipToAddress,
-                            shipToCity: serviceAgreementFormData.shipToCity,
-                            shipToState: serviceAgreementFormData.shipToState,
-                            shipToZip: serviceAgreementFormData.shipToZip,
-                            shipToAttn: serviceAgreementFormData.shipToAttn,
-                            shipToPhone: serviceAgreementFormData.shipToPhone,
-                            shipToEmail: serviceAgreementFormData.shipToEmail,
-                          }
-                        : null
-                    }
-                    quoteFormData={formData ? { phone: formData.phone } : null}
-                    savedConfig={interterritorialSavedConfig}
-                  />
-
-                  {/* Actions */}
-                  <div className="flex gap-2 pt-4 border-t">
-                    <Button variant="outline" onClick={handleInterterritorialSave} disabled={interterritorialSaving}>
-                      {interterritorialSaving ? (
-                        <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                      ) : (
-                        <Save className="h-4 w-4 mr-2" />
-                      )}
-                      {interterritorialSaving ? "Saving..." : "Save"}
-                    </Button>
-                    <Button
-                      className="flex-1"
-                      onClick={handleInterterritorialGeneratePDF}
-                      disabled={interterritorialGenerating}
-                    >
-                      {interterritorialGenerating ? (
-                        <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                      ) : (
-                        <Download className="h-4 w-4 mr-2" />
-                      )}
-                      {interterritorialGenerating ? "Generating..." : "Generate PDF"}
-                    </Button>
-                    <Button variant="outline" onClick={handleInterterritorialPreview}>
-                      <Eye className="h-4 w-4 mr-2" />
-                      Preview
-                    </Button>
+                      onChange={handleInterterritorialFormChange}
+                      dealerInfo={dealerInfo}
+                      dealerSettings={dealerSettings}
+                      dealOwner={dealOwner}
+                      lineItems={lineItems}
+                      fmvLeaseFormData={
+                        fmvLeaseFormData
+                          ? {
+                              companyLegalName: fmvLeaseFormData.companyLegalName,
+                              equipmentAddress: fmvLeaseFormData.equipmentAddress,
+                              equipmentCity: fmvLeaseFormData.equipmentCity,
+                              equipmentState: fmvLeaseFormData.equipmentState,
+                              equipmentZip: fmvLeaseFormData.equipmentZip,
+                              phone: fmvLeaseFormData.phone,
+                            }
+                          : null
+                      }
+                      serviceAgreementFormData={
+                        serviceAgreementFormData
+                          ? {
+                              rates: serviceAgreementFormData.rates,
+                              contractLengthMonths: serviceAgreementFormData.contractLengthMonths,
+                              shipToCompany: serviceAgreementFormData.shipToCompany,
+                              shipToAddress: serviceAgreementFormData.shipToAddress,
+                              shipToCity: serviceAgreementFormData.shipToCity,
+                              shipToState: serviceAgreementFormData.shipToState,
+                              shipToZip: serviceAgreementFormData.shipToZip,
+                              shipToAttn: serviceAgreementFormData.shipToAttn,
+                              shipToPhone: serviceAgreementFormData.shipToPhone,
+                              shipToEmail: serviceAgreementFormData.shipToEmail,
+                            }
+                          : null
+                      }
+                      quoteFormData={formData ? { phone: formData.phone } : null}
+                      savedConfig={interterritorialSavedConfig}
+                    />
+                    <div className="flex pt-3 border-t">
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={handleInterterritorialSave}
+                        disabled={interterritorialSaving}
+                      >
+                        {interterritorialSaving ? (
+                          <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                        ) : (
+                          <Save className="h-4 w-4 mr-2" />
+                        )}
+                        {interterritorialSaving ? "Saving..." : "Save"}
+                      </Button>
+                    </div>
                   </div>
-                </CardContent>
-              </Card>
+                  <SummaryRail
+                    title="Interterritorial summary"
+                    onGenerate={handleInterterritorialGeneratePDF}
+                    generating={interterritorialGenerating}
+                    canGenerate={userPermissions.can_generate}
+                    generateLabel="Generate PDF"
+                    onPreview={handleInterterritorialPreview}
+                    autosave={interterritorialSaving ? "saving" : interterritorialFormData ? "saved" : "idle"}
+                  />
+                </div>
+              </div>
             </TabsContent>
 
             {/* New Customer Tab Content */}
             <TabsContent value="new_customer" className="mt-0">
-              <Card>
-                <CardHeader className="pb-3">
-                  <CardTitle className="flex items-center gap-2">
-                    <UserPlus className="h-5 w-5" />
-                    New Customer Application
-                  </CardTitle>
-                  <CardDescription>Create a new customer application form for credit/account setup</CardDescription>
-                </CardHeader>
-                <CardContent className="space-y-4">
-                  <NewCustomerForm
-                    formData={
-                      newCustomerFormData || {
-                        companyName: "",
-                        tradeName: "",
-                        businessDescription: "",
-                        taxId: "",
-                        taxIdState: "",
-                        yearEstablished: "",
-                        yearsOwned: "",
-                        creditRequested: "",
-                        businessType: "",
-                        hqAddress: "",
-                        hqAddress2: "",
-                        hqCity: "",
-                        hqState: "",
-                        hqZip: "",
-                        hqPhone: "",
-                        hqFax: "",
-                        hqEmail: "",
-                        branchSameAsHq: false,
-                        branchAddress: "",
-                        branchAddress2: "",
-                        branchCity: "",
-                        branchState: "",
-                        branchZip: "",
-                        branchPhone: "",
-                        branchFax: "",
-                        branchEmail: "",
-                        billingSameAsHq: false,
-                        billingSameAsBranch: false,
-                        billingAddress: "",
-                        billingAddress2: "",
-                        billingCity: "",
-                        billingState: "",
-                        billingZip: "",
-                        billingPhone: "",
-                        billingFax: "",
-                        billingEmail: "",
-                        principalName: "",
-                        principalTitle: "",
-                        principalPhone: "",
-                        principalEmail: "",
-                        equipmentContactName: "",
-                        equipmentContactTitle: "",
-                        equipmentContactPhone: "",
-                        equipmentContactEmail: "",
-                        apContactName: "",
-                        apContactTitle: "",
-                        apContactPhone: "",
-                        apContactEmail: "",
-                        interestOfficeMachines: false,
-                        interestFurniture: false,
-                        interestSupplies: false,
-                        interestOther: "",
-                        bankReferences: [],
-                        businessReferences: [],
-                        invoiceDelivery: "email",
-                        invoiceEmail: "",
-                        invoiceSecondaryEmail: "",
-                        paymentMethod: "",
+              <div className="space-y-4">
+                <div>
+                  <h3 className="text-sm font-semibold tracking-tight">New Customer Application</h3>
+                  <p className="text-xs text-muted-foreground mt-0.5">
+                    Create a new customer application form for credit/account setup
+                  </p>
+                </div>
+                <div className="grid grid-cols-1 xl:grid-cols-[minmax(0,1fr)_320px] gap-4 items-start">
+                  <div className="space-y-4 min-w-0">
+                    <NewCustomerForm
+                      formData={
+                        newCustomerFormData || {
+                          companyName: "",
+                          tradeName: "",
+                          businessDescription: "",
+                          taxId: "",
+                          taxIdState: "",
+                          yearEstablished: "",
+                          yearsOwned: "",
+                          creditRequested: "",
+                          businessType: "",
+                          hqAddress: "",
+                          hqAddress2: "",
+                          hqCity: "",
+                          hqState: "",
+                          hqZip: "",
+                          hqPhone: "",
+                          hqFax: "",
+                          hqEmail: "",
+                          branchSameAsHq: false,
+                          branchAddress: "",
+                          branchAddress2: "",
+                          branchCity: "",
+                          branchState: "",
+                          branchZip: "",
+                          branchPhone: "",
+                          branchFax: "",
+                          branchEmail: "",
+                          billingSameAsHq: false,
+                          billingSameAsBranch: false,
+                          billingAddress: "",
+                          billingAddress2: "",
+                          billingCity: "",
+                          billingState: "",
+                          billingZip: "",
+                          billingPhone: "",
+                          billingFax: "",
+                          billingEmail: "",
+                          principalName: "",
+                          principalTitle: "",
+                          principalPhone: "",
+                          principalEmail: "",
+                          equipmentContactName: "",
+                          equipmentContactTitle: "",
+                          equipmentContactPhone: "",
+                          equipmentContactEmail: "",
+                          apContactName: "",
+                          apContactTitle: "",
+                          apContactPhone: "",
+                          apContactEmail: "",
+                          interestOfficeMachines: false,
+                          interestFurniture: false,
+                          interestSupplies: false,
+                          interestOther: "",
+                          bankReferences: [],
+                          businessReferences: [],
+                          invoiceDelivery: "email",
+                          invoiceEmail: "",
+                          invoiceSecondaryEmail: "",
+                          paymentMethod: "",
+                        }
                       }
-                    }
-                    onChange={handleNewCustomerFormChange}
-                    company={company}
-                    dealOwner={dealOwner}
-                    labeledContacts={labeledContacts || undefined}
-                    savedConfig={newCustomerSavedConfig}
-                    onClearAll={handleNewCustomerClearAll}
-                  />
-                  <div className="flex gap-2 pt-4 border-t">
-                    <Button variant="outline" onClick={handleNewCustomerSave} disabled={newCustomerSaving}>
-                      {newCustomerSaving ? (
-                        <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                      ) : (
-                        <Save className="h-4 w-4 mr-2" />
-                      )}
-                      {newCustomerSaving ? "Saving..." : "Save"}
-                    </Button>
-                    <Button className="flex-1" onClick={handleNewCustomerGeneratePDF} disabled={newCustomerGenerating}>
-                      {newCustomerGenerating ? (
-                        <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                      ) : (
-                        <Download className="h-4 w-4 mr-2" />
-                      )}
-                      {newCustomerGenerating ? "Generating..." : "Generate PDF"}
-                    </Button>
-                    <Button variant="outline" onClick={handleNewCustomerPreview}>
-                      <Eye className="h-4 w-4 mr-2" />
-                      Preview
-                    </Button>
+                      onChange={handleNewCustomerFormChange}
+                      company={company}
+                      dealOwner={dealOwner}
+                      labeledContacts={labeledContacts || undefined}
+                      savedConfig={newCustomerSavedConfig}
+                      onClearAll={handleNewCustomerClearAll}
+                    />
+                    <div className="flex pt-3 border-t">
+                      <Button variant="outline" size="sm" onClick={handleNewCustomerSave} disabled={newCustomerSaving}>
+                        {newCustomerSaving ? (
+                          <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                        ) : (
+                          <Save className="h-4 w-4 mr-2" />
+                        )}
+                        {newCustomerSaving ? "Saving..." : "Save"}
+                      </Button>
+                    </div>
                   </div>
-                </CardContent>
-              </Card>
+                  <SummaryRail
+                    title="New customer summary"
+                    onGenerate={handleNewCustomerGeneratePDF}
+                    generating={newCustomerGenerating}
+                    canGenerate={userPermissions.can_generate}
+                    generateLabel="Generate PDF"
+                    onPreview={handleNewCustomerPreview}
+                    autosave={newCustomerSaving ? "saving" : newCustomerFormData ? "saved" : "idle"}
+                  />
+                </div>
+              </div>
             </TabsContent>
 
             {/* Relocation Tab Content */}
             <TabsContent value="relocation" className="mt-0">
-              <Card>
-                <CardHeader className="pb-3">
-                  <CardTitle className="flex items-center gap-2">Relocation Request</CardTitle>
-                  <CardDescription>Request equipment relocation to a new location</CardDescription>
-                </CardHeader>
-                <CardContent className="space-y-4">
-                  {relocationFormData && (
+              <div className="space-y-4">
+                <div>
+                  <h3 className="text-sm font-semibold tracking-tight">Relocation Request</h3>
+                  <p className="text-xs text-muted-foreground mt-0.5">Request equipment relocation to a new location</p>
+                </div>
+                <div className="grid grid-cols-1 xl:grid-cols-[minmax(0,1fr)_320px] gap-4 items-start">
+                  <div className="space-y-4 min-w-0">
                     <RelocationForm formData={relocationFormData} onChange={handleRelocationFormChange} />
-                  )}
-                  {!relocationFormData && (
-                    <div className="flex items-center justify-center py-8">
-                      <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
+                    <div className="flex pt-3 border-t">
+                      <Button variant="outline" size="sm" onClick={handleRelocationSave} disabled={relocationSaving}>
+                        {relocationSaving ? (
+                          <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                        ) : (
+                          <Save className="h-4 w-4 mr-2" />
+                        )}
+                        {relocationSaving ? "Saving..." : "Save"}
+                      </Button>
                     </div>
-                  )}
-                  <div className="flex gap-2 pt-4 border-t">
-                    <Button variant="outline" onClick={handleRelocationSave} disabled={relocationSaving}>
-                      {relocationSaving ? (
-                        <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                      ) : (
-                        <Save className="h-4 w-4 mr-2" />
-                      )}
-                      {relocationSaving ? "Saving..." : "Save"}
-                    </Button>
-                    <Button className="flex-1" onClick={handleRelocationGeneratePDF} disabled={relocationGenerating}>
-                      {relocationGenerating ? (
-                        <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                      ) : (
-                        <Download className="h-4 w-4 mr-2" />
-                      )}
-                      {relocationGenerating ? "Generating..." : "Generate PDF"}
-                    </Button>
-                    <Button variant="outline" onClick={handleRelocationPreview}>
-                      <Eye className="h-4 w-4 mr-2" />
-                      Preview
-                    </Button>
                   </div>
-                </CardContent>
-              </Card>
+                  <SummaryRail
+                    title="Relocation summary"
+                    onGenerate={handleRelocationGeneratePDF}
+                    generating={relocationGenerating}
+                    canGenerate={userPermissions.can_generate}
+                    generateLabel="Generate PDF"
+                    onPreview={handleRelocationPreview}
+                    autosave={relocationSaving ? "saving" : relocationFormData ? "saved" : "idle"}
+                  />
+                </div>
+              </div>
             </TabsContent>
 
             {/* Removal Tab Content */}
             <TabsContent value="equipment_removal" className="mt-0">
-              <Card>
-                <CardHeader className="pb-3">
-                  <CardTitle className="flex items-center gap-2">
-                    <Trash2 className="h-5 w-5" />
-                    Equipment Removal
-                  </CardTitle>
-                  <CardDescription>Create an equipment removal receipt for equipment being picked up</CardDescription>
-                </CardHeader>
-                <CardContent className="space-y-4">
-                  <RemovalForm
-                    company={company}
-                    labeledContacts={labeledContacts}
-                    dealOwner={dealOwner}
-                    lineItems={lineItems}
-                    onFormChange={handleRemovalFormChange}
-                    savedConfig={removalSavedConfig}
-                  />
-                  <div className="flex gap-2 pt-4 border-t">
-                    <Button variant="outline" onClick={handleRemovalSave} disabled={removalSaving}>
-                      {removalSaving ? (
-                        <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                      ) : (
-                        <Save className="h-4 w-4 mr-2" />
-                      )}
-                      {removalSaving ? "Saving..." : "Save"}
-                    </Button>
-                    <Button className="flex-1" onClick={handleRemovalGeneratePDF} disabled={removalGenerating}>
-                      {removalGenerating ? (
-                        <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                      ) : (
-                        <Download className="h-4 w-4 mr-2" />
-                      )}
-                      {removalGenerating ? "Generating..." : "Generate PDF"}
-                    </Button>
-                    <Button variant="outline" onClick={handleRemovalPreview}>
-                      <Eye className="h-4 w-4 mr-2" />
-                      Preview
-                    </Button>
+              <div className="space-y-4">
+                <div>
+                  <h3 className="text-sm font-semibold tracking-tight">Equipment Removal Receipt</h3>
+                  <p className="text-xs text-muted-foreground mt-0.5">
+                    Create an equipment removal receipt for equipment being picked up
+                  </p>
+                </div>
+                <div className="grid grid-cols-1 xl:grid-cols-[minmax(0,1fr)_320px] gap-4 items-start">
+                  <div className="space-y-4 min-w-0">
+                    <RemovalForm
+                      company={company}
+                      labeledContacts={labeledContacts}
+                      dealOwner={dealOwner}
+                      lineItems={lineItems}
+                      onFormChange={handleRemovalFormChange}
+                      savedConfig={removalSavedConfig}
+                    />
+                    <div className="flex pt-3 border-t">
+                      <Button variant="outline" size="sm" onClick={handleRemovalSave} disabled={removalSaving}>
+                        {removalSaving ? (
+                          <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                        ) : (
+                          <Save className="h-4 w-4 mr-2" />
+                        )}
+                        {removalSaving ? "Saving..." : "Save"}
+                      </Button>
+                    </div>
                   </div>
-                </CardContent>
-              </Card>
+                  <SummaryRail
+                    title="Equipment removal summary"
+                    onGenerate={handleRemovalGeneratePDF}
+                    generating={removalGenerating}
+                    canGenerate={userPermissions.can_generate}
+                    generateLabel="Generate PDF"
+                    onPreview={handleRemovalPreview}
+                    autosave={removalSaving ? "saving" : removalFormData ? "saved" : "idle"}
+                  />
+                </div>
+              </div>
             </TabsContent>
 
             {/* Commission Tab Content */}
             <TabsContent value="commission" className="mt-0">
-              <Card>
-                <CardHeader className="pb-3">
-                  <CardTitle className="flex items-center gap-2">Commission Worksheet</CardTitle>
-                  <CardDescription>Calculate sales commissions for this deal</CardDescription>
-                </CardHeader>
-                <CardContent className="space-y-4">
-                  <CommissionForm
-                    deal={deal}
-                    company={company}
-                    contacts={contacts}
-                    lineItems={lineItems}
-                    dealOwner={dealOwner}
-                    portalId={portalId}
-                    onFormChange={handleCommissionFormChange}
-                    savedConfig={commissionSavedConfig}
-                    quoteConfig={formData || savedConfig}
-                    commissionUsers={commissionUsers}
-                  />
-                  <div className="flex gap-2 pt-4 border-t">
-                    <Button variant="outline" onClick={handleCommissionSave} disabled={commissionSaving}>
-                      {commissionSaving ? (
-                        <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                      ) : (
-                        <Save className="h-4 w-4 mr-2" />
-                      )}
-                      {commissionSaving ? "Saving..." : "Save"}
-                    </Button>
-                    <Button className="flex-1" onClick={handleCommissionGeneratePDF} disabled={commissionGenerating}>
-                      {commissionGenerating ? (
-                        <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                      ) : (
-                        <Download className="h-4 w-4 mr-2" />
-                      )}
-                      {commissionGenerating ? "Generating..." : "Generate PDF"}
-                    </Button>
-                    <Button variant="outline" onClick={handleCommissionPreview}>
-                      <Eye className="h-4 w-4 mr-2" />
-                      Preview
-                    </Button>
+              <div className="space-y-4">
+                <div>
+                  <h3 className="text-sm font-semibold tracking-tight">Commission Worksheet</h3>
+                  <p className="text-xs text-muted-foreground mt-0.5">Calculate sales commissions for this deal</p>
+                </div>
+                <div className="grid grid-cols-1 xl:grid-cols-[minmax(0,1fr)_320px] gap-4 items-start">
+                  <div className="space-y-4 min-w-0">
+                    <CommissionForm
+                      deal={deal}
+                      company={company}
+                      contacts={contacts}
+                      lineItems={lineItems}
+                      dealOwner={dealOwner}
+                      portalId={portalId}
+                      onFormChange={handleCommissionFormChange}
+                      savedConfig={commissionSavedConfig}
+                      quoteConfig={formData || savedConfig}
+                      commissionUsers={commissionUsers}
+                    />
+                    <div className="flex pt-3 border-t">
+                      <Button variant="outline" size="sm" onClick={handleCommissionSave} disabled={commissionSaving}>
+                        {commissionSaving ? (
+                          <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                        ) : (
+                          <Save className="h-4 w-4 mr-2" />
+                        )}
+                        {commissionSaving ? "Saving..." : "Save"}
+                      </Button>
+                    </div>
                   </div>
-                </CardContent>
-              </Card>
+                  <SummaryRail
+                    title="Commission summary"
+                    metrics={[
+                      {
+                        label: "Commission rate",
+                        value: `${commissionFormData?.commissionPercentage ?? 0}%`,
+                        emphasis: true,
+                      },
+                    ]}
+                    onGenerate={handleCommissionGeneratePDF}
+                    generating={commissionGenerating}
+                    canGenerate={userPermissions.can_generate}
+                    generateLabel="Generate PDF"
+                    onPreview={handleCommissionPreview}
+                    autosave={commissionSaving ? "saving" : commissionFormData ? "saved" : "idle"}
+                  />
+                </div>
+              </div>
             </TabsContent>
 
             {/* Custom Document Tabs Content */}
