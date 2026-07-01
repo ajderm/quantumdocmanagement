@@ -1,8 +1,11 @@
 import { useState, useEffect, useRef } from "react";
+import { SectionCard, FieldGrid, Field } from "@/components/shared";
+import { Switch } from "@/components/ui/switch";
+import { Textarea } from "@/components/ui/textarea";
+import { FileSignature, FileText, Package } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { CurrencyInput } from "@/components/ui/currency-input";
 import { Label } from "@/components/ui/label";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { AlertTriangle } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
@@ -42,7 +45,7 @@ export interface CommissionFormData {
   // Cost Breakdown
   promoDiscounts: string;
   buyoutTradeUp: number;
-  buyoutHandling: 'margin' | 'customer';
+  buyoutHandling: "margin" | "customer";
   shippingCosts: number;
   setupCost: number;
   deliveryCost: number;
@@ -71,6 +74,9 @@ export interface CommissionFormData {
   salesRepSignature: string;
   salesManagerSignature: string;
   presidentSignature: string;
+  termsInclude?: boolean;
+  termsTemplateId?: string;
+  termsCustomText?: string;
 }
 
 interface CommissionFormProps {
@@ -89,8 +95,7 @@ interface CommissionFormProps {
 const formatCurrency = (value: number): string =>
   value.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 
-const parseCurrency = (value: string): number =>
-  parseFloat(value.replace(/[^0-9.-]/g, "")) || 0;
+const parseCurrency = (value: string): number => parseFloat(value.replace(/[^0-9.-]/g, "")) || 0;
 
 export function getDefaultCommissionFormData(): CommissionFormData {
   return {
@@ -132,15 +137,29 @@ export function getDefaultCommissionFormData(): CommissionFormData {
   };
 }
 
-export function CommissionForm({ deal, company, lineItems, dealOwner, portalId, onFormChange, savedConfig, quoteConfig, commissionUsers }: CommissionFormProps) {
+export function CommissionForm({
+  deal,
+  company,
+  lineItems,
+  dealOwner,
+  portalId,
+  onFormChange,
+  savedConfig,
+  quoteConfig,
+  commissionUsers,
+}: CommissionFormProps) {
   const hasInitializedRef = useRef(false);
   const [formData, setFormData] = useState<CommissionFormData>(getDefaultCommissionFormData());
   const [leasingCompanies, setLeasingCompanies] = useState<string[]>([]);
-  const [rateFactors, setRateFactors] = useState<Array<{ leasing_company: string; term_months: number; rate_factor: number }>>([]);
+  const [rateFactors, setRateFactors] = useState<
+    Array<{ leasing_company: string; term_months: number; rate_factor: number }>
+  >([]);
   const [loadingCompanies, setLoadingCompanies] = useState(false);
-  
+
   // Pricing tiers
-  const [pricingTiers, setPricingTiers] = useState<Array<{ id: string; name: string; prices: Array<{ product_model: string; rep_cost: number }> }>>([]);
+  const [pricingTiers, setPricingTiers] = useState<
+    Array<{ id: string; name: string; prices: Array<{ product_model: string; rep_cost: number }> }>
+  >([]);
   const [originalRepCosts, setOriginalRepCosts] = useState<Record<string, number>>({});
   // Local text states for currency inputs
   const [buyoutText, setBuyoutText] = useState("");
@@ -161,8 +180,8 @@ export function CommissionForm({ deal, company, lineItems, dealOwner, portalId, 
       if (!portalId) return;
       setLoadingCompanies(true);
       try {
-        const { data } = await supabase.functions.invoke('get-rate-factors', {
-          body: { portalId }
+        const { data } = await supabase.functions.invoke("get-rate-factors", {
+          body: { portalId },
         });
         if (data?.leasingCompanies) {
           setLeasingCompanies(data.leasingCompanies);
@@ -171,7 +190,7 @@ export function CommissionForm({ deal, company, lineItems, dealOwner, portalId, 
           setRateFactors(data.rateFactors);
         }
       } catch (err) {
-        console.error('Failed to fetch leasing companies:', err);
+        console.error("Failed to fetch leasing companies:", err);
       } finally {
         setLoadingCompanies(false);
       }
@@ -184,14 +203,14 @@ export function CommissionForm({ deal, company, lineItems, dealOwner, portalId, 
     const fetchPricingTiers = async () => {
       if (!portalId) return;
       try {
-        const { data } = await supabase.functions.invoke('pricing-tiers-get', {
-          body: { portalId }
+        const { data } = await supabase.functions.invoke("pricing-tiers-get", {
+          body: { portalId },
         });
         if (data?.tiers) {
           setPricingTiers(data.tiers);
         }
       } catch (err) {
-        console.error('Failed to fetch pricing tiers:', err);
+        console.error("Failed to fetch pricing tiers:", err);
       }
     };
     fetchPricingTiers();
@@ -199,34 +218,36 @@ export function CommissionForm({ deal, company, lineItems, dealOwner, portalId, 
 
   // Handle pricing tier change — apply tier prices to all line items
   const handlePricingTierChange = (tierName: string) => {
-    if (!formData.specialPricingTier || formData.specialPricingTier === 'Standard') {
+    if (!formData.specialPricingTier || formData.specialPricingTier === "Standard") {
       const costs: Record<string, number> = {};
-      formData.lineItems.forEach(item => { costs[item.id] = item.repCost; });
+      formData.lineItems.forEach((item) => {
+        costs[item.id] = item.repCost;
+      });
       setOriginalRepCosts(costs);
     }
 
-    if (tierName === 'Standard' || !tierName) {
-      setFormData(prev => ({
+    if (tierName === "Standard" || !tierName) {
+      setFormData((prev) => ({
         ...prev,
         specialPricingTier: tierName,
-        lineItems: prev.lineItems.map(item => ({
+        lineItems: prev.lineItems.map((item) => ({
           ...item,
           repCost: originalRepCosts[item.id] ?? item.repCost,
-          specialPricing: tierName || '',
+          specialPricing: tierName || "",
         })),
       }));
       return;
     }
 
-    const tier = pricingTiers.find(t => t.name === tierName);
+    const tier = pricingTiers.find((t) => t.name === tierName);
     if (!tier) return;
 
-    setFormData(prev => ({
+    setFormData((prev) => ({
       ...prev,
       specialPricingTier: tierName,
-      lineItems: prev.lineItems.map(item => {
-        const priceMatch = tier.prices.find(p =>
-          item.description.toLowerCase().includes(p.product_model.toLowerCase())
+      lineItems: prev.lineItems.map((item) => {
+        const priceMatch = tier.prices.find((p) =>
+          item.description.toLowerCase().includes(p.product_model.toLowerCase()),
         );
         return {
           ...item,
@@ -239,14 +260,16 @@ export function CommissionForm({ deal, company, lineItems, dealOwner, portalId, 
 
   // Available terms for selected leasing company
   const availableTerms = formData.leaseCompany
-    ? [...new Set(rateFactors.filter(r => r.leasing_company === formData.leaseCompany).map(r => r.term_months))].sort((a, b) => a - b)
+    ? [
+        ...new Set(rateFactors.filter((r) => r.leasing_company === formData.leaseCompany).map((r) => r.term_months)),
+      ].sort((a, b) => a - b)
     : [];
 
   // Auto-populate rate when term changes
   const autoPopulateRate = (company: string, term: number) => {
-    const match = rateFactors.find(r => r.leasing_company === company && r.term_months === term);
+    const match = rateFactors.find((r) => r.leasing_company === company && r.term_months === term);
     if (match) {
-      setFormData(prev => ({ ...prev, rateUsed: match.rate_factor }));
+      setFormData((prev) => ({ ...prev, rateUsed: match.rate_factor }));
       setRateText(String(match.rate_factor));
     }
   };
@@ -254,11 +277,11 @@ export function CommissionForm({ deal, company, lineItems, dealOwner, portalId, 
   // Auto-populate commission % from commissionUsers when salesRepresentative changes
   useEffect(() => {
     if (!commissionUsers?.length || !formData.salesRepresentative) return;
-    const match = commissionUsers.find(u =>
-      u.hubspot_user_name.toLowerCase() === formData.salesRepresentative.toLowerCase()
+    const match = commissionUsers.find(
+      (u) => u.hubspot_user_name.toLowerCase() === formData.salesRepresentative.toLowerCase(),
     );
     if (match) {
-      setFormData(prev => ({ ...prev, commissionPercentage: match.commission_percentage }));
+      setFormData((prev) => ({ ...prev, commissionPercentage: match.commission_percentage }));
     }
   }, [formData.salesRepresentative, commissionUsers]);
 
@@ -280,8 +303,10 @@ export function CommissionForm({ deal, company, lineItems, dealOwner, portalId, 
       cityStateZip: [
         company?.apCity || company?.city,
         company?.apState || company?.state,
-        company?.apZip || company?.zip
-      ].filter(Boolean).join(", "),
+        company?.apZip || company?.zip,
+      ]
+        .filter(Boolean)
+        .join(", "),
       county: company?.county || "",
       lineItems: (lineItems || []).map((item: any) => ({
         id: item.id || `li-${Date.now()}-${Math.random()}`,
@@ -303,15 +328,16 @@ export function CommissionForm({ deal, company, lineItems, dealOwner, portalId, 
       if (quoteConfig.buyoutFinancingAmount) {
         buyoutFromQuote = parseFloat(quoteConfig.buyoutFinancingAmount) || 0;
       } else if (quoteConfig.paymentAmount && quoteConfig.paymentsRemaining) {
-        buyoutFromQuote = (parseFloat(quoteConfig.paymentAmount) || 0) * (parseFloat(quoteConfig.paymentsRemaining) || 0)
-          + (parseFloat(quoteConfig.earlyTerminationFee) || 0)
-          + (parseFloat(quoteConfig.returnShipping) || 0);
+        buyoutFromQuote =
+          (parseFloat(quoteConfig.paymentAmount) || 0) * (parseFloat(quoteConfig.paymentsRemaining) || 0) +
+          (parseFloat(quoteConfig.earlyTerminationFee) || 0) +
+          (parseFloat(quoteConfig.returnShipping) || 0);
       }
     }
 
     if (savedConfig) {
       const merged = { ...getDefaultCommissionFormData(), ...savedConfig };
-      
+
       // Backward compatibility: migrate old fields
       const sc = savedConfig as any;
       if (sc.setupDeliveryCosts !== undefined && merged.setupCost === 100 && merged.deliveryCost === 100) {
@@ -326,12 +352,12 @@ export function CommissionForm({ deal, company, lineItems, dealOwner, portalId, 
       if (merged.splitPercentage === undefined) merged.splitPercentage = 0;
       if (merged.splitRepName === undefined) merged.splitRepName = "";
       if (merged.specialPricingTier === undefined) merged.specialPricingTier = "";
-      
+
       // Backward compatibility: migrate promoDiscounts from number to string
-      if (typeof merged.promoDiscounts === 'number') {
+      if (typeof merged.promoDiscounts === "number") {
         merged.promoDiscounts = merged.promoDiscounts > 0 ? String(merged.promoDiscounts) : "";
       }
-      
+
       // Ensure machineType on line items
       if (merged.lineItems) {
         merged.lineItems = merged.lineItems.map((item: any) => ({
@@ -347,9 +373,19 @@ export function CommissionForm({ deal, company, lineItems, dealOwner, portalId, 
           if (freshItem) {
             return {
               ...savedItem,
-              condition: freshItem.condition || freshItem.properties?.condition || freshItem.properties?.hs_product_condition || savedItem.condition || "New",
+              condition:
+                freshItem.condition ||
+                freshItem.properties?.condition ||
+                freshItem.properties?.hs_product_condition ||
+                savedItem.condition ||
+                "New",
               dealerSource: freshItem.dealer || freshItem.properties?.dealer || savedItem.dealerSource || "",
-              machineType: savedItem.machineType || freshItem.machineType || freshItem.properties?.color_mono || freshItem.properties?.machine_type || "Color",
+              machineType:
+                savedItem.machineType ||
+                freshItem.machineType ||
+                freshItem.properties?.color_mono ||
+                freshItem.properties?.machine_type ||
+                "Color",
             };
           }
           return savedItem;
@@ -404,11 +440,11 @@ export function CommissionForm({ deal, company, lineItems, dealOwner, portalId, 
     }));
 
     // Only update if line items actually changed
-    const currentDesc = formData.lineItems.map(li => `${li.description}|${li.billed}|${li.repCost}`).join(',');
-    const newDesc = quoteLineItems.map((li: any) => `${li.description}|${li.billed}|${li.repCost}`).join(',');
-    
+    const currentDesc = formData.lineItems.map((li) => `${li.description}|${li.billed}|${li.repCost}`).join(",");
+    const newDesc = quoteLineItems.map((li: any) => `${li.description}|${li.billed}|${li.repCost}`).join(",");
+
     if (currentDesc !== newDesc) {
-      setFormData(prev => ({
+      setFormData((prev) => ({
         ...prev,
         lineItems: quoteLineItems,
         approvalAmount: quoteConfig.retailPrice || prev.approvalAmount,
@@ -419,30 +455,36 @@ export function CommissionForm({ deal, company, lineItems, dealOwner, portalId, 
   // Sync buyout from quote when it changes
   useEffect(() => {
     if (!hasInitializedRef.current || !quoteConfig) return;
-    
+
     let buyoutFromQuote = 0;
     if (quoteConfig.paymentAmount && quoteConfig.paymentsRemaining) {
-      buyoutFromQuote = (quoteConfig.paymentAmount * quoteConfig.paymentsRemaining)
-        + (quoteConfig.earlyTerminationFee || 0)
-        + (quoteConfig.returnShipping || 0);
+      buyoutFromQuote =
+        quoteConfig.paymentAmount * quoteConfig.paymentsRemaining +
+        (quoteConfig.earlyTerminationFee || 0) +
+        (quoteConfig.returnShipping || 0);
     }
-    
+
     if (buyoutFromQuote > 0 && buyoutFromQuote !== formData.buyoutTradeUp) {
-      setFormData(prev => ({ ...prev, buyoutTradeUp: buyoutFromQuote }));
+      setFormData((prev) => ({ ...prev, buyoutTradeUp: buyoutFromQuote }));
       setBuyoutText(String(buyoutFromQuote));
     }
-  }, [quoteConfig?.paymentAmount, quoteConfig?.paymentsRemaining, quoteConfig?.earlyTerminationFee, quoteConfig?.returnShipping]);
+  }, [
+    quoteConfig?.paymentAmount,
+    quoteConfig?.paymentsRemaining,
+    quoteConfig?.earlyTerminationFee,
+    quoteConfig?.returnShipping,
+  ]);
 
   useEffect(() => {
     onFormChange(formData);
   }, [formData, onFormChange]);
 
   const updateField = <K extends keyof CommissionFormData>(field: K, value: CommissionFormData[K]) => {
-    setFormData(prev => ({ ...prev, [field]: value }));
+    setFormData((prev) => ({ ...prev, [field]: value }));
   };
 
   const updateLineItem = (index: number, field: keyof CommissionLineItem, value: string | number) => {
-    setFormData(prev => {
+    setFormData((prev) => {
       const newItems = [...prev.lineItems];
       newItems[index] = { ...newItems[index], [field]: value };
       return { ...prev, lineItems: newItems };
@@ -454,7 +496,7 @@ export function CommissionForm({ deal, company, lineItems, dealOwner, portalId, 
     updateField("transactionType", value);
     if (value === "Purchase" || value === "Rental") {
       // Clear lease fields when Purchase or Rental selected
-      setFormData(prev => ({
+      setFormData((prev) => ({
         ...prev,
         transactionType: value,
         leaseCompany: "",
@@ -466,7 +508,7 @@ export function CommissionForm({ deal, company, lineItems, dealOwner, portalId, 
     } else if (value.startsWith("Lease -- ")) {
       // Auto-populate lease company from selection
       const companyName = value.replace("Lease -- ", "");
-      setFormData(prev => ({
+      setFormData((prev) => ({
         ...prev,
         transactionType: value,
         leaseCompany: companyName,
@@ -475,18 +517,21 @@ export function CommissionForm({ deal, company, lineItems, dealOwner, portalId, 
   };
 
   // Computed values
-  const totalBilled = formData.lineItems.reduce((sum, item) => sum + (item.billed * item.quantity), 0);
-  const totalRepCost = formData.lineItems.reduce((sum, item) => sum + (item.repCost * item.quantity), 0);
+  const totalBilled = formData.lineItems.reduce((sum, item) => sum + item.billed * item.quantity, 0);
+  const totalRepCost = formData.lineItems.reduce((sum, item) => sum + item.repCost * item.quantity, 0);
 
   // Buyout handling: 'margin' subtracts the buyout from margin (reduces commission);
   // 'customer' treats it as a customer-facing line item (pass-through, does not reduce margin).
-  const buyoutInMargin = formData.buyoutHandling !== 'customer';
+  const buyoutInMargin = formData.buyoutHandling !== "customer";
 
   const additionalCosts =
     (buyoutInMargin ? formData.buyoutTradeUp : 0) +
-    formData.shippingCosts + formData.setupCost + formData.deliveryCost +
+    formData.shippingCosts +
+    formData.setupCost +
+    formData.deliveryCost +
     formData.connectivity +
-    formData.leadFee + formData.otherSalesFees;
+    formData.leadFee +
+    formData.otherSalesFees;
 
   const totalRepCostWithCosts = totalRepCost + additionalCosts;
 
@@ -499,16 +544,16 @@ export function CommissionForm({ deal, company, lineItems, dealOwner, portalId, 
   const perItemCommission = formData.lineItems.reduce((sum, item) => {
     const itemProfit = (item.billed - item.repCost) * item.quantity;
     const itemCommPct = item.commissionPercent !== undefined ? item.commissionPercent : formData.commissionPercentage;
-    return sum + (itemProfit * (itemCommPct / 100));
+    return sum + itemProfit * (itemCommPct / 100);
   }, 0);
 
   // If all items use the same commission %, fall back to the flat calculation for backward compat
-  const allSamePercent = formData.lineItems.every(item =>
-    item.commissionPercent === undefined || item.commissionPercent === formData.commissionPercentage
+  const allSamePercent = formData.lineItems.every(
+    (item) => item.commissionPercent === undefined || item.commissionPercent === formData.commissionPercentage,
   );
   const baseCommission = allSamePercent
     ? equipmentAGP * (formData.commissionPercentage / 100)
-    : perItemCommission - (additionalCosts * (formData.commissionPercentage / 100));
+    : perItemCommission - additionalCosts * (formData.commissionPercentage / 100);
 
   // Commission with split
   const splitMultiplier = formData.splitPercentage > 0 ? formData.splitPercentage / 100 : 1;
@@ -518,7 +563,8 @@ export function CommissionForm({ deal, company, lineItems, dealOwner, portalId, 
   // Margin before the buyout is deducted; if the buyout (when handled out of margin)
   // is larger than that, it pushes commission negative.
   const marginBeforeBuyout = netEquipRev - (totalRepCostWithCosts - (buyoutInMargin ? formData.buyoutTradeUp : 0));
-  const buyoutExceedsMargin = buyoutInMargin && formData.buyoutTradeUp > 0 && formData.buyoutTradeUp > marginBeforeBuyout;
+  const buyoutExceedsMargin =
+    buyoutInMargin && formData.buyoutTradeUp > 0 && formData.buyoutTradeUp > marginBeforeBuyout;
   const isNegativeCommission = totalCommission < 0 || equipmentAGP < 0;
 
   const isPurchase = formData.transactionType === "Purchase" || formData.transactionType === "Rental";
@@ -527,279 +573,374 @@ export function CommissionForm({ deal, company, lineItems, dealOwner, portalId, 
   return (
     <div className="space-y-4">
       {/* Sale Info */}
-      <Card>
-        <CardHeader className="pb-2">
-          <CardTitle className="text-sm">Sale Info</CardTitle>
-        </CardHeader>
-        <CardContent className="space-y-3">
-          <div className="grid grid-cols-2 gap-3">
-            <div>
-              <Label>Sales Representative</Label>
-              <Input className="h-8 text-sm" value={formData.salesRepresentative} onChange={e => updateField("salesRepresentative", e.target.value)} />
-            </div>
-            <div>
-              <Label>Sold On Date</Label>
-              <Input className="h-8 text-sm" type="date" value={formData.soldOnDate} onChange={e => updateField("soldOnDate", e.target.value)} />
-            </div>
+      <SectionCard title="Sale Info" icon={FileText}>
+        <div className="grid grid-cols-2 gap-3">
+          <div>
+            <Label>Sales Representative</Label>
+            <Input
+              className="h-8 text-sm"
+              value={formData.salesRepresentative}
+              onChange={(e) => updateField("salesRepresentative", e.target.value)}
+            />
           </div>
-          <div className="grid grid-cols-2 gap-3">
-            <div>
-              <Label>Customer</Label>
-              <Input className="h-8 text-sm" value={formData.customer} onChange={e => updateField("customer", e.target.value)} />
-            </div>
-            <div>
-              <Label>Order Number</Label>
-              <Input className="h-8 text-sm" value={formData.orderNumber} onChange={e => updateField("orderNumber", e.target.value)} />
-            </div>
+          <div>
+            <Label>Sold On Date</Label>
+            <Input
+              className="h-8 text-sm"
+              type="date"
+              value={formData.soldOnDate}
+              onChange={(e) => updateField("soldOnDate", e.target.value)}
+            />
           </div>
-          <div className="grid grid-cols-2 gap-3">
-            <div>
-              <Label>Address</Label>
-              <Input className="h-8 text-sm" value={formData.address} onChange={e => updateField("address", e.target.value)} />
-            </div>
-            <div>
-              <Label>City / State / Zip</Label>
-              <Input className="h-8 text-sm" value={formData.cityStateZip} onChange={e => updateField("cityStateZip", e.target.value)} />
-            </div>
+        </div>
+        <div className="grid grid-cols-2 gap-3">
+          <div>
+            <Label>Customer</Label>
+            <Input
+              className="h-8 text-sm"
+              value={formData.customer}
+              onChange={(e) => updateField("customer", e.target.value)}
+            />
           </div>
-          <div className="grid grid-cols-2 gap-3">
-            <div>
-              <Label>County</Label>
-              <Input className="h-8 text-sm" value={formData.county} onChange={e => updateField("county", e.target.value)} />
-            </div>
-            <div>
-              <Label>Transaction Type</Label>
-              <Select value={formData.transactionType} onValueChange={handleTransactionTypeChange}>
-                <SelectTrigger className="h-8 text-sm">
-                  <SelectValue placeholder="Select transaction type" />
+          <div>
+            <Label>Order Number</Label>
+            <Input
+              className="h-8 text-sm"
+              value={formData.orderNumber}
+              onChange={(e) => updateField("orderNumber", e.target.value)}
+            />
+          </div>
+        </div>
+        <div className="grid grid-cols-2 gap-3">
+          <div>
+            <Label>Address</Label>
+            <Input
+              className="h-8 text-sm"
+              value={formData.address}
+              onChange={(e) => updateField("address", e.target.value)}
+            />
+          </div>
+          <div>
+            <Label>City / State / Zip</Label>
+            <Input
+              className="h-8 text-sm"
+              value={formData.cityStateZip}
+              onChange={(e) => updateField("cityStateZip", e.target.value)}
+            />
+          </div>
+        </div>
+        <div className="grid grid-cols-2 gap-3">
+          <div>
+            <Label>County</Label>
+            <Input
+              className="h-8 text-sm"
+              value={formData.county}
+              onChange={(e) => updateField("county", e.target.value)}
+            />
+          </div>
+          <div>
+            <Label>Transaction Type</Label>
+            <Select value={formData.transactionType} onValueChange={handleTransactionTypeChange}>
+              <SelectTrigger className="h-8 text-sm">
+                <SelectValue placeholder="Select transaction type" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="Purchase">Purchase</SelectItem>
+                <SelectItem value="Rental">Rental</SelectItem>
+                {leasingCompanies.map((c) => (
+                  <SelectItem key={c} value={`Lease -- ${c}`}>
+                    Lease -- {c}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+        </div>
+      </SectionCard>
+
+      {/* Line Items */}
+      <SectionCard title="Equipment Items" icon={Package}>
+        <div className="space-y-2">
+          <div className="grid grid-cols-[1fr_80px_80px_60px_80px_80px_100px] gap-2 text-xs font-medium text-muted-foreground px-1">
+            <span>Description</span>
+            <span>Billed</span>
+            <span>Rep Cost</span>
+            <span>Comm %</span>
+            <span>Type</span>
+            <span>Condition</span>
+            <span>Pricing Source</span>
+          </div>
+          {formData.lineItems.map((item, index) => (
+            <div key={item.id} className="grid grid-cols-[1fr_80px_80px_60px_80px_80px_100px] gap-2">
+              <Input
+                className="h-8 text-sm"
+                value={item.description}
+                onChange={(e) => updateLineItem(index, "description", e.target.value)}
+              />
+              <CurrencyInput
+                className="h-8 text-sm text-right"
+                value={item.billed}
+                onChange={(v) => updateLineItem(index, "billed", v)}
+              />
+              <CurrencyInput
+                className="h-8 text-sm text-right"
+                value={item.repCost}
+                onChange={(v) => updateLineItem(index, "repCost", v)}
+              />
+              <Input
+                className="h-8 text-sm text-right"
+                value={
+                  item.commissionPercent !== undefined
+                    ? String(item.commissionPercent)
+                    : String(formData.commissionPercentage)
+                }
+                onChange={(e) => updateLineItem(index, "commissionPercent", parseFloat(e.target.value) || 0)}
+                placeholder={String(formData.commissionPercentage)}
+              />
+              <Select
+                value={item.machineType || "Color"}
+                onValueChange={(v) => updateLineItem(index, "machineType", v)}
+              >
+                <SelectTrigger className="h-8 text-xs">
+                  <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="Purchase">Purchase</SelectItem>
-                  <SelectItem value="Rental">Rental</SelectItem>
-                  {leasingCompanies.map(c => (
-                    <SelectItem key={c} value={`Lease -- ${c}`}>Lease -- {c}</SelectItem>
+                  <SelectItem value="Color">Color</SelectItem>
+                  <SelectItem value="Mono">Mono</SelectItem>
+                </SelectContent>
+              </Select>
+              <Input
+                className="h-8 text-sm"
+                value={item.condition}
+                onChange={(e) => updateLineItem(index, "condition", e.target.value)}
+              />
+              <Input
+                className="h-8 text-sm"
+                value={item.dealerSource}
+                onChange={(e) => updateLineItem(index, "dealerSource", e.target.value)}
+              />
+            </div>
+          ))}
+          <div className="grid grid-cols-[1fr_80px_80px_60px_80px_80px_100px] gap-2 text-xs font-bold px-1 pt-1 border-t">
+            <span>Total Equipment</span>
+            <span className="text-right">${formatCurrency(totalBilled)}</span>
+            <span className="text-right">${formatCurrency(totalRepCost)}</span>
+            <span></span>
+            <span></span>
+            <span></span>
+            <span></span>
+          </div>
+        </div>
+      </SectionCard>
+
+      {/* Cost Breakdown & Lease Info side by side */}
+      <div className="grid grid-cols-2 gap-4">
+        <SectionCard title="Additional Costs" icon={FileText}>
+          {/* Promo/Discount as text field */}
+          <div className="flex items-center gap-2">
+            <Label className="text-xs flex-1 min-w-[140px]">Promo / Discount Notes</Label>
+            <Input
+              className="h-7 text-sm w-28"
+              placeholder="e.g., DIR deal"
+              value={formData.promoDiscounts}
+              onChange={(e) => updateField("promoDiscounts", e.target.value)}
+            />
+          </div>
+          {[
+            { label: "Buyout / TradeUp", field: "buyoutTradeUp" as const, text: buyoutText, setText: setBuyoutText },
+            { label: "Shipping Costs", field: "shippingCosts" as const, text: shippingText, setText: setShippingText },
+            { label: "Setup Cost", field: "setupCost" as const, text: setupCostText, setText: setSetupCostText },
+            {
+              label: "Delivery Cost",
+              field: "deliveryCost" as const,
+              text: deliveryCostText,
+              setText: setDeliveryCostText,
+            },
+            {
+              label: "Networking",
+              field: "connectivity" as const,
+              text: connectivityText,
+              setText: setConnectivityText,
+            },
+            { label: "Lead Fee", field: "leadFee" as const, text: leadFeeText, setText: setLeadFeeText },
+            { label: "Other Sales Fees", field: "otherSalesFees" as const, text: otherText, setText: setOtherText },
+          ].map(({ label, field, text, setText }) => (
+            <div key={field} className="flex items-center gap-2">
+              <Label className="text-xs flex-1 min-w-[140px]">{label}</Label>
+              <Input
+                className="h-7 text-sm text-right w-28"
+                value={text || (formData[field] ? formatCurrency(formData[field] as number) : "")}
+                onChange={(e) => {
+                  setText(e.target.value);
+                  updateField(field, parseCurrency(e.target.value));
+                }}
+                onBlur={() => {
+                  if (formData[field]) setText(formatCurrency(formData[field] as number));
+                }}
+              />
+            </div>
+          ))}
+          {/* Task 7: how the buyout/trade-in is handled */}
+          {formData.buyoutTradeUp > 0 && (
+            <div className="flex items-center gap-2">
+              <Label className="text-xs flex-1 min-w-[140px]">Buyout Handling</Label>
+              <Select
+                value={formData.buyoutHandling || "margin"}
+                onValueChange={(v) => updateField("buyoutHandling", v as "margin" | "customer")}
+              >
+                <SelectTrigger className="h-7 text-sm w-44">
+                  <SelectValue placeholder="Select" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="margin">Out of margin</SelectItem>
+                  <SelectItem value="customer">Customer line item</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+          )}
+          {/* Task 6: warn when buyout/trade-in exceeds the available margin */}
+          {buyoutExceedsMargin && (
+            <div className="flex items-start gap-2 rounded-md border border-destructive/50 bg-destructive/10 p-2 text-xs text-destructive">
+              <AlertTriangle className="h-4 w-4 mt-0.5 flex-shrink-0" />
+              <span>
+                The buyout / trade-in (${formatCurrency(formData.buyoutTradeUp)}) exceeds the available margin ($
+                {formatCurrency(marginBeforeBuyout)}). Taken out of margin this drives commission negative. Consider
+                switching Buyout Handling to "Customer line item".
+              </span>
+            </div>
+          )}
+          {/* Other Sales Fees Note -- shown when otherSalesFees > 0 */}
+          {formData.otherSalesFees > 0 && (
+            <div className="flex items-center gap-2">
+              <Label className="text-xs flex-1 min-w-[140px]">Fee Description</Label>
+              <Input
+                className="h-7 text-sm w-28"
+                placeholder="What is the fee for?"
+                value={formData.otherSalesFeesNote}
+                onChange={(e) => updateField("otherSalesFeesNote", e.target.value)}
+              />
+            </div>
+          )}
+          {/* Split Percentage */}
+          <div className="flex items-center gap-2">
+            <Label className="text-xs flex-1 min-w-[140px]">Split %</Label>
+            <Input
+              className="h-7 text-sm text-right w-28"
+              placeholder="0 = no split"
+              value={splitText || (formData.splitPercentage ? String(formData.splitPercentage) : "")}
+              onChange={(e) => {
+                setSplitText(e.target.value);
+                updateField("splitPercentage", parseFloat(e.target.value) || 0);
+              }}
+              onBlur={() => {
+                if (formData.splitPercentage) setSplitText(String(formData.splitPercentage));
+              }}
+            />
+          </div>
+          {/* Split Rep Selector -- shown when split % > 0 */}
+          {formData.splitPercentage > 0 && commissionUsers && commissionUsers.length > 0 && (
+            <div className="flex items-center gap-2">
+              <Label className="text-xs flex-1 min-w-[140px]">Split With</Label>
+              <Select value={formData.splitRepName || ""} onValueChange={(v) => updateField("splitRepName", v)}>
+                <SelectTrigger className="h-7 text-sm w-28">
+                  <SelectValue placeholder="Select rep" />
+                </SelectTrigger>
+                <SelectContent>
+                  {commissionUsers.map((u) => (
+                    <SelectItem key={u.hubspot_user_name} value={u.hubspot_user_name}>
+                      {u.hubspot_user_name}
+                    </SelectItem>
                   ))}
                 </SelectContent>
               </Select>
             </div>
-          </div>
-        </CardContent>
-      </Card>
-
-      {/* Line Items */}
-      <Card>
-        <CardHeader className="pb-2">
-          <CardTitle className="text-sm">Equipment Items</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <div className="space-y-2">
-            <div className="grid grid-cols-[1fr_80px_80px_60px_80px_80px_100px] gap-2 text-xs font-medium text-muted-foreground px-1">
-              <span>Description</span>
-              <span>Billed</span>
-              <span>Rep Cost</span>
-              <span>Comm %</span>
-              <span>Type</span>
-              <span>Condition</span>
-              <span>Pricing Source</span>
-            </div>
-            {formData.lineItems.map((item, index) => (
-              <div key={item.id} className="grid grid-cols-[1fr_80px_80px_60px_80px_80px_100px] gap-2">
-                <Input className="h-8 text-sm" value={item.description} onChange={e => updateLineItem(index, "description", e.target.value)} />
-                <CurrencyInput className="h-8 text-sm text-right" value={item.billed} onChange={v => updateLineItem(index, "billed", v)} />
-                <CurrencyInput className="h-8 text-sm text-right" value={item.repCost} onChange={v => updateLineItem(index, "repCost", v)} />
-                <Input className="h-8 text-sm text-right" value={item.commissionPercent !== undefined ? String(item.commissionPercent) : String(formData.commissionPercentage)} onChange={e => updateLineItem(index, "commissionPercent", parseFloat(e.target.value) || 0)} placeholder={String(formData.commissionPercentage)} />
-                <Select value={item.machineType || "Color"} onValueChange={v => updateLineItem(index, "machineType", v)}>
-                  <SelectTrigger className="h-8 text-xs">
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="Color">Color</SelectItem>
-                    <SelectItem value="Mono">Mono</SelectItem>
-                  </SelectContent>
-                </Select>
-                <Input className="h-8 text-sm" value={item.condition} onChange={e => updateLineItem(index, "condition", e.target.value)} />
-                <Input className="h-8 text-sm" value={item.dealerSource} onChange={e => updateLineItem(index, "dealerSource", e.target.value)} />
-              </div>
-            ))}
-            <div className="grid grid-cols-[1fr_80px_80px_60px_80px_80px_100px] gap-2 text-xs font-bold px-1 pt-1 border-t">
-              <span>Total Equipment</span>
-              <span className="text-right">${formatCurrency(totalBilled)}</span>
-              <span className="text-right">${formatCurrency(totalRepCost)}</span>
-              <span></span>
-              <span></span>
-              <span></span>
-              <span></span>
-            </div>
-          </div>
-        </CardContent>
-      </Card>
-
-      {/* Cost Breakdown & Lease Info side by side */}
-      <div className="grid grid-cols-2 gap-4">
-        <Card>
-          <CardHeader className="pb-2">
-            <CardTitle className="text-sm">Additional Costs</CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-2">
-            {/* Promo/Discount as text field */}
-            <div className="flex items-center gap-2">
-              <Label className="text-xs flex-1 min-w-[140px]">Promo / Discount Notes</Label>
-              <Input
-                className="h-7 text-sm w-28"
-                placeholder="e.g., DIR deal"
-                value={formData.promoDiscounts}
-                onChange={e => updateField("promoDiscounts", e.target.value)}
-              />
-            </div>
-            {[
-              { label: "Buyout / TradeUp", field: "buyoutTradeUp" as const, text: buyoutText, setText: setBuyoutText },
-              { label: "Shipping Costs", field: "shippingCosts" as const, text: shippingText, setText: setShippingText },
-              { label: "Setup Cost", field: "setupCost" as const, text: setupCostText, setText: setSetupCostText },
-              { label: "Delivery Cost", field: "deliveryCost" as const, text: deliveryCostText, setText: setDeliveryCostText },
-              { label: "Networking", field: "connectivity" as const, text: connectivityText, setText: setConnectivityText },
-              { label: "Lead Fee", field: "leadFee" as const, text: leadFeeText, setText: setLeadFeeText },
-              { label: "Other Sales Fees", field: "otherSalesFees" as const, text: otherText, setText: setOtherText },
-            ].map(({ label, field, text, setText }) => (
-              <div key={field} className="flex items-center gap-2">
-                <Label className="text-xs flex-1 min-w-[140px]">{label}</Label>
-                <Input
-                  className="h-7 text-sm text-right w-28"
-                  value={text || (formData[field] ? formatCurrency(formData[field] as number) : "")}
-                  onChange={e => { setText(e.target.value); updateField(field, parseCurrency(e.target.value)); }}
-                  onBlur={() => { if (formData[field]) setText(formatCurrency(formData[field] as number)); }}
-                />
-              </div>
-            ))}
-            {/* Task 7: how the buyout/trade-in is handled */}
-            {formData.buyoutTradeUp > 0 && (
-              <div className="flex items-center gap-2">
-                <Label className="text-xs flex-1 min-w-[140px]">Buyout Handling</Label>
-                <Select
-                  value={formData.buyoutHandling || 'margin'}
-                  onValueChange={(v) => updateField('buyoutHandling', v as 'margin' | 'customer')}
-                >
-                  <SelectTrigger className="h-7 text-sm w-44">
-                    <SelectValue placeholder="Select" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="margin">Out of margin</SelectItem>
-                    <SelectItem value="customer">Customer line item</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-            )}
-            {/* Task 6: warn when buyout/trade-in exceeds the available margin */}
-            {buyoutExceedsMargin && (
-              <div className="flex items-start gap-2 rounded-md border border-destructive/50 bg-destructive/10 p-2 text-xs text-destructive">
-                <AlertTriangle className="h-4 w-4 mt-0.5 flex-shrink-0" />
-                <span>
-                  The buyout / trade-in (${formatCurrency(formData.buyoutTradeUp)}) exceeds the available margin
-                  (${formatCurrency(marginBeforeBuyout)}). Taken out of margin this drives commission negative.
-                  Consider switching Buyout Handling to "Customer line item".
-                </span>
-              </div>
-            )}
-            {/* Other Sales Fees Note -- shown when otherSalesFees > 0 */}
-            {formData.otherSalesFees > 0 && (
-              <div className="flex items-center gap-2">
-                <Label className="text-xs flex-1 min-w-[140px]">Fee Description</Label>
-                <Input
-                  className="h-7 text-sm w-28"
-                  placeholder="What is the fee for?"
-                  value={formData.otherSalesFeesNote}
-                  onChange={e => updateField("otherSalesFeesNote", e.target.value)}
-                />
-              </div>
-            )}
-            {/* Split Percentage */}
-            <div className="flex items-center gap-2">
-              <Label className="text-xs flex-1 min-w-[140px]">Split %</Label>
-              <Input
-                className="h-7 text-sm text-right w-28"
-                placeholder="0 = no split"
-                value={splitText || (formData.splitPercentage ? String(formData.splitPercentage) : "")}
-                onChange={e => { setSplitText(e.target.value); updateField("splitPercentage", parseFloat(e.target.value) || 0); }}
-                onBlur={() => { if (formData.splitPercentage) setSplitText(String(formData.splitPercentage)); }}
-              />
-            </div>
-            {/* Split Rep Selector -- shown when split % > 0 */}
-            {formData.splitPercentage > 0 && commissionUsers && commissionUsers.length > 0 && (
-              <div className="flex items-center gap-2">
-                <Label className="text-xs flex-1 min-w-[140px]">Split With</Label>
-                <Select value={formData.splitRepName || ""} onValueChange={v => updateField("splitRepName", v)}>
-                  <SelectTrigger className="h-7 text-sm w-28">
-                    <SelectValue placeholder="Select rep" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {commissionUsers.map(u => (
-                      <SelectItem key={u.hubspot_user_name} value={u.hubspot_user_name}>{u.hubspot_user_name}</SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-            )}
-          </CardContent>
-        </Card>
+          )}
+        </SectionCard>
 
         {!isPurchase && (
-        <Card>
-          <CardHeader className="pb-2">
-            <CardTitle className="text-sm">Lease Information</CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-2">
+          <SectionCard title="Lease Information" icon={FileText}>
             <div>
               <Label>Lease Company</Label>
               {leasingCompanies.length > 0 ? (
-                <Select value={formData.leaseCompany} onValueChange={v => {
-                  updateField("leaseCompany", v);
-                  updateField("leaseTerm", 0);
-                  updateField("rateUsed", 0);
-                  setRateText("");
-                }}>
+                <Select
+                  value={formData.leaseCompany}
+                  onValueChange={(v) => {
+                    updateField("leaseCompany", v);
+                    updateField("leaseTerm", 0);
+                    updateField("rateUsed", 0);
+                    setRateText("");
+                  }}
+                >
                   <SelectTrigger className="h-7 text-sm">
                     <SelectValue placeholder={loadingCompanies ? "Loading..." : "Select lease company"} />
                   </SelectTrigger>
                   <SelectContent>
-                    {leasingCompanies.map(c => (
-                      <SelectItem key={c} value={c}>{c}</SelectItem>
+                    {leasingCompanies.map((c) => (
+                      <SelectItem key={c} value={c}>
+                        {c}
+                      </SelectItem>
                     ))}
                   </SelectContent>
                 </Select>
               ) : (
-                <Input className="h-7 text-sm" value={formData.leaseCompany} onChange={e => updateField("leaseCompany", e.target.value)} placeholder={loadingCompanies ? "Loading..." : "Enter lease company"} />
+                <Input
+                  className="h-7 text-sm"
+                  value={formData.leaseCompany}
+                  onChange={(e) => updateField("leaseCompany", e.target.value)}
+                  placeholder={loadingCompanies ? "Loading..." : "Enter lease company"}
+                />
               )}
             </div>
             <div className="grid grid-cols-2 gap-2">
               <div>
                 <Label>Term (months)</Label>
                 {availableTerms.length > 0 ? (
-                  <Select value={formData.leaseTerm ? String(formData.leaseTerm) : ""} onValueChange={v => {
-                    const term = parseInt(v) || 0;
-                    updateField("leaseTerm", term);
-                    autoPopulateRate(formData.leaseCompany, term);
-                  }}>
+                  <Select
+                    value={formData.leaseTerm ? String(formData.leaseTerm) : ""}
+                    onValueChange={(v) => {
+                      const term = parseInt(v) || 0;
+                      updateField("leaseTerm", term);
+                      autoPopulateRate(formData.leaseCompany, term);
+                    }}
+                  >
                     <SelectTrigger className="h-7 text-sm">
                       <SelectValue placeholder="Select term" />
                     </SelectTrigger>
                     <SelectContent>
-                      {availableTerms.map(t => (
-                        <SelectItem key={t} value={String(t)}>{t}</SelectItem>
+                      {availableTerms.map((t) => (
+                        <SelectItem key={t} value={String(t)}>
+                          {t}
+                        </SelectItem>
                       ))}
                     </SelectContent>
                   </Select>
                 ) : (
-                  <Input className="h-7 text-sm" type="number" value={formData.leaseTerm || ""} onChange={e => updateField("leaseTerm", parseInt(e.target.value) || 0)} />
+                  <Input
+                    className="h-7 text-sm"
+                    type="number"
+                    value={formData.leaseTerm || ""}
+                    onChange={(e) => updateField("leaseTerm", parseInt(e.target.value) || 0)}
+                  />
                 )}
               </div>
               <div>
                 <Label>Approval Amount</Label>
-                <CurrencyInput className="h-7 text-sm text-right" value={formData.approvalAmount} onChange={v => updateField("approvalAmount", v)} />
+                <CurrencyInput
+                  className="h-7 text-sm text-right"
+                  value={formData.approvalAmount}
+                  onChange={(v) => updateField("approvalAmount", v)}
+                />
               </div>
             </div>
             <div className="grid grid-cols-2 gap-2">
               <div>
                 <Label>Approval Date</Label>
-                <Input className="h-7 text-sm" type="date" value={formData.approvalDate} onChange={e => updateField("approvalDate", e.target.value)} />
+                <Input
+                  className="h-7 text-sm"
+                  type="date"
+                  value={formData.approvalDate}
+                  onChange={(e) => updateField("approvalDate", e.target.value)}
+                />
               </div>
               <div>
                 <Label>Rate Used</Label>
@@ -812,51 +953,108 @@ export function CommissionForm({ deal, company, lineItems, dealOwner, portalId, 
             </div>
             <div>
               <Label>Lease Payment</Label>
-              <CurrencyInput className="h-7 text-sm text-right" value={formData.leasePayment} onChange={v => updateField("leasePayment", v)} />
+              <CurrencyInput
+                className="h-7 text-sm text-right"
+                value={formData.leasePayment}
+                onChange={(v) => updateField("leasePayment", v)}
+              />
             </div>
 
             <div className="pt-2 border-t space-y-1 text-xs">
-              <div className="flex justify-between"><span>Lease/Equip Rev</span><span>${formatCurrency(leaseEquipRev)}</span></div>
-              <div className="flex justify-between"><span>Net Equip Rev</span><span>${formatCurrency(netEquipRev)}</span></div>
-              <div className="flex justify-between font-bold"><span>Equipment AGP</span><span>${formatCurrency(equipmentAGP)}</span></div>
+              <div className="flex justify-between">
+                <span>Lease/Equip Rev</span>
+                <span>${formatCurrency(leaseEquipRev)}</span>
+              </div>
+              <div className="flex justify-between">
+                <span>Net Equip Rev</span>
+                <span>${formatCurrency(netEquipRev)}</span>
+              </div>
+              <div className="flex justify-between font-bold">
+                <span>Equipment AGP</span>
+                <span>${formatCurrency(equipmentAGP)}</span>
+              </div>
             </div>
-          </CardContent>
-        </Card>
+          </SectionCard>
         )}
       </div>
 
       {/* Commission */}
-      <Card>
-        <CardHeader className="pb-2">
-          <CardTitle className="text-sm">Commission</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <div className="grid grid-cols-1 gap-3">
-            <div>
-              <Label>Commission %</Label>
-              <Input className="h-8 text-sm text-right bg-muted/50" readOnly value={formData.commissionPercentage || ""} />
-            </div>
+      <SectionCard title="Commission" icon={FileText}>
+        <div className="grid grid-cols-1 gap-3">
+          <div>
+            <Label>Commission %</Label>
+            <Input
+              className="h-8 text-sm text-right bg-muted/50"
+              readOnly
+              value={formData.commissionPercentage || ""}
+            />
           </div>
-          {formData.splitPercentage > 0 && (
-            <div className="mt-2 text-xs text-muted-foreground">
-              Split {formData.splitPercentage}%{formData.splitRepName ? ` with ${formData.splitRepName}` : ''}: ${formatCurrency(baseCommission)} × {formData.splitPercentage}% = ${formatCurrency(baseCommission * (formData.splitPercentage / 100))}
-            </div>
-          )}
-          <div className="mt-3 pt-2 border-t text-sm font-bold flex justify-between">
-            <span>Total Commission</span>
-            <span className={isNegativeCommission ? 'text-destructive' : ''}>${formatCurrency(totalCommission)}</span>
+        </div>
+        {formData.splitPercentage > 0 && (
+          <div className="mt-2 text-xs text-muted-foreground">
+            Split {formData.splitPercentage}%{formData.splitRepName ? ` with ${formData.splitRepName}` : ""}: $
+            {formatCurrency(baseCommission)} × {formData.splitPercentage}% = $
+            {formatCurrency(baseCommission * (formData.splitPercentage / 100))}
           </div>
-          {isNegativeCommission && (
-            <div className="mt-2 flex items-start gap-2 rounded-md border border-destructive/50 bg-destructive/10 p-2 text-xs text-destructive">
-              <AlertTriangle className="h-4 w-4 mt-0.5 flex-shrink-0" />
-              <span>
-                Commission is negative. Costs{formData.buyoutTradeUp > 0 && buyoutInMargin ? ' (including the buyout / trade-in taken out of margin)' : ''} exceed the deal margin. Review the cost breakdown or how the buyout is handled before submitting.
-              </span>
-            </div>
-          )}
-        </CardContent>
-      </Card>
+        )}
+        <div className="mt-3 pt-2 border-t text-sm font-bold flex justify-between">
+          <span>Total Commission</span>
+          <span className={isNegativeCommission ? "text-destructive" : ""}>${formatCurrency(totalCommission)}</span>
+        </div>
+        {isNegativeCommission && (
+          <div className="mt-2 flex items-start gap-2 rounded-md border border-destructive/50 bg-destructive/10 p-2 text-xs text-destructive">
+            <AlertTriangle className="h-4 w-4 mt-0.5 flex-shrink-0" />
+            <span>
+              Commission is negative. Costs
+              {formData.buyoutTradeUp > 0 && buyoutInMargin
+                ? " (including the buyout / trade-in taken out of margin)"
+                : ""}{" "}
+              exceed the deal margin. Review the cost breakdown or how the buyout is handled before submitting.
+            </span>
+          </div>
+        )}
+      </SectionCard>
 
+      {/* Terms & conditions (new; form capture only - the preview is intentionally unchanged) */}
+      <SectionCard
+        title="Terms &amp; conditions"
+        icon={FileSignature}
+        description="Captured with the document. Document rendering is wired in a later phase."
+        action={
+          <label className="flex items-center gap-2 cursor-pointer">
+            <span className="text-xs text-muted-foreground">Include on document</span>
+            <Switch checked={!!formData.termsInclude} onCheckedChange={(c) => updateField("termsInclude", c)} />
+          </label>
+        }
+      >
+        <div className="space-y-3">
+          <FieldGrid columns={2}>
+            <Field label="Template" hint="Backend templates connect when Settings migrates to HubSpot">
+              <Select
+                value={formData.termsTemplateId || "custom"}
+                onValueChange={(v) => updateField("termsTemplateId", v === "custom" ? "" : v)}
+              >
+                <SelectTrigger className="h-9 text-sm">
+                  <SelectValue placeholder="Custom text only" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="custom">Custom text only</SelectItem>
+                  <SelectItem value="standard">Standard terms</SelectItem>
+                  <SelectItem value="government">Government / public sector</SelectItem>
+                </SelectContent>
+              </Select>
+            </Field>
+          </FieldGrid>
+          <Field label="Custom text">
+            <Textarea
+              value={formData.termsCustomText || ""}
+              onChange={(e) => updateField("termsCustomText", e.target.value)}
+              placeholder="Enter any document-specific terms and conditions..."
+              className="text-sm min-h-[96px]"
+            />
+          </Field>
+        </div>
+      </SectionCard>
     </div>
   );
 }
