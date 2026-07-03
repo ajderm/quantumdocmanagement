@@ -77,3 +77,6 @@ verify_jwt = false
 
 [functions.hubspot-get-equipment]
 verify_jwt = false
+
+[functions.mcp]
+verify_jwt = false
