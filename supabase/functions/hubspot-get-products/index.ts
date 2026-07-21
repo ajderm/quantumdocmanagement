@@ -140,7 +140,48 @@ Deno.serve(async (req) => {
       return createErrorResponse('Failed to fetch products from HubSpot', 500, corsHeaders);
     }
 
-    const data = await response.json();
+    let data = await response.json();
+
+    // Zero-result wildcard fallback: HubSpot's `query` param does token-prefix
+    // matching only, so digits buried mid-token (e.g. "1333" in "C1333iF") can
+    // never match. Retry with CONTAINS_TOKEN wildcard filters across the
+    // searchable properties. HubSpot ORs across filterGroups and ANDs within a
+    // group, so the dealer constraint must be repeated inside each group.
+    const trimmedSearch = typeof search === 'string' ? search.trim() : '';
+    if (trimmedSearch && (data.results || []).length === 0) {
+      const wildcard = `*${trimmedSearch}*`;
+      const fallbackBody: any = {
+        filterGroups: ['name', 'hs_sku', 'item_number'].map((prop) => ({
+          filters: [
+            { propertyName: prop, operator: 'CONTAINS_TOKEN', value: wildcard },
+            ...(dealerFilter ? [{ propertyName: 'dealer', operator: 'EQ', value: dealerFilter }] : []),
+          ],
+        })),
+        properties: searchBody.properties,
+        limit: 100,
+        sorts: [{ propertyName: 'name', direction: 'ASCENDING' }],
+      };
+      if (after) {
+        fallbackBody.after = after;
+      }
+
+      const fallbackResponse = await fetch('https://api.hubapi.com/crm/v3/objects/products/search', {
+        method: 'POST',
+        headers: {
+          Authorization: `Bearer ${accessToken}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(fallbackBody),
+      });
+
+      if (fallbackResponse.ok) {
+        const fallbackData = await fallbackResponse.json();
+        console.log(`Wildcard fallback search fired for "${trimmedSearch}": ${(fallbackData.results || []).length} result(s)`);
+        data = fallbackData;
+      } else {
+        console.error('Wildcard fallback search error:', fallbackResponse.status, await fallbackResponse.text());
+      }
+    }
 
     // Fetch portal-level product type overrides
     const { data: overrides } = await supabase
