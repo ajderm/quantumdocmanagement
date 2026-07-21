@@ -176,6 +176,14 @@ export function InstallationForm({
     return type === "hardware" || type === "hw";
   };
 
+  // Helper: check if a line item is a service item (excluded from installation docs)
+  const isService = (item: any): boolean => {
+    const type = (item.productType || item.category || item.product_type || item.hs_product_type || "")
+      .toLowerCase()
+      .trim();
+    return type === "service" || type === "svc";
+  };
+
   // Filter line items to show only hardware
   // Prefer quoteLineItems (live quote data) over raw HubSpot lineItems
   const baseHardwareLineItems = (() => {
@@ -189,32 +197,40 @@ export function InstallationForm({
           sku: item.model,
           category: item.productType,
         }));
-      // If no items are explicitly typed as hardware, treat ALL items as installable
+      // If no items are explicitly typed as hardware, treat ALL non-service items as installable
       // This handles the case where products from HubSpot don't have hs_product_type set
       if (hwItems.length === 0) {
-        return quoteLineItems.map((item) => ({
-          ...item,
-          name: item.description,
-          sku: item.model,
-          category: item.productType || "Untyped",
-        }));
+        return quoteLineItems
+          .filter((item) => !isService(item))
+          .map((item) => ({
+            ...item,
+            name: item.description,
+            sku: item.model,
+            category: item.productType || "Untyped",
+          }));
       }
       return hwItems;
     }
     // Fall back to HubSpot line items
     const hwItems = lineItems.filter((item) => isHardware(item));
     if (hwItems.length === 0 && lineItems.length > 0) {
-      return lineItems; // Show all if none are typed as hardware
+      return lineItems.filter((item) => !isService(item)); // Show all non-service if none are typed as hardware
     }
     return hwItems;
   })();
 
-  // Track whether we're showing all items vs just hardware
+  // Track whether we're showing all (non-service) items vs just hardware
   const showingAllItems = (() => {
     if (quoteLineItems && quoteLineItems.length > 0) {
-      return quoteLineItems.filter((item) => isHardware(item)).length === 0 && quoteLineItems.length > 0;
+      return (
+        quoteLineItems.filter((item) => isHardware(item)).length === 0 &&
+        quoteLineItems.filter((item) => !isService(item)).length > 0
+      );
     }
-    return lineItems.filter((item) => isHardware(item)).length === 0 && lineItems.length > 0;
+    return (
+      lineItems.filter((item) => isHardware(item)).length === 0 &&
+      lineItems.filter((item) => !isService(item)).length > 0
+    );
   })();
 
   // Expand hardware line items by quantity - each unit gets its own installation doc
