@@ -1,4 +1,5 @@
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
+import { normalizeAnchorObjectType } from '../_shared/validation.ts';
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -8,6 +9,8 @@ const corsHeaders = {
 interface GetConfigRequest {
   portalId: string;
   dealId: string;
+  /** Anchor CRM object the app is mounted on ('deals' default, or 'projects'). */
+  objectType?: string;
   configType: 'quote' | 'installation' | 'service_agreement' | 'fmv_lease' | 'lease_funding' | 'lease_return' | 'interterritorial' | 'new_customer' | 'relocation' | 'removal';
   lineItemId?: string;
 }
@@ -42,7 +45,16 @@ Deno.serve(async (req) => {
   }
 
   try {
-    const { portalId, dealId, configType, lineItemId }: GetConfigRequest = await req.json();
+    const { portalId, dealId, objectType: rawObjectType, configType, lineItemId }: GetConfigRequest = await req.json();
+
+    // Anchor object type: which CRM object the record ID belongs to
+    const objectType = normalizeAnchorObjectType(rawObjectType);
+    if (!objectType) {
+      return new Response(
+        JSON.stringify({ error: 'Unsupported objectType' }),
+        { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
 
     // Validate required fields
     if (!portalId || !dealId || !configType) {
@@ -108,7 +120,8 @@ Deno.serve(async (req) => {
       .from(tableName)
       .select('configuration')
       .eq('portal_id', portalId)
-      .eq('deal_id', dealId);
+      .eq('deal_id', dealId)
+      .eq('object_type', objectType);
 
     // For line-item-based configs (installation, lease_funding), filter by line_item_id
     if (lineItemId && (configType === 'installation' || configType === 'lease_funding')) {

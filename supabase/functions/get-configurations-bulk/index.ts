@@ -1,4 +1,5 @@
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
+import { normalizeAnchorObjectType } from '../_shared/validation.ts';
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -8,6 +9,8 @@ const corsHeaders = {
 interface BulkGetConfigRequest {
   portalId: string;
   dealId: string;
+  /** Anchor CRM object the app is mounted on ('deals' default, or 'projects'). */
+  objectType?: string;
 }
 
 // Validate portal ID format (numeric, reasonable length)
@@ -27,7 +30,16 @@ Deno.serve(async (req) => {
   }
 
   try {
-    const { portalId, dealId }: BulkGetConfigRequest = await req.json();
+    const { portalId, dealId, objectType: rawObjectType }: BulkGetConfigRequest = await req.json();
+
+    // Anchor object type: which CRM object the record ID belongs to
+    const objectType = normalizeAnchorObjectType(rawObjectType);
+    if (!objectType) {
+      return new Response(
+        JSON.stringify({ error: 'Unsupported objectType' }),
+        { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
 
     // Validate required fields
     if (!portalId || !dealId) {
@@ -100,76 +112,89 @@ Deno.serve(async (req) => {
         .select('configuration')
         .eq('portal_id', portalId)
         .eq('deal_id', dealId)
+        .eq('object_type', objectType)
         .maybeSingle(),
       supabase
         .from('installation_configurations')
         .select('line_item_id, configuration')
         .eq('portal_id', portalId)
-        .eq('deal_id', dealId),
+        .eq('deal_id', dealId)
+        .eq('object_type', objectType),
       supabase
         .from('service_agreement_configurations')
         .select('configuration')
         .eq('portal_id', portalId)
         .eq('deal_id', dealId)
+        .eq('object_type', objectType)
         .maybeSingle(),
       supabase
         .from('fmv_lease_configurations')
         .select('configuration')
         .eq('portal_id', portalId)
         .eq('deal_id', dealId)
+        .eq('object_type', objectType)
         .maybeSingle(),
       supabase
         .from('lease_funding_configurations')
         .select('line_item_id, configuration')
         .eq('portal_id', portalId)
-        .eq('deal_id', dealId),
+        .eq('deal_id', dealId)
+        .eq('object_type', objectType),
       supabase
         .from('loi_configurations')
         .select('configuration')
         .eq('portal_id', portalId)
         .eq('deal_id', dealId)
+        .eq('object_type', objectType)
         .maybeSingle(),
       supabase
         .from('lease_return_configurations')
         .select('configuration')
         .eq('portal_id', portalId)
         .eq('deal_id', dealId)
+        .eq('object_type', objectType)
         .maybeSingle(),
       supabase
         .from('interterritorial_configurations')
         .select('configuration')
         .eq('portal_id', portalId)
         .eq('deal_id', dealId)
+        .eq('object_type', objectType)
         .maybeSingle(),
       supabase
         .from('new_customer_configurations')
         .select('configuration')
         .eq('portal_id', portalId)
         .eq('deal_id', dealId)
+        .eq('object_type', objectType)
         .maybeSingle(),
       supabase
         .from('relocation_configurations')
         .select('configuration')
         .eq('portal_id', portalId)
         .eq('deal_id', dealId)
+        .eq('object_type', objectType)
         .maybeSingle(),
       supabase
         .from('removal_configurations')
         .select('configuration')
         .eq('portal_id', portalId)
         .eq('deal_id', dealId)
+        .eq('object_type', objectType)
         .maybeSingle(),
       supabase
         .from('commission_configurations')
         .select('configuration')
         .eq('portal_id', portalId)
         .eq('deal_id', dealId)
+        .eq('object_type', objectType)
         .maybeSingle(),
       supabase
         .from('custom_document_configurations')
         .select('custom_document_id, configuration')
         .eq('portal_id', portalId)
-        .eq('deal_id', dealId),
+        .eq('deal_id', dealId)
+        .eq('object_type', objectType),
     ]);
 
     // Build installation configs map

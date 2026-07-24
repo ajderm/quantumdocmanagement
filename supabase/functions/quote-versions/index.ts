@@ -1,5 +1,5 @@
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
-import { validatePortalId, createErrorResponse, createJsonResponse } from '../_shared/validation.ts';
+import { validatePortalId, normalizeAnchorObjectType, createErrorResponse, createJsonResponse } from '../_shared/validation.ts';
 import { auditLog } from '../_shared/audit-log.ts';
 
 const corsHeaders = {
@@ -26,6 +26,12 @@ Deno.serve(async (req) => {
 
     if (!portalId || !dealId || !action) {
       return createErrorResponse('Missing required fields: portalId, dealId, action', 400, corsHeaders);
+    }
+
+    // Anchor object type: which CRM object the record ID belongs to
+    const objectType = normalizeAnchorObjectType(body.objectType);
+    if (!objectType) {
+      return createErrorResponse('Unsupported objectType', 400, corsHeaders);
     }
 
     if (!validatePortalId(portalId)) {
@@ -60,6 +66,7 @@ Deno.serve(async (req) => {
           .select('version_number')
           .eq('portal_id', portalId)
           .eq('deal_id', dealId)
+          .eq('object_type', objectType)
           .order('version_number', { ascending: false })
           .limit(1)
           .maybeSingle();
@@ -73,6 +80,7 @@ Deno.serve(async (req) => {
           .insert({
             portal_id: portalId,
             deal_id: dealId,
+            object_type: objectType,
             version_number: nextVersion,
             quote_number: quoteNumber,
             label: label || `Quote v${nextVersion}`,
@@ -96,7 +104,8 @@ Deno.serve(async (req) => {
             updated_at: new Date().toISOString(),
           })
           .eq('portal_id', portalId)
-          .eq('deal_id', dealId);
+          .eq('deal_id', dealId)
+          .eq('object_type', objectType);
 
         auditLog(supabase, portalId, 'quote_version_saved', 'quote', dealId, {
           versionNumber: nextVersion,
@@ -118,6 +127,7 @@ Deno.serve(async (req) => {
           .select('id, version_number, quote_number, label, created_by, created_at')
           .eq('portal_id', portalId)
           .eq('deal_id', dealId)
+          .eq('object_type', objectType)
           .order('version_number', { ascending: false });
 
         if (listError) {
@@ -131,6 +141,7 @@ Deno.serve(async (req) => {
           .select('current_quote_number, current_version_id')
           .eq('portal_id', portalId)
           .eq('deal_id', dealId)
+          .eq('object_type', objectType)
           .maybeSingle();
 
         return createJsonResponse({
@@ -151,6 +162,7 @@ Deno.serve(async (req) => {
           .eq('id', versionId)
           .eq('portal_id', portalId)
           .eq('deal_id', dealId)
+          .eq('object_type', objectType)
           .single();
 
         if (loadError || !version) {
@@ -175,6 +187,7 @@ Deno.serve(async (req) => {
           .eq('id', versionId)
           .eq('portal_id', portalId)
           .eq('deal_id', dealId)
+          .eq('object_type', objectType)
           .single();
 
         if (loadError || !version) {
@@ -191,7 +204,8 @@ Deno.serve(async (req) => {
             updated_at: new Date().toISOString(),
           })
           .eq('portal_id', portalId)
-          .eq('deal_id', dealId);
+          .eq('deal_id', dealId)
+          .eq('object_type', objectType);
 
         auditLog(supabase, portalId, 'quote_version_restored', 'quote', dealId, {
           restoredVersionId: versionId,
@@ -218,7 +232,8 @@ Deno.serve(async (req) => {
           .delete()
           .eq('id', versionId)
           .eq('portal_id', portalId)
-          .eq('deal_id', dealId);
+          .eq('deal_id', dealId)
+          .eq('object_type', objectType);
 
         if (deleteError) {
           return createErrorResponse('Failed to delete version', 500, corsHeaders);

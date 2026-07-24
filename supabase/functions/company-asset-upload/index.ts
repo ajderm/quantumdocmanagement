@@ -27,6 +27,17 @@ serve(async (req) => {
     const portalId = String(formData.get("portalId") || "");
     const folder = String(formData.get("folder") || "");
     const dealId = formData.get("dealId") ? String(formData.get("dealId")) : "";
+    // Anchor object type: deal-anchored uploads keep the legacy path, other
+    // anchors (e.g. projects) are namespaced so record IDs can't collide.
+    const rawObjectType = String(formData.get("objectType") || "deals").toLowerCase().trim();
+    const objectType = ["deals", "deal", "0-3"].includes(rawObjectType) ? "deals"
+      : ["projects", "project", "0-54"].includes(rawObjectType) ? "projects"
+      : null;
+    if (!objectType) {
+      return new Response(JSON.stringify({ error: "Unsupported objectType" }), {
+        status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
 
     if (!portalId || !/^\d{1,20}$/.test(portalId)) {
       return new Response(JSON.stringify({ error: "Invalid portalId" }), {
@@ -91,7 +102,8 @@ serve(async (req) => {
           status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" },
         });
       }
-      storagePath = `document-packets/${portalId}/${dealId}/${Date.now()}-${cleanName}`;
+      const recordSegment = objectType === "deals" ? dealId : `${objectType}-${dealId}`;
+      storagePath = `document-packets/${portalId}/${recordSegment}/${Date.now()}-${cleanName}`;
     } else {
       return new Response(JSON.stringify({ error: "Invalid folder" }), {
         status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" },

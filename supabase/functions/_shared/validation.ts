@@ -28,6 +28,23 @@ export function validateLineItemId(lineItemId: unknown): lineItemId is string {
 }
 
 /**
+ * Normalizes the anchor object type — the CRM object the app is mounted on.
+ * The app supports being installed on deal records (default) and on HubSpot's
+ * native Projects object. Persistence is keyed (portal_id, object_type, deal_id)
+ * because HubSpot record IDs are not unique across object types.
+ *
+ * Returns the canonical object-type value ('deals' | 'projects'), or null if
+ * the value is unsupported. Missing/empty input normalizes to 'deals' so
+ * requests from older app versions keep working.
+ */
+export function normalizeAnchorObjectType(raw: unknown): string | null {
+  const v = (typeof raw === 'string' && raw ? raw : 'deals').toLowerCase().trim();
+  if (v === 'deals' || v === 'deal' || v === '0-3') return 'deals';
+  if (v === 'projects' || v === 'project' || v === '0-54') return 'projects';
+  return null;
+}
+
+/**
  * Verifies that a portal has a valid HubSpot token (proves it's a real, authenticated portal).
  * This is the core multi-tenancy gate: if a portalId doesn't have a token, 
  * it means the org never completed OAuth and can't access data.

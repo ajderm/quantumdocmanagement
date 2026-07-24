@@ -30,6 +30,21 @@ serve(async (req) => {
     const body = await req.json();
     const { portalId, dealId, files, title, includeCoverPage, includePageNumbers, dealName, companyName } = body;
 
+    // Anchor object type: deal-anchored packets keep the legacy path, other
+    // anchors (e.g. projects) get their own namespace so a project and a deal
+    // with the same record ID can't mix packet files.
+    const rawObjectType = String(body.objectType || 'deals').toLowerCase().trim();
+    const objectType = ['deals', 'deal', '0-3'].includes(rawObjectType) ? 'deals'
+      : ['projects', 'project', '0-54'].includes(rawObjectType) ? 'projects'
+      : null;
+    if (!objectType) {
+      return new Response(
+        JSON.stringify({ error: "Unsupported objectType" }),
+        { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
+    const recordSegment = objectType === 'deals' ? String(dealId) : `${objectType}-${dealId}`;
+
     if (!portalId || !dealId || !files || files.length === 0) {
       return new Response(
         JSON.stringify({ error: "Missing required fields: portalId, dealId, files" }),
@@ -224,7 +239,7 @@ serve(async (req) => {
 
     // Save compiled PDF
     const pdfBytes = await masterPdf.save();
-    const outputPath = `document-packets/${portalId}/${dealId}/compiled-${Date.now()}.pdf`;
+    const outputPath = `document-packets/${portalId}/${recordSegment}/compiled-${Date.now()}.pdf`;
 
     const { error: uploadError } = await supabase.storage
       .from("company-assets")

@@ -1,5 +1,6 @@
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
 import { auditLog } from '../_shared/audit-log.ts';
+import { normalizeAnchorObjectType } from '../_shared/validation.ts';
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -9,6 +10,8 @@ const corsHeaders = {
 interface SaveConfigRequest {
   portalId: string;
   dealId: string;
+  /** Anchor CRM object the app is mounted on ('deals' default, or 'projects'). */
+  objectType?: string;
   configType: 'quote' | 'installation' | 'service_agreement' | 'fmv_lease' | 'lease_funding' | 'loi' | 'lease_return' | 'interterritorial' | 'new_customer' | 'relocation' | 'removal' | 'commission' | 'custom_document';
   lineItemId?: string;
   customDocumentId?: string;
@@ -48,7 +51,16 @@ Deno.serve(async (req) => {
   }
 
   try {
-    const { portalId, dealId, configType, lineItemId, customDocumentId, configuration }: SaveConfigRequest = await req.json();
+    const { portalId, dealId, objectType: rawObjectType, configType, lineItemId, customDocumentId, configuration }: SaveConfigRequest = await req.json();
+
+    // Anchor object type: which CRM object the record ID belongs to
+    const objectType = normalizeAnchorObjectType(rawObjectType);
+    if (!objectType) {
+      return new Response(
+        JSON.stringify({ error: 'Unsupported objectType' }),
+        { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
 
     // Validate required fields
     if (!portalId || !dealId || !configType || !configuration) {
@@ -121,6 +133,7 @@ Deno.serve(async (req) => {
     const dataToSave: Record<string, unknown> = {
       portal_id: portalId,
       deal_id: dealId,
+      object_type: objectType,
       configuration,
       updated_at: new Date().toISOString(),
     };
@@ -138,11 +151,11 @@ Deno.serve(async (req) => {
     // Determine conflict columns based on config type
     let onConflict: string;
     if (configType === 'installation' || configType === 'lease_funding') {
-      onConflict = 'portal_id,deal_id,line_item_id';
+      onConflict = 'portal_id,deal_id,line_item_id,object_type';
     } else if (configType === 'custom_document') {
-      onConflict = 'portal_id,deal_id,custom_document_id';
+      onConflict = 'portal_id,deal_id,custom_document_id,object_type';
     } else {
-      onConflict = 'portal_id,deal_id';
+      onConflict = 'portal_id,deal_id,object_type';
     }
 
     const { error: saveError } = await supabase
