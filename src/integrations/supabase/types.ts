@@ -204,6 +204,7 @@ export type Database = {
           created_at: string
           deal_id: string
           id: string
+          object_type: string
           portal_id: string
           updated_at: string
         }
@@ -212,6 +213,7 @@ export type Database = {
           created_at?: string
           deal_id: string
           id?: string
+          object_type?: string
           portal_id: string
           updated_at?: string
         }
@@ -220,6 +222,7 @@ export type Database = {
           created_at?: string
           deal_id?: string
           id?: string
+          object_type?: string
           portal_id?: string
           updated_at?: string
         }
@@ -273,6 +276,7 @@ export type Database = {
           custom_document_id: string
           deal_id: string
           id: string
+          object_type: string
           portal_id: string
           updated_at: string
         }
@@ -282,6 +286,7 @@ export type Database = {
           custom_document_id: string
           deal_id: string
           id?: string
+          object_type?: string
           portal_id: string
           updated_at?: string
         }
@@ -291,6 +296,7 @@ export type Database = {
           custom_document_id?: string
           deal_id?: string
           id?: string
+          object_type?: string
           portal_id?: string
           updated_at?: string
         }
@@ -568,6 +574,7 @@ export type Database = {
           created_at: string
           deal_id: string
           id: string
+          object_type: string
           portal_id: string
           updated_at: string
         }
@@ -576,6 +583,7 @@ export type Database = {
           created_at?: string
           deal_id: string
           id?: string
+          object_type?: string
           portal_id: string
           updated_at?: string
         }
@@ -584,6 +592,7 @@ export type Database = {
           created_at?: string
           deal_id?: string
           id?: string
+          object_type?: string
           portal_id?: string
           updated_at?: string
         }
@@ -736,6 +745,7 @@ export type Database = {
           deal_id: string
           id: string
           line_item_id: string
+          object_type: string
           portal_id: string
           updated_at: string
         }
@@ -745,6 +755,7 @@ export type Database = {
           deal_id: string
           id?: string
           line_item_id: string
+          object_type?: string
           portal_id: string
           updated_at?: string
         }
@@ -754,6 +765,7 @@ export type Database = {
           deal_id?: string
           id?: string
           line_item_id?: string
+          object_type?: string
           portal_id?: string
           updated_at?: string
         }
@@ -765,6 +777,7 @@ export type Database = {
           created_at: string
           deal_id: string
           id: string
+          object_type: string
           portal_id: string
           updated_at: string
         }
@@ -773,6 +786,7 @@ export type Database = {
           created_at?: string
           deal_id: string
           id?: string
+          object_type?: string
           portal_id: string
           updated_at?: string
         }
@@ -781,6 +795,7 @@ export type Database = {
           created_at?: string
           deal_id?: string
           id?: string
+          object_type?: string
           portal_id?: string
           updated_at?: string
         }
@@ -793,6 +808,7 @@ export type Database = {
           deal_id: string
           id: string
           line_item_id: string
+          object_type: string
           portal_id: string
           updated_at: string
         }
@@ -802,6 +818,7 @@ export type Database = {
           deal_id: string
           id?: string
           line_item_id: string
+          object_type?: string
           portal_id: string
           updated_at?: string
         }
@@ -811,6 +828,7 @@ export type Database = {
           deal_id?: string
           id?: string
           line_item_id?: string
+          object_type?: string
           portal_id?: string
           updated_at?: string
         }
@@ -948,6 +966,7 @@ export type Database = {
           created_at: string
           deal_id: string
           id: string
+          object_type: string
           portal_id: string
           updated_at: string
         }
@@ -956,6 +975,7 @@ export type Database = {
           created_at?: string
           deal_id: string
           id?: string
+          object_type?: string
           portal_id: string
           updated_at?: string
         }
@@ -964,6 +984,7 @@ export type Database = {
           created_at?: string
           deal_id?: string
           id?: string
+          object_type?: string
           portal_id?: string
           updated_at?: string
         }
@@ -1019,6 +1040,7 @@ export type Database = {
           created_at: string | null
           deal_id: string
           id: string
+          object_type: string
           portal_id: string
           updated_at: string | null
         }
@@ -1027,6 +1049,7 @@ export type Database = {
           created_at?: string | null
           deal_id: string
           id?: string
+          object_type?: string
           portal_id: string
           updated_at?: string | null
         }
@@ -1035,6 +1058,7 @@ export type Database = {
           created_at?: string | null
           deal_id?: string
           id?: string
+          object_type?: string
           portal_id?: string
           updated_at?: string | null
         }
@@ -1046,6 +1070,7 @@ export type Database = {
           created_at: string
           deal_id: string
           id: string
+          object_type: string
           portal_id: string
           updated_at: string
         }
@@ -1054,6 +1079,7 @@ export type Database = {
           created_at?: string
           deal_id: string
           id?: string
+          object_type?: string
           portal_id: string
           updated_at?: string
         }
@@ -1062,6 +1088,7 @@ export type Database = {
           created_at?: string
           deal_id?: string
           id?: string
+          object_type?: string
           portal_id?: string
           updated_at?: string
         }
@@ -1226,6 +1253,7 @@ export type Database = {
           current_version_id: string | null
           deal_id: string
           id: string
+          object_type: string
           portal_id: string
           updated_at: string
         }
@@ -1236,6 +1264,7 @@ export type Database = {
           current_version_id?: string | null
           deal_id: string
           id?: string
+          object_type?: string
           portal_id: string
           updated_at?: string
         }
@@ -1246,6 +1275,7 @@ export type Database = {
           current_version_id?: string | null
           deal_id?: string
           id?: string
+          object_type?: string
           portal_id?: string
           updated_at?: string
         }
@@ -1306,6 +1336,7 @@ export type Database = {
           deal_id: string
           id: string
           label: string | null
+          object_type: string
           portal_id: string
           quote_number: string
           version_number: number
@@ -1317,6 +1348,7 @@ export type Database = {
           deal_id: string
           id?: string
           label?: string | null
+          object_type?: string
           portal_id: string
           quote_number: string
           version_number: number
@@ -1328,6 +1360,7 @@ export type Database = {
           deal_id?: string
           id?: string
           label?: string | null
+          object_type?: string
           portal_id?: string
           quote_number?: string
           version_number?: number
@@ -1340,6 +1373,7 @@ export type Database = {
           created_at: string
           deal_id: string
           id: string
+          object_type: string
           portal_id: string
           updated_at: string
         }
@@ -1348,6 +1382,7 @@ export type Database = {
           created_at?: string
           deal_id: string
           id?: string
+          object_type?: string
           portal_id: string
           updated_at?: string
         }
@@ -1356,6 +1391,7 @@ export type Database = {
           created_at?: string
           deal_id?: string
           id?: string
+          object_type?: string
           portal_id?: string
           updated_at?: string
         }
@@ -1367,6 +1403,7 @@ export type Database = {
           created_at: string
           deal_id: string
           id: string
+          object_type: string
           portal_id: string
           updated_at: string
         }
@@ -1375,6 +1412,7 @@ export type Database = {
           created_at?: string
           deal_id: string
           id?: string
+          object_type?: string
           portal_id: string
           updated_at?: string
         }
@@ -1383,6 +1421,7 @@ export type Database = {
           created_at?: string
           deal_id?: string
           id?: string
+          object_type?: string
           portal_id?: string
           updated_at?: string
         }
@@ -1394,6 +1433,7 @@ export type Database = {
           created_at: string
           deal_id: string
           id: string
+          object_type: string
           portal_id: string
           updated_at: string
         }
@@ -1402,6 +1442,7 @@ export type Database = {
           created_at?: string
           deal_id: string
           id?: string
+          object_type?: string
           portal_id: string
           updated_at?: string
         }
@@ -1410,6 +1451,7 @@ export type Database = {
           created_at?: string
           deal_id?: string
           id?: string
+          object_type?: string
           portal_id?: string
           updated_at?: string
         }
