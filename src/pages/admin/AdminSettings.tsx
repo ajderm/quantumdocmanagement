@@ -120,6 +120,8 @@ export default function AdminSettings({
 
   // Form visibility settings
   const [enabledForms, setEnabledForms] = useState<string[]>(ALL_FORM_TYPES.map((f) => f.code));
+  // Homepage: which document opens on load. "" = first enabled document.
+  const [defaultForm, setDefaultForm] = useState<string>("");
 
   // Form customization (field labels, hidden sections)
   const [formCustomization, setFormCustomization] = useState<FormCustomizationMap>({});
@@ -234,6 +236,9 @@ export default function AdminSettings({
           }
           if (settings.enabled_forms && Array.isArray(settings.enabled_forms)) {
             setEnabledForms(settings.enabled_forms);
+          }
+          if (typeof settings.default_form === "string") {
+            setDefaultForm(settings.default_form);
           }
           if (settings.form_customization && typeof settings.form_customization === "object") {
             setFormCustomization(settings.form_customization as FormCustomizationMap);
@@ -437,6 +442,9 @@ export default function AdminSettings({
         meter_methods: meterMethods,
         cca_value: ccaValue,
         enabled_forms: enabledForms,
+        // Persist homepage only if it's still an enabled document; otherwise
+        // clear it so the app falls back to the first enabled document.
+        default_form: defaultForm && enabledForms.includes(defaultForm) ? defaultForm : "",
         document_styles: {
           fontFamily: docStyleFontFamily,
           fontColor: docStyleFontColor,
@@ -602,7 +610,12 @@ export default function AdminSettings({
                               if (e.target.checked) {
                                 setEnabledForms((prev) => [...prev, form.code]);
                               } else {
-                                setEnabledForms((prev) => prev.filter((f) => f !== form.code));
+                                setEnabledForms((prev) => {
+                                  const next = prev.filter((f) => f !== form.code);
+                                  // If the homepage doc was just disabled, clear it
+                                  if (defaultForm === form.code) setDefaultForm("");
+                                  return next;
+                                });
                               }
                             }}
                             className="h-4 w-4 rounded border-input"
@@ -610,6 +623,30 @@ export default function AdminSettings({
                           <span className="text-sm">{form.name}</span>
                         </label>
                       ))}
+                    </div>
+
+                    {/* Homepage: which enabled document opens on load */}
+                    <div className="mt-6 pt-4 border-t max-w-sm">
+                      <Label className="text-sm font-medium">Homepage</Label>
+                      <p className="text-xs text-muted-foreground mt-0.5 mb-2">
+                        Document shown first when the app opens. Defaults to the first available document.
+                      </p>
+                      <Select
+                        value={defaultForm || "__auto__"}
+                        onValueChange={(v) => setDefaultForm(v === "__auto__" ? "" : v)}
+                      >
+                        <SelectTrigger>
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="__auto__">Automatic (first available)</SelectItem>
+                          {ALL_FORM_TYPES.filter((form) => enabledForms.includes(form.code)).map((form) => (
+                            <SelectItem key={form.code} value={form.code}>
+                              {form.name}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
                     </div>
                   </CardContent>
                 </Card>

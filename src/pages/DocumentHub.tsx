@@ -117,6 +117,8 @@ interface DealerSettings {
   meter_methods?: string[];
   cca_value?: string;
   enabled_forms?: string[];
+  /** Document code to open on load (homepage). Empty/absent = first enabled document. */
+  default_form?: string;
   document_styles?: {
     fontFamily?: string;
     fontColor?: string;
@@ -457,6 +459,11 @@ function DocumentHubContent() {
   // Phase 1 shell: collapsible nav rail state
   const [navExpanded, setNavExpanded] = useState(false);
   const [navSearch, setNavSearch] = useState("");
+  // Active document tab. null = the user hasn't picked one yet, so the app
+  // follows the portal's configured homepage (dealerSettings.default_form) or
+  // the first enabled document — computed reactively since dealer settings
+  // arrive after first render.
+  const [selectedTab, setSelectedTab] = useState<string | null>(null);
 
   // Keep formDataRef in sync with formData
   useEffect(() => {
@@ -3763,6 +3770,26 @@ function DocumentHubContent() {
   const statusDotClass = (status: string) =>
     status === "ready" ? "bg-qbs-green-600" : status === "in_progress" ? "bg-qbs-gold-500" : "bg-qbs-neutral-300";
 
+  // Ordered list of the document codes actually available in this portal, in
+  // the same order they appear in the nav rail (groups first, then custom docs,
+  // then the pinned Document Packet). Drives the homepage fallback below.
+  const orderedEnabledCodes: string[] = [
+    ...navGroups.flatMap((g) => g.codes).filter((code) => isFormEnabled(code)),
+    ...customDocuments.map((c) => c.code),
+    ...(isFormEnabled("document_packet") ? ["document_packet"] : []),
+  ];
+
+  // Effective active tab. Priority: the user's in-session pick (if still
+  // available) → the portal's configured homepage (default_form, if enabled) →
+  // the first enabled document. This replaces the old hardcoded "quote"
+  // default, which rendered the quote tab even in portals where quote was
+  // disabled.
+  const configuredHome = dealerSettings.default_form;
+  const homeTab =
+    configuredHome && orderedEnabledCodes.includes(configuredHome) ? configuredHome : orderedEnabledCodes[0];
+  const effectiveTab =
+    selectedTab && orderedEnabledCodes.includes(selectedTab) ? selectedTab : homeTab;
+
   return (
     <div className="min-h-screen bg-background">
       {/* Header */}
@@ -3874,7 +3901,7 @@ function DocumentHubContent() {
         </div>
       )}
 
-      <Tabs defaultValue="quote" className="w-full">
+      <Tabs value={effectiveTab} onValueChange={setSelectedTab} className="w-full">
         <div className="flex items-start gap-0">
           {/* Collapsible nav rail (replaces the tab strip) */}
           <aside
