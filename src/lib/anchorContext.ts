@@ -29,22 +29,29 @@ export function getAnchorObjectType(): AnchorObjectType {
   return normalizeAnchorObjectType(params.get("objectType") || params.get("object_type"));
 }
 
-let installed = false;
-
 /**
- * Patch supabase.functions.invoke so every request body carries the anchor
- * objectType. Explicit objectType values in a call site win over the injected
+ * Patch FunctionsClient.invoke so every request body carries the anchor
+ * objectType. Explicit objectType values at a call site win over the injected
  * one. FormData bodies are left alone (append objectType at the call site).
+ *
+ * IMPORTANT: `supabase.functions` is a getter that returns a NEW FunctionsClient
+ * on every access, so patching the instance method (`supabase.functions.invoke = …`)
+ * is a no-op — the patched object is discarded immediately and the next call gets
+ * a fresh, unpatched instance. We therefore patch the shared prototype, which
+ * every instance the getter returns delegates to. objectType is read at call time
+ * so it always reflects the current URL regardless of bootstrap ordering.
  */
 export function installAnchorContextInterceptor(): void {
-  if (installed) return;
-  installed = true;
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const functionsProto = Object.getPrototypeOf(supabase.functions) as any;
+  if (!functionsProto || typeof functionsProto.invoke !== "function") return;
+  if (functionsProto.__anchorContextPatched) return;
+  functionsProto.__anchorContextPatched = true;
 
-  const objectType = getAnchorObjectType();
-  const originalInvoke = supabase.functions.invoke.bind(supabase.functions);
+  const originalInvoke = functionsProto.invoke;
 
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  (supabase.functions as any).invoke = (name: string, options?: any) => {
+  functionsProto.invoke = function (name: string, options?: any) {
     const body = options?.body;
     const isPlainObject =
       body &&
@@ -55,8 +62,8 @@ export function installAnchorContextInterceptor(): void {
       !(body instanceof ArrayBuffer);
 
     if (isPlainObject && body.objectType === undefined) {
-      return originalInvoke(name, { ...options, body: { ...body, objectType } });
+      return originalInvoke.call(this, name, { ...options, body: { ...body, objectType: getAnchorObjectType() } });
     }
-    return originalInvoke(name, options);
+    return originalInvoke.call(this, name, options);
   };
 }
