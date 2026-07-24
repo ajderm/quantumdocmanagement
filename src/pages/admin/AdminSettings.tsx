@@ -638,9 +638,7 @@ export default function AdminSettings({
                         <SelectTrigger>
                           <SelectValue />
                         </SelectTrigger>
-                        {/* z-[70] so the menu renders above the embedded Settings
-                            overlay (z-[60]); the shadcn default z-50 opens behind it */}
-                        <SelectContent className="z-[70]">
+                        <SelectContent>
                           <SelectItem value="__auto__">Automatic (first available)</SelectItem>
                           {ALL_FORM_TYPES.filter((form) => enabledForms.includes(form.code)).map((form) => (
                             <SelectItem key={form.code} value={form.code}>
@@ -670,8 +668,7 @@ export default function AdminSettings({
                           <SelectTrigger>
                             <SelectValue />
                           </SelectTrigger>
-                          {/* z-[70] so the menu renders above the embedded Settings overlay (z-[60]) */}
-                          <SelectContent className="z-[70]">
+                          <SelectContent>
                             <SelectItem value="Arial, sans-serif">Arial</SelectItem>
                             <SelectItem value="Helvetica, sans-serif">Helvetica</SelectItem>
                             <SelectItem value="'Times New Roman', serif">Times New Roman</SelectItem>
