@@ -596,6 +596,71 @@ function DocumentHubContent() {
 
     setRelocationFormData(defaultData);
   }, [loading, company, dealOwner, labeledContacts, lineItems, relocationFormData, relocationSavedConfig]);
+  // Load dealer branding + settings (logo, address, T&C, meter methods, custom
+  // docs, commission users). Extracted so it can be re-run after the in-app
+  // Settings panel saves, without a full reload — it only sets state, never
+  // resets configsLoaded, so calling it mid-session won't flash the spinner.
+  const loadDealerInfo = useCallback(async () => {
+    const currentPortalId = portalId;
+    if (!currentPortalId) return;
+
+    try {
+      const { data, error } = await supabase.functions.invoke("dealer-account-get", {
+        body: { portalId: currentPortalId },
+      });
+
+      if (error) {
+        console.error("Error fetching dealer info:", error);
+        return;
+      }
+
+      if (data?.dealer) {
+        const d = data.dealer;
+        const addressParts = [
+          d.address_line1,
+          d.address_line2,
+          `${d.city || ""}, ${d.state || ""} ${d.zip_code || ""}`,
+        ]
+          .filter(Boolean)
+          .join(", ");
+
+        // Get quote-specific T&C or fall back to default
+        const quoteTerms = data.documentTerms?.quote || d.terms_and_conditions || "";
+
+        setDealerInfo({
+          companyName: d.company_name || "",
+          address: addressParts,
+          phone: d.phone || "",
+          website: d.website || "",
+          logoUrl: d.logo_url || undefined,
+          termsAndConditions: quoteTerms,
+        });
+      }
+
+      // Store document terms
+      if (data?.documentTerms) {
+        setDocumentTerms(data.documentTerms);
+      }
+
+      // Store dealer settings (meter methods, CCA)
+      if (data?.dealerSettings) {
+        setDealerSettings(data.dealerSettings);
+      }
+
+      // Store custom documents
+      if (data?.customDocuments) {
+        setCustomDocuments(data.customDocuments.filter((doc: CustomDocument) => doc.is_active));
+      }
+
+      // Store commission user settings
+      if (data?.commissionUsers) {
+        setCommissionUsers(data.commissionUsers);
+      }
+    } catch (err) {
+      console.error("Failed to fetch dealer info:", err);
+    }
+  }, [portalId]);
+
   // Fetch dealer info when portalId is available
   useEffect(() => {
     // Reset portal-specific state to prevent cross-tenant leakage
@@ -606,69 +671,8 @@ function DocumentHubContent() {
     setCustomDocuments([]);
     setConfigsLoaded(false);
 
-    const fetchDealerInfo = async () => {
-      const currentPortalId = portalId;
-      if (!currentPortalId) return;
-
-      try {
-        const { data, error } = await supabase.functions.invoke("dealer-account-get", {
-          body: { portalId: currentPortalId },
-        });
-
-        if (error) {
-          console.error("Error fetching dealer info:", error);
-          return;
-        }
-
-        if (data?.dealer) {
-          const d = data.dealer;
-          const addressParts = [
-            d.address_line1,
-            d.address_line2,
-            `${d.city || ""}, ${d.state || ""} ${d.zip_code || ""}`,
-          ]
-            .filter(Boolean)
-            .join(", ");
-
-          // Get quote-specific T&C or fall back to default
-          const quoteTerms = data.documentTerms?.quote || d.terms_and_conditions || "";
-
-          setDealerInfo({
-            companyName: d.company_name || "",
-            address: addressParts,
-            phone: d.phone || "",
-            website: d.website || "",
-            logoUrl: d.logo_url || undefined,
-            termsAndConditions: quoteTerms,
-          });
-        }
-
-        // Store document terms
-        if (data?.documentTerms) {
-          setDocumentTerms(data.documentTerms);
-        }
-
-        // Store dealer settings (meter methods, CCA)
-        if (data?.dealerSettings) {
-          setDealerSettings(data.dealerSettings);
-        }
-
-        // Store custom documents
-        if (data?.customDocuments) {
-          setCustomDocuments(data.customDocuments.filter((doc: CustomDocument) => doc.is_active));
-        }
-
-        // Store commission user settings
-        if (data?.commissionUsers) {
-          setCommissionUsers(data.commissionUsers);
-        }
-      } catch (err) {
-        console.error("Failed to fetch dealer info:", err);
-      }
-    };
-
-    fetchDealerInfo();
-  }, [portalId]);
+    loadDealerInfo();
+  }, [portalId, loadDealerInfo]);
 
   // Load ALL saved configurations in bulk via edge function
   useEffect(() => {
@@ -6094,7 +6098,16 @@ function DocumentHubContent() {
               </div>
             }
           >
-            <AdminSettings embedded portalId={portalId || undefined} onBack={() => setShowSettings(false)} />
+            <AdminSettings
+              embedded
+              portalId={portalId || undefined}
+              onBack={() => {
+                setShowSettings(false);
+                // Refresh branding/settings so the preview reflects changes
+                // saved in Settings without requiring a full card reload.
+                loadDealerInfo();
+              }}
+            />
           </Suspense>
         </div>
       )}
