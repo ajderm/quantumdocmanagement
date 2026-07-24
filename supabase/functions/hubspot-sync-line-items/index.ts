@@ -36,7 +36,18 @@ Deno.serve(async (req) => {
   }
 
   try {
-    const { portalId, dealId, lineItems } = await req.json();
+    const body = await req.json();
+    const { portalId, dealId, lineItems } = body;
+
+    // Line items can only associate with deals in HubSpot. When the app is
+    // anchored on another object (e.g. a project), there is nothing to sync
+    // to — treat it as a successful no-op rather than erroring against a
+    // record ID that isn't a deal.
+    const rawObjectType = String(body.objectType || 'deals').toLowerCase().trim();
+    if (!['deals', 'deal', '0-3'].includes(rawObjectType)) {
+      console.log(`Line-item sync skipped: anchor objectType '${rawObjectType}' does not support line items`);
+      return createJsonResponse({ success: true, skipped: true, reason: 'anchor object does not support line items' }, corsHeaders);
+    }
 
     if (!validatePortalId(portalId)) {
       return createErrorResponse('Invalid portalId', 400, corsHeaders);

@@ -89,7 +89,21 @@ Deno.serve(async (req) => {
     const body = await req.json();
     const { portalId, dealId, fileName, fileBase64 } = body;
 
-    console.log('hubspot-attach-file: Processing request for portal:', portalId);
+    // Anchor object type: which CRM record the note (with the attached file)
+    // gets associated to. Defaults to deals; 'projects' associates to the
+    // native Projects record instead.
+    const rawObjectType = String(body.objectType || 'deals').toLowerCase().trim();
+    const objectType = ['deals', 'deal', '0-3'].includes(rawObjectType) ? 'deals'
+      : ['projects', 'project', '0-54'].includes(rawObjectType) ? 'projects'
+      : null;
+    if (!objectType) {
+      return new Response(JSON.stringify({ error: 'Unsupported objectType' }), {
+        status: 400,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      });
+    }
+
+    console.log('hubspot-attach-file: Processing request for portal:', portalId, 'objectType:', objectType);
 
     if (!portalId || !dealId || !fileName || !fileBase64) {
       console.error('hubspot-attach-file: Missing required fields');
@@ -150,22 +164,29 @@ Deno.serve(async (req) => {
     const uploadResult = await uploadResponse.json();
     console.log('File uploaded successfully:', uploadResult.id);
 
-    // Create a note with the file attachment on the deal
-    const notePayload = {
+    // Create a note with the file attachment on the anchor record.
+    // Deals keep the original inline association (HUBSPOT_DEFINED typeId 214,
+    // Note->Deal). Other anchor objects don't have a stable hardcoded typeId,
+    // so the note is created bare and then linked with the v4 default
+    // association endpoint, which resolves the correct association type.
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const notePayload: any = {
       properties: {
         hs_timestamp: new Date().toISOString(),
         hs_note_body: `Quote document generated: ${fileName}`,
         hs_attachment_ids: uploadResult.id,
       },
-      associations: [
+    };
+    if (objectType === 'deals') {
+      notePayload.associations = [
         {
           to: { id: dealId },
           types: [{ associationCategory: 'HUBSPOT_DEFINED', associationTypeId: 214 }] // Note to Deal
         }
-      ]
-    };
+      ];
+    }
 
-    console.log('Creating note with attachment on deal...');
+    console.log('Creating note with attachment on', objectType, '...');
 
     const noteResponse = await fetch('https://api.hubapi.com/crm/v3/objects/notes', {
       method: 'POST',
@@ -184,6 +205,26 @@ Deno.serve(async (req) => {
 
     const noteResult = await noteResponse.json();
     console.log('Note created successfully:', noteResult.id);
+
+    // Associate the note to non-deal anchors via the v4 default association
+    if (objectType !== 'deals') {
+      const assocResponse = await fetch(
+        `https://api.hubapi.com/crm/v4/objects/notes/${noteResult.id}/associations/default/${objectType}/${dealId}`,
+        {
+          method: 'PUT',
+          headers: {
+            'Authorization': `Bearer ${accessToken}`,
+            'Content-Type': 'application/json',
+          },
+        }
+      );
+      if (!assocResponse.ok) {
+        const errorText = await assocResponse.text();
+        console.error('HubSpot note association error:', errorText);
+        throw new Error(`Failed to associate note to ${objectType}: ${errorText}`);
+      }
+      console.log('Note associated to', objectType, dealId);
+    }
 
     return new Response(JSON.stringify({ 
       success: true, 

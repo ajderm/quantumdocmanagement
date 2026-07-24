@@ -124,7 +124,20 @@ Deno.serve(async (req) => {
     const body = await req.json();
     const { portalId, dealId, properties } = body;
 
-    console.log('Update deal request - portalId:', portalId, 'dealId:', dealId, 'properties:', properties);
+    // Anchor object type: which CRM object to PATCH. Defaults to deals;
+    // 'projects' PATCHes the native Projects object instead.
+    const rawObjectType = String(body.objectType || 'deals').toLowerCase().trim();
+    const objectType = ['deals', 'deal', '0-3'].includes(rawObjectType) ? 'deals'
+      : ['projects', 'project', '0-54'].includes(rawObjectType) ? 'projects'
+      : null;
+    if (!objectType) {
+      return new Response(
+        JSON.stringify({ error: 'Unsupported objectType' }),
+        { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+
+    console.log('Update record request - portalId:', portalId, 'objectType:', objectType, 'recordId:', dealId, 'properties:', properties);
 
     if (!portalId || !dealId || !properties) {
       return new Response(
@@ -154,8 +167,8 @@ Deno.serve(async (req) => {
     const accessToken = await getValidAccessToken(supabase, portalId);
     console.log('Access token obtained');
 
-    // Update deal properties via HubSpot API
-    const response = await fetch(`https://api.hubapi.com/crm/v3/objects/deals/${dealId}`, {
+    // Update anchor record properties via HubSpot API
+    const response = await fetch(`https://api.hubapi.com/crm/v3/objects/${objectType}/${dealId}`, {
       method: 'PATCH',
       headers: {
         Authorization: `Bearer ${accessToken}`,
