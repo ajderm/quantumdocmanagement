@@ -40,6 +40,15 @@ function validateDealId(dealId: string): boolean {
   return /^\d{1,20}$/.test(dealId);
 }
 
+// Normalize the anchor object type (the CRM object the app is mounted on).
+// Returns the canonical HubSpot object-type path segment, or null if unsupported.
+function normalizeAnchorObjectType(raw: string | null | undefined): string | null {
+  const v = (raw || 'deals').toLowerCase().trim();
+  if (v === 'deals' || v === 'deal' || v === '0-3') return 'deals';
+  if (v === 'projects' || v === 'project' || v === '0-54') return 'projects';
+  return null;
+}
+
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 async function refreshAccessToken(
   supabase: any,
@@ -270,6 +279,255 @@ async function fetchLabeledContacts(
   return { labeledContacts, companyContacts };
 }
 
+// Fetch a HubSpot owner by ID, with commission_user_settings phone fallback.
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+async function fetchOwner(accessToken: string, supabase: any, ownerId: string): Promise<any | null> {
+  try {
+    const ownerResponse = await hubspotRequest(accessToken, `/crm/v3/owners/${ownerId}`);
+    const owner = {
+      id: ownerResponse.id,
+      firstName: ownerResponse.firstName,
+      lastName: ownerResponse.lastName,
+      email: ownerResponse.email || null,
+      phone: ownerResponse.phone || null,
+    };
+    console.log('Owner fetched:', owner.firstName, owner.lastName, 'email:', owner.email);
+
+    // If HubSpot owner record doesn't have a phone, check commission_user_settings
+    if (!owner.phone) {
+      try {
+        const { data: repSettings } = await supabase
+          .from('commission_user_settings')
+          .select('phone')
+          .eq('hubspot_user_id', ownerResponse.userId || ownerResponse.id)
+          .maybeSingle();
+        if (repSettings?.phone) {
+          owner.phone = repSettings.phone;
+          console.log('Rep phone from settings:', owner.phone);
+        }
+      } catch (_phoneErr) {
+        // Non-critical - continue without phone
+      }
+    }
+    return owner;
+  } catch (e) {
+    console.error('Failed to fetch owner:', e);
+    return null;
+  }
+}
+
+// Fetch the first associated company (and its labeled contacts) for any anchor object.
+async function fetchCompanyForAnchor(
+  accessToken: string,
+  fromObjectType: string,
+  fromId: string,
+  companyPropsNeeded: Set<string>,
+  companyContactLabels: Set<string>,
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+): Promise<{ company: any | null; labeledContacts: LabeledContacts; companyContacts: CompanyContacts }> {
+  let company = null;
+  let labeledContacts: LabeledContacts = {
+    shippingContact: null,
+    apContact: null,
+    itContact: null,
+  };
+  let companyContacts: CompanyContacts = {};
+
+  try {
+    const companyAssociations = await hubspotRequest(
+      accessToken,
+      `/crm/v3/objects/${fromObjectType}/${fromId}/associations/companies`
+    );
+
+    if (companyAssociations.results?.length > 0) {
+      const companyId = companyAssociations.results[0].id;
+      // Fetch company with all address fields including delivery (Ship To) and AP (Bill To) addresses
+      // Use dynamic company properties list
+      const companyPropsString = Array.from(companyPropsNeeded).join(',');
+
+      const companyResponse = await hubspotRequest(
+        accessToken,
+        `/crm/v3/objects/companies/${companyId}?properties=${companyPropsString}`
+      );
+
+      // Helper to validate if a value looks like a valid ZIP code (not a 2-letter state)
+      const isValidZip = (val: string | null | undefined): boolean => {
+        if (!val) return false;
+        const trimmed = val.trim();
+        // ZIP codes contain digits and are not just 2 letters (state abbreviation)
+        if (/^\d{5}(-\d{4})?$/.test(trimmed)) return true; // US ZIP
+        if (/^[A-Za-z]\d[A-Za-z][ -]?\d[A-Za-z]\d$/.test(trimmed)) return true; // Canadian postal
+        // Reject if it's exactly 2 letters (state abbreviation)
+        if (/^[A-Za-z]{2}$/.test(trimmed)) return false;
+        // Accept if it contains any digits
+        return /\d/.test(trimmed);
+      };
+
+      // Get the best delivery ZIP value (try multiple fields, validate each)
+      const rawDeliveryZips = [
+        companyResponse.properties.zip__del_,
+        companyResponse.properties.zip_code__del_,
+        companyResponse.properties.postal_code__del_,
+      ];
+      const deliveryZip = rawDeliveryZips.find(isValidZip) || '';
+
+      console.log('Delivery ZIP candidates:', rawDeliveryZips, 'Selected:', deliveryZip);
+
+      company = {
+        companyId: companyResponse.id,
+        name: companyResponse.properties.name,
+        address: companyResponse.properties.address,
+        address2: companyResponse.properties.address2,
+        city: companyResponse.properties.city,
+        state: companyResponse.properties.state,
+        zip: companyResponse.properties.zip,
+        phone: companyResponse.properties.phone,
+        domain: companyResponse.properties.domain,
+        customerNumber: companyResponse.properties.customer_number || '',
+        // Ship To (Delivery) Address
+        deliveryAddress: companyResponse.properties.street_address__del_ || '',
+        deliveryAddress2: companyResponse.properties.street_address_line_2__del_ || '',
+        deliveryCity: companyResponse.properties.city__del_ || '',
+        deliveryState: companyResponse.properties.state__del_ || '',
+        deliveryZip: deliveryZip,
+        // Bill To (AP) Address (2 underscores)
+        apAddress: companyResponse.properties.street_address__ap_ || '',
+        apAddress2: companyResponse.properties.street_address_line_2__ap_ || '',
+        apCity: companyResponse.properties.city__ap_ || '',
+        apState: companyResponse.properties.state__ap_ || '',
+        apZip: companyResponse.properties.zip_code__ap_ || '',
+      };
+      console.log('Company fetched for portal');
+
+      // Fetch labeled contacts from company (pass additional labels from field mappings)
+      const contactsResult = await fetchLabeledContacts(accessToken, companyId, Array.from(companyContactLabels));
+      labeledContacts = contactsResult.labeledContacts;
+      companyContacts = contactsResult.companyContacts;
+    }
+  } catch (e) {
+    console.error('Failed to fetch company:', e);
+  }
+
+  return { company, labeledContacts, companyContacts };
+}
+
+// Fetch associated contacts (up to 5) for any anchor object.
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+async function fetchContactsForAnchor(
+  accessToken: string,
+  fromObjectType: string,
+  fromId: string,
+  contactPropsNeeded: Set<string>,
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+): Promise<any[]> {
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  let contacts: any[] = [];
+  try {
+    const contactAssociations = await hubspotRequest(
+      accessToken,
+      `/crm/v3/objects/${fromObjectType}/${fromId}/associations/contacts`
+    );
+
+    if (contactAssociations.results?.length > 0) {
+      // Use dynamic contact properties list
+      const contactPropsString = Array.from(contactPropsNeeded).join(',');
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const contactPromises = contactAssociations.results.slice(0, 5).map(async (assoc: any) => {
+        const contactResponse = await hubspotRequest(
+          accessToken,
+          `/crm/v3/objects/contacts/${assoc.id}?properties=${contactPropsString}`
+        );
+        return {
+          contactId: contactResponse.id,
+          firstName: contactResponse.properties.firstname,
+          lastName: contactResponse.properties.lastname,
+          email: contactResponse.properties.email,
+          phone: contactResponse.properties.phone,
+          title: contactResponse.properties.jobtitle,
+          properties: contactResponse.properties, // Include raw properties
+        };
+      });
+      contacts = await Promise.all(contactPromises);
+      console.log('Contacts fetched:', contacts.length);
+    }
+  } catch (e) {
+    console.error('Failed to fetch contacts:', e);
+  }
+  return contacts;
+}
+
+// Fetch a deal's line items (with model/cost/etc mapping and product item_number fallback).
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+async function fetchDealLineItems(
+  accessToken: string,
+  dealId: string,
+  lineItemPropsNeeded: Set<string>,
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+): Promise<any[]> {
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  let lineItems: any[] = [];
+  try {
+    const lineItemAssociations = await hubspotRequest(
+      accessToken,
+      `/crm/v3/objects/deals/${dealId}/associations/line_items`
+    );
+
+    if (lineItemAssociations.results?.length > 0) {
+      // Use dynamic line item properties list
+      const lineItemPropsString = Array.from(lineItemPropsNeeded).join(',');
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const lineItemPromises = lineItemAssociations.results.map(async (assoc: any) => {
+        const lineItemResponse = await hubspotRequest(
+          accessToken,
+          `/crm/v3/objects/line_items/${assoc.id}?properties=${lineItemPropsString}`
+        );
+
+        let itemNumber = lineItemResponse.properties.item_number || '';
+
+        // If item_number is empty on the line item, try to get it from the associated product
+        if (!itemNumber && lineItemResponse.properties.hs_product_id) {
+          try {
+            const productResponse = await hubspotRequest(
+              accessToken,
+              `/crm/v3/objects/products/${lineItemResponse.properties.hs_product_id}?properties=item_number`
+            );
+            itemNumber = productResponse.properties?.item_number || '';
+          } catch (_prodErr) {
+            // Non-critical - continue without product item_number
+          }
+        }
+
+        return {
+          id: lineItemResponse.id,
+          name: lineItemResponse.properties.name,
+          model: lineItemResponse.properties.hs_sku || lineItemResponse.properties.name,
+          description: lineItemResponse.properties.description,
+          quantity: parseFloat(lineItemResponse.properties.quantity) || 1,
+          price: parseFloat(lineItemResponse.properties.price) || 0,
+          sku: lineItemResponse.properties.hs_sku,
+          itemNumber: itemNumber,
+          category: lineItemResponse.properties.hs_product_type,
+          condition: lineItemResponse.properties.condition || lineItemResponse.properties.hs_product_condition || '',
+          dealer: lineItemResponse.properties.dealer || lineItemResponse.properties.manufacturer || lineItemResponse.properties.vendor || lineItemResponse.properties.hs_line_item_dealer || '',
+          machineType: lineItemResponse.properties.color_mono || lineItemResponse.properties.machine_type || 'Color',
+          cost: parseFloat(lineItemResponse.properties.unit_cost) || parseFloat(lineItemResponse.properties.hs_cost_of_goods_sold) || 0,
+          serial: lineItemResponse.properties.serial_number || '',
+          equipmentId: lineItemResponse.properties.equipment_id || '',
+          meterMethod: lineItemResponse.properties.meter_method || '',
+          meterReadingBW: lineItemResponse.properties.meter_reading_bw || lineItemResponse.properties.meter_reading || '',
+          meterReadingColor: lineItemResponse.properties.meter_reading_color || '',
+          properties: lineItemResponse.properties, // Include raw properties
+        };
+      });
+      lineItems = await Promise.all(lineItemPromises);
+      console.log('Line items fetched:', lineItems.length);
+    }
+  } catch (e) {
+    console.error('Failed to fetch line items:', e);
+  }
+  return lineItems;
+}
+
 Deno.serve(async (req) => {
   if (req.method === 'OPTIONS') {
     return new Response(null, { headers: corsHeaders });
@@ -279,19 +537,27 @@ Deno.serve(async (req) => {
     const url = new URL(req.url);
 
     // Accept both GET query params and POST JSON body
-    let portalId = url.searchParams.get('portalId');
-    let dealId = url.searchParams.get('dealId');
-
-    if ((!portalId || !dealId) && req.method !== 'GET') {
-      const body = await req.json().catch(() => ({} as any));
-      portalId = portalId || body.portalId || body.portal_id;
-      dealId = dealId || body.dealId || body.recordId || body.objectId;
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    let body: any = {};
+    if (req.method !== 'GET') {
+      body = await req.json().catch(() => ({} as any));
     }
+    const portalId = url.searchParams.get('portalId') || body.portalId || body.portal_id;
+    const dealId = url.searchParams.get('dealId') || body.dealId || body.recordId || body.objectId;
 
-    // Read objectType to support Projects
-    const objectType = url.searchParams.get('objectType') || 'deals';
+    // Anchor object type: which CRM object the app is mounted on (deals or projects)
+    const objectType = normalizeAnchorObjectType(
+      url.searchParams.get('objectType') || body.objectType || body.object_type
+    );
 
     console.log('Request received - portalId:', portalId, 'dealId:', dealId, 'objectType:', objectType);
+
+    if (!objectType) {
+      return new Response(
+        JSON.stringify({ error: 'Unsupported objectType' }),
+        { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
 
     if (!portalId || !dealId) {
       return new Response(
@@ -375,72 +641,161 @@ Deno.serve(async (req) => {
 
     console.log('Dynamic properties - deal:', Array.from(dealPropsNeeded).length, 'company:', Array.from(companyPropsNeeded).length);
 
-    // If objectType is 'projects', resolve the project's associated deal first
-    let resolvedDealId = dealId;
-    let projectInfo: { id: string; name: string; stage: string; pipeline: string } | null = null;
+    // Collect company-contact association labels needed from field mappings
+    const companyContactLabels: Set<string> = new Set();
+    for (const mappings of Object.values(fieldMappings)) {
+      for (const mapping of mappings) {
+        if (mapping.hubspot_object === 'contact' &&
+            mapping.association_path === 'company_contact' &&
+            mapping.association_label) {
+          companyContactLabels.add(mapping.association_label);
+        }
+      }
+    }
+    console.log('Company contact labels to fetch:', Array.from(companyContactLabels));
 
-    if (objectType === 'projects' || objectType === '0-54') {
-      console.log('Project object detected, resolving associated deal...');
+    const dealPropsString = Array.from(dealPropsNeeded).join(',');
+
+    // ============================================================
+    // PROJECT ANCHOR: the app is mounted on a HubSpot Project record.
+    // The project is the primary record (persistence keys off its ID);
+    // company/contacts come from the project's own associations (falling
+    // back to the associated deal's), and line items come from the
+    // associated deal since HubSpot does not support project<->line_item
+    // associations.
+    // ============================================================
+    if (objectType === 'projects') {
+      console.log('Hydrating project anchor:', dealId);
+
+      // Fetch the project record (retry without owner property in case it
+      // is not defined on the Projects object in this portal)
+      const baseProjectProps = 'hs_project_title,hs_pipeline_stage,hs_pipeline';
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      let projectResponse: any;
       try {
-        // Fetch the project record
-        const projectResponse = await hubspotRequest(
+        projectResponse = await hubspotRequest(
           accessToken,
-          `/crm/v3/objects/projects/${dealId}?properties=hs_project_title,hs_pipeline_stage,hs_pipeline`
+          `/crm/v3/objects/projects/${dealId}?properties=${baseProjectProps},hubspot_owner_id`
         );
-        projectInfo = {
-          id: projectResponse.id,
-          name: projectResponse.properties?.hs_project_title || 'Untitled Project',
-          stage: projectResponse.properties?.hs_pipeline_stage || '',
-          pipeline: projectResponse.properties?.hs_pipeline || '',
-        };
-        console.log('Project found:', projectInfo.name);
+      } catch (_ownerPropErr) {
+        projectResponse = await hubspotRequest(
+          accessToken,
+          `/crm/v3/objects/projects/${dealId}?properties=${baseProjectProps}`
+        );
+      }
 
-        // Get associated deals via Associations API
+      const projectInfo = {
+        id: projectResponse.id,
+        name: projectResponse.properties?.hs_project_title || 'Untitled Project',
+        stage: projectResponse.properties?.hs_pipeline_stage || '',
+        pipeline: projectResponse.properties?.hs_pipeline || '',
+      };
+      console.log('Project found:', projectInfo.name);
+
+      // Resolve the first associated deal (line items + fallback context)
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      let associatedDealResponse: any = null;
+      try {
         const assocResponse = await hubspotRequest(
           accessToken,
           `/crm/v4/objects/projects/${dealId}/associations/deals`
         );
         const associatedDeals = assocResponse.results || [];
         if (associatedDeals.length > 0) {
-          resolvedDealId = associatedDeals[0].toObjectId;
-          console.log('Resolved project to deal:', resolvedDealId);
-        } else {
-          console.log('No associated deal found for project, returning project info only');
-          // Return minimal response with project info but no deal data
-          return new Response(
-            JSON.stringify({
-              deal: {
-                dealId: projectInfo.id,
-                hsObjectId: projectInfo.id,
-                dealName: projectInfo.name,
-                amount: null,
-                stage: projectInfo.stage,
-                pipeline: projectInfo.pipeline,
-                closeDate: null,
-                ownerId: null,
-              },
-              company: null,
-              contacts: [],
-              lineItems: [],
-              dealOwner: null,
-              labeledContacts: null,
-              companyContacts: null,
-              projectInfo,
-            }),
-            { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+          const associatedDealId = String(associatedDeals[0].toObjectId);
+          associatedDealResponse = await hubspotRequest(
+            accessToken,
+            `/crm/v3/objects/deals/${associatedDealId}?properties=${dealPropsString}`
           );
+          console.log('Associated deal resolved:', associatedDealId);
         }
-      } catch (projErr) {
-        console.error('Project resolution error:', projErr);
-        // Fall through to try treating dealId as a deal directly
+      } catch (assocErr) {
+        console.error('Failed to resolve associated deal for project:', assocErr);
       }
+
+      // Company + labeled contacts: project's own association first, then the deal's
+      let companyResult = await fetchCompanyForAnchor(
+        accessToken, 'projects', dealId, companyPropsNeeded, companyContactLabels
+      );
+      if (!companyResult.company && associatedDealResponse) {
+        companyResult = await fetchCompanyForAnchor(
+          accessToken, 'deals', associatedDealResponse.id, companyPropsNeeded, companyContactLabels
+        );
+      }
+
+      // Contacts: project's own association first, then the deal's
+      let contacts = await fetchContactsForAnchor(accessToken, 'projects', dealId, contactPropsNeeded);
+      if (contacts.length === 0 && associatedDealResponse) {
+        contacts = await fetchContactsForAnchor(accessToken, 'deals', associatedDealResponse.id, contactPropsNeeded);
+      }
+
+      // Line items: only available via the associated deal
+      const lineItems = associatedDealResponse
+        ? await fetchDealLineItems(accessToken, associatedDealResponse.id, lineItemPropsNeeded)
+        : [];
+
+      // Owner: project owner if the property exists, else the associated deal's owner
+      const ownerId = projectResponse.properties?.hubspot_owner_id
+        || associatedDealResponse?.properties?.hubspot_owner_id
+        || null;
+      const dealOwner = ownerId ? await fetchOwner(accessToken, supabase, ownerId) : null;
+
+      // Anchor record presented in the deal-shaped slot the frontend expects.
+      // dealId/hsObjectId are the PROJECT's ID: all persistence keys off it.
+      const deal = {
+        dealId: projectResponse.id,
+        hsObjectId: projectResponse.properties?.hs_object_id || projectResponse.id,
+        dealName: projectInfo.name,
+        amount: associatedDealResponse?.properties?.amount
+          ? parseFloat(associatedDealResponse.properties.amount)
+          : null,
+        stage: projectInfo.stage,
+        pipeline: projectInfo.pipeline,
+        closeDate: associatedDealResponse?.properties?.closedate || null,
+        ownerId,
+      };
+
+      // Raw properties: project properties win; associated deal properties fill
+      // in underneath so deal-mapped custom document fields still resolve.
+      const rawProperties = {
+        company: companyResult.company
+          ? { ...companyResult.company, ...(associatedDealResponse?.properties || {}), ...(projectResponse.properties || {}) }
+          : {},
+        deal: { ...(associatedDealResponse?.properties || {}), ...(projectResponse.properties || {}) },
+        owner: dealOwner || {},
+      };
+
+      const responseData = {
+        deal,
+        dealOwner,
+        company: companyResult.company,
+        contacts,
+        lineItems,
+        labeledContacts: companyResult.labeledContacts,
+        companyContacts: companyResult.companyContacts,
+        properties: rawProperties,
+        fieldMappings,
+        projectInfo,
+        anchorObjectType: 'projects',
+        associatedDealId: associatedDealResponse ? String(associatedDealResponse.id) : null,
+      };
+
+      console.log('Returning project anchor data, associatedDealId:', responseData.associatedDealId);
+
+      return new Response(
+        JSON.stringify(responseData),
+        { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
     }
 
+    // ============================================================
+    // DEAL ANCHOR (default): original behavior, unchanged.
+    // ============================================================
+
     // Fetch deal with dynamic properties
-    const dealPropsString = Array.from(dealPropsNeeded).join(',');
     const dealResponse = await hubspotRequest(
       accessToken,
-      `/crm/v3/objects/deals/${resolvedDealId}?properties=${dealPropsString}`
+      `/crm/v3/objects/deals/${dealId}?properties=${dealPropsString}`
     );
 
     console.log('Deal fetched:', dealResponse.id);
@@ -457,233 +812,18 @@ Deno.serve(async (req) => {
     };
 
     // Fetch deal owner with phone and email
-    let dealOwner = null;
-    if (deal.ownerId) {
-      try {
-        const ownerResponse = await hubspotRequest(accessToken, `/crm/v3/owners/${deal.ownerId}`);
-        dealOwner = {
-          id: ownerResponse.id,
-          firstName: ownerResponse.firstName,
-          lastName: ownerResponse.lastName,
-          email: ownerResponse.email || null,
-          phone: ownerResponse.phone || null,
-        };
-        console.log('Deal owner fetched:', dealOwner.firstName, dealOwner.lastName, 'email:', dealOwner.email);
+    const dealOwner = deal.ownerId ? await fetchOwner(accessToken, supabase, deal.ownerId) : null;
 
-        // If HubSpot owner record doesn't have a phone, check commission_user_settings
-        if (!dealOwner.phone) {
-          try {
-            const { data: repSettings } = await supabase
-              .from('commission_user_settings')
-              .select('phone')
-              .eq('hubspot_user_id', ownerResponse.userId || ownerResponse.id)
-              .maybeSingle();
-            if (repSettings?.phone) {
-              dealOwner.phone = repSettings.phone;
-              console.log('Rep phone from settings:', dealOwner.phone);
-            }
-          } catch (phoneErr) {
-            // Non-critical - continue without phone
-          }
-        }
-      } catch (e) {
-        console.error('Failed to fetch deal owner:', e);
-      }
-    }
-
-    // Fetch associated company with all address fields including customer_number
-    let company = null;
-    let labeledContacts: LabeledContacts = {
-      shippingContact: null,
-      apContact: null,
-      itContact: null,
-    };
-    let companyContacts: CompanyContacts = {};
-
-    // Collect company-contact association labels needed from field mappings
-    const companyContactLabels: Set<string> = new Set();
-    for (const mappings of Object.values(fieldMappings)) {
-      for (const mapping of mappings) {
-        if (mapping.hubspot_object === 'contact' && 
-            mapping.association_path === 'company_contact' && 
-            mapping.association_label) {
-          companyContactLabels.add(mapping.association_label);
-        }
-      }
-    }
-    console.log('Company contact labels to fetch:', Array.from(companyContactLabels));
-
-    try {
-      const companyAssociations = await hubspotRequest(
-        accessToken,
-        `/crm/v3/objects/deals/${dealId}/associations/companies`
-      );
-      
-      if (companyAssociations.results?.length > 0) {
-        const companyId = companyAssociations.results[0].id;
-        // Fetch company with all address fields including delivery (Ship To) and AP (Bill To) addresses
-        // Use dynamic company properties list
-        const companyPropsString = Array.from(companyPropsNeeded).join(',');
-        
-        const companyResponse = await hubspotRequest(
-          accessToken,
-          `/crm/v3/objects/companies/${companyId}?properties=${companyPropsString}`
-        );
-        
-        // Debug: Log raw company properties to identify correct AP address field names
-        // Raw properties log removed for PII safety
-        
-        // Helper to validate if a value looks like a valid ZIP code (not a 2-letter state)
-        const isValidZip = (val: string | null | undefined): boolean => {
-          if (!val) return false;
-          const trimmed = val.trim();
-          // ZIP codes contain digits and are not just 2 letters (state abbreviation)
-          if (/^\d{5}(-\d{4})?$/.test(trimmed)) return true; // US ZIP
-          if (/^[A-Za-z]\d[A-Za-z][ -]?\d[A-Za-z]\d$/.test(trimmed)) return true; // Canadian postal
-          // Reject if it's exactly 2 letters (state abbreviation)
-          if (/^[A-Za-z]{2}$/.test(trimmed)) return false;
-          // Accept if it contains any digits
-          return /\d/.test(trimmed);
-        };
-
-        // Get the best delivery ZIP value (try multiple fields, validate each)
-        const rawDeliveryZips = [
-          companyResponse.properties.zip__del_,
-          companyResponse.properties.zip_code__del_,
-          companyResponse.properties.postal_code__del_,
-        ];
-        const deliveryZip = rawDeliveryZips.find(isValidZip) || '';
-        
-        console.log('Delivery ZIP candidates:', rawDeliveryZips, 'Selected:', deliveryZip);
-
-        company = {
-          companyId: companyResponse.id,
-          name: companyResponse.properties.name,
-          address: companyResponse.properties.address,
-          address2: companyResponse.properties.address2,
-          city: companyResponse.properties.city,
-          state: companyResponse.properties.state,
-          zip: companyResponse.properties.zip,
-          phone: companyResponse.properties.phone,
-          domain: companyResponse.properties.domain,
-          customerNumber: companyResponse.properties.customer_number || '',
-          // Ship To (Delivery) Address
-          deliveryAddress: companyResponse.properties.street_address__del_ || '',
-          deliveryAddress2: companyResponse.properties.street_address_line_2__del_ || '',
-          deliveryCity: companyResponse.properties.city__del_ || '',
-          deliveryState: companyResponse.properties.state__del_ || '',
-          deliveryZip: deliveryZip,
-          // Bill To (AP) Address (2 underscores)
-          apAddress: companyResponse.properties.street_address__ap_ || '',
-          apAddress2: companyResponse.properties.street_address_line_2__ap_ || '',
-          apCity: companyResponse.properties.city__ap_ || '',
-          apState: companyResponse.properties.state__ap_ || '',
-          apZip: companyResponse.properties.zip_code__ap_ || '',
-        };
-        console.log('Company fetched for portal');
-
-        // Fetch labeled contacts from company (pass additional labels from field mappings)
-        const contactsResult = await fetchLabeledContacts(accessToken, companyId, Array.from(companyContactLabels));
-        labeledContacts = contactsResult.labeledContacts;
-        companyContacts = contactsResult.companyContacts;
-      }
-    } catch (e) {
-      console.error('Failed to fetch company:', e);
-    }
+    // Fetch associated company (and labeled contacts) with all address fields
+    const { company, labeledContacts, companyContacts } = await fetchCompanyForAnchor(
+      accessToken, 'deals', dealId, companyPropsNeeded, companyContactLabels
+    );
 
     // Fetch associated contacts (from deal)
-    let contacts: any[] = [];
-    try {
-      const contactAssociations = await hubspotRequest(
-        accessToken,
-        `/crm/v3/objects/deals/${dealId}/associations/contacts`
-      );
-      
-      if (contactAssociations.results?.length > 0) {
-        // Use dynamic contact properties list
-        const contactPropsString = Array.from(contactPropsNeeded).join(',');
-        const contactPromises = contactAssociations.results.slice(0, 5).map(async (assoc: any) => {
-          const contactResponse = await hubspotRequest(
-            accessToken,
-            `/crm/v3/objects/contacts/${assoc.id}?properties=${contactPropsString}`
-          );
-          return {
-            contactId: contactResponse.id,
-            firstName: contactResponse.properties.firstname,
-            lastName: contactResponse.properties.lastname,
-            email: contactResponse.properties.email,
-            phone: contactResponse.properties.phone,
-            title: contactResponse.properties.jobtitle,
-            properties: contactResponse.properties, // Include raw properties
-          };
-        });
-        contacts = await Promise.all(contactPromises);
-        console.log('Contacts fetched:', contacts.length);
-      }
-    } catch (e) {
-      console.error('Failed to fetch contacts:', e);
-    }
+    const contacts = await fetchContactsForAnchor(accessToken, 'deals', dealId, contactPropsNeeded);
 
     // Fetch line items with model field
-    let lineItems: any[] = [];
-    try {
-      const lineItemAssociations = await hubspotRequest(
-        accessToken,
-        `/crm/v3/objects/deals/${dealId}/associations/line_items`
-      );
-      
-      if (lineItemAssociations.results?.length > 0) {
-        // Use dynamic line item properties list
-        const lineItemPropsString = Array.from(lineItemPropsNeeded).join(',');
-        const lineItemPromises = lineItemAssociations.results.map(async (assoc: any) => {
-          const lineItemResponse = await hubspotRequest(
-            accessToken,
-            `/crm/v3/objects/line_items/${assoc.id}?properties=${lineItemPropsString}`
-          );
-          
-          let itemNumber = lineItemResponse.properties.item_number || '';
-          
-          // If item_number is empty on the line item, try to get it from the associated product
-          if (!itemNumber && lineItemResponse.properties.hs_product_id) {
-            try {
-              const productResponse = await hubspotRequest(
-                accessToken,
-                `/crm/v3/objects/products/${lineItemResponse.properties.hs_product_id}?properties=item_number`
-              );
-              itemNumber = productResponse.properties?.item_number || '';
-            } catch (prodErr) {
-              // Non-critical - continue without product item_number
-            }
-          }
-          
-          return {
-            id: lineItemResponse.id,
-            name: lineItemResponse.properties.name,
-            model: lineItemResponse.properties.hs_sku || lineItemResponse.properties.name,
-            description: lineItemResponse.properties.description,
-            quantity: parseFloat(lineItemResponse.properties.quantity) || 1,
-            price: parseFloat(lineItemResponse.properties.price) || 0,
-            sku: lineItemResponse.properties.hs_sku,
-            itemNumber: itemNumber,
-            category: lineItemResponse.properties.hs_product_type,
-            condition: lineItemResponse.properties.condition || lineItemResponse.properties.hs_product_condition || '',
-            dealer: lineItemResponse.properties.dealer || lineItemResponse.properties.manufacturer || lineItemResponse.properties.vendor || lineItemResponse.properties.hs_line_item_dealer || '',
-            machineType: lineItemResponse.properties.color_mono || lineItemResponse.properties.machine_type || 'Color',
-            cost: parseFloat(lineItemResponse.properties.unit_cost) || parseFloat(lineItemResponse.properties.hs_cost_of_goods_sold) || 0,
-            serial: lineItemResponse.properties.serial_number || '',
-            equipmentId: lineItemResponse.properties.equipment_id || '',
-            meterMethod: lineItemResponse.properties.meter_method || '',
-            meterReadingBW: lineItemResponse.properties.meter_reading_bw || lineItemResponse.properties.meter_reading || '',
-            meterReadingColor: lineItemResponse.properties.meter_reading_color || '',
-            properties: lineItemResponse.properties, // Include raw properties
-          };
-        });
-        lineItems = await Promise.all(lineItemPromises);
-        console.log('Line items fetched:', lineItems.length);
-      }
-    } catch (e) {
-      console.error('Failed to fetch line items:', e);
-    }
+    const lineItems = await fetchDealLineItems(accessToken, dealId, lineItemPropsNeeded);
 
     // Build raw properties object for custom field resolution
     const rawProperties = {
@@ -703,7 +843,9 @@ Deno.serve(async (req) => {
       // Include raw properties for custom document field resolution
       properties: rawProperties,
       fieldMappings,
-      projectInfo, // null if initiated from a deal, populated if from a project
+      projectInfo: null, // populated only when the app is anchored on a project
+      anchorObjectType: 'deals',
+      associatedDealId: null,
     };
 
     console.log('Returning data successfully, companyContacts labels:', Object.keys(companyContacts));
