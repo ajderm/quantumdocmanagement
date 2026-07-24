@@ -236,19 +236,23 @@ export function DocumentPacketForm({
           window.open(data.pdfUrl, '_blank');
         }
 
-        // Attach compiled PDF to HubSpot deal/project
+        // Attach compiled PDF to the HubSpot anchor record (deal or project).
+        // objectType is injected by the anchor-context interceptor. Surface
+        // attach failures instead of masking them as success.
         if (dealId) {
           try {
-            const { error: attachError } = await supabase.functions.invoke('hubspot-attach-file', {
+            const { data: attachData, error: attachError } = await supabase.functions.invoke('hubspot-attach-file', {
               body: { portalId, dealId, fileUrl: data.pdfUrl, fileName },
             });
-            if (!attachError) {
+            if (!attachError && !attachData?.error) {
               toast.success('Compiled and attached to HubSpot');
             } else {
-              toast.success('Document packet compiled');
+              console.error('Attach to HubSpot failed:', attachError || attachData?.error);
+              toast.warning('Compiled and downloaded, but attaching to the HubSpot record failed');
             }
-          } catch {
-            toast.success('Document packet compiled');
+          } catch (attachErr) {
+            console.error('Attach to HubSpot threw:', attachErr);
+            toast.warning('Compiled and downloaded, but attaching to the HubSpot record failed');
           }
         } else {
           toast.success('Document packet compiled');

@@ -87,7 +87,7 @@ Deno.serve(async (req) => {
   try {
     console.log('hubspot-attach-file: Parsing request body...');
     const body = await req.json();
-    const { portalId, dealId, fileName, fileBase64 } = body;
+    const { portalId, dealId, fileName, fileBase64, fileUrl } = body;
 
     // Anchor object type: which CRM record the note (with the attached file)
     // gets associated to. Defaults to deals; 'projects' associates to the
@@ -105,7 +105,10 @@ Deno.serve(async (req) => {
 
     console.log('hubspot-attach-file: Processing request for portal:', portalId, 'objectType:', objectType);
 
-    if (!portalId || !dealId || !fileName || !fileBase64) {
+    // The file may be provided inline as base64 (single-document generation) OR
+    // as a URL to fetch server-side (the compiled document packet, which lives in
+    // storage and would be wasteful to round-trip through the browser as base64).
+    if (!portalId || !dealId || !fileName || (!fileBase64 && !fileUrl)) {
       console.error('hubspot-attach-file: Missing required fields');
       return new Response(JSON.stringify({ error: 'Missing required fields' }), {
         status: 400,
@@ -126,11 +129,25 @@ Deno.serve(async (req) => {
 
     const accessToken = await getValidAccessToken(supabase, portalId);
 
-    // Convert base64 to binary
-    const binaryString = atob(fileBase64);
-    const bytes = new Uint8Array(binaryString.length);
-    for (let i = 0; i < binaryString.length; i++) {
-      bytes[i] = binaryString.charCodeAt(i);
+    // Resolve the file bytes from either the inline base64 or the URL
+    let bytes: Uint8Array;
+    if (fileBase64) {
+      const binaryString = atob(fileBase64);
+      bytes = new Uint8Array(binaryString.length);
+      for (let i = 0; i < binaryString.length; i++) {
+        bytes[i] = binaryString.charCodeAt(i);
+      }
+    } else {
+      console.log('Fetching file from URL for attach...');
+      const fileResp = await fetch(fileUrl);
+      if (!fileResp.ok) {
+        console.error('Failed to fetch file from URL:', fileResp.status);
+        return new Response(JSON.stringify({ error: `Failed to fetch file from URL: ${fileResp.status}` }), {
+          status: 502,
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        });
+      }
+      bytes = new Uint8Array(await fileResp.arrayBuffer());
     }
 
     // Upload file to HubSpot
