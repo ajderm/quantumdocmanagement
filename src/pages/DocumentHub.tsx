@@ -775,8 +775,14 @@ function DocumentHubContent() {
 
     if (deal?.hsObjectId) {
       loadAllConfigs();
+    } else if (!loading) {
+      // No anchor record resolved (e.g. the embed URL is missing portalId or
+      // recordId). There's nothing to load — release the configsLoaded gate so
+      // the app can show the "no record loaded" screen instead of spinning
+      // forever.
+      setConfigsLoaded(true);
     }
-  }, [portalId, deal?.hsObjectId]);
+  }, [portalId, deal?.hsObjectId, loading]);
 
   // Load quote versions when deal is available
   useEffect(() => {
@@ -3676,6 +3682,40 @@ function DocumentHubContent() {
           <CardContent className="pt-6 text-center">
             <p className="text-destructive mb-2">Failed to load deal data</p>
             <p className="text-sm text-muted-foreground">{error}</p>
+          </CardContent>
+        </Card>
+      </div>
+    );
+  }
+
+  // No anchor record: the embed URL didn't provide the parameters needed to
+  // load one. Say exactly what's missing instead of spinning forever — this is
+  // the most common misconfiguration when the card is first added to a new
+  // record type (e.g. projects).
+  if (!deal) {
+    const urlParams = new URLSearchParams(window.location.search);
+    const missingParams = [
+      !(urlParams.get("portalId") || urlParams.get("portal_id")) && "portalId",
+      !(urlParams.get("dealId") || urlParams.get("recordId") || urlParams.get("objectId")) && "recordId",
+    ].filter(Boolean) as string[];
+    return (
+      <div className="flex items-center justify-center min-h-screen bg-background">
+        <Card className="max-w-md">
+          <CardContent className="pt-6 text-center">
+            <p className="font-semibold mb-2">No record loaded</p>
+            {missingParams.length > 0 ? (
+              <p className="text-sm text-muted-foreground">
+                The embed URL is missing: <span className="font-mono">{missingParams.join(", ")}</span>. Update the
+                HubSpot card URL to pass <span className="font-mono">portalId</span> and{" "}
+                <span className="font-mono">recordId</span> (plus <span className="font-mono">objectType=projects</span>{" "}
+                when the card is on a project record).
+              </p>
+            ) : (
+              <p className="text-sm text-muted-foreground">
+                The record could not be loaded. Verify this portal has completed the app's HubSpot authorization and
+                that the card URL passes the correct <span className="font-mono">objectType</span> for this record.
+              </p>
+            )}
           </CardContent>
         </Card>
       </div>
