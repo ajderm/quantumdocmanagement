@@ -1,5 +1,6 @@
 import { createContext, useContext, useEffect, useState, type ReactNode } from "react";
 import { supabase } from "@/integrations/supabase/client";
+import { normalizeAnchorObjectType, type AnchorObjectType } from "@/lib/anchorContext";
 
 interface LabeledContact {
   firstName: string;
@@ -23,9 +24,22 @@ interface RawProperties {
   owner: Record<string, any>;
 }
 
+interface ProjectInfo {
+  id: string;
+  name: string;
+  stage: string;
+  pipeline: string;
+}
+
 type HubSpotContextType = {
   portalId: string | null;
   userId: string | null;
+  /** Anchor CRM object the app is mounted on ('deals' or 'projects'). */
+  objectType: AnchorObjectType;
+  /** Populated when the app is anchored on a project. */
+  projectInfo: ProjectInfo | null;
+  /** The project's first associated deal (line-item source), when anchored on a project. */
+  associatedDealId: string | null;
   deal: any;
   company: any;
   contacts: any[];
@@ -50,7 +64,7 @@ function readHubSpotParams() {
   const portalId = urlParams.get("portalId") || urlParams.get("portal_id");
   const userId = urlParams.get("userId") || urlParams.get("user_id");
   const dealId = urlParams.get("dealId") || urlParams.get("recordId") || urlParams.get("objectId");
-  const objectType = urlParams.get("objectType") || urlParams.get("object_type") || "deals";
+  const objectType = normalizeAnchorObjectType(urlParams.get("objectType") || urlParams.get("object_type"));
 
   return { portalId, userId, dealId, objectType };
 }
@@ -63,6 +77,9 @@ export function HubSpotProvider({ children }: { children: ReactNode }) {
     typeof window !== "undefined" ? window.localStorage.getItem(STORAGE_KEYS.userId) : null,
   );
 
+  const [objectType] = useState<AnchorObjectType>(() => readHubSpotParams().objectType);
+  const [projectInfo, setProjectInfo] = useState<ProjectInfo | null>(null);
+  const [associatedDealId, setAssociatedDealId] = useState<string | null>(null);
   const [deal, setDeal] = useState<any>(null);
   const [company, setCompany] = useState<any>(null);
   const [contacts, setContacts] = useState<any[]>([]);
@@ -144,6 +161,8 @@ export function HubSpotProvider({ children }: { children: ReactNode }) {
         if (invokeError) throw invokeError;
 
         if (data?.deal) setDeal(data.deal);
+        setProjectInfo(data?.projectInfo || null);
+        setAssociatedDealId(data?.associatedDealId || null);
         if (data?.company) setCompany(data.company);
         if (data?.contacts) setContacts(data.contacts);
         if (data?.lineItems) setLineItems(data.lineItems);
@@ -177,6 +196,9 @@ export function HubSpotProvider({ children }: { children: ReactNode }) {
       value={{
         portalId,
         userId,
+        objectType,
+        projectInfo,
+        associatedDealId,
         deal,
         company,
         contacts,

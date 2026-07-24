@@ -157,7 +157,13 @@ function DocumentHubContent() {
     error,
     portalId,
     userId,
+    objectType,
   } = useHubSpot();
+
+  // Whether the anchor record is a deal. Deal-only HubSpot write-backs
+  // (line-item sync, deal amount/financing updates) are skipped for other
+  // anchor objects like projects.
+  const isDealAnchor = objectType === "deals";
 
   // User permissions
   const [userPermissions, setUserPermissions] = useState<{
@@ -2152,8 +2158,9 @@ function DocumentHubContent() {
       localStorage.removeItem(`quote_backup_${currentPortalId}_${dealId}`);
       localStorage.removeItem(`quote_backup_${dealId}`);
 
-      // Sync line items to HubSpot (replace all)
-      if (formData.lineItems && formData.lineItems.length > 0) {
+      // Sync line items to HubSpot (replace all).
+      // Deal anchors only: HubSpot line items can't associate with projects.
+      if (isDealAnchor && formData.lineItems && formData.lineItems.length > 0) {
         // Create HubSpot products for manually-added items (id starts with "new-")
         // that have a model or description filled in
         const manualItems = formData.lineItems.filter(
@@ -2218,30 +2225,33 @@ function DocumentHubContent() {
         }
       }
 
-      // Update deal properties in HubSpot (amount + financing)
-      try {
-        const dealProperties: Record<string, string> = {};
-        // Only push deal amount for non-rental quotes (rental total is unknown upfront)
-        if (formData.leaseProgram !== "rental" && formData.retailPrice > 0) {
-          dealProperties.amount = formData.retailPrice.toString();
-        }
-        if (formData.buyoutFinancingAmount > 0) {
-          dealProperties.financing_amount = formData.buyoutFinancingAmount.toString();
-        }
+      // Update deal properties in HubSpot (amount + financing).
+      // Deal anchors only: projects have no amount/financing properties.
+      if (isDealAnchor) {
+        try {
+          const dealProperties: Record<string, string> = {};
+          // Only push deal amount for non-rental quotes (rental total is unknown upfront)
+          if (formData.leaseProgram !== "rental" && formData.retailPrice > 0) {
+            dealProperties.amount = formData.retailPrice.toString();
+          }
+          if (formData.buyoutFinancingAmount > 0) {
+            dealProperties.financing_amount = formData.buyoutFinancingAmount.toString();
+          }
 
-        const { error: hubspotError } = await supabase.functions.invoke("hubspot-update-deal", {
-          body: {
-            portalId: currentPortalId,
-            dealId: dealId,
-            properties: dealProperties,
-          },
-        });
+          const { error: hubspotError } = await supabase.functions.invoke("hubspot-update-deal", {
+            body: {
+              portalId: currentPortalId,
+              dealId: dealId,
+              properties: dealProperties,
+            },
+          });
 
-        if (hubspotError) {
-          console.error("HubSpot deal update error:", hubspotError);
+          if (hubspotError) {
+            console.error("HubSpot deal update error:", hubspotError);
+          }
+        } catch (hsErr) {
+          console.error("HubSpot sync error:", hsErr);
         }
-      } catch (hsErr) {
-        console.error("HubSpot sync error:", hsErr);
       }
 
       // Stamp last-app-activity on save. Isolated from the write above and
