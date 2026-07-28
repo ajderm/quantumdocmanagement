@@ -2688,7 +2688,15 @@ function DocumentHubContent() {
           contractNumber: formData?.contractNumber || "",
           showFinancingProvider: formData?.showFinancingProvider ?? true,
         };
-        const merged = { ...data.configuration, ...customerFields };
+        // Drop payment overrides stored in the template: they were hand-typed
+        // against the SOURCE deal's pricing, and QuotePreview prefers an override
+        // over the recalculated calculatedPayments — so carrying them over freezes
+        // the customer-facing lease payment while the in-app quote/commission
+        // sections read live cost/price. Clearing them lets QuoteForm re-derive
+        // calculatedPayments from this deal's line items. Overrides the rep types
+        // AFTER the template load persist, and version restore (restoreQuoteVersion)
+        // uses its own path and is unaffected.
+        const merged = { ...data.configuration, ...customerFields, paymentOverrides: {} };
         // Set both formData AND savedConfig so QuoteForm's initialization
         // useEffect treats the template as the saved state (won't overwrite with HubSpot data)
         setFormData(merged);
