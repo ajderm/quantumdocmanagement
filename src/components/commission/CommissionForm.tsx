@@ -402,18 +402,23 @@ export function CommissionForm({
       }
 
       setFormData(merged);
-      // Restore text fields
-      if (merged.buyoutTradeUp) setBuyoutText(String(merged.buyoutTradeUp));
-      if (merged.shippingCosts) setShippingText(String(merged.shippingCosts));
-      if (merged.setupCost) setSetupCostText(String(merged.setupCost));
-      if (merged.deliveryCost) setDeliveryCostText(String(merged.deliveryCost));
-      if (merged.connectivity) setConnectivityText(String(merged.connectivity));
-      if (merged.itProfessionalServices) setItText(String(merged.itProfessionalServices));
-      if (merged.leadFee) setLeadFeeText(String(merged.leadFee));
-      if (merged.splitPercentage) setSplitText(String(merged.splitPercentage));
-      if (merged.otherSalesFees) setOtherText(String(merged.otherSalesFees));
-      if (savedConfig.connectedAmount) setConnectedText(String(savedConfig.connectedAmount));
-      if (savedConfig.rateUsed) setRateText(String(savedConfig.rateUsed));
+      // Restore text fields. Use != null (not truthiness) so an explicit 0
+      // saved by the rep is honored — otherwise a zeroed cost (e.g. shipping)
+      // would fall back to the non-zero text default ("170"/"100") on remount
+      // and look like it reverted to the default.
+      const restoreText = (v: unknown, setter: (s: string) => void) =>
+        setter(v !== null && v !== undefined ? String(v) : "");
+      restoreText(merged.buyoutTradeUp, setBuyoutText);
+      restoreText(merged.shippingCosts, setShippingText);
+      restoreText(merged.setupCost, setSetupCostText);
+      restoreText(merged.deliveryCost, setDeliveryCostText);
+      restoreText(merged.connectivity, setConnectivityText);
+      restoreText(merged.itProfessionalServices, setItText);
+      restoreText(merged.leadFee, setLeadFeeText);
+      restoreText(merged.splitPercentage, setSplitText);
+      restoreText(merged.otherSalesFees, setOtherText);
+      restoreText((savedConfig as any).connectedAmount, setConnectedText);
+      restoreText((savedConfig as any).rateUsed, setRateText);
     } else {
       const initData = { ...getDefaultCommissionFormData(), ...hubspotData };
       if (buyoutFromQuote > 0) {
@@ -779,7 +784,10 @@ export function CommissionForm({
                   updateField(field, parseCurrency(e.target.value));
                 }}
                 onBlur={() => {
-                  if (formData[field]) setText(formatCurrency(formData[field] as number));
+                  // Honor an explicit 0 (don't treat it as "empty") so a zeroed
+                  // cost formats to 0.00 instead of snapping back to a default.
+                  const v = formData[field] as number;
+                  if (v !== null && v !== undefined) setText(formatCurrency(v));
                 }}
               />
             </div>
