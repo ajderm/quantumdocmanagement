@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef } from "react";
+import { todayLocalDateString } from "@/lib/dateUtils";
 import { SectionCard, FieldGrid, Field } from "@/components/shared";
 import { Switch } from "@/components/ui/switch";
 import { Textarea } from "@/components/ui/textarea";
@@ -100,7 +101,7 @@ const parseCurrency = (value: string): number => parseFloat(value.replace(/[^0-9
 export function getDefaultCommissionFormData(): CommissionFormData {
   return {
     salesRepresentative: "",
-    soldOnDate: new Date().toISOString().split("T")[0],
+    soldOnDate: todayLocalDateString(),
     customer: "",
     orderNumber: "",
     address: "",
@@ -290,9 +291,12 @@ export function CommissionForm({
     if (hasInitializedRef.current) return;
 
     const closeDate = deal?.closeDate || deal?.properties?.closedate || deal?.closedate;
+    // closeDate is a stored HubSpot date (midnight UTC) — extract its UTC
+    // calendar date as-is. The "today" fallback must use the local date so an
+    // evening (US) rep doesn't default to tomorrow.
     const formattedCloseDate = closeDate
       ? new Date(closeDate).toISOString().split("T")[0]
-      : new Date().toISOString().split("T")[0];
+      : todayLocalDateString();
 
     const hubspotData: Partial<CommissionFormData> = {
       salesRepresentative: dealOwner ? `${dealOwner.firstName || ""} ${dealOwner.lastName || ""}`.trim() : "",

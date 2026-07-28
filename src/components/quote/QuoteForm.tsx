@@ -31,6 +31,7 @@ import { Alert, AlertDescription } from "@/components/ui/alert";
 import { supabase } from "@/integrations/supabase/client";
 import { ProductSearchModal, HubSpotProduct } from "./ProductSearchModal";
 import { getLabel, isSectionVisible, type FormCustomizationConfig } from "@/lib/formCustomization";
+import { todayLocalDateString } from "@/lib/dateUtils";
 import { SectionCard, FieldGrid, Field, EmptyState, DealTermsOverride } from "@/components/shared";
 
 export interface QuoteLineItem {
@@ -171,7 +172,7 @@ export function QuoteForm({
   const [expandedRows, setExpandedRows] = useState<Set<string>>(new Set());
   const [formData, setFormData] = useState<QuoteFormData>({
     quoteNumber: "",
-    quoteDate: new Date().toISOString().split("T")[0],
+    quoteDate: todayLocalDateString(),
     preparedBy: "",
     preparedByPhone: "",
     preparedByEmail: "",

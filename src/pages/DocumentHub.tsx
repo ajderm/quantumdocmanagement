@@ -52,6 +52,7 @@ import {
 } from "lucide-react";
 import { QuoteForm, QuoteFormData } from "@/components/quote/QuoteForm";
 import { QuotePreview } from "@/components/quote/QuotePreview";
+import { todayLocalDateString } from "@/lib/dateUtils";
 import { SummaryRail, type SummaryMetric } from "@/components/shared";
 import { quantumLogo } from "@/assets/quantumLogo";
 import { InstallationForm, InstallationFormData } from "@/components/installation/InstallationForm";
@@ -2672,7 +2673,7 @@ function DocumentHubContent() {
         // Merge template config with current customer-specific fields
         const customerFields = {
           quoteNumber: formData?.quoteNumber || "",
-          quoteDate: formData?.quoteDate || new Date().toISOString().split("T")[0],
+          quoteDate: formData?.quoteDate || todayLocalDateString(),
           companyName: formData?.companyName || "",
           address: formData?.address || "",
           address2: formData?.address2 || "",

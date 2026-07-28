@@ -2,6 +2,7 @@ import { forwardRef } from "react";
 import type { QuoteFormData } from "./QuoteForm";
 import type { DocumentStyles } from "@/lib/documentFontSizes";
 import { getLabel, isSectionVisible, type FormCustomizationConfig } from "@/lib/formCustomization";
+import { formatDateOnly } from "@/lib/dateUtils";
 import { DocPage, DocLetterhead, DocSection, DocSignature } from "@/components/doc/DocPrimitives";
 interface QuotePreviewProps {
   formData: QuoteFormData;
@@ -29,11 +30,9 @@ export const QuotePreview = forwardRef<HTMLDivElement, QuotePreviewProps>(
       return formData.calculatedPayments?.[term] || 0;
     };
 
-    const formatDate = (dateString: string) => {
-      if (!dateString) return "";
-      const date = new Date(dateString);
-      return date.toLocaleDateString("en-US", { month: "long", day: "numeric", year: "numeric" });
-    };
+    // Quote dates are stored as date-only strings ("YYYY-MM-DD"); format without
+    // a UTC shift so US viewers don't see the day before (see src/lib/dateUtils).
+    const formatDate = (dateString: string) => formatDateOnly(dateString);
 
     const formatCurrency = (value: number) => {
       return (value ?? 0).toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
