@@ -52,6 +52,8 @@ import {
 } from "lucide-react";
 import { QuoteForm, QuoteFormData } from "@/components/quote/QuoteForm";
 import { QuotePreview } from "@/components/quote/QuotePreview";
+import { QuoteAdditionalCosts } from "@/components/quote/QuoteAdditionalCosts";
+import { computeCommissionTotals, mapQuoteLineItemsToCommission } from "@/components/commission/commissionCalc";
 import { todayLocalDateString } from "@/lib/dateUtils";
 import { useConfirm } from "@/hooks/useConfirm";
 import { SummaryRail, type SummaryMetric } from "@/components/shared";
@@ -524,6 +526,27 @@ function DocumentHubContent() {
   useEffect(() => {
     commissionFormDataRef.current = commissionFormData;
   }, [commissionFormData]);
+
+  // Ensure commission state exists even if the Commission tab was never opened,
+  // so the Quote-page Additional Costs section has a single source of truth to
+  // read/write. Seeds once (guarded on commissionFormData) from the saved config
+  // if present, else sensible defaults derived from the deal/quote.
+  useEffect(() => {
+    if (!configsLoaded || commissionFormData) return;
+    if (commissionSavedConfig) {
+      setCommissionFormData(commissionSavedConfig);
+      return;
+    }
+    setCommissionFormData({
+      ...getDefaultCommissionFormData(),
+      customer: company?.name || "",
+      orderNumber: deal?.hsObjectId || "",
+      salesRepresentative: dealOwner ? `${dealOwner.firstName || ""} ${dealOwner.lastName || ""}`.trim() : "",
+      lineItems: mapQuoteLineItemsToCommission(formData?.lineItems || lineItems || []),
+      approvalAmount: formData?.retailPrice || parseFloat(deal?.amount) || 0,
+    });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [configsLoaded, commissionFormData, commissionSavedConfig, company, deal, dealOwner, lineItems]);
 
   // Keep loiFormDataRef in sync
   useEffect(() => {
@@ -1735,6 +1758,14 @@ function DocumentHubContent() {
     [performCommissionAutoSave, portalId, deal?.hsObjectId],
   );
 
+  // Write a single Additional Cost field from the Quote page into the shared
+  // commission state (same path as the Commission tab, so autosave fires and
+  // both views stay consistent).
+  const handleQuoteCostChange = (field: keyof CommissionFormData, value: number) => {
+    const base = commissionFormData || getDefaultCommissionFormData();
+    handleCommissionFormChange({ ...base, [field]: value });
+  };
+
   const handleCommissionSave = async () => {
     if (!commissionFormData) {
       toast.error("No data to save");
@@ -2805,6 +2836,26 @@ function DocumentHubContent() {
       return;
     }
 
+    // Negative-commission acknowledgment: warn (don't block) before generating a
+    // quote whose costs exceed the deal margin. Uses the same shared commission
+    // math the Quote page's summary shows.
+    if (commissionFormData) {
+      const totals = computeCommissionTotals({
+        ...commissionFormData,
+        lineItems: mapQuoteLineItemsToCommission(formData.lineItems || []),
+        approvalAmount: formData.retailPrice || commissionFormData.approvalAmount || 0,
+      });
+      if (totals.isNegativeCommission) {
+        const proceed = await confirm({
+          title: "Commission is negative",
+          description:
+            "Costs exceed the deal margin, so commission on this quote is negative. Generate the quote anyway?",
+          confirmText: "Generate anyway",
+        });
+        if (!proceed) return;
+      }
+    }
+
     setGenerating(true);
     try {
       // Save a new version and get the new quote number
@@ -3824,6 +3875,18 @@ function DocumentHubContent() {
   const effectiveTab =
     selectedTab && orderedEnabledCodes.includes(selectedTab) ? selectedTab : homeTab;
 
+  // Quote-page commission summary: compute on the shared commission costs merged
+  // with the quote's live line items / sell total, so it matches the Commission
+  // tab (which syncs the same line items) exactly. Display-only; the customer PDF
+  // is untouched.
+  const quoteCommissionTotals =
+    commissionFormData &&
+    computeCommissionTotals({
+      ...commissionFormData,
+      lineItems: mapQuoteLineItemsToCommission(formData?.lineItems || []),
+      approvalAmount: formData?.retailPrice || commissionFormData.approvalAmount || 0,
+    });
+
   return (
     <div className="min-h-screen bg-background">
       {/* Header */}
@@ -4099,6 +4162,17 @@ function DocumentHubContent() {
                       savedConfig={savedConfig || undefined}
                       formCustomization={dealerSettings.form_customization?.quote}
                     />
+
+                    {/* Additional Costs + commission summary — a second view of the
+                        shared commission state (DocumentHub commissionFormData).
+                        Internal only; never printed on the customer quote PDF. */}
+                    {commissionFormData && quoteCommissionTotals && (
+                      <QuoteAdditionalCosts
+                        commissionData={commissionFormData}
+                        totals={quoteCommissionTotals}
+                        onCostChange={handleQuoteCostChange}
+                      />
+                    )}
 
                     {/* Quote number, versions & actions */}
                     <div className="rounded-xl border border-border bg-card p-4 space-y-3">
@@ -5127,7 +5201,11 @@ function DocumentHubContent() {
                       dealOwner={dealOwner}
                       portalId={portalId}
                       onFormChange={handleCommissionFormChange}
-                      savedConfig={commissionSavedConfig}
+                      // Hydrate from the live shared commission state (which the
+                      // Quote-page Additional Costs section also writes) so edits
+                      // made there are reflected when the Commission tab mounts —
+                      // falling back to the persisted saved config.
+                      savedConfig={commissionFormData || commissionSavedConfig}
                       quoteConfig={formData || savedConfig}
                       commissionUsers={commissionUsers}
                     />

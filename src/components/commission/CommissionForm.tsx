@@ -1,5 +1,6 @@
 import { useState, useEffect, useRef } from "react";
 import { todayLocalDateString } from "@/lib/dateUtils";
+import { computeCommissionTotals } from "./commissionCalc";
 import { SectionCard, FieldGrid, Field } from "@/components/shared";
 import { Switch } from "@/components/ui/switch";
 import { Textarea } from "@/components/ui/textarea";
@@ -525,56 +526,23 @@ export function CommissionForm({
     }
   };
 
-  // Computed values
-  const totalBilled = formData.lineItems.reduce((sum, item) => sum + item.billed * item.quantity, 0);
-  const totalRepCost = formData.lineItems.reduce((sum, item) => sum + item.repCost * item.quantity, 0);
-
-  // Buyout handling: 'margin' subtracts the buyout from margin (reduces commission);
-  // 'customer' treats it as a customer-facing line item (pass-through, does not reduce margin).
-  const buyoutInMargin = formData.buyoutHandling !== "customer";
-
-  const additionalCosts =
-    (buyoutInMargin ? formData.buyoutTradeUp : 0) +
-    formData.shippingCosts +
-    formData.setupCost +
-    formData.deliveryCost +
-    formData.connectivity +
-    formData.leadFee +
-    formData.otherSalesFees;
-
-  const totalRepCostWithCosts = totalRepCost + additionalCosts;
-
-  // Lease calculations -- promoDiscounts is now a text note, not subtracted
-  const leaseEquipRev = formData.approvalAmount || totalBilled;
-  const netEquipRev = leaseEquipRev;
-  const equipmentAGP = netEquipRev - totalRepCostWithCosts;
-
-  // Per-item commission: each item's profit * its commission %
-  const perItemCommission = formData.lineItems.reduce((sum, item) => {
-    const itemProfit = (item.billed - item.repCost) * item.quantity;
-    const itemCommPct = item.commissionPercent !== undefined ? item.commissionPercent : formData.commissionPercentage;
-    return sum + itemProfit * (itemCommPct / 100);
-  }, 0);
-
-  // If all items use the same commission %, fall back to the flat calculation for backward compat
-  const allSamePercent = formData.lineItems.every(
-    (item) => item.commissionPercent === undefined || item.commissionPercent === formData.commissionPercentage,
-  );
-  const baseCommission = allSamePercent
-    ? equipmentAGP * (formData.commissionPercentage / 100)
-    : perItemCommission - additionalCosts * (formData.commissionPercentage / 100);
-
-  // Commission with split
-  const splitMultiplier = formData.splitPercentage > 0 ? formData.splitPercentage / 100 : 1;
-  const totalCommission = baseCommission * splitMultiplier;
-
-  // Task 6: negative-commission / buyout-exceeds-margin warning.
-  // Margin before the buyout is deducted; if the buyout (when handled out of margin)
-  // is larger than that, it pushes commission negative.
-  const marginBeforeBuyout = netEquipRev - (totalRepCostWithCosts - (buyoutInMargin ? formData.buyoutTradeUp : 0));
-  const buyoutExceedsMargin =
-    buyoutInMargin && formData.buyoutTradeUp > 0 && formData.buyoutTradeUp > marginBeforeBuyout;
-  const isNegativeCommission = totalCommission < 0 || equipmentAGP < 0;
+  // Computed values (shared math — see commissionCalc.ts, also used by the
+  // Quote-page Additional Costs summary so the two views never drift).
+  const {
+    totalBilled,
+    totalRepCost,
+    buyoutInMargin,
+    additionalCosts,
+    totalRepCostWithCosts,
+    leaseEquipRev,
+    netEquipRev,
+    equipmentAGP,
+    baseCommission,
+    totalCommission,
+    marginBeforeBuyout,
+    buyoutExceedsMargin,
+    isNegativeCommission,
+  } = computeCommissionTotals(formData);
 
   const isPurchase = formData.transactionType === "Purchase" || formData.transactionType === "Rental";
   const isLease = formData.transactionType.startsWith("Lease -- ");
