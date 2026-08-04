@@ -93,6 +93,7 @@ const AdminSettings = lazy(() => import("@/pages/admin/AdminSettings"));
 
 const documentTypes = [
   { code: "quote", name: "Quote", icon: FileText },
+  { code: "commission", name: "Commission", icon: Calculator },
   { code: "installation", name: "Installation", icon: ClipboardList },
   { code: "service_agreement", name: "Service Agreement", icon: FileCheck },
   { code: "fmv_lease", name: "FMV Lease", icon: FileSpreadsheet },
@@ -103,7 +104,6 @@ const documentTypes = [
   { code: "new_customer", name: "New Customer", icon: UserPlus },
   { code: "relocation", name: "Relocation", icon: Truck },
   { code: "equipment_removal", name: "Removal", icon: Trash2 },
-  { code: "commission", name: "Commission", icon: Calculator },
 ];
 
 interface DealerInfo {
@@ -3787,8 +3787,9 @@ function DocumentHubContent() {
 
   // Nav rail grouping (presentation only; codes map to the same TabsTrigger values)
   const navGroups: { label: string; codes: string[] }[] = [
-    { label: "Sales & onboarding", codes: ["quote", "loi", "new_customer"] },
-    { label: "Lease & finance", codes: ["fmv_lease", "lease_funding", "lease_return", "commission"] },
+    // Commission sits directly below Quote — reps bounce between the two constantly.
+    { label: "Sales & onboarding", codes: ["quote", "commission", "loi", "new_customer"] },
+    { label: "Lease & finance", codes: ["fmv_lease", "lease_funding", "lease_return"] },
     {
       label: "Service & logistics",
       codes: ["service_agreement", "installation", "relocation", "equipment_removal", "interterritorial"],
