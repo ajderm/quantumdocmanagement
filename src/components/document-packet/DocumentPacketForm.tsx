@@ -15,10 +15,20 @@ interface PacketFile {
   name: string;
   type: string;
   size: number;
-  storagePath: string;
+  // Source is either a device-uploaded file in storage (storagePath) or an
+  // in-app document already attached to the deal in HubSpot (hubspotFileId).
+  storagePath?: string;
+  hubspotFileId?: string;
   order: number;
   uploadedAt: string;
   skipPageNumbers?: boolean;
+}
+
+interface DealFile {
+  fileId: string;
+  name: string;
+  createdAt: string | null;
+  size: number | null;
 }
 
 interface PacketConfig {
@@ -70,6 +80,57 @@ export function DocumentPacketForm({
   const [dragOverIndex, setDragOverIndex] = useState<number | null>(null);
   const [dragSourceIndex, setDragSourceIndex] = useState<number | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
+
+  // "From this deal" picker: in-app documents already generated & attached in HubSpot
+  const [dealFiles, setDealFiles] = useState<DealFile[]>([]);
+  const [loadingDealFiles, setLoadingDealFiles] = useState(false);
+  const [showDealPicker, setShowDealPicker] = useState(false);
+
+  const loadDealFiles = useCallback(async () => {
+    if (!portalId || !dealId) return;
+    setLoadingDealFiles(true);
+    try {
+      const { data, error } = await supabase.functions.invoke("hubspot-list-deal-files", {
+        body: { portalId, dealId },
+      });
+      if (error) throw error;
+      setDealFiles((data?.files as DealFile[]) || []);
+    } catch (err) {
+      console.error("Failed to list deal files:", err);
+      toast.error("Could not load documents from this deal");
+    } finally {
+      setLoadingDealFiles(false);
+    }
+  }, [portalId, dealId]);
+
+  const openDealPicker = () => {
+    setShowDealPicker(true);
+    loadDealFiles();
+  };
+
+  const addDealFile = (df: DealFile) => {
+    if (files.some((f) => f.hubspotFileId === df.fileId)) {
+      toast.info("That document is already in the packet");
+      return;
+    }
+    if (files.length >= MAX_FILES) {
+      toast.error(`Maximum ${MAX_FILES} files allowed.`);
+      return;
+    }
+    setFiles((prev) => [
+      ...prev,
+      {
+        id: `hs-${df.fileId}`,
+        name: df.name,
+        type: "pdf",
+        size: df.size || 0,
+        hubspotFileId: df.fileId,
+        order: prev.length,
+        uploadedAt: df.createdAt || new Date().toISOString(),
+      },
+    ]);
+    toast.success(`Added "${df.name}"`);
+  };
 
   // Notify parent of changes
   useEffect(() => {
@@ -157,16 +218,21 @@ export function DocumentPacketForm({
   const removeFile = async (fileId: string) => {
     const file = files.find(f => f.id === fileId);
     if (!file) return;
-    try {
-      const fd = new FormData();
-      fd.append('action', 'delete');
-      fd.append('folder', 'document-packets');
-      fd.append('portalId', portalId);
-      fd.append('dealId', dealId);
-      fd.append('objectType', getAnchorObjectType()); // FormData bypasses the invoke interceptor
-      fd.append('path', file.storagePath);
-      await supabase.functions.invoke('company-asset-upload', { body: fd });
-    } catch { /* continue */ }
+    // Only delete device-uploaded files from storage. HubSpot-sourced entries
+    // (pulled from the deal) are just removed from the packet — never delete the
+    // deal's actual attachment.
+    if (file.storagePath) {
+      try {
+        const fd = new FormData();
+        fd.append('action', 'delete');
+        fd.append('folder', 'document-packets');
+        fd.append('portalId', portalId);
+        fd.append('dealId', dealId);
+        fd.append('objectType', getAnchorObjectType()); // FormData bypasses the invoke interceptor
+        fd.append('path', file.storagePath);
+        await supabase.functions.invoke('company-asset-upload', { body: fd });
+      } catch { /* continue */ }
+    }
     setFiles(prev => prev.filter(f => f.id !== fileId).map((f, i) => ({ ...f, order: i })));
   };
 
@@ -212,7 +278,7 @@ export function DocumentPacketForm({
       const { data, error } = await supabase.functions.invoke('compile-document-packet', {
         body: {
           portalId, dealId,
-          files: files.map(f => ({ storagePath: f.storagePath, type: f.type, name: f.name, order: f.order, skipPageNumbers: !!f.skipPageNumbers })),
+          files: files.map(f => ({ storagePath: f.storagePath, hubspotFileId: f.hubspotFileId, type: f.type, name: f.name, order: f.order, skipPageNumbers: !!f.skipPageNumbers })),
           title, includeCoverPage, includePageNumbers, dealName, companyName,
         },
       });
@@ -337,12 +403,69 @@ export function DocumentPacketForm({
                 <Upload className="h-8 w-8 text-muted-foreground/50" />
                 <p className="text-sm font-medium">Drop files here or click to browse</p>
                 <p className="text-xs text-muted-foreground">PDF, DOCX, PNG, JPG - Max 25MB each, up to {MAX_FILES} files</p>
-                <Button variant="outline" size="sm" className="mt-2" onClick={() => fileInputRef.current?.click()}>
-                  Browse Files
-                </Button>
+                <div className="flex items-center gap-2 mt-2">
+                  <Button variant="outline" size="sm" onClick={() => fileInputRef.current?.click()}>
+                    Browse Files
+                  </Button>
+                  <Button variant="outline" size="sm" onClick={openDealPicker}>
+                    <FileText className="h-4 w-4 mr-1.5" />
+                    From this deal
+                  </Button>
+                </div>
               </div>
             )}
           </div>
+
+          {/* From-this-deal picker: previously generated in-app documents */}
+          {showDealPicker && (
+            <div className="mt-4 rounded-lg border border-border bg-muted/20 p-3">
+              <div className="flex items-center justify-between mb-2">
+                <p className="text-sm font-medium">Documents on this deal</p>
+                <Button variant="ghost" size="sm" className="h-7 text-xs" onClick={() => setShowDealPicker(false)}>
+                  Close
+                </Button>
+              </div>
+              {loadingDealFiles ? (
+                <div className="flex items-center gap-2 text-sm text-muted-foreground py-3">
+                  <Loader2 className="h-4 w-4 animate-spin" /> Loading…
+                </div>
+              ) : dealFiles.length === 0 ? (
+                <p className="text-sm text-muted-foreground py-3">
+                  No generated documents found on this deal yet. Generate a quote or other document first.
+                </p>
+              ) : (
+                <div className="space-y-1 max-h-64 overflow-y-auto">
+                  {dealFiles.map((df) => {
+                    const already = files.some((f) => f.hubspotFileId === df.fileId);
+                    return (
+                      <div
+                        key={df.fileId}
+                        className="flex items-center justify-between gap-2 rounded-md px-2 py-1.5 hover:bg-muted/50"
+                      >
+                        <div className="min-w-0">
+                          <p className="text-sm truncate">{df.name}</p>
+                          {df.createdAt && (
+                            <p className="text-[11px] text-muted-foreground">
+                              {new Date(df.createdAt).toLocaleDateString()}
+                            </p>
+                          )}
+                        </div>
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          className="h-7 text-xs shrink-0"
+                          disabled={already}
+                          onClick={() => addDealFile(df)}
+                        >
+                          {already ? "Added" : "Add"}
+                        </Button>
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
+            </div>
+          )}
         </CardContent>
       </Card>
 

@@ -1,6 +1,7 @@
 import { serve } from "https://deno.land/std@0.177.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { PDFDocument, rgb, StandardFonts } from "https://esm.sh/pdf-lib@1.17.1";
+import { getValidAccessToken } from "../_shared/hubspot-token.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -8,7 +9,10 @@ const corsHeaders = {
 };
 
 interface PacketFile {
-  storagePath: string;
+  // Source is EITHER a Supabase storage path (device-uploaded file) OR a HubSpot
+  // file id (a document already generated in-app and attached to the record).
+  storagePath?: string;
+  hubspotFileId?: string;
   type: string;
   name: string;
   order: number;
@@ -68,9 +72,17 @@ serve(async (req) => {
       );
     }
 
-    // Security: enforce all file storagePaths belong to this portal's namespace
+    // Security: a file is valid if it is EITHER a storage path inside this
+    // portal's namespace, OR a HubSpot file id (numeric). HubSpot files are
+    // resolved below with the portal's own token, so the id is portal-scoped by
+    // HubSpot itself — the client can't reach another tenant's files.
     const allowedPrefix = `document-packets/${portalId}/`;
     const validatedFiles = (files as PacketFile[]).filter(f => {
+      if (f.hubspotFileId) {
+        if (/^\d{1,20}$/.test(String(f.hubspotFileId))) return true;
+        console.warn(`Blocked invalid hubspotFileId: ${f.hubspotFileId}`);
+        return false;
+      }
       const path = String(f.storagePath || '');
       if (path.includes('..') || !path.startsWith(allowedPrefix)) {
         console.warn(`Blocked unauthorized file access attempt: ${path}`);
@@ -137,18 +149,54 @@ serve(async (req) => {
     // (files flagged as already having their own page numbers).
     const skipNumberPageIndices = new Set<number>();
 
+    // Fetch the HubSpot token once, only if the packet pulls any in-app documents.
+    let accessToken: string | null = null;
+    if (sortedFiles.some((f) => f.hubspotFileId)) {
+      try {
+        accessToken = await getValidAccessToken(supabase, String(portalId));
+      } catch (e) {
+        console.error("Failed to get HubSpot token for packet file resolution:", e);
+      }
+    }
+
     for (const file of sortedFiles) {
       try {
-        const { data: fileData, error: downloadError } = await supabase.storage
-          .from("company-assets")
-          .download(file.storagePath);
+        let arrayBuffer: ArrayBuffer;
 
-        if (downloadError || !fileData) {
-          errors.push(`${file.name}: Download failed`);
-          continue;
+        if (file.hubspotFileId) {
+          // Resolve the HubSpot file to a temporary signed URL using the portal
+          // token, then fetch its bytes.
+          if (!accessToken) {
+            errors.push(`${file.name}: HubSpot authentication unavailable`);
+            continue;
+          }
+          const signedResp = await fetch(
+            `https://api.hubapi.com/files/v3/files/${file.hubspotFileId}/signed-url`,
+            { headers: { Authorization: `Bearer ${accessToken}` } },
+          );
+          if (!signedResp.ok) {
+            errors.push(`${file.name}: Could not resolve HubSpot file`);
+            continue;
+          }
+          const signed = await signedResp.json();
+          const fileResp = await fetch(signed.url);
+          if (!fileResp.ok) {
+            errors.push(`${file.name}: Download from HubSpot failed`);
+            continue;
+          }
+          arrayBuffer = await fileResp.arrayBuffer();
+        } else {
+          const { data: fileData, error: downloadError } = await supabase.storage
+            .from("company-assets")
+            .download(file.storagePath!);
+
+          if (downloadError || !fileData) {
+            errors.push(`${file.name}: Download failed`);
+            continue;
+          }
+
+          arrayBuffer = await fileData.arrayBuffer();
         }
-
-        const arrayBuffer = await fileData.arrayBuffer();
 
         if (file.type === "pdf") {
           try {
