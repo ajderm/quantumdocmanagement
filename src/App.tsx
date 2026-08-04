@@ -5,6 +5,7 @@ import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route } from "react-router-dom";
 import { HubSpotProvider } from "./hooks/useHubSpot";
+import { ConfirmDialogProvider } from "./hooks/useConfirm";
 import { ErrorBoundary } from "./components/ErrorBoundary";
 import DocumentHub from "./pages/DocumentHub";
 const AdminSettings = lazy(() => import("./pages/admin/AdminSettings"));
@@ -53,9 +54,11 @@ const App = () => (
   <QueryClientProvider client={queryClient}>
     <TooltipProvider>
       <HubSpotProvider>
-        <ErrorBoundary>
-          <AppInner />
-        </ErrorBoundary>
+        <ConfirmDialogProvider>
+          <ErrorBoundary>
+            <AppInner />
+          </ErrorBoundary>
+        </ConfirmDialogProvider>
       </HubSpotProvider>
     </TooltipProvider>
   </QueryClientProvider>

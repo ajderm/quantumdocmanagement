@@ -15,6 +15,7 @@ import {
 } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
+import { useConfirm } from '@/hooks/useConfirm';
 import { IconSelector } from './IconSelector';
 import { CustomDocumentPreview } from '@/components/custom-document/CustomDocumentPreview';
 import { 
@@ -61,6 +62,7 @@ const FIELD_WIDTHS = [
 ];
 
 export function CustomDocumentBuilder({ portalId }: CustomDocumentBuilderProps) {
+  const confirm = useConfirm();
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [documents, setDocuments] = useState<CustomDocument[]>([]);
@@ -127,7 +129,14 @@ export function CustomDocumentBuilder({ portalId }: CustomDocumentBuilderProps) 
   };
 
   const handleDelete = async (docId: string) => {
-    if (!confirm('Are you sure you want to delete this document?')) return;
+    if (
+      !(await confirm({
+        title: "Delete document",
+        description: "Are you sure you want to delete this document?",
+        confirmText: "Delete",
+      }))
+    )
+      return;
 
     try {
       const { error } = await supabase.functions.invoke('custom-document-save', {

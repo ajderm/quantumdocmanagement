@@ -53,6 +53,7 @@ import {
 import { QuoteForm, QuoteFormData } from "@/components/quote/QuoteForm";
 import { QuotePreview } from "@/components/quote/QuotePreview";
 import { todayLocalDateString } from "@/lib/dateUtils";
+import { useConfirm } from "@/hooks/useConfirm";
 import { SummaryRail, type SummaryMetric } from "@/components/shared";
 import { quantumLogo } from "@/assets/quantumLogo";
 import { InstallationForm, InstallationFormData } from "@/components/installation/InstallationForm";
@@ -162,6 +163,9 @@ function DocumentHubContent() {
     userId,
     objectType,
   } = useHubSpot();
+
+  // App-wide confirmation dialog (native confirm() is blocked in the sandboxed iframe)
+  const confirm = useConfirm();
 
   // Whether the anchor record is a deal. Deal-only HubSpot write-backs
   // (line-item sync, deal amount/financing updates) are skipped for other
@@ -2583,7 +2587,14 @@ function DocumentHubContent() {
   };
 
   const deleteQuoteVersion = async (versionId: string, quoteNumber: string) => {
-    if (!confirm(`Delete version ${quoteNumber}? This cannot be undone.`)) return;
+    if (
+      !(await confirm({
+        title: "Delete quote version",
+        description: `Delete version ${quoteNumber}? This cannot be undone.`,
+        confirmText: "Delete",
+      }))
+    )
+      return;
     const currentPortalId = portalId;
     const currentDealId = deal?.hsObjectId;
     if (!currentPortalId || !currentDealId) return;
@@ -2714,6 +2725,15 @@ function DocumentHubContent() {
   const deleteQuoteTemplate = async (templateId: string) => {
     const currentPortalId = portalId;
     if (!currentPortalId) return;
+
+    if (
+      !(await confirm({
+        title: "Delete template",
+        description: "Delete this template? This cannot be undone.",
+        confirmText: "Delete",
+      }))
+    )
+      return;
 
     try {
       const { error } = await supabase.functions.invoke("quote-templates", {
