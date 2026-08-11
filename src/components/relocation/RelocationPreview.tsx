@@ -1,6 +1,7 @@
 import React, { forwardRef } from 'react';
 import { RelocationFormData } from './RelocationForm';
 import { format } from 'date-fns';
+import { formatDateOnly } from '@/lib/dateUtils';
 
 import { buildDocumentFontCss } from "@/lib/documentFontSizes";
 interface DealerInfo {
@@ -23,11 +24,8 @@ interface RelocationPreviewProps {
 const RelocationPreview = forwardRef<HTMLDivElement, RelocationPreviewProps>(({ formData, dealerInfo, documentStyles }, ref) => {
   const formatDate = (dateStr: string) => {
     if (!dateStr) return '';
-    try {
-      return format(new Date(dateStr), 'MM/dd/yyyy');
-    } catch {
-      return dateStr;
-    }
+    // Date-only strings must not be shifted by timezone (see src/lib/dateUtils).
+    return formatDateOnly(dateStr, { month: "2-digit", day: "2-digit", year: "numeric" }) || dateStr;
   };
 
   const _docScopeId = 'doc-relocation';

@@ -27,8 +27,12 @@ export const CustomDocumentPreview = forwardRef<HTMLDivElement, CustomDocumentPr
 
     const formatDate = (date?: string | Date) => {
       if (!date) return format(new Date(), 'MM/dd/yyyy');
+      // Date-only strings must not be timezone-shifted; real Date objects format as-is.
+      if (typeof date === "string") {
+        return formatDateOnly(date, { month: "2-digit", day: "2-digit", year: "numeric" }) || date;
+      }
       try {
-        return format(new Date(date), 'MM/dd/yyyy');
+        return format(date, 'MM/dd/yyyy');
       } catch {
         return date.toString();
       }
