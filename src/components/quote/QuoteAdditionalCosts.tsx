@@ -5,6 +5,7 @@
 // Nothing here prints on the customer-facing quote PDF.
 
 import { CurrencyInput } from "@/components/ui/currency-input";
+import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { AlertTriangle, DollarSign } from "lucide-react";
 import { SectionCard } from "@/components/shared";
@@ -18,14 +19,14 @@ const COST_FIELDS: { key: keyof CommissionFormData; label: string }[] = [
   { key: "setupCost", label: "Setup" },
   { key: "deliveryCost", label: "Delivery" },
   { key: "connectivity", label: "Networking" },
-  { key: "leadFee", label: "Lead Fee" },
-  { key: "otherSalesFees", label: "Other Fees" },
+  { key: "equipmentRemoval", label: "Equipment Removal" },
+  { key: "otherSalesFees", label: "Other Sales Fees" },
 ];
 
 interface QuoteAdditionalCostsProps {
   commissionData: CommissionFormData;
   totals: CommissionTotals;
-  onCostChange: (field: keyof CommissionFormData, value: number) => void;
+  onCostChange: (field: keyof CommissionFormData, value: number | string) => void;
 }
 
 const money = (n: number) =>
@@ -33,6 +34,7 @@ const money = (n: number) =>
 
 export function QuoteAdditionalCosts({ commissionData, totals, onCostChange }: QuoteAdditionalCostsProps) {
   const negative = totals.isNegativeCommission;
+  const costsSubtotal = COST_FIELDS.reduce((sum, { key }) => sum + ((commissionData[key] as number) || 0), 0);
 
   return (
     <SectionCard
@@ -48,10 +50,27 @@ export function QuoteAdditionalCosts({ commissionData, totals, onCostChange }: Q
               value={(commissionData[key] as number) || 0}
               onChange={(v) => onCostChange(key, v)}
               prefix
-              className="h-8 text-sm"
+              className="h-8 text-sm text-right"
             />
           </div>
         ))}
+      </div>
+
+      {/* Free-text fee description + running subtotal of the cost fields */}
+      <div className="mt-3 flex flex-col md:flex-row md:items-end gap-3">
+        <div className="flex-1 space-y-1">
+          <Label className="text-xs">Fee Description</Label>
+          <Input
+            value={commissionData.feeDescription || ""}
+            onChange={(e) => onCostChange("feeDescription", e.target.value)}
+            placeholder="e.g. self-install, used equipment"
+            className="h-8 text-sm"
+          />
+        </div>
+        <div className="rounded-lg border border-border bg-muted/40 px-3 py-2 md:min-w-[160px]">
+          <div className="eyebrow leading-none text-muted-foreground">Additional Costs Subtotal</div>
+          <div className="text-sm font-bold tabular-nums leading-tight mt-1 text-qbs-navy">{money(costsSubtotal)}</div>
+        </div>
       </div>
 
       {/* Commission summary strip */}

@@ -41,6 +41,7 @@ export function computeCommissionTotals(formData: CommissionFormData): Commissio
     formData.deliveryCost +
     formData.connectivity +
     formData.leadFee +
+    (formData.equipmentRemoval || 0) +
     formData.otherSalesFees;
 
   const totalRepCostWithCosts = totalRepCost + additionalCosts;

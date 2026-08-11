@@ -54,10 +54,13 @@ export interface CommissionFormData {
   connectivity: number;
   itProfessionalServices: number;
   leadFee: number;
+  equipmentRemoval: number;
   splitPercentage: number;
   splitRepName: string;
   otherSalesFees: number;
   otherSalesFeesNote: string;
+  // Free-text description for the additional costs block (P1-3B)
+  feeDescription?: string;
 
   // Lease Information
   leaseCompany: string;
@@ -120,10 +123,12 @@ export function getDefaultCommissionFormData(): CommissionFormData {
     connectivity: 100,
     itProfessionalServices: 0,
     leadFee: 0,
+    equipmentRemoval: 0,
     splitPercentage: 0,
     splitRepName: "",
     otherSalesFees: 0,
     otherSalesFeesNote: "",
+    feeDescription: "",
     leaseCompany: "",
     leaseTerm: 0,
     approvalAmount: 0,

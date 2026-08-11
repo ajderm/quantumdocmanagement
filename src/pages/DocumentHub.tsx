@@ -1761,7 +1761,7 @@ function DocumentHubContent() {
   // Write a single Additional Cost field from the Quote page into the shared
   // commission state (same path as the Commission tab, so autosave fires and
   // both views stay consistent).
-  const handleQuoteCostChange = (field: keyof CommissionFormData, value: number) => {
+  const handleQuoteCostChange = (field: keyof CommissionFormData, value: number | string) => {
     const base = commissionFormData || getDefaultCommissionFormData();
     handleCommissionFormChange({ ...base, [field]: value });
   };
