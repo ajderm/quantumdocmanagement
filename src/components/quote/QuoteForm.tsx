@@ -32,6 +32,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { ProductSearchModal, HubSpotProduct } from "./ProductSearchModal";
 import { getLabel, isSectionVisible, type FormCustomizationConfig } from "@/lib/formCustomization";
 import { todayLocalDateString } from "@/lib/dateUtils";
+import { priceFromCostMarkup, markupFromCostPrice } from "@/lib/pricing";
 import { SectionCard, FieldGrid, Field, EmptyState, DealTermsOverride } from "@/components/shared";
 
 export interface QuoteLineItem {
@@ -329,9 +330,7 @@ export function QuoteForm({
         lineItems: prev.lineItems.map((item) => {
           const origCost = originalCosts[item.id] ?? item.cost;
           const newPrice =
-            origCost > 0 && item.markupPercent > 0
-              ? origCost * (1 + item.markupPercent / 100)
-              : item.msrp || item.price;
+            origCost > 0 && item.markupPercent > 0 ? priceFromCostMarkup(origCost, item.markupPercent) : item.msrp || item.price;
           return { ...item, cost: origCost, price: Math.round(newPrice * 100) / 100 };
         }),
       }));
@@ -351,7 +350,7 @@ export function QuoteForm({
         const priceMatch = tier.prices.find((p) => item.model.toLowerCase() === p.product_model.toLowerCase());
         if (priceMatch) {
           const newCost = priceMatch.rep_cost;
-          const newPrice = item.markupPercent > 0 ? newCost * (1 + item.markupPercent / 100) : item.price;
+          const newPrice = item.markupPercent > 0 ? priceFromCostMarkup(newCost, item.markupPercent) : item.price;
           return { ...item, cost: newCost, price: Math.round(newPrice * 100) / 100 };
         }
         return item;
@@ -711,15 +710,11 @@ export function QuoteForm({
       if (field === "cost" || field === "markupPercent") {
         const cost = field === "cost" ? (value as number) : newItems[index].cost;
         const markup = field === "markupPercent" ? (value as number) : newItems[index].markupPercent;
-        newItems[index].price = Math.round(cost * (1 + markup / 100) * 100) / 100;
+        newItems[index].price = priceFromCostMarkup(cost, markup);
       }
       // Reverse: back-calculate markup % when price is manually set
       if (field === "price") {
-        const cost = newItems[index].cost;
-        if (cost > 0) {
-          const calcMarkup = Math.round(((value as number) / cost - 1) * 10000) / 100;
-          newItems[index].markupPercent = calcMarkup > 0 ? calcMarkup : 0;
-        }
+        newItems[index].markupPercent = markupFromCostPrice(newItems[index].cost, value as number);
       }
       return { ...prev, lineItems: newItems };
     });
@@ -789,7 +784,7 @@ export function QuoteForm({
       description: product.name,
       price:
         cost > 0 && formData.lineItems.length > 0 && formData.lineItems[0]?.markupPercent > 0
-          ? Math.round(cost * (1 + formData.lineItems[0].markupPercent / 100) * 100) / 100
+          ? priceFromCostMarkup(cost, formData.lineItems[0].markupPercent)
           : product.price,
       cost,
       markupPercent: formData.lineItems.length > 0 ? formData.lineItems[0]?.markupPercent || 0 : 0,

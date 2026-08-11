@@ -2858,6 +2858,14 @@ function DocumentHubContent() {
 
     setGenerating(true);
     try {
+      // Persist-before-generate: flush any pending debounced autosave so the
+      // generated document/version can never capture a stale edit (P1-1).
+      if (autoSaveTimeoutRef.current) {
+        clearTimeout(autoSaveTimeoutRef.current);
+        autoSaveTimeoutRef.current = null;
+      }
+      await performAutoSave(formData);
+
       // Save a new version and get the new quote number
       const newQuoteNumber = await saveQuoteVersion(formData);
       if (newQuoteNumber && formData.quoteNumber !== newQuoteNumber) {
