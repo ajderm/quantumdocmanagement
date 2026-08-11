@@ -3847,7 +3847,9 @@ function DocumentHubContent() {
   // Nav rail grouping (presentation only; codes map to the same TabsTrigger values)
   const navGroups: { label: string; codes: string[] }[] = [
     // Commission sits directly below Quote — reps bounce between the two constantly.
-    { label: "Sales & onboarding", codes: ["quote", "commission", "loi", "new_customer"] },
+    // "New Customer" tab intentionally omitted from the nav per client request
+    // (P4-6). The document type still exists; this only hides its nav entry.
+    { label: "Sales & onboarding", codes: ["quote", "commission", "loi"] },
     { label: "Lease & finance", codes: ["fmv_lease", "lease_funding", "lease_return"] },
     {
       label: "Service & logistics",
