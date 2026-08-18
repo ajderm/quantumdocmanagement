@@ -22,3 +22,34 @@ export function markupFromCostPrice(cost: number, price: number): number {
   const calc = Math.round(((price || 0) / cost - 1) * 10000) / 100;
   return calc > 0 ? calc : 0;
 }
+
+// ---------------------------------------------------------------------------
+// Lease rate factor ↔ monthly payment (Addendum A1).
+//
+// A lease payment is the amount financed × a rate factor. The rate is directly
+// editable by any user on both the quote and the commission document, and the
+// two values must stay in agreement: edit the rate → derive the payment; edit
+// the payment → derive the rate. These are the single source of that
+// derivation so the quote form, quote preview/PDF and commission worksheet can
+// never disagree about the same lease.
+// ---------------------------------------------------------------------------
+
+/**
+ * Monthly payment from an amount financed and a rate factor, rounded to cents.
+ * Returns 0 for a non-positive base or rate (an unpriced/unselected lease).
+ */
+export function paymentFromRate(baseAmount: number, rateFactor: number): number {
+  if (!(baseAmount > 0) || !(rateFactor > 0)) return 0;
+  return Math.round(baseAmount * rateFactor * 100) / 100;
+}
+
+/**
+ * Rate factor implied by a hand-entered monthly payment against the amount
+ * financed, rounded to 6 decimals (rate factors are small, e.g. 0.0219).
+ * Returns 0 when the base is non-positive (rate undefined) or the payment is
+ * non-positive.
+ */
+export function rateFromPayment(baseAmount: number, payment: number): number {
+  if (!(baseAmount > 0) || !(payment > 0)) return 0;
+  return Math.round((payment / baseAmount) * 1e6) / 1e6;
+}

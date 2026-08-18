@@ -32,7 +32,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { ProductSearchModal, HubSpotProduct } from "./ProductSearchModal";
 import { getLabel, isSectionVisible, type FormCustomizationConfig } from "@/lib/formCustomization";
 import { todayLocalDateString } from "@/lib/dateUtils";
-import { priceFromCostMarkup, markupFromCostPrice } from "@/lib/pricing";
+import { priceFromCostMarkup, markupFromCostPrice, paymentFromRate, rateFromPayment } from "@/lib/pricing";
 import { SectionCard, FieldGrid, Field, EmptyState, DealTermsOverride } from "@/components/shared";
 
 export interface QuoteLineItem {
@@ -104,6 +104,10 @@ export interface QuoteFormData {
   calculatedPayments: Record<number, number>;
   // Manual payment overrides per term (null = use calculated)
   paymentOverrides: Record<number, number | null>;
+  // Manual rate-factor overrides per term (null = use rate sheet / default).
+  // Rate and payment are two views of one lease: editing either derives the
+  // other (Addendum A1), so an entry here is always mirrored in paymentOverrides.
+  rateOverrides: Record<number, number | null>;
   // Total buyout override
   totalBuyoutManuallySet?: boolean;
   totalBuyoutOverride?: number;
@@ -147,6 +151,10 @@ const parseCurrency = (value: string): number => {
 };
 
 // Default fallback rate factors if no rate sheet uploaded
+// Render a rate factor compactly (e.g. 0.02190 -> "0.0219"), blank when unset.
+const formatRateFactor = (r: number): string =>
+  r > 0 ? r.toFixed(5).replace(/0+$/, "").replace(/\.$/, "") : "";
+
 const DEFAULT_RATE_FACTORS: Record<number, number> = {
   12: 0.088,
   24: 0.046,
@@ -214,6 +222,7 @@ export function QuoteForm({
     buyoutFinancingAmount: 0,
     calculatedPayments: {},
     paymentOverrides: {},
+    rateOverrides: {},
     termsInclude: false,
     termsTemplateId: "",
     termsCustomText: "",
@@ -223,6 +232,7 @@ export function QuoteForm({
 
   // Local state for payment override text inputs
   const [paymentOverrideTexts, setPaymentOverrideTexts] = useState<Record<number, string>>({});
+  const [rateOverrideTexts, setRateOverrideTexts] = useState<Record<number, string>>({});
 
   // Local string state for overage inputs to allow typing "0.0123" naturally
   const [overageBWText, setOverageBWText] = useState("");
@@ -388,14 +398,20 @@ export function QuoteForm({
   const totalBuyoutForCalc =
     formData.paymentAmount * formData.paymentsRemaining + formData.earlyTerminationFee + formData.returnShipping;
 
-  // Calculate lease payment using database rates
-  const calculateLeasePayment = (term: number): number => {
+  // Amount financed for the lease math — the single base used both to derive
+  // payments from rate factors and to convert between rate and payment
+  // (Addendum A1). Rate↔payment must use this exact value so the two agree.
+  const getBaseAmount = (): number => {
     let baseAmount = formData.retailPrice;
-
-    // If "with buyout" is selected, add total buyout to the base amount
     if (formData.leasingPriceType === "with_buyout") {
       baseAmount = baseAmount + totalBuyoutForCalc;
     }
+    return baseAmount;
+  };
+
+  // Calculate lease payment using database rates
+  const calculateLeasePayment = (term: number): number => {
+    const baseAmount = getBaseAmount();
 
     if (!hasRateSheet || !formData.leasingCompanyId) {
       // Fall back to default rates
@@ -442,29 +458,75 @@ export function QuoteForm({
     return formData.calculatedPayments[term] || calculateLeasePayment(term);
   };
 
-  // Handle payment override change
+  // Effective rate factor for a term (Addendum A1). An explicit rate override
+  // wins; otherwise it is the rate implied by the effective payment (which may
+  // itself be a payment override) against the amount financed.
+  const getEffectiveRate = (term: number): number => {
+    const override = formData.rateOverrides?.[term];
+    if (override !== null && override !== undefined && override > 0) {
+      return override;
+    }
+    const base = getBaseAmount();
+    return base > 0 ? rateFromPayment(base, getEffectivePayment(term)) : 0;
+  };
+
+  // Handle payment override change — also derives and stores the matching rate
+  // so the two views of the lease stay in agreement.
   const handlePaymentOverrideChange = (term: number, value: string) => {
     setPaymentOverrideTexts((prev) => ({ ...prev, [term]: value }));
     const num = parseFloat(value.replace(/[^0-9.-]/g, ""));
+    const base = getBaseAmount();
     if (!isNaN(num) && num > 0) {
+      const derivedRate = rateFromPayment(base, num);
+      setRateOverrideTexts((prev) => ({ ...prev, [term]: derivedRate > 0 ? String(derivedRate) : "" }));
       setFormData((prev) => ({
         ...prev,
         paymentOverrides: { ...prev.paymentOverrides, [term]: num },
+        rateOverrides: { ...prev.rateOverrides, [term]: derivedRate > 0 ? derivedRate : null },
       }));
     } else if (value === "") {
+      setRateOverrideTexts((prev) => ({ ...prev, [term]: "" }));
       setFormData((prev) => ({
         ...prev,
+        paymentOverrides: { ...prev.paymentOverrides, [term]: null },
+        rateOverrides: { ...prev.rateOverrides, [term]: null },
+      }));
+    }
+  };
+
+  // Handle rate override change — editing the rate derives the monthly payment
+  // (rounded to whole dollars, matching calculateLeasePayment). Both values are
+  // stored so the quote, preview/PDF and commission worksheet agree.
+  const handleRateOverrideChange = (term: number, value: string) => {
+    setRateOverrideTexts((prev) => ({ ...prev, [term]: value }));
+    const rate = parseFloat(value.replace(/[^0-9.]/g, ""));
+    const base = getBaseAmount();
+    if (!isNaN(rate) && rate > 0) {
+      const payment = Math.round(paymentFromRate(base, rate));
+      setPaymentOverrideTexts((prev) => ({ ...prev, [term]: payment > 0 ? String(payment) : "" }));
+      setFormData((prev) => ({
+        ...prev,
+        rateOverrides: { ...prev.rateOverrides, [term]: rate },
+        paymentOverrides: { ...prev.paymentOverrides, [term]: payment > 0 ? payment : null },
+      }));
+    } else if (value === "") {
+      setPaymentOverrideTexts((prev) => ({ ...prev, [term]: "" }));
+      setFormData((prev) => ({
+        ...prev,
+        rateOverrides: { ...prev.rateOverrides, [term]: null },
         paymentOverrides: { ...prev.paymentOverrides, [term]: null },
       }));
     }
   };
 
-  // Clear payment override for a term
+  // Clear both the payment and rate override for a term (they are one lease).
   const clearPaymentOverride = (term: number) => {
     setPaymentOverrideTexts((prev) => ({ ...prev, [term]: "" }));
+    setRateOverrideTexts((prev) => ({ ...prev, [term]: "" }));
     setFormData((prev) => ({
       ...prev,
       paymentOverrides: { ...prev.paymentOverrides, [term]: null },
+      rateOverrides: { ...prev.rateOverrides, [term]: null },
     }));
   };
 
@@ -607,6 +669,23 @@ export function QuoteForm({
       if (savedConfig.earlyTerminationFee > 0) setEarlyTerminationFeeText(String(savedConfig.earlyTerminationFee));
       if (savedConfig.returnShipping > 0) setReturnShippingText(String(savedConfig.returnShipping));
       if (savedConfig.paymentAmount > 0) setPaymentAmountText(String(savedConfig.paymentAmount));
+
+      // Restore per-term payment/rate override input text so saved overrides
+      // stay visibly populated after reload (Addendum A1). formData.paymentOverrides
+      // / rateOverrides are already carried in via the ...savedConfig spread above.
+      const savedPayOverrides = (savedConfig.paymentOverrides || {}) as Record<number, number | null>;
+      const payTexts: Record<number, string> = {};
+      Object.entries(savedPayOverrides).forEach(([term, val]) => {
+        if (val != null && val > 0) payTexts[Number(term)] = String(val);
+      });
+      if (Object.keys(payTexts).length) setPaymentOverrideTexts(payTexts);
+
+      const savedRateOverrides = (savedConfig.rateOverrides || {}) as Record<number, number | null>;
+      const rateTexts: Record<number, string> = {};
+      Object.entries(savedRateOverrides).forEach(([term, val]) => {
+        if (val != null && val > 0) rateTexts[Number(term)] = String(val);
+      });
+      if (Object.keys(rateTexts).length) setRateOverrideTexts(rateTexts);
     } else {
       setFormData((prev) => ({
         ...prev,
@@ -1700,16 +1779,39 @@ export function QuoteForm({
                         formData.paymentOverrides[t] !== undefined &&
                         formData.paymentOverrides[t]! > 0;
                       const effectivePayment = getEffectivePayment(t);
+                      // Rate factor implied by the rate-sheet/default payment (baseline)
+                      // and the effective rate (after any override), both derived from
+                      // the same amount financed as the payment (Addendum A1).
+                      const base = getBaseAmount();
+                      const sheetRate = base > 0 ? rateFromPayment(base, calculatedPayment) : 0;
+                      const effectiveRate = getEffectiveRate(t);
                       return (
-                        <div key={t} className="flex items-center gap-2 text-sm bg-muted/50 rounded-lg px-3 py-2">
+                        <div
+                          key={t}
+                          className="flex flex-wrap items-center gap-x-3 gap-y-2 text-sm bg-muted/50 rounded-lg px-3 py-2"
+                        >
                           <span className="min-w-[70px]">{t} months</span>
                           <span
                             className={`font-medium min-w-[90px] ${hasOverride ? "text-muted-foreground line-through" : ""}`}
                           >
                             ${(calculatedPayment ?? 0).toLocaleString()}/mo
                           </span>
+
+                          {/* Editable rate factor — no approval gate (Addendum A1) */}
+                          <div className="flex items-center gap-1">
+                            <span className="text-xs text-muted-foreground">Rate:</span>
+                            <Input
+                              type="text"
+                              inputMode="decimal"
+                              value={rateOverrideTexts[t] || ""}
+                              onChange={(e) => handleRateOverrideChange(t, e.target.value)}
+                              placeholder={formatRateFactor(sheetRate) || "0.0000"}
+                              className="h-7 w-20 text-xs text-right"
+                            />
+                          </div>
+
                           <div className="flex items-center gap-1 ml-auto">
-                            <span className="text-xs text-muted-foreground">Override:</span>
+                            <span className="text-xs text-muted-foreground">Payment:</span>
                             <div className="relative w-24">
                               <span className="absolute left-2 top-1/2 -translate-y-1/2 text-muted-foreground text-xs">
                                 $
@@ -1726,17 +1828,27 @@ export function QuoteForm({
                                   type="button"
                                   onClick={() => clearPaymentOverride(t)}
                                   className="absolute right-1.5 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
+                                  title="Clear override"
                                 >
                                   <X className="h-3 w-3" />
                                 </button>
                               )}
                             </div>
-                            {hasOverride && (
-                              <span className="font-medium text-primary min-w-[80px]">
+                          </div>
+
+                          {hasOverride && (
+                            <div className="flex items-center gap-2 basis-full justify-end">
+                              <span className="rounded bg-primary/10 px-1.5 py-0.5 text-[10px] font-medium uppercase tracking-wide text-primary">
+                                Override
+                              </span>
+                              <span className="text-xs text-muted-foreground">
+                                rate {formatRateFactor(effectiveRate) || "—"}
+                              </span>
+                              <span className="font-medium text-primary min-w-[80px] text-right">
                                 ${(effectivePayment ?? 0).toLocaleString()}/mo
                               </span>
-                            )}
-                          </div>
+                            </div>
+                          )}
                         </div>
                       );
                     })}

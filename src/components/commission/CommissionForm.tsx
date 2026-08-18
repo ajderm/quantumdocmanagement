@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef } from "react";
 import { todayLocalDateString } from "@/lib/dateUtils";
 import { computeCommissionTotals } from "./commissionCalc";
+import { paymentFromRate, rateFromPayment } from "@/lib/pricing";
 import { SectionCard, FieldGrid, Field } from "@/components/shared";
 import { Switch } from "@/components/ui/switch";
 import { Textarea } from "@/components/ui/textarea";
@@ -498,6 +499,35 @@ export function CommissionForm({
     setFormData((prev) => ({ ...prev, [field]: value }));
   };
 
+  // Amount financed used to convert between rate factor and lease payment on the
+  // commission document (Addendum A1). Falls back to total billed when no
+  // approval amount has been entered yet.
+  const getCommissionBase = (): number => {
+    if (formData.approvalAmount > 0) return formData.approvalAmount;
+    return formData.lineItems.reduce((sum, item) => sum + item.billed * item.quantity, 0);
+  };
+
+  // Editing the rate factor derives the lease payment — any user, no approval
+  // step (Addendum A1). Rate and payment stay in agreement.
+  const handleRateUsedChange = (value: string) => {
+    setRateText(value);
+    const rate = parseFloat(value.replace(/[^0-9.]/g, ""));
+    if (!isNaN(rate) && rate > 0) {
+      const base = getCommissionBase();
+      setFormData((prev) => ({ ...prev, rateUsed: rate, leasePayment: paymentFromRate(base, rate) }));
+    } else if (value === "") {
+      setFormData((prev) => ({ ...prev, rateUsed: 0 }));
+    }
+  };
+
+  // Editing the lease payment derives the rate factor (kept in agreement).
+  const handleLeasePaymentChange = (value: number) => {
+    const base = getCommissionBase();
+    const derivedRate = rateFromPayment(base, value);
+    setRateText(derivedRate > 0 ? String(derivedRate) : "");
+    setFormData((prev) => ({ ...prev, leasePayment: value, rateUsed: derivedRate }));
+  };
+
   const updateLineItem = (index: number, field: keyof CommissionLineItem, value: string | number) => {
     setFormData((prev) => {
       const newItems = [...prev.lineItems];
@@ -930,9 +960,11 @@ export function CommissionForm({
               <div>
                 <Label>Rate Used</Label>
                 <Input
-                  className="h-7 text-sm text-right bg-muted/50"
-                  readOnly
+                  className="h-7 text-sm text-right"
+                  inputMode="decimal"
                   value={rateText || (formData.rateUsed ? String(formData.rateUsed) : "")}
+                  onChange={(e) => handleRateUsedChange(e.target.value)}
+                  placeholder="0.0000"
                 />
               </div>
             </div>
@@ -941,7 +973,7 @@ export function CommissionForm({
               <CurrencyInput
                 className="h-7 text-sm text-right"
                 value={formData.leasePayment}
-                onChange={(v) => updateField("leasePayment", v)}
+                onChange={(v) => handleLeasePaymentChange(v)}
               />
             </div>
 
