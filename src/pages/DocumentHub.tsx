@@ -53,7 +53,7 @@ import {
 import { QuoteForm, QuoteFormData } from "@/components/quote/QuoteForm";
 import { QuotePreview } from "@/components/quote/QuotePreview";
 import { QuoteAdditionalCosts } from "@/components/quote/QuoteAdditionalCosts";
-import { computeCommissionTotals, mapQuoteLineItemsToCommission } from "@/components/commission/commissionCalc";
+import { computeCommissionTotals, mapQuoteLineItemsToCommission, buyoutFromQuoteConfig } from "@/components/commission/commissionCalc";
 import { todayLocalDateString } from "@/lib/dateUtils";
 import { useConfirm } from "@/hooks/useConfirm";
 import { SummaryRail, type SummaryMetric } from "@/components/shared";
@@ -544,6 +544,9 @@ function DocumentHubContent() {
       salesRepresentative: dealOwner ? `${dealOwner.firstName || ""} ${dealOwner.lastName || ""}`.trim() : "",
       lineItems: mapQuoteLineItemsToCommission(formData?.lineItems || lineItems || []),
       approvalAmount: formData?.retailPrice || parseFloat(deal?.amount) || 0,
+      // Seed the lease buyout so the quote-page Total Cost includes it, matching
+      // the Commission tab (Stephen Ross, 26 Aug 2026).
+      buyoutTradeUp: buyoutFromQuoteConfig(formData),
     });
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [configsLoaded, commissionFormData, commissionSavedConfig, company, deal, dealOwner, lineItems]);
@@ -3895,6 +3898,9 @@ function DocumentHubContent() {
       ...commissionFormData,
       lineItems: mapQuoteLineItemsToCommission(formData?.lineItems || []),
       approvalAmount: formData?.retailPrice || commissionFormData.approvalAmount || 0,
+      // Include the lease buyout in the quote-page Total Cost. A rep's explicit
+      // buyout on the Commission tab wins; otherwise derive it from the quote.
+      buyoutTradeUp: commissionFormData.buyoutTradeUp || buyoutFromQuoteConfig(formData),
     });
 
   return (

@@ -6,6 +6,26 @@
 
 import type { CommissionFormData } from "./CommissionForm";
 
+/**
+ * Lease buyout / trade-in cost implied by a quote configuration. This is the
+ * dealer's cost to pay off the customer's existing lease, and it must land in
+ * the commission's Total Cost (Stephen Ross, 26 Aug 2026: "the doc app is not
+ * including the lease buyout costs into the TOTAL COST but it should").
+ *
+ * Precedence matches the Commission form's own initialization: an explicit
+ * financed buyout amount wins; otherwise it's the remaining payments plus early
+ * termination and return shipping. Accepts loosely-typed quote form data
+ * (values may be numbers or strings depending on the source).
+ */
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+export function buyoutFromQuoteConfig(quote: any): number {
+  if (!quote) return 0;
+  const num = (v: unknown) => parseFloat(String(v ?? "")) || 0;
+  const financed = num(quote.buyoutFinancingAmount);
+  if (financed > 0) return financed;
+  return num(quote.paymentAmount) * num(quote.paymentsRemaining) + num(quote.earlyTerminationFee) + num(quote.returnShipping);
+}
+
 export interface CommissionTotals {
   totalBilled: number;
   totalRepCost: number;

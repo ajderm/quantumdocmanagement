@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from "react";
 import { todayLocalDateString } from "@/lib/dateUtils";
-import { computeCommissionTotals } from "./commissionCalc";
+import { computeCommissionTotals, buyoutFromQuoteConfig } from "./commissionCalc";
 import { paymentFromRate, rateFromPayment } from "@/lib/pricing";
 import { SectionCard, FieldGrid, Field } from "@/components/shared";
 import { Switch } from "@/components/ui/switch";
@@ -333,18 +333,9 @@ export function CommissionForm({
       approvalAmount: parseFloat(deal?.amount) || 0,
     };
 
-    // Try to pre-populate buyout from quote config
-    let buyoutFromQuote = 0;
-    if (quoteConfig) {
-      if (quoteConfig.buyoutFinancingAmount) {
-        buyoutFromQuote = parseFloat(quoteConfig.buyoutFinancingAmount) || 0;
-      } else if (quoteConfig.paymentAmount && quoteConfig.paymentsRemaining) {
-        buyoutFromQuote =
-          (parseFloat(quoteConfig.paymentAmount) || 0) * (parseFloat(quoteConfig.paymentsRemaining) || 0) +
-          (parseFloat(quoteConfig.earlyTerminationFee) || 0) +
-          (parseFloat(quoteConfig.returnShipping) || 0);
-      }
-    }
+    // Try to pre-populate buyout from quote config (shared derivation so the
+    // quote page and this tab always agree — see commissionCalc.ts).
+    const buyoutFromQuote = buyoutFromQuoteConfig(quoteConfig);
 
     if (savedConfig) {
       const merged = { ...getDefaultCommissionFormData(), ...savedConfig };
@@ -472,13 +463,7 @@ export function CommissionForm({
   useEffect(() => {
     if (!hasInitializedRef.current || !quoteConfig) return;
 
-    let buyoutFromQuote = 0;
-    if (quoteConfig.paymentAmount && quoteConfig.paymentsRemaining) {
-      buyoutFromQuote =
-        quoteConfig.paymentAmount * quoteConfig.paymentsRemaining +
-        (quoteConfig.earlyTerminationFee || 0) +
-        (quoteConfig.returnShipping || 0);
-    }
+    const buyoutFromQuote = buyoutFromQuoteConfig(quoteConfig);
 
     if (buyoutFromQuote > 0 && buyoutFromQuote !== formData.buyoutTradeUp) {
       setFormData((prev) => ({ ...prev, buyoutTradeUp: buyoutFromQuote }));
