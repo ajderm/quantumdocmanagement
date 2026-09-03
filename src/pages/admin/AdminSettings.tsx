@@ -122,6 +122,10 @@ export default function AdminSettings({
   const [enabledForms, setEnabledForms] = useState<string[]>(ALL_FORM_TYPES.map((f) => f.code));
   // Homepage: which document opens on load. "" = first enabled document.
   const [defaultForm, setDefaultForm] = useState<string>("");
+  // Default lease terms for new quotes (backend toggle). When off, quotes fall
+  // back to the first three terms the selected funder offers.
+  const [defaultTermsEnabled, setDefaultTermsEnabled] = useState(false);
+  const [defaultTerms, setDefaultTerms] = useState<number[]>([36, 48, 60]);
 
   // Form customization (field labels, hidden sections)
   const [formCustomization, setFormCustomization] = useState<FormCustomizationMap>({});
@@ -239,6 +243,12 @@ export default function AdminSettings({
           }
           if (typeof settings.default_form === "string") {
             setDefaultForm(settings.default_form);
+          }
+          if (settings.default_terms && typeof settings.default_terms === "object") {
+            setDefaultTermsEnabled(!!settings.default_terms.enabled);
+            if (Array.isArray(settings.default_terms.terms)) {
+              setDefaultTerms(settings.default_terms.terms.filter((t: unknown) => typeof t === "number"));
+            }
           }
           if (settings.form_customization && typeof settings.form_customization === "object") {
             setFormCustomization(settings.form_customization as FormCustomizationMap);
@@ -445,6 +455,7 @@ export default function AdminSettings({
         // Persist homepage only if it's still an enabled document; otherwise
         // clear it so the app falls back to the first enabled document.
         default_form: defaultForm && enabledForms.includes(defaultForm) ? defaultForm : "",
+        default_terms: { enabled: defaultTermsEnabled, terms: defaultTerms },
         document_styles: {
           fontFamily: docStyleFontFamily,
           fontColor: docStyleFontColor,
@@ -647,6 +658,48 @@ export default function AdminSettings({
                           ))}
                         </SelectContent>
                       </Select>
+                    </div>
+
+                    {/* Default lease terms for new quotes */}
+                    <div className="mt-6 pt-4 border-t max-w-md">
+                      <label className="flex items-center gap-2 cursor-pointer">
+                        <input
+                          type="checkbox"
+                          checked={defaultTermsEnabled}
+                          onChange={(e) => setDefaultTermsEnabled(e.target.checked)}
+                          className="h-4 w-4 rounded border-input"
+                        />
+                        <span className="text-sm font-medium">Set default lease terms for new quotes</span>
+                      </label>
+                      <p className="text-xs text-muted-foreground mt-0.5 mb-2">
+                        When on, new quotes pre-select these terms if the chosen leasing company offers them (up to 3).
+                        Terms a funder doesn't provide are skipped. When off, quotes use the first three available terms.
+                      </p>
+                      {defaultTermsEnabled && (
+                        <div className="flex flex-wrap gap-2">
+                          {[12, 24, 36, 48, 60, 72].map((t) => {
+                            const on = defaultTerms.includes(t);
+                            return (
+                              <button
+                                key={t}
+                                type="button"
+                                onClick={() =>
+                                  setDefaultTerms((prev) =>
+                                    on ? prev.filter((x) => x !== t) : [...prev, t].sort((a, b) => a - b),
+                                  )
+                                }
+                                className={`px-3 h-8 rounded-md border text-sm transition-colors ${
+                                  on
+                                    ? "bg-primary text-primary-foreground border-primary"
+                                    : "bg-background hover:bg-muted"
+                                }`}
+                              >
+                                {t} mo
+                              </button>
+                            );
+                          })}
+                        </div>
+                      )}
                     </div>
                   </CardContent>
                 </Card>

@@ -123,6 +123,8 @@ interface DealerSettings {
   enabled_forms?: string[];
   /** Document code to open on load (homepage). Empty/absent = first enabled document. */
   default_form?: string;
+  /** Portal-configured default lease terms for new quotes (Admin → backend). */
+  default_terms?: { enabled?: boolean; terms?: number[] };
   document_styles?: {
     fontFamily?: string;
     fontColor?: string;
@@ -4177,6 +4179,7 @@ function DocumentHubContent() {
                       portalId={portalId || undefined}
                       savedConfig={savedConfig || undefined}
                       formCustomization={dealerSettings.form_customization?.quote}
+                      defaultTerms={dealerSettings.default_terms}
                     />
 
                     {/* Additional Costs + commission summary — a second view of the

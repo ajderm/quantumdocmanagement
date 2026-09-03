@@ -129,6 +129,9 @@ interface QuoteFormProps {
   portalId?: string;
   savedConfig?: QuoteFormData;
   formCustomization?: FormCustomizationConfig;
+  /** Portal-configured default lease terms (Admin → backend). When enabled, new
+   *  quotes pre-select these terms if the chosen funder offers them. */
+  defaultTerms?: { enabled?: boolean; terms?: number[] };
 }
 
 interface RateFactor {
@@ -174,6 +177,7 @@ export function QuoteForm({
   portalId,
   savedConfig,
   formCustomization,
+  defaultTerms,
 }: QuoteFormProps) {
   const hasInitializedRef = useRef(false);
   const savedConfigRef = useRef(savedConfig);
@@ -557,6 +561,19 @@ export function QuoteForm({
     rateFactors,
   ]);
 
+  // Preferred default term selection. When the portal has configured default
+  // terms (Admin → backend, toggle on), pre-select those the chosen funder
+  // actually offers (capped at the 3-term max); otherwise fall back to the first
+  // three available. This keeps Marko's rule intact — never offers a term a
+  // leasing company doesn't provide.
+  const pickDefaultTerms = (available: number[]): number[] => {
+    if (defaultTerms?.enabled && Array.isArray(defaultTerms.terms) && defaultTerms.terms.length > 0) {
+      const preferred = defaultTerms.terms.filter((t) => available.includes(t)).slice(0, 3);
+      if (preferred.length > 0) return preferred;
+    }
+    return available.slice(0, 3);
+  };
+
   // Reset selected terms when company or program changes (but not during initial load if we have saved terms)
   useEffect(() => {
     // Skip if we have saved config with terms and haven't initialized yet
@@ -565,20 +582,21 @@ export function QuoteForm({
     }
 
     if (availableTerms.length > 0 && formData.selectedTerms.length === 0) {
-      // Auto-select up to 3 terms from available
-      const defaultTerms = availableTerms.slice(0, 3);
-      setFormData((prev) => ({ ...prev, selectedTerms: defaultTerms }));
+      // Auto-select the portal's configured default terms (if the funder offers
+      // them), else the first three available.
+      setFormData((prev) => ({ ...prev, selectedTerms: pickDefaultTerms(availableTerms) }));
     } else if (availableTerms.length > 0) {
       // Filter out any selected terms that are no longer available
       const validTerms = formData.selectedTerms.filter((t) => availableTerms.includes(t));
       if (validTerms.length !== formData.selectedTerms.length) {
         setFormData((prev) => ({
           ...prev,
-          selectedTerms: validTerms.length > 0 ? validTerms : availableTerms.slice(0, 3),
+          selectedTerms: validTerms.length > 0 ? validTerms : pickDefaultTerms(availableTerms),
         }));
       }
     }
-  }, [availableTerms, savedConfig]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [availableTerms, savedConfig, defaultTerms]);
 
   // Calculate total buyout (for display)
   const totalBuyout = totalBuyoutForCalc;
