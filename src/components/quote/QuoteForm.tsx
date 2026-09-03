@@ -213,7 +213,7 @@ export function QuoteForm({
     specialPricingTier: "",
     contractNumber: "",
     rfpNumber: "",
-    showFinancingProvider: true,
+    showFinancingProvider: false,
     // Buyout defaults
     earlyTerminationFee: 0,
     returnShipping: 0,
@@ -336,7 +336,7 @@ export function QuoteForm({
         specialPricingTier: tierName,
         contractNumber: "",
         rfpNumber: "",
-        showFinancingProvider: true,
+        showFinancingProvider: false,
         lineItems: prev.lineItems.map((item) => {
           const origCost = originalCosts[item.id] ?? item.cost;
           const newPrice =
@@ -355,7 +355,7 @@ export function QuoteForm({
       specialPricingTier: tierName,
       contractNumber: "",
       rfpNumber: "",
-      showFinancingProvider: true,
+      showFinancingProvider: false,
       lineItems: prev.lineItems.map((item) => {
         const priceMatch = tier.prices.find((p) => item.model.toLowerCase() === p.product_model.toLowerCase());
         if (priceMatch) {
