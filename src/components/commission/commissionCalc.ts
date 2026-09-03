@@ -12,18 +12,35 @@ import type { CommissionFormData } from "./CommissionForm";
  * the commission's Total Cost (Stephen Ross, 26 Aug 2026: "the doc app is not
  * including the lease buyout costs into the TOTAL COST but it should").
  *
- * Precedence matches the Commission form's own initialization: an explicit
- * financed buyout amount wins; otherwise it's the remaining payments plus early
- * termination and return shipping. Accepts loosely-typed quote form data
- * (values may be numbers or strings depending on the source).
+ * Mirrors the quote's own "Total Buyout" field so the two always show the same
+ * number:
+ *   1. A hand-entered Total Buyout override wins (the rep typed the total
+ *      directly because they don't have the individual figures).
+ *   2. Otherwise the calculated total: remaining payments + early termination +
+ *      return shipping.
+ *   3. Legacy fallback: older quotes that stored the buyout as a financed amount.
+ * Accepts loosely-typed quote form data (values may be numbers or strings).
  */
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 export function buyoutFromQuoteConfig(quote: any): number {
   if (!quote) return 0;
   const num = (v: unknown) => parseFloat(String(v ?? "")) || 0;
-  const financed = num(quote.buyoutFinancingAmount);
-  if (financed > 0) return financed;
-  return num(quote.paymentAmount) * num(quote.paymentsRemaining) + num(quote.earlyTerminationFee) + num(quote.returnShipping);
+
+  // 1. Manual Total Buyout override — the authoritative total the rep sees.
+  if (quote.totalBuyoutManuallySet) {
+    const override = parseFloat(String(quote.totalBuyoutOverride ?? ""));
+    if (Number.isFinite(override)) return override;
+  }
+
+  // 2. Calculated from the individual buyout fields.
+  const computed =
+    num(quote.paymentAmount) * num(quote.paymentsRemaining) +
+    num(quote.earlyTerminationFee) +
+    num(quote.returnShipping);
+  if (computed > 0) return computed;
+
+  // 3. Legacy: buyout stored as a financed amount on older quotes.
+  return num(quote.buyoutFinancingAmount);
 }
 
 export interface CommissionTotals {
