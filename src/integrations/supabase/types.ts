@@ -455,6 +455,38 @@ export type Database = {
           },
         ]
       }
+      document_engine_modes: {
+        Row: {
+          dealer_account_id: string
+          document_code: string
+          engine: string
+          updated_at: string
+          updated_by: string | null
+        }
+        Insert: {
+          dealer_account_id: string
+          document_code: string
+          engine?: string
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Update: {
+          dealer_account_id?: string
+          document_code?: string
+          engine?: string
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "document_engine_modes_dealer_account_id_fkey"
+            columns: ["dealer_account_id"]
+            isOneToOne: false
+            referencedRelation: "dealer_accounts"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       document_templates: {
         Row: {
           created_at: string
@@ -1091,6 +1123,75 @@ export type Database = {
           object_type?: string
           portal_id?: string
           updated_at?: string
+        }
+        Relationships: []
+      }
+      platform_admin_audit: {
+        Row: {
+          action: string
+          actor_email: string | null
+          actor_hubspot_user_id: string | null
+          auth_method: string | null
+          created_at: string
+          dealer_account_id: string | null
+          document_code: string | null
+          from_value: string | null
+          id: string
+          outcome: string
+          portal_id: string | null
+          reason: string | null
+          to_value: string | null
+          user_agent: string | null
+        }
+        Insert: {
+          action: string
+          actor_email?: string | null
+          actor_hubspot_user_id?: string | null
+          auth_method?: string | null
+          created_at?: string
+          dealer_account_id?: string | null
+          document_code?: string | null
+          from_value?: string | null
+          id?: string
+          outcome: string
+          portal_id?: string | null
+          reason?: string | null
+          to_value?: string | null
+          user_agent?: string | null
+        }
+        Update: {
+          action?: string
+          actor_email?: string | null
+          actor_hubspot_user_id?: string | null
+          auth_method?: string | null
+          created_at?: string
+          dealer_account_id?: string | null
+          document_code?: string | null
+          from_value?: string | null
+          id?: string
+          outcome?: string
+          portal_id?: string | null
+          reason?: string | null
+          to_value?: string | null
+          user_agent?: string | null
+        }
+        Relationships: []
+      }
+      platform_admins: {
+        Row: {
+          created_at: string
+          email: string
+          note: string | null
+        }
+        Insert: {
+          created_at?: string
+          email: string
+          note?: string | null
+        }
+        Update: {
+          created_at?: string
+          email?: string
+          note?: string | null
         }
         Relationships: []
       }
