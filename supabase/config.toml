@@ -61,3 +61,5 @@ project_id = "kafsqolkxnrsjddjkhyc"
     verify_jwt = false
   [functions.upload-rate-sheet]
     verify_jwt = false
+  [functions.process-email-queue]
+    verify_jwt = true
