@@ -40,6 +40,25 @@ function tokenize(src) {
   return out;
 }
 
+/**
+ * Every dotted reference an expression depends on.
+ *
+ * Used to decide whether a computed value rests on data that is actually
+ * present. An absent input must not silently become 0: "monthly payment
+ * $0.00" on a quote reads as free, which is the same hazard the numeric
+ * formatters guard against one layer down.
+ *
+ * @param {string} src
+ * @returns {string[]}
+ */
+export function refsIn(src) {
+  try {
+    return tokenize(String(src)).filter((t) => t.t === 'ref').map((t) => t.v);
+  } catch {
+    return [];
+  }
+}
+
 /** @param {string} src @param {(path:string)=>number} lookup */
 export function evaluate(src, lookup) {
   const tokens = tokenize(src);

@@ -109,3 +109,57 @@ test('row limit reports overflow instead of silently truncating', () => {
   assert.equal(r.warnings.length, 1);
   assert.match(r.warnings[0], /beyond the row limit/);
 });
+
+test('a computed value resting on absent data does not become zero', () => {
+  // "Monthly payment $0.00" on a quote reads as free. An absent rate factor
+  // must render blank, while a genuine zero total still prints.
+  const t = {
+    vars: { taxRate: 0.087 },
+    computed: {
+      tax: 'round(totals.subtotal * vars.taxRate, 2)',
+      grand: 'totals.subtotal + computed.tax',
+      monthly: 'round(computed.grand * lease.rate_factor, 2)',
+    },
+    blocks: [
+      { type: 'table', bind: 'items', columns: [{ key: 'name', label: 'N' }] },
+      { type: 'summary', rows: [
+        { label: 'Subtotal', expr: 'totals.subtotal' },
+        { label: 'Total', expr: 'computed.grand' },
+        { label: 'Monthly', expr: 'computed.monthly' },
+      ] },
+    ],
+  };
+  const items = [{ name: 'a', extended: 1000, quantity: 1 }];
+
+  const withRate = resolve(t, { items, lease: { rate_factor: 0.01974 } });
+  const rows = withRate.blocks[1].rows;
+  assert.equal(rows[0].value, '$1,000.00');
+  assert.equal(rows[1].value, '$1,087.00');
+  assert.equal(rows[2].value, '$21.46');
+
+  const noRate = resolve(t, { items, lease: { rate_factor: null } });
+  const bare = noRate.blocks[1].rows;
+  assert.equal(bare[0].value, '$1,000.00', 'a present total still prints');
+  assert.equal(bare[1].value, '$1,087.00', 'and so does anything derived from it');
+  assert.equal(bare[2].value, '', 'but the monthly payment is blank, not $0.00');
+});
+
+test('a genuine zero still prints, so an empty quote reads honestly', () => {
+  const t = {
+    computed: { grand: 'totals.subtotal' },
+    blocks: [
+      { type: 'table', bind: 'items', columns: [{ key: 'name', label: 'N' }] },
+      { type: 'summary', rows: [{ label: 'Total', expr: 'computed.grand' }] },
+    ],
+  };
+  assert.equal(resolve(t, { items: [] }).blocks[1].rows[0].value, '$0.00');
+});
+
+test('absence propagates transitively through computed values', () => {
+  const t = {
+    computed: { a: 'lease.rate_factor * 2', b: 'computed.a + 1', c: 'computed.b * 3' },
+    blocks: [{ type: 'summary', rows: [{ label: 'C', expr: 'computed.c' }] }],
+  };
+  assert.equal(resolve(t, { lease: {} }).blocks[0].rows[0].value, '');
+  assert.equal(resolve(t, { lease: { rate_factor: 1 } }).blocks[0].rows[0].value, '$9.00');
+});

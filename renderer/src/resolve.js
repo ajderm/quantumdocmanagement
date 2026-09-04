@@ -7,7 +7,7 @@
 // and disagree with itself.
 
 import { applyFormat } from './format.js';
-import { evaluate } from './expr.js';
+import { evaluate, refsIn } from './expr.js';
 
 export function get(obj, path) {
   if (obj == null) return undefined;
@@ -116,12 +116,28 @@ export function resolve(template, data) {
   const computed = {};
   const scope = { ...data, vars, totals, computed };
   const lookup = (path) => get(scope, path);
+
+  // Absence propagates. A value computed from a missing input is itself
+  // missing, not zero — otherwise a quote with no rate factor prints
+  // "Monthly payment $0.00", which reads as free. Tracked as a set of keys
+  // rather than by writing null into `computed`, so arithmetic downstream
+  // still sees numbers and cannot throw.
+  const absent = new Set();
+  const isAbsentPath = (path) => {
+    if (path.startsWith('computed.')) return absent.has(path.slice('computed.'.length));
+    const v = get(scope, path);
+    return v === undefined || v === null || v === '';
+  };
+
   for (const [key, expr] of Object.entries(template.computed ?? {})) {
+    const refs = refsIn(expr);
+    if (refs.some(isAbsentPath)) absent.add(key);
     try {
       computed[key] = evaluate(String(expr), lookup);
     } catch (err) {
       warnings.push(`computed.${key}: ${err.message}`);
       computed[key] = 0;
+      absent.add(key);
     }
   }
 
@@ -166,15 +182,22 @@ export function resolve(template, data) {
         const rows = (block.rows ?? []).map((r) => {
           let value;
           if (r.expr) {
-            try { value = evaluate(String(r.expr), lookup); }
-            catch (err) { warnings.push(`summary "${r.label}": ${err.message}`); value = 0; }
-            value = applyFormat(value, r.format ?? 'currency');
+            // A row resting on absent data renders blank rather than zero.
+            // Totals legitimately are zero sometimes (an empty quote), and
+            // that still prints — this is about inputs that were never there.
+            if (refsIn(r.expr).some(isAbsentPath)) {
+              value = '';
+            } else {
+              try { value = evaluate(String(r.expr), lookup); }
+              catch (err) { warnings.push(`summary "${r.label}": ${err.message}`); value = 0; }
+              value = applyFormat(value, r.format ?? 'currency');
+            }
           } else {
             value = s(r.value ?? '');
           }
           return { label: s(r.label), value, bold: !!r.bold, rule: !!r.rule };
         });
-        blocks.push({ ...block, rows });
+        blocks.push({ ...block, rows: block.hideEmpty ? rows.filter((r) => r.value !== '') : rows });
         break;
       }
       case 'richText':
