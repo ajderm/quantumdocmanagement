@@ -34,7 +34,6 @@ interface Pipeline {
 
 interface UserRolesManagerProps {
   portalId: string;
-  dealerAccountId: string;
 }
 
 const ROLE_OPTIONS = [
@@ -54,7 +53,10 @@ const roleBadgeColor = (role: string) => {
   }
 };
 
-export function UserRolesManager({ portalId, dealerAccountId }: UserRolesManagerProps) {
+// dealerAccountId is deliberately not a prop. The tenant is resolved from
+// portalId inside the user-roles function; accepting it from the client is the
+// hole this screen used to have.
+export function UserRolesManager({ portalId }: UserRolesManagerProps) {
   const [userRoles, setUserRoles] = useState<UserRole[]>([]);
   const [accessRules, setAccessRules] = useState<AccessRule[]>([]);
   const [pipelines, setPipelines] = useState<Pipeline[]>([]);
@@ -66,18 +68,26 @@ export function UserRolesManager({ portalId, dealerAccountId }: UserRolesManager
   const loadData = useCallback(async () => {
     setLoading(true);
     try {
-      const { data: roles } = await supabase.from('app_user_roles').select('*').eq('dealer_account_id', dealerAccountId).order('hubspot_user_name');
-      if (roles) setUserRoles(roles);
-      const { data: rules } = await supabase.from('access_rules').select('*').eq('dealer_account_id', dealerAccountId);
-      if (rules) {
-        setAccessRules(rules);
-        const ruleMap: Record<string, AccessRule> = {};
-        rules.forEach(r => { ruleMap[r.pipeline_id] = r; });
-        setPipelineRules(ruleMap);
-      }
-    } catch (err) { console.error('Error loading roles:', err); }
+      // Read through the edge function rather than straight from the tables:
+      // direct access required anon SELECT/INSERT/UPDATE policies, which let
+      // anyone with the publishable key grant themselves a role.
+      const { data, error } = await supabase.functions.invoke('user-roles', {
+        body: { portalId, action: 'list' },
+      });
+      if (error) throw error;
+      const roles = data?.roles ?? [];
+      const rules = data?.rules ?? [];
+      setUserRoles(roles);
+      setAccessRules(rules);
+      const ruleMap: Record<string, AccessRule> = {};
+      rules.forEach((r: AccessRule) => { ruleMap[r.pipeline_id] = r; });
+      setPipelineRules(ruleMap);
+    } catch (err) {
+      console.error('Error loading roles:', err);
+      toast.error('Could not load user roles');
+    }
     finally { setLoading(false); }
-  }, [dealerAccountId]);
+  }, [portalId]);
 
   useEffect(() => { loadData(); }, [loadData]);
 
@@ -101,17 +111,12 @@ export function UserRolesManager({ portalId, dealerAccountId }: UserRolesManager
         name: `${o.firstName || ''} ${o.lastName || ''}`.trim(),
       }));
 
-      // Upsert new users that don't have roles yet
-      const existingIds = new Set(userRoles.map(r => r.hubspot_user_id));
-      for (const user of owners) {
-        if (!existingIds.has(user.userId)) {
-          await supabase.from('app_user_roles').upsert({
-            dealer_account_id: dealerAccountId, hubspot_user_id: user.userId,
-            hubspot_user_name: user.name, hubspot_user_email: user.email,
-            role: 'user', updated_at: new Date().toISOString(),
-          }, { onConflict: 'dealer_account_id,hubspot_user_id' });
-        }
-      }
+      // One call rather than a request per user, and the function decides who
+      // is missing so an existing role can never be downgraded to 'user'.
+      const { error: ensureError } = await supabase.functions.invoke('user-roles', {
+        body: { portalId, action: 'ensure-roles', users: owners },
+      });
+      if (ensureError) throw ensureError;
 
       // Set pipelines from the same edge function response
       if (data.pipelines) {
@@ -127,11 +132,12 @@ export function UserRolesManager({ portalId, dealerAccountId }: UserRolesManager
   const updateUserRole = async (userId: string, newRole: string) => {
     const user = userRoles.find(u => u.hubspot_user_id === userId);
     if (!user) return;
-    const { error } = await supabase.from('app_user_roles').upsert({
-      dealer_account_id: dealerAccountId, hubspot_user_id: userId,
-      hubspot_user_name: user.hubspot_user_name, hubspot_user_email: user.hubspot_user_email,
-      role: newRole, updated_at: new Date().toISOString(),
-    }, { onConflict: 'dealer_account_id,hubspot_user_id' });
+    const { error } = await supabase.functions.invoke('user-roles', {
+      body: {
+        portalId, action: 'set-role', hubspotUserId: userId, role: newRole,
+        name: user.hubspot_user_name, email: user.hubspot_user_email,
+      },
+    });
     if (error) toast.error('Failed to update role');
     else setUserRoles(prev => prev.map(u => u.hubspot_user_id === userId ? { ...u, role: newRole } : u));
   };
@@ -139,12 +145,9 @@ export function UserRolesManager({ portalId, dealerAccountId }: UserRolesManager
   const saveAccessRule = async (rule: AccessRule) => {
     setSaving(true);
     try {
-      const { error } = await supabase.from('access_rules').upsert({
-        dealer_account_id: dealerAccountId, pipeline_id: rule.pipeline_id,
-        pipeline_label: rule.pipeline_label, cutoff_stage: rule.cutoff_stage,
-        cutoff_stage_label: rule.cutoff_stage_label, pre_cutoff_min_role: rule.pre_cutoff_min_role,
-        post_cutoff_min_role: rule.post_cutoff_min_role, updated_at: new Date().toISOString(),
-      }, { onConflict: 'dealer_account_id,pipeline_id' });
+      const { error } = await supabase.functions.invoke('user-roles', {
+        body: { portalId, action: 'set-access-rule', rule },
+      });
       if (error) throw error;
       await loadData();
       toast.success(`Access rule saved for ${rule.pipeline_label}`);

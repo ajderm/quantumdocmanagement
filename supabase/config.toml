@@ -69,3 +69,9 @@ project_id = "kafsqolkxnrsjddjkhyc"
 # it stays consistent with the existing card flow.
 [functions.generate-document]
 verify_jwt = false
+
+# Replaces direct browser access to app_user_roles and access_rules, which
+# required anon INSERT/UPDATE policies and therefore allowed anyone with the
+# publishable key to grant themselves a role.
+[functions.user-roles]
+verify_jwt = false

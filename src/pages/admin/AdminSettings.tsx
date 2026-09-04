@@ -1638,7 +1638,7 @@ export default function AdminSettings({
 
             <TabsContent value="user-roles">
               {dealerAccountId && portalId && (
-                <UserRolesManager portalId={portalId} dealerAccountId={dealerAccountId} />
+                <UserRolesManager portalId={portalId} />
               )}
               {!dealerAccountId && (
                 <div className="text-center py-8 text-sm text-muted-foreground">
