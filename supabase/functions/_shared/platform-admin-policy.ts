@@ -86,6 +86,38 @@ export function decideUiVisibility(input: {
   return isAllowlisted(input.hubspotEmail, input.allowlist);
 }
 
+/**
+ * Why the panel is or is not being offered.
+ *
+ * Returned so an absent panel can be told apart from a broken one. Without
+ * this, "the section is missing" looks identical whether the function is
+ * undeployed, the portal's token expired, the operator is not a HubSpot owner
+ * in that portal, or their HubSpot address simply differs from the allowlisted
+ * one. None of these values reveal anything a portal user cannot already see.
+ */
+export type VisibilityReason =
+  | 'ok'
+  | 'missing_user_id'
+  | 'no_portal_token'
+  | 'owners_api_failed'
+  | 'owner_not_found'
+  | 'owner_has_no_email'
+  | 'not_allowlisted'
+  | 'empty_allowlist';
+
+export function explainVisibility(input: {
+  hubspotEmail: string | null;
+  resolveReason: Exclude<VisibilityReason, 'not_allowlisted' | 'empty_allowlist' | 'ok'> | null;
+  allowlist: readonly string[];
+}): { visible: boolean; reason: VisibilityReason } {
+  if (input.resolveReason) return { visible: false, reason: input.resolveReason };
+  if (input.allowlist.length === 0) return { visible: false, reason: 'empty_allowlist' };
+  if (!isAllowlisted(input.hubspotEmail, input.allowlist)) {
+    return { visible: false, reason: 'not_allowlisted' };
+  }
+  return { visible: true, reason: 'ok' };
+}
+
 export function validateDocumentCode(code: unknown): code is string {
   return typeof code === 'string' && /^[a-z][a-z0-9_]{1,48}$/.test(code);
 }

@@ -99,6 +99,34 @@ it.
   An absent row means `native`, so an unconfigured portal keeps working.
 - `platform_admin_audit` — append-only history.
 
+## When the panel does not appear
+
+Visibility has three independent routes, so a single broken lookup does not
+lock an operator out:
+
+1. HubSpot identity resolves to an allowlisted email, **or**
+2. an allowlisted Supabase session already exists, **or**
+3. `?platformAdmin=1` is on the URL — reveals the sign-in prompt only, never
+   authority, since the toggles stay inert without an allowlisted session.
+
+`platform-admin-verify` returns a `reason` on every call, logged to the console
+as `[platform-admin]` and shown in the panel when identity did not match:
+
+| reason | what to fix |
+|---|---|
+| `missing_user_id` | HubSpot did not pass `userId` to that screen. Use route 2 or 3. |
+| `no_portal_token` | The portal has no usable OAuth token — reconnect the app. |
+| `owners_api_failed` | The owners API rejected the call; check the owners scope. |
+| `owner_not_found` | That HubSpot user id is not among the portal's owners. |
+| `owner_has_no_email` | The owner record carries no address. |
+| `not_allowlisted` | The resolved address is not in `platform_admins` — it often differs from the one expected. |
+| `empty_allowlist` | The migration did not seed. |
+| `verify_call_failed` | The function is not deployed or is erroring. |
+
+The diagnostics block alongside it reports `receivedUserId`, `ownersScanned`
+and `allowlistSize`, which together separate "not deployed" from "wrong
+address" without revealing anything a portal user cannot already see.
+
 ## Current limitation
 
 `document_engine_modes` is written and read (`useDocumentEngine`), but nothing

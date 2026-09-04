@@ -107,6 +107,43 @@ export function EngineModePanel({
       </CardHeader>
 
       <CardContent className="space-y-5">
+        {/* Why HubSpot identity did not resolve, shown only when it did not.
+            Turns "the section is missing" into something actionable. */}
+        {admin.reason && admin.reason !== "ok" && (
+          <div className="rounded-md border border-border bg-muted/40 px-3 py-2 space-y-1">
+            <p className="text-xs font-medium">
+              HubSpot identity not matched — sign in below to continue
+            </p>
+            <p className="text-xs text-muted-foreground">
+              {({
+                missing_user_id:
+                  "HubSpot did not pass a user id to this screen, so your address could not be looked up.",
+                no_portal_token:
+                  "This portal has no usable HubSpot token — the app may need reconnecting.",
+                owners_api_failed:
+                  "HubSpot's owners API rejected the request; the app may be missing the owners scope.",
+                owner_not_found:
+                  "Your HubSpot user id was not found among this portal's owners.",
+                owner_has_no_email:
+                  "Your HubSpot owner record has no email address on it.",
+                not_allowlisted:
+                  "Your HubSpot email is not on the operator allowlist. It may differ from the address you expect.",
+                empty_allowlist:
+                  "The operator allowlist is empty — the migration may not have seeded.",
+                verify_call_failed:
+                  "The verification function could not be reached; it may not be deployed.",
+                no_portal_id:
+                  "No portal id on this screen.",
+              } as Record<string, string>)[admin.reason] ?? admin.reason}
+            </p>
+            <p className="text-[11px] text-muted-foreground font-mono">
+              reason: {admin.reason}
+              {admin.diagnostics ? ` · ${Object.entries(admin.diagnostics)
+                .map(([k, v]) => `${k}=${v ?? "—"}`).join(" · ")}` : ""}
+            </p>
+          </div>
+        )}
+
         {/* ---- authentication ------------------------------------------- */}
         {admin.authorized ? (
           <div className="flex items-center justify-between rounded-md border border-border bg-muted/40 px-3 py-2">

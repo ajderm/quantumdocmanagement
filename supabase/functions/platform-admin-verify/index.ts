@@ -12,7 +12,7 @@ import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
 import { validatePortalId, getCorsHeaders, createErrorResponse, createJsonResponse } from '../_shared/validation.ts';
 import { checkRateLimit } from '../_shared/rate-limit.ts';
 import { loadAllowlist, resolveHubspotEmail, sessionEmail } from '../_shared/platform-admin.ts';
-import { decideUiVisibility, decideWrite, isAllowlisted, normalizeEmail } from '../_shared/platform-admin-policy.ts';
+import { explainVisibility, decideWrite, isAllowlisted, normalizeEmail } from '../_shared/platform-admin-policy.ts';
 
 const corsHeaders = getCorsHeaders();
 
@@ -47,14 +47,29 @@ Deno.serve(async (req: Request) => {
       return createJsonResponse({ eligible: isAllowlisted(candidate, list) }, 200, corsHeaders);
     }
 
+    const allowlist = await loadAllowlist(supabase);
     const hubspotUserId = String(body.userId ?? '').trim();
+
+    // A settings surface opened without a userId is a real case (HubSpot does
+    // not pass one everywhere), so report it rather than 400-ing: the caller
+    // can still get in via an authenticated session.
+    let email: string | null = null;
+    let resolveReason: 'missing_user_id' | 'no_portal_token' | 'owners_api_failed'
+      | 'owner_not_found' | 'owner_has_no_email' | null = null;
+    let ownerCount = 0;
+
     if (!/^\d{1,20}$/.test(hubspotUserId)) {
-      return createErrorResponse('Invalid user ID format', 400, corsHeaders);
+      resolveReason = 'missing_user_id';
+    } else {
+      const resolved = await resolveHubspotEmail(supabase, portalId, hubspotUserId);
+      email = resolved.email;
+      resolveReason = resolved.reason;
+      ownerCount = resolved.ownerCount;
     }
 
-    const allowlist = await loadAllowlist(supabase);
-    const email = await resolveHubspotEmail(supabase, portalId, hubspotUserId);
-    const visible = decideUiVisibility({ hubspotEmail: email, allowlist });
+    const { visible, reason } = explainVisibility({
+      hubspotEmail: email, resolveReason, allowlist,
+    });
 
     // Also report whether the caller's Supabase session (if any) would be
     // permitted to write, so the panel can show accurate controls instead of
@@ -68,9 +83,17 @@ Deno.serve(async (req: Request) => {
     // endpoint cannot be used to enumerate a portal's user directory.
     return createJsonResponse({
       visible,
+      reason,
       email: visible ? email : null,
       signedInAs: sessionAuthorized ? signedInAs : null,
       sessionAuthorized,
+      // Diagnostics that reveal nothing a portal user cannot already see, but
+      // separate "not deployed / no token / not an owner" from "wrong address".
+      diagnostics: {
+        receivedUserId: hubspotUserId || null,
+        ownersScanned: ownerCount,
+        allowlistSize: allowlist.length,
+      },
     }, 200, corsHeaders);
   } catch (err) {
     console.error('platform-admin-verify failed', err);

@@ -2,7 +2,7 @@ import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import {
   normalizeEmail, isAllowlisted, emailForHubspotUserId, decideWrite,
-  decideUiVisibility, isEngine, validateDocumentCode,
+  decideUiVisibility, isEngine, validateDocumentCode, explainVisibility,
 } from '../platform-admin-policy.ts';
 
 const ALLOW = ['marko@thequantumleap.business', 'shawn@thequantumleap.business'];
@@ -89,4 +89,47 @@ test('document codes are constrained to a safe shape', () => {
                      null, undefined, 7]) {
     assert.equal(validateDocumentCode(bad as unknown), false, `${JSON.stringify(bad)} should be invalid`);
   }
+});
+
+
+test('visibility reports the specific reason it failed', () => {
+  // A resolution failure must be reported as itself, not collapsed into
+  // "not allowlisted" — they point at completely different fixes.
+  for (const r of ['missing_user_id', 'no_portal_token', 'owners_api_failed',
+                   'owner_not_found', 'owner_has_no_email'] as const) {
+    assert.deepEqual(
+      explainVisibility({ hubspotEmail: null, resolveReason: r, allowlist: ALLOW }),
+      { visible: false, reason: r },
+    );
+  }
+});
+
+test('an unseeded allowlist is distinguishable from a wrong address', () => {
+  assert.deepEqual(
+    explainVisibility({ hubspotEmail: 'marko@thequantumleap.business', resolveReason: null, allowlist: [] }),
+    { visible: false, reason: 'empty_allowlist' },
+  );
+  assert.deepEqual(
+    explainVisibility({ hubspotEmail: 'rep@eakes.com', resolveReason: null, allowlist: ALLOW }),
+    { visible: false, reason: 'not_allowlisted' },
+  );
+});
+
+test('a resolved allowlisted address is visible', () => {
+  assert.deepEqual(
+    explainVisibility({ hubspotEmail: 'Marko@TheQuantumLeap.Business', resolveReason: null, allowlist: ALLOW }),
+    { visible: true, reason: 'ok' },
+  );
+});
+
+test('a resolution failure outranks the allowlist check', () => {
+  // Even with an allowlisted address in hand, a failed lookup is the honest
+  // answer — the address did not come from a trustworthy resolution.
+  assert.deepEqual(
+    explainVisibility({
+      hubspotEmail: 'marko@thequantumleap.business',
+      resolveReason: 'owners_api_failed', allowlist: ALLOW,
+    }),
+    { visible: false, reason: 'owners_api_failed' },
+  );
 });

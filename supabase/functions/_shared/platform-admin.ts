@@ -24,12 +24,13 @@ export async function loadAllowlist(supabase: any): Promise<string[]> {
  */
 export async function resolveHubspotEmail(
   supabase: any, portalId: string, hubspotUserId: string,
-): Promise<string | null> {
+): Promise<{ email: string | null; reason: null | 'no_portal_token' | 'owners_api_failed' | 'owner_not_found' | 'owner_has_no_email'; ownerCount: number }> {
   let token: string;
   try {
     token = await getValidAccessToken(supabase, portalId);
-  } catch {
-    return null; // portal not connected — nothing to resolve
+  } catch (err) {
+    console.error('no usable HubSpot token for portal', portalId, err);
+    return { email: null, reason: 'no_portal_token', ownerCount: 0 };
   }
 
   const owners: Owner[] = [];
@@ -43,7 +44,7 @@ export async function resolveHubspotEmail(
     const res = await fetch(url, { headers: { Authorization: `Bearer ${token}` } });
     if (!res.ok) {
       console.error('owners lookup failed', res.status, await res.text());
-      return null;
+      return { email: null, reason: 'owners_api_failed', ownerCount: owners.length };
     }
     const body = await res.json();
     owners.push(...(body.results ?? []));
@@ -51,7 +52,20 @@ export async function resolveHubspotEmail(
     if (!after) break;
   }
 
-  return emailForHubspotUserId(owners, hubspotUserId);
+  const email = emailForHubspotUserId(owners, hubspotUserId);
+  if (email) return { email, reason: null, ownerCount: owners.length };
+
+  // Distinguish "no such owner in this portal" from "found, but no address on
+  // the record" — they point at completely different fixes.
+  const matched = owners.some(
+    (o) => String(o.userId ?? '') === String(hubspotUserId)
+        || String(o.id ?? '') === String(hubspotUserId),
+  );
+  return {
+    email: null,
+    reason: matched ? 'owner_has_no_email' : 'owner_not_found',
+    ownerCount: owners.length,
+  };
 }
 
 /**

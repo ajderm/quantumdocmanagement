@@ -34,6 +34,23 @@ export interface PlatformAdminState {
   signedInAs: string | null;
   authorized: boolean;
   error: string | null;
+  /** Why the panel is or is not offered — see VisibilityReason server-side. */
+  reason: string | null;
+  diagnostics: Record<string, unknown> | null;
+}
+
+/**
+ * Escape hatch for reaching the panel when HubSpot identity cannot be
+ * resolved — the settings surface is not always opened with a userId, the
+ * operator may not be a HubSpot owner in that portal, or the portal's token
+ * may need reconnecting. It reveals only the sign-in prompt; the toggles stay
+ * inert without an allowlisted session, so this widens discovery and not
+ * authority.
+ */
+function forcedOpen(): boolean {
+  if (typeof window === "undefined") return false;
+  const p = new URLSearchParams(window.location.search);
+  return p.get("platformAdmin") === "1" || p.get("platform_admin") === "1";
 }
 
 export function usePlatformAdmin() {
@@ -41,33 +58,56 @@ export function usePlatformAdmin() {
   const [state, setState] = useState<PlatformAdminState>({
     loading: true, visible: false, hubspotEmail: null,
     signedInAs: null, authorized: false, error: null,
+    reason: null, diagnostics: null,
   });
   const [otpSent, setOtpSent] = useState(false);
   const [busy, setBusy] = useState(false);
 
   const check = useCallback(async () => {
-    if (!portalId || !userId) {
-      setState((s) => ({ ...s, loading: false, visible: false }));
+    if (!portalId) {
+      setState((s) => ({
+        ...s, loading: false, visible: forcedOpen(), reason: "no_portal_id",
+      }));
       return;
     }
     try {
+      // userId is sent even when absent: the server reports that as a reason
+      // rather than an error, and an authenticated session can still get in.
       const { data, error } = await supabase.functions.invoke("platform-admin-verify", {
-        body: { portalId, userId },
+        body: { portalId, userId: userId ?? "" },
       });
       if (error) throw error;
+
+      // Visibility has three independent routes, so one broken lookup does not
+      // lock an operator out of the panel entirely.
+      const visible = !!data?.visible || !!data?.sessionAuthorized || forcedOpen();
+
+      // Always logged: an absent panel is otherwise indistinguishable from a
+      // failed deploy, an expired token, or a mismatched address.
+      console.info("[platform-admin]", {
+        visible, reason: data?.reason, sessionAuthorized: data?.sessionAuthorized,
+        forced: forcedOpen(), ...(data?.diagnostics ?? {}),
+      });
+
       setState({
         loading: false,
-        visible: !!data?.visible,
+        visible,
         hubspotEmail: data?.email ?? null,
         signedInAs: data?.signedInAs ?? null,
         authorized: !!data?.sessionAuthorized,
         error: null,
+        reason: data?.reason ?? null,
+        diagnostics: data?.diagnostics ?? null,
       });
     } catch (err) {
-      // Failing closed is the only safe default here.
+      const message = err instanceof Error ? err.message : "Verification failed";
+      console.error("[platform-admin] verification failed", err);
+      // Authority still fails closed; only discoverability is kept open, so a
+      // deploy problem does not strand the operator with no way in.
       setState({
-        loading: false, visible: false, hubspotEmail: null, signedInAs: null,
-        authorized: false, error: err instanceof Error ? err.message : "Verification failed",
+        loading: false, visible: forcedOpen(), hubspotEmail: null, signedInAs: null,
+        authorized: false, error: message,
+        reason: "verify_call_failed", diagnostics: null,
       });
     }
   }, [portalId, userId]);
