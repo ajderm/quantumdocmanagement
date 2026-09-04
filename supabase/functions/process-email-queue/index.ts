@@ -53,8 +53,11 @@ function parseJwtClaims(token: string): Record<string, unknown> | null {
 }
 
 // Move a message to the dead letter queue and log the reason.
+// deno-lint-ignore no-explicit-any
 async function moveToDlq(
-  supabase: ReturnType<typeof createClient>,
+  // Loose-typed on purpose: this function only inserts a log row and calls an
+  // rpc that the generated client types do not describe in the edge runtime.
+  supabase: any,
   queue: string,
   msg: { msg_id: number; message: Record<string, unknown> },
   reason: string
@@ -159,12 +162,13 @@ Deno.serve(async (req) => {
     const messageIds = Array.from(
       new Set(
         messages
-          .map((msg) =>
+          // deno-lint-ignore no-explicit-any
+          .map((msg: any) =>
             msg?.message?.message_id && typeof msg.message.message_id === 'string'
               ? msg.message.message_id
               : null
           )
-          .filter((id): id is string => Boolean(id))
+          .filter((id: unknown): id is string => Boolean(id))
       )
     )
     const failedAttemptsByMessageId = new Map<string, number>()
