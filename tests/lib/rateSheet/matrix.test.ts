@@ -1,7 +1,7 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { parseRateMatrix, parseEffectiveRange } from '../matrix.ts';
-import type { RateSheetTab } from '../types.ts';
+import { parseRateMatrix, parseEffectiveRange } from '../../../src/lib/rateSheet/matrix.ts';
+import type { RateSheetTab } from '../../../src/lib/rateSheet/types.ts';
 
 /**
  * Synthetic fixture reproducing the real layout with invented numbers.

@@ -10,7 +10,7 @@
     "lint": "eslint .",
     "preview": "vite preview",
     "test:functions": "node --experimental-strip-types --test \"supabase/functions/_shared/__tests__/*.test.ts\"",
-    "test:lib": "node --experimental-strip-types --test \"src/lib/**/__tests__/*.test.ts\"",
+    "test:lib": "node --experimental-strip-types --test \"tests/lib/**/*.test.ts\"",
     "test:all": "npm run test:functions && npm run test:lib"
   },
   "dependencies": {

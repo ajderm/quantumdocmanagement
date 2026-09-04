@@ -1,6 +1,6 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { quoteRenderPayload, joinAddress, lineDescription, money } from '../payload.ts';
+import { quoteRenderPayload, joinAddress, lineDescription, money } from '../../../src/lib/render/payload.ts';
 
 const ctx = {
   dealerInfo: { companyName: 'Quantum Office Systems', address: '3300 Maple Valley Rd', phone: '(425) 555-0100', website: 'quantumoffice.example' },

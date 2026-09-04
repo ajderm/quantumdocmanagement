@@ -1,7 +1,7 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { parseCsv, headerKey } from '../csv.ts';
-import { parseFlatCsv } from '../flat.ts';
+import { parseCsv, headerKey } from '../../../src/lib/rateSheet/csv.ts';
+import { parseFlatCsv } from '../../../src/lib/rateSheet/flat.ts';
 
 test('a quoted comma does not shift the columns', () => {
   // The previous parser used line.split(','), which turns this single company

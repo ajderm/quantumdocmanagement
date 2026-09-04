@@ -2,9 +2,9 @@ name: unit tests
 
 on:
   push:
-    paths: ['supabase/functions/**', 'src/lib/**', '.github/workflows/edge-functions.yml']
+    paths: ['supabase/functions/**', 'src/lib/**', 'tests/**', '.github/workflows/edge-functions.yml']
   pull_request:
-    paths: ['supabase/functions/**', 'src/lib/**', '.github/workflows/edge-functions.yml']
+    paths: ['supabase/functions/**', 'src/lib/**', 'tests/**', '.github/workflows/edge-functions.yml']
 
 jobs:
   test:
