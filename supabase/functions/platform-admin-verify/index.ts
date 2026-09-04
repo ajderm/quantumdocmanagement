@@ -44,7 +44,7 @@ Deno.serve(async (req: Request) => {
         return createErrorResponse('Invalid email', 400, corsHeaders);
       }
       const list = await loadAllowlist(supabase);
-      return createJsonResponse({ eligible: isAllowlisted(candidate, list) }, 200, corsHeaders);
+      return createJsonResponse({ eligible: isAllowlisted(candidate, list) }, corsHeaders);
     }
 
     const allowlist = await loadAllowlist(supabase);
@@ -94,7 +94,7 @@ Deno.serve(async (req: Request) => {
         ownersScanned: ownerCount,
         allowlistSize: allowlist.length,
       },
-    }, 200, corsHeaders);
+    }, corsHeaders);
   } catch (err) {
     console.error('platform-admin-verify failed', err);
     return createErrorResponse('Verification failed', 500, corsHeaders);
