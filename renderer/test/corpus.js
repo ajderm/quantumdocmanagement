@@ -4,78 +4,11 @@
 // cases exist to break the layout engine: empty tables, a row taller than a
 // page, counts that land exactly on a page boundary, blocks that would orphan.
 
-import { lineItems, deal } from './fixtures.js';
+import { lineItems, deal, quoteTemplate } from '../src/sample.js';
 
-const TERMS = `<p>Pricing is valid through the date shown above and is contingent on credit
-approval by <strong>GreatAmerica</strong>. Equipment remains the property of the lessor for the
-duration of the lease term. Installation includes network configuration, driver deployment to
-workstations identified at survey, and end-user orientation at each location listed.</p>
-<p>Meter-based overage is billed quarterly in arrears. Removal of existing equipment is quoted
-separately and is not included in the totals above. Sales tax is estimated and will be assessed
-at the rate in effect on the invoice date.</p>`;
+export { quoteTemplate, lineItems, deal };
 
-/** The reference quote template — the shape a dealer admin would build. */
-export function quoteTemplate(over = {}) {
-  return {
-    id: 'tmpl_quote_v1',
-    name: 'Equipment Quotation',
-    page: { size: 'letter', orientation: 'portrait',
-            margins: { top: 0.95, right: 0.6, bottom: 0.6, left: 0.6 } },
-    chrome: {
-      companyName: '{{dealer.company}}',
-      lines: ['{{dealer.address}}', '{{dealer.phone}} · {{dealer.website}}'],
-      right: ['QUOTATION {{deal.quote_number}}', '{{today | date:medium}}', '{{company.name}}'],
-      footerNote: '{{dealer.company}} · Quote {{deal.quote_number}}',
-    },
-    vars: { taxRate: 0.087 },
-    computed: {
-      tax: 'round(totals.subtotal * vars.taxRate, 2)',
-      grand: 'totals.subtotal + computed.tax',
-      monthly: 'round(computed.grand * lease.rate_factor, 2)',
-    },
-    blocks: [
-      { type: 'docTitle', title: 'Equipment Quotation', meta: [
-        { label: 'Quote', value: '{{deal.quote_number}}' },
-        { label: 'Date', value: '{{today | date}}' },
-        { label: 'Valid through', value: '{{deal.close_date | date}}' },
-        { label: 'Rep', value: '{{rep.name}}' },
-      ] },
-      { type: 'fieldGrid', title: 'Customer', columns: 2, hideEmpty: true, fields: [
-        { label: 'Customer', value: '{{company.name}}' },
-        { label: 'Project', value: '{{deal.name}}' },
-        { label: 'Address', value: '{{company.address}}' },
-        { label: 'Ship to', value: '{{contact.ship_to}}' },
-        { label: 'Lease partner', value: '{{lease.partner}}' },
-        { label: 'Term', value: '{{lease.term}} months' },
-        { label: 'Rate factor', value: '{{lease.rate_factor | rate}}' },
-        { label: 'Contact', value: '{{rep.phone}}' },
-      ] },
-      { type: 'table', title: 'Equipment & Accessories', bind: 'line_items',
-        amountKey: 'extended', qtyKey: 'quantity',
-        emptyText: 'No equipment has been added to this quote.',
-        columns: [
-          { key: 'name', label: 'Description', width: '44%' },
-          { key: 'type', label: 'Type', width: '13%' },
-          { key: 'quantity', label: 'Qty', width: '8%', align: 'right' },
-          { key: 'unit', label: 'Unit', width: '16%', align: 'right', format: 'currency' },
-          { key: 'extended', label: 'Extended', width: '19%', align: 'right', format: 'currency' },
-        ] },
-      { type: 'summary', rows: [
-        { label: 'Equipment subtotal', expr: 'totals.subtotal' },
-        { label: 'Estimated tax ({{vars.taxRate | percent}})', expr: 'computed.tax' },
-        { label: 'Total financed', expr: 'computed.grand', bold: true, rule: true },
-        { label: 'Monthly payment · {{lease.term}} mo × {{lease.rate_factor | rate}}',
-          expr: 'computed.monthly' },
-      ] },
-      { type: 'richText', title: 'Terms & Conditions', html: TERMS },
-      { type: 'signature', title: 'Acceptance', signers: [
-        { label: '{{company.name}}', sublabel: 'authorized signature & date' },
-        { label: '{{dealer.company}}', sublabel: '{{rep.name}}' },
-      ] },
-    ],
-    ...over,
-  };
-}
+
 
 function withTable(patch) {
   const t = quoteTemplate();

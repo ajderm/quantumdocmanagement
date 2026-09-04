@@ -17,8 +17,64 @@ function send(res, status, body) {
   res.send(JSON.stringify(body));
 }
 
+/**
+ * Browser-clickable smoke test.
+ *
+ * A green build only proves the function bundled; it says nothing about
+ * whether Chromium launches in this runtime. Verifying that with a POST needs
+ * a bearer header, which a browser address bar cannot send -- so this renders
+ * a fixed built-in sample from a GET.
+ *
+ * Allowed only where it cannot be abused: on non-production deployments, or on
+ * a deployment with no RENDER_TOKEN configured (which is unprotected anyway).
+ * Production with a token set refuses it. The payload is fixed, so it can
+ * never be used to render caller-supplied content.
+ */
+function smokeAllowed() {
+  return process.env.VERCEL_ENV !== 'production' || !TOKEN;
+}
+
+async function smokeTest(res, rows) {
+  const { render } = await import('../src/render.js');
+  const { quoteTemplate, deal, lineItems } = await import('../src/sample.js');
+  const { pdf, ms } = await render(quoteTemplate(), {
+    ...deal(), line_items: lineItems(rows, { sites: 3 }),
+  });
+  res.status(200);
+  res.setHeader('content-type', 'application/pdf');
+  res.setHeader('content-length', String(pdf.length));
+  res.setHeader('x-render-ms', String(ms));
+  res.setHeader('content-disposition', 'inline; filename="smoke.pdf"');
+  res.end(pdf);
+}
+
 export default async function handler(req, res) {
-  if (req.method === 'GET') return send(res, 200, { ok: true, service: 'renderer' });
+  const url = new URL(req.url, 'http://x');
+
+  if (req.method === 'GET') {
+    if (url.searchParams.get('smoke') === '1') {
+      if (!smokeAllowed()) {
+        return send(res, 403, { error: 'Smoke test is disabled on protected production deployments' });
+      }
+      const rows = Math.min(Math.max(Number(url.searchParams.get('rows')) || 40, 0), 250);
+      try {
+        return await smokeTest(res, rows);
+      } catch (err) {
+        console.error('smoke failed:', err);
+        return send(res, 500, {
+          ok: false, error: String(err?.message ?? err),
+          stack: String(err?.stack ?? '').split('\n').slice(0, 8),
+        });
+      }
+    }
+    return send(res, 200, {
+      ok: true, service: 'renderer',
+      runtime: process.env.VERCEL_ENV ?? 'local',
+      node: process.version,
+      protected: Boolean(TOKEN),
+      smoke: smokeAllowed() ? '/api/render?smoke=1&rows=40' : 'disabled',
+    });
+  }
   if (req.method !== 'POST') return send(res, 405, { error: 'Use POST' });
 
   // A shared token is the minimum bar: this service renders whatever it is
