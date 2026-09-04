@@ -96,9 +96,32 @@ export default async function handler(req, res) {
       return send(res, 400, { error: 'Missing "template" object' });
     }
 
-    const { pdf, warnings, ms } = await render(body.template, body.data ?? {}, {
+    // `format: 'html'` returns the markup the PDF is printed from.
+    //
+    // The app is embedded in a HubSpot iframe, and Chrome refuses to run its
+    // PDF viewer inside a sandboxed one -- an inline PDF preview there fails
+    // with a browser error page rather than rendering. The HTML costs no extra
+    // work (it is built before Chromium is ever asked for a PDF) and needs no
+    // plugin, so it is what an in-app preview should ask for. It reflows to the
+    // viewport rather than paginating, so it previews content and wording, not
+    // page breaks; the PDF remains the authority on those.
+    const wantHtml = body.format === 'html';
+
+    const { pdf, warnings, ms, html } = await render(body.template, body.data ?? {}, {
       timeoutMs: Number(body.timeoutMs) || undefined,
+      wantHtml,
     });
+
+    if (wantHtml) {
+      res.status(200);
+      res.setHeader('content-type', 'text/html; charset=utf-8');
+      res.setHeader('x-render-ms', String(ms));
+      res.setHeader('x-render-warnings', String(warnings.length));
+      if (warnings.length) {
+        res.setHeader('x-render-warning-detail', encodeURIComponent(warnings.join(' | ')));
+      }
+      return res.end(html);
+    }
 
     res.status(200);
     res.setHeader('content-type', 'application/pdf');

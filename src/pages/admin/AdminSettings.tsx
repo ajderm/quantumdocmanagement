@@ -142,6 +142,10 @@ export default function AdminSettings({
   // Per-portal document labels, keyed by code. A dealer's word for a document
   // is not ours -- Eakes calls the equipment quotation a Lease Agreement.
   const [documentLabels, setDocumentLabels] = useState<Record<string, string>>({});
+  // The lenders this dealer works with, one per line. Kept independent of the
+  // rate sheet: a dealer who quotes from an external system still has to name
+  // the lender on the paperwork.
+  const [leasingCompaniesText, setLeasingCompaniesText] = useState("");
   // Default lease terms for new quotes (backend toggle). When off, quotes fall
   // back to the first three terms the selected funder offers.
   const [defaultTermsEnabled, setDefaultTermsEnabled] = useState(false);
@@ -260,6 +264,9 @@ export default function AdminSettings({
           }
           if (settings.document_labels && typeof settings.document_labels === "object") {
             setDocumentLabels(settings.document_labels as Record<string, string>);
+          }
+          if (Array.isArray(settings.leasing_companies)) {
+            setLeasingCompaniesText((settings.leasing_companies as string[]).join("\n"));
           }
           if (settings.enabled_forms && Array.isArray(settings.enabled_forms)) {
             setEnabledForms(settings.enabled_forms);
@@ -490,6 +497,12 @@ export default function AdminSettings({
         proposal_template_url: proposalTemplateUrl,
         proposal_template_name: proposalFileName,
         form_customization: formCustomization,
+        // Order is the dealer's, so the list is not sorted or de-duplicated
+        // beyond dropping blank lines.
+        leasing_companies: leasingCompaniesText
+          .split("\n")
+          .map((c) => c.trim())
+          .filter((c) => c !== ""),
         // Only non-empty overrides are stored, so clearing a name falls back
         // to the built-in label rather than persisting an empty string.
         document_labels: Object.fromEntries(
@@ -688,6 +701,24 @@ export default function AdminSettings({
                           ))}
                         </SelectContent>
                       </Select>
+                    </div>
+
+                    {/* Lenders this dealer works with */}
+                    <div className="mt-6 pt-4 border-t max-w-xl">
+                      <p className="text-sm font-medium">Leasing companies</p>
+                      <p className="text-xs text-muted-foreground mt-0.5 mb-2">
+                        One per line, in the order reps should see them. These populate the
+                        Leasing Company picker on quotes and commissions. Independent of the
+                        rate sheet &mdash; you do not need to upload rates for these to appear.
+                      </p>
+                      <Textarea
+                        value={leasingCompaniesText}
+                        onChange={(e) => setLeasingCompaniesText(e.target.value)}
+                        placeholder={"Hometown Leasing\nUS Bank\nWells Fargo\nIn-House\nOther"}
+                        rows={5}
+                        className="font-mono text-sm"
+                        aria-label="Leasing companies, one per line"
+                      />
                     </div>
 
                     {/* Per-portal document names */}

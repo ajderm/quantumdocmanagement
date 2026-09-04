@@ -145,6 +145,44 @@ async function getValidAccessToken(
   return token.access_token;
 }
 
+/**
+ * Human labels for a pipeline and stage id.
+ *
+ * HubSpot stores both as opaque numeric ids -- a stage reads as "1378913310"
+ * -- and the app was rendering those straight into the header, so users saw a
+ * number where the pipeline name belongs. The labels only exist on the
+ * pipelines endpoint, so they have to be looked up.
+ *
+ * Never throws: a portal that denies the pipelines scope, or an object type
+ * with no pipelines, leaves the raw ids showing rather than failing the whole
+ * record load over a cosmetic field.
+ */
+async function resolvePipelineLabels(
+  accessToken: string,
+  objectPath: string,
+  pipelineId: string | null | undefined,
+  stageId: string | null | undefined,
+): Promise<{ pipelineLabel: string | null; stageLabel: string | null }> {
+  if (!pipelineId && !stageId) return { pipelineLabel: null, stageLabel: null };
+  try {
+    const res = await hubspotRequest(accessToken, `/crm/v3/pipelines/${objectPath}`);
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const pipelines: any[] = res?.results ?? [];
+    // Stage ids are unique across pipelines, so a stage still resolves even
+    // when the record's pipeline id is missing or stale.
+    const pipeline = pipelines.find((p) => String(p.id) === String(pipelineId));
+    const stage = (pipeline?.stages ?? pipelines.flatMap((p) => p.stages ?? []))
+      .find((st: { id: unknown }) => String(st.id) === String(stageId));
+    return {
+      pipelineLabel: pipeline?.label ?? null,
+      stageLabel: stage?.label ?? null,
+    };
+  } catch (err) {
+    console.log('Could not resolve pipeline labels for', objectPath, String(err));
+    return { pipelineLabel: null, stageLabel: null };
+  }
+}
+
 async function hubspotRequest(accessToken: string, endpoint: string) {
   console.log('HubSpot API request:', endpoint);
   
@@ -751,6 +789,11 @@ Deno.serve(async (req) => {
           : null,
         stage: projectInfo.stage,
         pipeline: projectInfo.pipeline,
+        // Labels for display; the raw ids above stay put for anything keying
+        // off them.
+        ...(await resolvePipelineLabels(
+          accessToken, 'projects', projectInfo.pipeline, projectInfo.stage,
+        )),
         closeDate: associatedDealResponse?.properties?.closedate || null,
         ownerId,
       };
@@ -807,6 +850,10 @@ Deno.serve(async (req) => {
       amount: dealResponse.properties.amount ? parseFloat(dealResponse.properties.amount) : null,
       stage: dealResponse.properties.dealstage,
       pipeline: dealResponse.properties.pipeline,
+      ...(await resolvePipelineLabels(
+        accessToken, 'deals',
+        dealResponse.properties.pipeline, dealResponse.properties.dealstage,
+      )),
       closeDate: dealResponse.properties.closedate,
       ownerId: dealResponse.properties.hubspot_owner_id,
     };

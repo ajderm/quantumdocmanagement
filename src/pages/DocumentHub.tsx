@@ -269,7 +269,17 @@ function DocumentHubContent() {
   // rendered PDF rather than the React layout. That matters: the two look
   // different, and showing one while generating the other is how you end up
   // demonstrating a document nobody will receive.
-  const [templatePreviewUrl, setTemplatePreviewUrl] = useState<string | null>(null);
+  /**
+   * The rendered markup for the in-app preview.
+   *
+   * Not a PDF: Chrome refuses to run its PDF viewer inside a sandboxed iframe,
+   * which is what HubSpot serves this app in, so an inline PDF preview fails
+   * with a browser error page. This is the same markup the PDF is printed
+   * from, so wording, fields and totals match exactly; it reflows to the
+   * viewport instead of paginating, so the PDF stays the authority on page
+   * breaks.
+   */
+  const [templatePreviewHtml, setTemplatePreviewHtml] = useState<string | null>(null);
   const [previewRendering, setPreviewRendering] = useState(false);
   const [formData, setFormData] = useState<QuoteFormData | null>(null);
   const [savedConfig, setSavedConfig] = useState<QuoteFormData | null>(null);
@@ -2933,7 +2943,7 @@ function DocumentHubContent() {
 
   const handleGeneratePDF = async () => {
     if (!previewRef.current || !formData) {
-      toast.error("Please fill in the quote details first");
+      toast.error(`Please fill in the ${docLabel("quote").toLowerCase()} details first`);
       return;
     }
 
@@ -3060,7 +3070,7 @@ function DocumentHubContent() {
           toast.success("PDF downloaded! (Could not attach to deal)");
         }
       } else {
-        toast.success("Quote PDF downloaded successfully!");
+        toast.success(`${docLabel("quote")} PDF downloaded successfully!`);
       }
     } catch (err) {
       console.error("PDF generation error:", err);
@@ -3128,7 +3138,7 @@ function DocumentHubContent() {
 
   const handlePreview = async () => {
     if (!formData) {
-      toast.error("Please fill in the quote details first");
+      toast.error(`Please fill in the ${docLabel("quote").toLowerCase()} details first`);
       return;
     }
 
@@ -3157,35 +3167,28 @@ function DocumentHubContent() {
           // Preview only: nothing is attached to the record and no file is
           // written anywhere the customer could see.
           attach: false,
+          format: "html",
           data: quoteRenderPayload(formData, {
             dealerInfo: dealerInfo ?? undefined,
             deal,
             shipToContact: shipTo || null,
             leasingPartnerName: formData.leasingCompanyId || null,
             rateFactor: selectedRateFactor,
+            documentTitle: docRename("quote"),
             today: todayLocalDateString(),
           }) as unknown as Record<string, unknown>,
         },
       });
       if (error) throw error;
-      if (!data?.pdfBase64) throw new Error("The renderer returned no document");
+      if (!data?.html) throw new Error("The renderer returned no document");
       if (data.warnings?.length) console.warn("[template engine]", data.warnings);
 
-      const binary = atob(data.pdfBase64);
-      const bytes = new Uint8Array(binary.length);
-      for (let i = 0; i < binary.length; i++) bytes[i] = binary.charCodeAt(i);
-      const url = URL.createObjectURL(new Blob([bytes], { type: "application/pdf" }));
-
-      // Release the previous object URL rather than leaking one per preview.
-      setTemplatePreviewUrl((prev) => {
-        if (prev) URL.revokeObjectURL(prev);
-        return url;
-      });
+      setTemplatePreviewHtml(data.html as string);
       setShowPreview(true);
     } catch (err) {
       console.error("Template preview failed; showing the built-in layout", err);
       toast.warning("Could not render the template preview — showing the built-in layout");
-      setTemplatePreviewUrl(null);
+      setTemplatePreviewHtml(null);
       setShowPreview(true);
     } finally {
       setPreviewRendering(false);
@@ -4147,9 +4150,13 @@ function DocumentHubContent() {
           <div className="flex items-center justify-between gap-2">
             <div className="flex items-center gap-2.5 min-w-0 flex-1">
               <h2 className="text-[17px] font-bold tracking-tight truncate text-qbs-navy">{deal.dealName}</h2>
-              <Badge className="text-[10px] font-medium px-2 py-0.5 rounded-md shrink-0 bg-qbs-navy text-white hover:bg-qbs-navy">
-                {deal.stage}
-              </Badge>
+              {/* The label when HubSpot gave us one; the raw stage id is a
+                  number and reads as noise, so it is only a last resort. */}
+              {(deal.stageLabel || deal.stage) && (
+                <Badge className="text-[10px] font-medium px-2 py-0.5 rounded-md shrink-0 bg-qbs-navy text-white hover:bg-qbs-navy">
+                  {deal.stageLabel || deal.stage}
+                </Badge>
+              )}
               {(deal.hsObjectId || deal.id) && (
                 <span className="hidden sm:inline font-mono text-[11px] text-muted-foreground shrink-0">
                   #{deal.hsObjectId || deal.id}
@@ -4345,7 +4352,7 @@ function DocumentHubContent() {
               <div className="space-y-4">
                 <div className="flex items-center justify-between">
                   <div>
-                    <h3 className="text-sm font-semibold tracking-tight">Quote Builder</h3>
+                    <h3 className="text-sm font-semibold tracking-tight">{docLabel("quote")} Builder</h3>
                     <p className="text-xs text-muted-foreground mt-0.5">
                       Configure pricing, equipment, and lease options
                     </p>
@@ -4365,6 +4372,7 @@ function DocumentHubContent() {
                       savedConfig={savedConfig || undefined}
                       formCustomization={dealerSettings.form_customization?.quote}
                       defaultTerms={dealerSettings.default_terms}
+                      documentLabel={docLabel("quote")}
                     />
 
                     {/* Additional Costs + commission summary — a second view of the
@@ -4382,7 +4390,7 @@ function DocumentHubContent() {
                     <div className="rounded-xl border border-border bg-card p-4 space-y-3">
                       <div className="flex items-center justify-between gap-2">
                         <div className="flex items-center gap-2 min-w-0">
-                          <span className="eyebrow text-muted-foreground">Quote #</span>
+                          <span className="eyebrow text-muted-foreground">{docLabel("quote")} #</span>
                           <span className="text-sm font-bold text-primary bg-primary/5 px-2 py-0.5 rounded truncate">
                             {currentQuoteNumber || formData?.quoteNumber || "—"}
                           </span>
@@ -4555,7 +4563,7 @@ function DocumentHubContent() {
                     )}
                   </div>
                   <SummaryRail
-                    title="Quote summary"
+                    title={`${docLabel("quote")} summary`}
                     metrics={(() => {
                       const m: SummaryMetric[] = [];
                       if (formData) {
@@ -5572,31 +5580,34 @@ function DocumentHubContent() {
         open={showPreview}
         onOpenChange={(open) => {
           setShowPreview(open);
-          if (!open) {
-            setTemplatePreviewUrl((prev) => {
-              if (prev) URL.revokeObjectURL(prev);
-              return null;
-            });
-          }
+          if (!open) setTemplatePreviewHtml(null);
         }}
       >
         <DialogContent className="max-w-4xl max-h-[90vh] p-0">
           <DialogHeader className="p-4 pb-0">
             <DialogTitle className="flex items-center gap-2">
-              Quote Preview
-              {templatePreviewUrl && (
+              {docLabel("quote")} Preview
+              {templatePreviewHtml && (
                 <span className="text-xs font-normal text-muted-foreground">
-                  · rendered output, identical to the generated PDF
+                  · the real rendered output — download for exact page breaks
                 </span>
               )}
             </DialogTitle>
           </DialogHeader>
-          {templatePreviewUrl ? (
+          {templatePreviewHtml ? (
             <div className="p-4 pt-2">
+              {/*
+                srcDoc, not a blob URL: Chrome will not run its PDF viewer in a
+                sandboxed iframe, which is what HubSpot serves this app in.
+                sandbox="" keeps the document inert -- no scripts, no forms, no
+                same-origin access -- which costs nothing, as this is static
+                print markup.
+              */}
               <iframe
-                src={templatePreviewUrl}
-                title="Rendered quote"
-                className="w-full h-[calc(90vh-120px)] border rounded"
+                srcDoc={templatePreviewHtml}
+                sandbox=""
+                title={`Rendered ${docLabel("quote").toLowerCase()}`}
+                className="w-full h-[calc(90vh-120px)] border rounded bg-white"
               />
             </div>
           ) : (

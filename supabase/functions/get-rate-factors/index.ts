@@ -46,32 +46,68 @@ Deno.serve(async (req: Request) => {
       );
     }
 
-    // Get active rate sheet
-    const { data: rateSheet, error: rateSheetError } = await supabase
+    // The lenders a dealer works with, configured in the backend.
+    //
+    // This list is the reason the picker can be used at all before any rate
+    // sheet exists: a dealer who quotes from an external system still has to
+    // name the lender on the paperwork. Rate sheets, when they exist, add to
+    // this list rather than being the only source of it.
+    const { data: configuredSetting } = await supabase
+      .from("dealer_settings")
+      .select("setting_value")
+      .eq("dealer_account_id", dealerData.id)
+      .eq("setting_key", "leasing_companies")
+      .maybeSingle();
+
+    const configuredCompanies: string[] = Array.isArray(configuredSetting?.setting_value)
+      ? (configuredSetting.setting_value as unknown[])
+          .map((c) => (typeof c === "string" ? c.trim() : ""))
+          .filter((c) => c !== "")
+      : [];
+
+    // Every active rate sheet, not one.
+    //
+    // A dealer can legitimately run more than one at a time -- Eakes has a
+    // Commercial sheet and a Municipal sheet -- and the previous
+    // `.maybeSingle()` turned that into an error, which fell through to the
+    // "no rate sheet" branch and emptied the lender dropdown even though the
+    // rates were sitting right there.
+    const { data: activeSheets, error: rateSheetError } = await supabase
       .from("uploaded_rate_sheets")
       .select("*")
       .eq("dealer_account_id", dealerData.id)
       .eq("is_active", true)
-      .maybeSingle();
+      .order("uploaded_at", { ascending: false });
 
-    if (rateSheetError || !rateSheet) {
-      console.log("No active rate sheet found");
+    if (rateSheetError) {
+      console.error("Failed to fetch rate sheets:", rateSheetError);
+    }
+
+    const sheets = activeSheets ?? [];
+    if (sheets.length === 0) {
+      console.log(
+        `No active rate sheet; returning ${configuredCompanies.length} configured lender(s)`,
+      );
       return new Response(
-        JSON.stringify({ 
+        JSON.stringify({
           rateSheet: null,
           rateFactors: [],
-          leasingCompanies: [],
+          leasingCompanies: configuredCompanies,
           availableTerms: []
         }),
         { headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     }
 
-    // Get all rate factors for this sheet
+    // The newest sheet is the one reported for display; factors come from all
+    // of them, so a Municipal sheet's lenders are not hidden by a Commercial
+    // one uploaded later.
+    const rateSheet = sheets[0];
+
     const { data: rateFactors, error: factorsError } = await supabase
       .from("lease_rate_factors")
       .select("*")
-      .eq("rate_sheet_id", rateSheet.id)
+      .in("rate_sheet_id", sheets.map((s) => s.id))
       .order("leasing_company")
       .order("term_months");
 
@@ -83,11 +119,14 @@ Deno.serve(async (req: Request) => {
       );
     }
 
-    // Extract unique values
-    const leasingCompanies = [...new Set(rateFactors.map((r) => r.leasing_company))];
-    const availableTerms = [...new Set(rateFactors.map((r) => r.term_months))].sort((a, b) => a - b);
+    // Configured lenders first, then any the rate sheets add. A dealer who has
+    // ordered the backend list sees that order preserved.
+    const leasingCompanies = [
+      ...new Set([...configuredCompanies, ...(rateFactors ?? []).map((r) => r.leasing_company)]),
+    ].filter((c) => typeof c === "string" && c.trim() !== "");
+    const availableTerms = [...new Set((rateFactors ?? []).map((r) => r.term_months))].sort((a, b) => a - b);
 
-    console.log(`Found ${rateFactors.length} rate factors for ${leasingCompanies.length} companies`);
+    console.log(`Found ${(rateFactors ?? []).length} rate factors across ${sheets.length} sheet(s) for ${leasingCompanies.length} companies`);
 
     return new Response(
       JSON.stringify({

@@ -132,6 +132,8 @@ interface QuoteFormProps {
   /** Portal-configured default lease terms (Admin → backend). When enabled, new
    *  quotes pre-select these terms if the chosen funder offers them. */
   defaultTerms?: { enabled?: boolean; terms?: number[] };
+  /** What this portal calls this document, e.g. "Lease Agreement". */
+  documentLabel?: string;
 }
 
 interface RateFactor {
@@ -178,9 +180,12 @@ export function QuoteForm({
   savedConfig,
   formCustomization,
   defaultTerms,
+  documentLabel,
 }: QuoteFormProps) {
   const hasInitializedRef = useRef(false);
   const savedConfigRef = useRef(savedConfig);
+  // The portal's name for this document, for anything user-facing.
+  const docName = documentLabel?.trim() || "Quote";
   const leasingCompanyIdRef = useRef("");
   const [expandedRows, setExpandedRows] = useState<Set<string>>(new Set());
   const [formData, setFormData] = useState<QuoteFormData>({
@@ -283,19 +288,21 @@ export function QuoteForm({
           return;
         }
 
+        // The lender list and the rate sheet are separate concerns. A dealer who
+        // quotes from an external system still has to name the lender on the
+        // paperwork, so the list is applied whether or not rates came back --
+        // gating it on rateFactors is what left the picker empty.
+        const companies: string[] = data?.leasingCompanies || [];
+        setLeasingCompanies(companies);
+        setHasRateSheet((data?.rateFactors?.length ?? 0) > 0);
+
         if (data?.rateFactors?.length > 0) {
           setRateFactors(data.rateFactors);
-          setLeasingCompanies(data.leasingCompanies || []);
-          setHasRateSheet(true);
+        }
 
-          // Auto-select first company if none selected (use refs to avoid stale closure)
-          if (
-            !leasingCompanyIdRef.current &&
-            !savedConfigRef.current?.leasingCompanyId &&
-            data.leasingCompanies?.length > 0
-          ) {
-            setFormData((prev) => ({ ...prev, leasingCompanyId: data.leasingCompanies[0] }));
-          }
+        // Auto-select the first lender if none selected (refs avoid a stale closure)
+        if (!leasingCompanyIdRef.current && !savedConfigRef.current?.leasingCompanyId && companies.length > 0) {
+          setFormData((prev) => ({ ...prev, leasingCompanyId: companies[0] }));
         }
       } catch (err) {
         console.error("Failed to fetch rate factors:", err);
@@ -1014,7 +1021,7 @@ export function QuoteForm({
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4 items-start">
           {/* Quote Details */}
           {isSectionVisible(formCustomization, "customerInfo") && (
-            <SectionCard title="Quote Details" icon={FileText} description="Quote metadata and the preparing sales rep">
+            <SectionCard title={`${docName} Details`} icon={FileText} description={`${docName} metadata and the preparing sales rep`}>
               <FieldGrid columns={2}>
                 <Field label={getLabel(formCustomization, "quoteDate", "Quote Date")}>
                   <Input
@@ -1674,7 +1681,7 @@ export function QuoteForm({
                         ))
                       ) : (
                         <SelectItem value="none" disabled>
-                          No rate sheet uploaded
+                          None set up &mdash; add them in Admin &rarr; backend
                         </SelectItem>
                       )}
                     </SelectContent>

@@ -160,6 +160,14 @@ Deno.serve(async (req: Request) => {
       },
     };
 
+    // An in-app preview asks for HTML, not a PDF.
+    //
+    // The app runs in a HubSpot iframe and Chrome will not run its PDF viewer
+    // inside a sandboxed one, so an inline PDF preview fails with a browser
+    // error page. HTML needs no plugin. It is preview-only: nothing is
+    // attached, nothing is logged, because no document was produced.
+    const wantHtml = body.format === 'html';
+
     const renderRes = await fetch(`${rendererUrl.replace(/\/$/, '')}/api/render`, {
       method: 'POST',
       headers: {
@@ -170,6 +178,7 @@ Deno.serve(async (req: Request) => {
         template,
         data: body.data,
         filename: `${documentCode}-${recordId}`,
+        ...(wantHtml ? { format: 'html' } : {}),
       }),
     });
 
@@ -183,13 +192,24 @@ Deno.serve(async (req: Request) => {
         renderRes.status === 401 ? 502 : 502, corsHeaders);
     }
 
-    const pdf = new Uint8Array(await renderRes.arrayBuffer());
     const renderMs = Number(renderRes.headers.get('x-render-ms')) || null;
     const warningDetail = renderRes.headers.get('x-render-warning-detail');
     const warnings = [
       ...preWarnings,
       ...(warningDetail ? decodeURIComponent(warningDetail).split(' | ') : []),
     ];
+
+    if (wantHtml) {
+      return createJsonResponse({
+        html: await renderRes.text(),
+        warnings,
+        renderMs,
+        templateVersion: tmpl.version,
+        templateName: tmpl.name,
+      }, corsHeaders);
+    }
+
+    const pdf = new Uint8Array(await renderRes.arrayBuffer());
 
     // Base64 in chunks: a 250-row document is a few hundred KB, and spreading
     // that into String.fromCharCode in one call overflows the argument limit.
