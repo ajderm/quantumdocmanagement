@@ -20,8 +20,20 @@ export interface RenderLineItem {
 }
 
 export interface RenderPayload {
-  company: { name: string; address: string; phone: string | null };
+  company: {
+    name: string; address: string; phone: string | null;
+    // Eakes' own paperwork lays the address out as labelled parts
+    // (Billing Address / City / County / State / Zip), so the components are
+    // carried alongside the joined form rather than only the joined form.
+    street: string | null; city: string | null; state: string | null;
+    zip: string | null; county: string | null;
+  };
   contact: { ship_to: string | null };
+  /** Where the equipment goes. Defaults to the billing address when unset. */
+  location: {
+    street: string | null; city: string | null; state: string | null;
+    zip: string | null; county: string | null;
+  };
   deal: { name: string | null; quote_number: string | null; close_date: string | null };
   rep: { name: string | null; phone: string | null; email: string | null };
   lease: { partner: string | null; term: number | null; rate_factor: number | null };
@@ -122,8 +134,24 @@ export function quoteRenderPayload(form: QuoteFormLike, ctx: RenderContext): Ren
       name: (form.companyName ?? '').trim() || 'Customer',
       address: joinAddress(form),
       phone: (form.phone ?? '').trim() || null,
+      street: [form.address, form.address2].map((x) => (x ?? '').trim())
+        .filter(Boolean).join(', ') || null,
+      city: (form.city ?? '').trim() || null,
+      state: (form.state ?? '').trim() || null,
+      zip: (form.zip ?? '').trim() || null,
+      // Not captured by the quote form today. Carried so the template can
+      // reference it, and it simply drops until the field exists.
+      county: null,
     },
     contact: { ship_to: ctx.shipToContact?.trim() || null },
+    location: {
+      street: [form.address, form.address2].map((x) => (x ?? '').trim())
+        .filter(Boolean).join(', ') || null,
+      city: (form.city ?? '').trim() || null,
+      state: (form.state ?? '').trim() || null,
+      zip: (form.zip ?? '').trim() || null,
+      county: null,
+    },
     deal: {
       name: ctx.deal?.dealname?.trim() || null,
       quote_number: (form.quoteNumber ?? '').trim() || null,

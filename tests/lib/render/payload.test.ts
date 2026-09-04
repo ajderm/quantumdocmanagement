@@ -98,3 +98,28 @@ test('the payload shape matches what the seeded template references', () => {
   }
   assert.ok(Array.isArray(p.line_items));
 });
+
+test('address components are carried separately, as their paperwork lays them out', () => {
+  const p = quoteRenderPayload({
+    address: '2901 Cuming St', address2: 'Suite 4',
+    city: 'Grand Island', state: 'NE', zip: '68801',
+  }, ctx);
+  assert.equal(p.company.street, '2901 Cuming St, Suite 4');
+  assert.equal(p.company.city, 'Grand Island');
+  assert.equal(p.company.state, 'NE');
+  assert.equal(p.company.zip, '68801');
+  // Still available joined, for templates that want one line.
+  assert.equal(p.company.address, '2901 Cuming St, Suite 4, Grand Island, NE 68801');
+});
+
+test('a field the form does not capture is null, so the template drops it', () => {
+  // County appears on their paperwork but the quote form has no such field.
+  // Null means the label disappears rather than printing an empty box.
+  assert.equal(quoteRenderPayload({}, ctx).company.county, null);
+});
+
+test('equipment location defaults to the billing address', () => {
+  const p = quoteRenderPayload({ address: '1 Main', city: 'Omaha', state: 'NE', zip: '68102' }, ctx);
+  assert.equal(p.location.street, '1 Main');
+  assert.equal(p.location.city, 'Omaha');
+});
