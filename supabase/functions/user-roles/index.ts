@@ -96,7 +96,7 @@ Deno.serve(async (req: Request) => {
       const users = Array.isArray(body.users) ? body.users.slice(0, 500) : [];
       const ids = users
         .map((u: { userId?: unknown }) => str(u?.userId, 32))
-        .filter((id: string | null): id is string => Boolean(id) && /^\d{1,20}$/.test(id!));
+        .filter((id: string | null): id is string => id !== null && /^\d{1,20}$/.test(id));
 
       const { data: existing, error: exErr } = await supabase
         .from('app_user_roles').select('hubspot_user_id')
