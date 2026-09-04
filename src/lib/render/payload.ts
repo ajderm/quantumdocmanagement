@@ -33,8 +33,13 @@ export interface RenderPayload {
   line_items: RenderLineItem[];
 }
 
-/** Round to cents. Money must never carry binary-float residue into a document. */
-export function money(n: number): number {
+/**
+ * Round to cents. Money must never carry binary-float residue into a document.
+ *
+ * Takes unknown rather than number because form state genuinely arrives with
+ * strings and blanks in numeric fields, and the coercion is the point.
+ */
+export function money(n: unknown): number {
   return Math.round((Number(n) || 0) * 100) / 100;
 }
 

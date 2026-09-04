@@ -15,6 +15,9 @@ test('money rounds to cents without float residue', () => {
   assert.equal(money(0.1 + 0.2), 0.3);
   assert.equal(money(1234.005), 1234.01);
   assert.equal(money('nope'), 0);
+  assert.equal(money(null), 0);
+  assert.equal(money(undefined), 0);
+  assert.equal(money(''), 0);
 });
 
 test('extended is quantity times unit, rounded once', () => {

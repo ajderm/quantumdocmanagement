@@ -55,6 +55,8 @@ import { QuotePreview } from "@/components/quote/QuotePreview";
 import { QuoteAdditionalCosts } from "@/components/quote/QuoteAdditionalCosts";
 import { computeCommissionTotals, mapQuoteLineItemsToCommission, buyoutFromQuoteConfig } from "@/components/commission/commissionCalc";
 import { todayLocalDateString } from "@/lib/dateUtils";
+import { useDocumentEngine } from "@/hooks/useDocumentEngine";
+import { quoteRenderPayload } from "@/lib/render/payload";
 import { useConfirm } from "@/hooks/useConfirm";
 import { SummaryRail, type SummaryMetric } from "@/components/shared";
 import { quantumLogo } from "@/assets/quantumLogo";
@@ -2400,6 +2402,59 @@ function DocumentHubContent() {
     }
   };
 
+  // Which engine serves each document type in this portal. A type with no
+  // stored mode resolves to native, so an unreachable endpoint keeps serving
+  // the existing generator rather than falling into a half-built path.
+  const { engineFor } = useDocumentEngine(portalId);
+
+  /**
+   * Produce the PDF bytes for a document, through whichever engine is
+   * configured for it.
+   *
+   * The template engine runs server-side (a real Chromium, reached via
+   * generate-document, which holds the renderer's token). If anything about
+   * it is unavailable or misconfigured, this falls back to the native
+   * generator: a rep must never be blocked from producing a document by a
+   * half-configured engine. The fallback is deliberately visible, because the
+   * native layout looks different from the template one and silently swapping
+   * them would be worse than saying so.
+   *
+   * Attaching stays with the existing caller, so both engines attach exactly
+   * once and in the same way.
+   */
+  const producePdfBytes = async (
+    documentCode: string,
+    element: HTMLElement,
+    buildPayload: () => Record<string, unknown>,
+  ): Promise<ArrayBuffer> => {
+    if (engineFor(documentCode) === "template") {
+      try {
+        const { data, error } = await supabase.functions.invoke("generate-document", {
+          body: {
+            portalId,
+            documentCode,
+            recordId: deal?.hsObjectId,
+            objectType,
+            data: buildPayload(),
+          },
+        });
+        if (error) throw error;
+        if (!data?.pdfBase64) throw new Error("The renderer returned no document");
+        if (data.warnings?.length) console.warn("[template engine]", data.warnings);
+
+        const binary = atob(data.pdfBase64);
+        const bytes = new Uint8Array(binary.length);
+        for (let i = 0; i < binary.length; i++) bytes[i] = binary.charCodeAt(i);
+        return bytes.buffer;
+      } catch (err) {
+        console.error("Template engine failed; falling back to the native layout", err);
+        toast.warning("Template engine unavailable — used the built-in layout instead");
+      }
+    }
+    const pdf = await generateMultiPagePDF(element);
+    return pdf.output("arraybuffer");
+  };
+
   // Helper function for multi-page PDF generation
   const generateMultiPagePDF = async (element: HTMLElement): Promise<jsPDF> => {
     const tempContainer = document.createElement("div");
@@ -2890,7 +2945,6 @@ function DocumentHubContent() {
         await new Promise((resolve) => requestAnimationFrame(() => setTimeout(resolve, 150)));
       }
 
-      const quotePdf = await generateMultiPagePDF(previewRef.current);
 
       const sanitizedCompanyName = (formData.companyName || "Draft")
         .replace(/[^a-zA-Z0-9\s]/g, "")
@@ -2900,9 +2954,29 @@ function DocumentHubContent() {
       const timeStr = now.toTimeString().slice(0, 5).replace(":", "-");
       const fileName = `Quote_${sanitizedCompanyName}_${dateStr}_${timeStr}.pdf`;
 
-      let finalPdfBytes: ArrayBuffer;
+      const shipTo = labeledContacts?.shippingContact
+        ? `${labeledContacts.shippingContact.firstName ?? ""} ${labeledContacts.shippingContact.lastName ?? ""}`.trim()
+        : null;
+      // The rate factor the rep actually sees for the selected term. Left null
+      // when unset, so the document omits it rather than printing a zero.
+      const selectedTerm = formData.selectedTerms?.[0];
+      const selectedRateFactor = selectedTerm
+        ? (formData.rateOverrides?.[selectedTerm] ?? null)
+        : null;
+
       // Proposal template merge is disabled — generate quote PDF only
-      finalPdfBytes = quotePdf.output("arraybuffer");
+      const finalPdfBytes: ArrayBuffer = await producePdfBytes(
+        "quote",
+        previewRef.current,
+        () => quoteRenderPayload(formData, {
+          dealerInfo: dealerInfo ?? undefined,
+          deal,
+          shipToContact: shipTo || null,
+          leasingPartnerName: formData.leasingCompanyId || null,
+          rateFactor: selectedRateFactor,
+          today: todayLocalDateString(),
+        }) as unknown as Record<string, unknown>,
+      );
 
       // Download the final PDF
       const blob = new Blob([finalPdfBytes], { type: "application/pdf" });
