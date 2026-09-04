@@ -29,6 +29,14 @@ export interface RenderPayload {
     zip: string | null; county: string | null;
   };
   contact: { ship_to: string | null };
+  /**
+   * What this portal calls the document.
+   *
+   * A dealer's word for a document is not ours -- Eakes calls the equipment
+   * quotation a Lease Agreement -- so the printed heading follows the portal's
+   * label rather than being frozen into the template.
+   */
+  document: { title: string | null };
   /** Where the equipment goes. Defaults to the billing address when unset. */
   location: {
     street: string | null; city: string | null; state: string | null;
@@ -102,6 +110,8 @@ export interface RenderContext {
   leasingPartnerName?: string | null;
   /** Resolved for the selected term by the form, which owns rate-sheet lookup. */
   rateFactor?: number | null;
+  /** The portal's own name for this document. Absent leaves the template's. */
+  documentTitle?: string | null;
   /** Injected so a document's date is deterministic in tests. */
   today: string;
 }
@@ -144,6 +154,7 @@ export function quoteRenderPayload(form: QuoteFormLike, ctx: RenderContext): Ren
       county: null,
     },
     contact: { ship_to: ctx.shipToContact?.trim() || null },
+    document: { title: ctx.documentTitle?.trim() || null },
     location: {
       street: [form.address, form.address2].map((x) => (x ?? '').trim())
         .filter(Boolean).join(', ') || null,

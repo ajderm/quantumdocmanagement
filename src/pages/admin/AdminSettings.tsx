@@ -139,6 +139,9 @@ export default function AdminSettings({
   const [enabledForms, setEnabledForms] = useState<string[]>(ALL_FORM_TYPES.map((f) => f.code));
   // Homepage: which document opens on load. "" = first enabled document.
   const [defaultForm, setDefaultForm] = useState<string>("");
+  // Per-portal document labels, keyed by code. A dealer's word for a document
+  // is not ours -- Eakes calls the equipment quotation a Lease Agreement.
+  const [documentLabels, setDocumentLabels] = useState<Record<string, string>>({});
   // Default lease terms for new quotes (backend toggle). When off, quotes fall
   // back to the first three terms the selected funder offers.
   const [defaultTermsEnabled, setDefaultTermsEnabled] = useState(false);
@@ -254,6 +257,9 @@ export default function AdminSettings({
           }
           if (settings.cca_value) {
             setCcaValue(settings.cca_value);
+          }
+          if (settings.document_labels && typeof settings.document_labels === "object") {
+            setDocumentLabels(settings.document_labels as Record<string, string>);
           }
           if (settings.enabled_forms && Array.isArray(settings.enabled_forms)) {
             setEnabledForms(settings.enabled_forms);
@@ -484,6 +490,13 @@ export default function AdminSettings({
         proposal_template_url: proposalTemplateUrl,
         proposal_template_name: proposalFileName,
         form_customization: formCustomization,
+        // Only non-empty overrides are stored, so clearing a name falls back
+        // to the built-in label rather than persisting an empty string.
+        document_labels: Object.fromEntries(
+          Object.entries(documentLabels)
+            .map(([code, label]) => [code, (label ?? "").trim()])
+            .filter(([, label]) => label !== ""),
+        ),
       };
 
       const { data: result, error: invokeError } = await supabase.functions.invoke("dealer-account-save", {
@@ -675,6 +688,55 @@ export default function AdminSettings({
                           ))}
                         </SelectContent>
                       </Select>
+                    </div>
+
+                    {/* Per-portal document names */}
+                    <div className="mt-6 pt-4 border-t">
+                      <p className="text-sm font-medium">Document names</p>
+                      <p className="text-xs text-muted-foreground mt-0.5 mb-3 max-w-xl">
+                        Rename a document for this portal only. Leave blank to use the built-in
+                        name. Only the label changes &mdash; saved documents, templates and
+                        settings keep working, because they key off the document's code rather
+                        than its name.
+                      </p>
+                      <div className="space-y-2 max-w-2xl">
+                        {ALL_FORM_TYPES.filter((form) => enabledForms.includes(form.code)).map((form) => (
+                          <div key={form.code} className="flex items-center gap-3">
+                            <div className="w-56 shrink-0">
+                              <p className="text-sm truncate">{form.name}</p>
+                              <p className="text-[11px] font-mono text-muted-foreground">{form.code}</p>
+                            </div>
+                            <Input
+                              value={documentLabels[form.code] ?? ""}
+                              placeholder={form.name}
+                              onChange={(e) =>
+                                setDocumentLabels((prev) => ({ ...prev, [form.code]: e.target.value }))
+                              }
+                              aria-label={`Display name for ${form.name}`}
+                            />
+                            {(documentLabels[form.code] ?? "").trim() !== "" && (
+                              <Button
+                                variant="ghost"
+                                size="sm"
+                                onClick={() =>
+                                  setDocumentLabels((prev) => {
+                                    const next = { ...prev };
+                                    delete next[form.code];
+                                    return next;
+                                  })
+                                }
+                              >
+                                Reset
+                              </Button>
+                            )}
+                          </div>
+                        ))}
+                        {enabledForms.length === 0 && (
+                          <p className="text-sm text-muted-foreground">
+                            Enable a document above to give it a custom name.
+                          </p>
+                        )}
+                      </div>
                     </div>
 
                     {/* Default lease terms for new quotes */}

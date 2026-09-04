@@ -145,6 +145,15 @@ interface DealerSettings {
   proposal_template_url?: string;
   proposal_template_name?: string;
   form_customization?: FormCustomizationMap;
+  /**
+   * Per-portal display names for document types, keyed by code.
+   *
+   * A dealer's word for a document is not ours: Eakes calls the equipment
+   * quotation a Lease Agreement. Only the label changes -- the code stays the
+   * key for engine modes, templates, saved configurations and stored
+   * documents, so renaming is cosmetic and cannot orphan data.
+   */
+  document_labels?: Record<string, string>;
 }
 
 interface DocumentTerms {
@@ -409,6 +418,31 @@ function DocumentHubContent() {
   const [commissionUsers, setCommissionUsers] = useState<
     Array<{ hubspot_user_name: string; hubspot_user_id?: string; commission_percentage: number }>
   >([]);
+
+  /**
+   * The portal's own name for a document type, or null when it uses ours.
+   *
+   * A dealer's word for a document is not ours: Eakes calls the equipment
+   * quotation a Lease Agreement. The override is a label only -- the code
+   * stays the key for engine modes, templates, saved configurations and
+   * stored documents -- so renaming can never orphan data.
+   */
+  const docRename = (code: string): string | null =>
+    dealerSettings?.document_labels?.[code]?.trim() || null;
+  const docLabel = (code: string, fallback?: string) =>
+    docRename(code) ?? fallback ?? documentTypes.find((d) => d.code === code)?.name ?? code;
+  /**
+   * A rename reduced to a filename-safe stem, or the caller's own stem.
+   *
+   * Only a rename changes a filename: unrenamed documents keep the exact
+   * stems they have always had. A label of only punctuation falls back too,
+   * so a generated file is never named "_2026-09-04.pdf".
+   */
+  const docFileStem = (code: string, fallback: string) => {
+    const rename = docRename(code);
+    if (!rename) return fallback;
+    return rename.replace(/[^a-zA-Z0-9\s]/g, "").trim().replace(/\s+/g, "_") || fallback;
+  };
 
   // Quote versioning
   const [quoteVersions, setQuoteVersions] = useState<
@@ -1881,7 +1915,7 @@ function DocumentHubContent() {
       const sanitizedCompanyName = (loiFormData.businessName || "Draft")
         .replace(/[^a-zA-Z0-9\s]/g, "")
         .replace(/\s+/g, "_");
-      const fileName = `LOI_${sanitizedCompanyName}_${new Date().toISOString().split("T")[0]}.pdf`;
+      const fileName = `${docFileStem("loi", "LOI")}_${sanitizedCompanyName}_${new Date().toISOString().split("T")[0]}.pdf`;
       pdf.save(fileName);
 
       const currentPortalId = portalId;
@@ -2958,7 +2992,7 @@ function DocumentHubContent() {
       const now = new Date();
       const dateStr = now.toISOString().split("T")[0];
       const timeStr = now.toTimeString().slice(0, 5).replace(":", "-");
-      const fileName = `Quote_${sanitizedCompanyName}_${dateStr}_${timeStr}.pdf`;
+      const fileName = `${docFileStem("quote", "Quote")}_${sanitizedCompanyName}_${dateStr}_${timeStr}.pdf`;
 
       const shipTo = labeledContacts?.shippingContact
         ? `${labeledContacts.shippingContact.firstName ?? ""} ${labeledContacts.shippingContact.lastName ?? ""}`.trim()
@@ -2980,6 +3014,7 @@ function DocumentHubContent() {
           shipToContact: shipTo || null,
           leasingPartnerName: formData.leasingCompanyId || null,
           rateFactor: selectedRateFactor,
+          documentTitle: docRename("quote"),
           today: todayLocalDateString(),
         }) as unknown as Record<string, unknown>,
       );
@@ -3051,7 +3086,7 @@ function DocumentHubContent() {
       const now = new Date();
       const dateStr = now.toISOString().split("T")[0];
       const timeStr = now.toTimeString().slice(0, 5).replace(":", "-");
-      const fileName = `Installation_Report_${sanitizedCompanyName}_Hardware_${dateStr}_${timeStr}.pdf`;
+      const fileName = `${docFileStem("installation", "Installation_Report")}_${sanitizedCompanyName}_Hardware_${dateStr}_${timeStr}.pdf`;
 
       pdf.save(fileName);
 
@@ -3225,7 +3260,7 @@ function DocumentHubContent() {
       const now = new Date();
       const dateStr = now.toISOString().split("T")[0];
       const timeStr = now.toTimeString().slice(0, 5).replace(":", "-");
-      const fileName = `Service_Agreement_${sanitizedCompanyName}_${dateStr}_${timeStr}.pdf`;
+      const fileName = `${docFileStem("service_agreement", "Service_Agreement")}_${sanitizedCompanyName}_${dateStr}_${timeStr}.pdf`;
 
       pdf.save(fileName);
 
@@ -3333,7 +3368,7 @@ function DocumentHubContent() {
       const now = new Date();
       const dateStr = now.toISOString().split("T")[0];
       const timeStr = now.toTimeString().slice(0, 5).replace(":", "-");
-      const fileName = `FMV_Lease_${sanitizedCompanyName}_${dateStr}_${timeStr}.pdf`;
+      const fileName = `${docFileStem("fmv_lease", "FMV_Lease")}_${sanitizedCompanyName}_${dateStr}_${timeStr}.pdf`;
 
       pdf.save(fileName);
 
@@ -3473,7 +3508,7 @@ function DocumentHubContent() {
       const now = new Date();
       const dateStr = now.toISOString().split("T")[0];
       const timeStr = now.toTimeString().slice(0, 5).replace(":", "-");
-      const fileName = `Lease_Funding_${sanitizedCompanyName}_${dateStr}_${timeStr}.pdf`;
+      const fileName = `${docFileStem("lease_funding", "Lease_Funding")}_${sanitizedCompanyName}_${dateStr}_${timeStr}.pdf`;
 
       pdf.save(fileName);
 
@@ -3581,7 +3616,7 @@ function DocumentHubContent() {
       const now = new Date();
       const dateStr = now.toISOString().split("T")[0];
       const timeStr = now.toTimeString().slice(0, 5).replace(":", "-");
-      const fileName = `Lease_Return_${sanitizedCompanyName}_${dateStr}_${timeStr}.pdf`;
+      const fileName = `${docFileStem("lease_return", "Lease_Return")}_${sanitizedCompanyName}_${dateStr}_${timeStr}.pdf`;
 
       pdf.save(fileName);
 
@@ -3689,7 +3724,7 @@ function DocumentHubContent() {
       const now = new Date();
       const dateStr = now.toISOString().split("T")[0];
       const timeStr = now.toTimeString().slice(0, 5).replace(":", "-");
-      const fileName = `Interterritorial_Request_${sanitizedCompanyName}_${dateStr}_${timeStr}.pdf`;
+      const fileName = `${docFileStem("interterritorial", "Interterritorial_Request")}_${sanitizedCompanyName}_${dateStr}_${timeStr}.pdf`;
 
       pdf.save(fileName);
 
@@ -4011,7 +4046,11 @@ function DocumentHubContent() {
     !dealerSettings.enabled_forms ||
     dealerSettings.enabled_forms.length === 0 ||
     dealerSettings.enabled_forms.includes(code);
-  const docByCode = (code: string) => documentTypes.find((d) => d.code === code);
+  /** A document type, carrying the portal's own label for it. */
+  const docByCode = (code: string) => {
+    const doc = documentTypes.find((d) => d.code === code);
+    return doc ? { ...doc, name: docLabel(code, doc.name) } : undefined;
+  };
   const matchesNavSearch = (name: string) => !navSearch || name.toLowerCase().includes(navSearch.toLowerCase());
   const statusDotClass = (status: string) =>
     status === "ready" ? "bg-qbs-green-600" : status === "in_progress" ? "bg-qbs-gold-500" : "bg-qbs-neutral-300";

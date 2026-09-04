@@ -21,6 +21,7 @@ import {
   validatePortalId, getCorsHeaders, createErrorResponse, createJsonResponse,
 } from '../_shared/validation.ts';
 import { checkRateLimit } from '../_shared/rate-limit.ts';
+import { printedTitle, retitleBlocks } from '../_shared/document-title.ts';
 
 const corsHeaders = getCorsHeaders();
 
@@ -142,8 +143,17 @@ Deno.serve(async (req: Request) => {
     const logo = await logoDataUri(dealer.logo_url ?? null);
     const preWarnings: string[] = logo.warning ? [logo.warning] : [];
 
+    // A portal may call the document something else -- Eakes calls the
+    // equipment quotation a Lease Agreement -- so a rename retitles the
+    // printed heading here rather than being baked into the template. The
+    // template's own title stands when no rename is set, so an unrenamed
+    // portal prints exactly what it printed before.
     const template = {
       ...(tmpl.template as Record<string, unknown>),
+      blocks: retitleBlocks(
+        (tmpl.template as { blocks?: unknown })?.blocks,
+        printedTitle(body.data),
+      ),
       chrome: {
         ...((tmpl.template as { chrome?: Record<string, unknown> })?.chrome ?? {}),
         ...(logo.uri ? { logoDataUri: logo.uri } : {}),

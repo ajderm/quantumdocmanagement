@@ -123,3 +123,15 @@ test('equipment location defaults to the billing address', () => {
   assert.equal(p.location.street, '1 Main');
   assert.equal(p.location.city, 'Omaha');
 });
+
+test('a portal rename reaches the document as its printed title', () => {
+  const p = quoteRenderPayload({}, { ...ctx, documentTitle: 'Lease Agreement' });
+  assert.equal(p.document.title, 'Lease Agreement');
+});
+
+test('no rename leaves the title null, so the template keeps its own', () => {
+  // Null is the signal to leave the heading alone. An empty string would blank
+  // it, printing a document with no title at all.
+  assert.equal(quoteRenderPayload({}, ctx).document.title, null);
+  assert.equal(quoteRenderPayload({}, { ...ctx, documentTitle: '   ' }).document.title, null);
+});
