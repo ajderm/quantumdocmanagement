@@ -1,0 +1,17 @@
+<!doctype html>
+<meta charset="utf-8">
+<title>Document renderer</title>
+<style>
+  body { font: 14px/1.5 system-ui, sans-serif; max-width: 34rem; margin: 4rem auto; padding: 0 1rem;
+         color: #16181d; background: #fff; }
+  code { background: #eef0f4; padding: .1rem .3rem; border-radius: 3px; font-size: .9em; }
+  .ok { color: #177245; font-weight: 600; }
+</style>
+<h1>Document renderer</h1>
+<p class="ok">Service is deployed.</p>
+<p>Template JSON plus a data payload in, a paginated PDF with selectable text out.</p>
+<ul>
+  <li><code>GET /api/render</code> — health check</li>
+  <li><code>POST /api/render</code> — <code>{ template, data, filename? }</code> &rarr; <code>application/pdf</code></li>
+</ul>
+<p>POST requires <code>Authorization: Bearer &lt;RENDER_TOKEN&gt;</code> when that variable is set.</p>
