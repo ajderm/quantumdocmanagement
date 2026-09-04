@@ -144,25 +144,42 @@ export function buildHeader(template, chrome = {}) {
   const st = template.styles ?? {};
   const font = st.fontFamily ?? 'Arial, Helvetica, sans-serif';
   if (chrome.suppress) return '<div></div>';
+
+  // Sizes are in px because a header template is a separate document that
+  // inherits no page CSS. The px-to-point conversion is what matters here and
+  // is easy to get wrong: 9px is 6.75pt, which on paper is smaller than the
+  // fine print. These values are chosen as points and converted, so the
+  // letterhead reads at the size a letterhead should.
+  const pt = (points) => `${(points * (96 / 72)).toFixed(1)}px`;
+  const NAME_PT = 11.5;
+  const LINE_PT = 8;
+  const REF_PT = 8;
+
+  // A logo must be a data URI: Chromium's header template does not reliably
+  // load external images, so a plain URL silently renders nothing.
   const logo = chrome.logoDataUri
-    ? `<img src="${chrome.logoDataUri}" style="height:26px;display:block;margin-bottom:2px">`
-    : chrome.companyName
-      ? `<div style="font-weight:700;font-size:9px;letter-spacing:.02em">${esc(chrome.companyName)}</div>`
-      : '';
-  const left = [logo, ...(chrome.lines ?? []).map(
-    (l) => `<div style="font-size:6.5px;color:#5c6472;line-height:1.3">${esc(l)}</div>`)].join('');
+    ? `<img src="${chrome.logoDataUri}" style="height:${pt(20)};display:block;margin-bottom:3px">`
+    : '';
+  const name = chrome.companyName
+    ? `<div style="font-weight:700;font-size:${pt(NAME_PT)};letter-spacing:.01em;color:#16181d;line-height:1.25">${esc(chrome.companyName)}</div>`
+    : '';
+  const lines = (chrome.lines ?? []).map(
+    (l) => `<div style="font-size:${pt(LINE_PT)};color:#5c6472;line-height:1.35">${esc(l)}</div>`).join('');
   const right = (chrome.right ?? []).map(
-    (l) => `<div style="font-size:6.5px;color:#5c6472;line-height:1.3">${esc(l)}</div>`).join('');
+    (l) => `<div style="font-size:${pt(REF_PT)};color:#5c6472;line-height:1.35">${esc(l)}</div>`).join('');
+
   return `<div style="width:100%;font-family:${font};padding:0 0.6in;box-sizing:border-box;
     display:flex;justify-content:space-between;align-items:flex-start;
-    border-bottom:0.75px solid #c9ced8;padding-bottom:4px;">
-    <div>${left}</div><div style="text-align:right">${right}</div></div>`;
+    border-bottom:0.75px solid #c9ced8;padding-bottom:5px;">
+    <div>${logo}${name}${lines}</div>
+    <div style="text-align:right">${right}</div></div>`;
 }
 
 export function buildFooter(template, chrome = {}) {
   const font = template.styles?.fontFamily ?? 'Arial, Helvetica, sans-serif';
   const note = chrome.footerNote ? esc(chrome.footerNote) : '';
-  return `<div style="width:100%;font-family:${font};font-size:6.5px;color:#5c6472;
+  // 9.3px is 7pt — small, as a footer should be, but still legible in print.
+  return `<div style="width:100%;font-family:${font};font-size:9.3px;color:#5c6472;
     padding:0 0.6in;box-sizing:border-box;display:flex;justify-content:space-between;align-items:flex-end;">
     <span>${note}</span>
     <span>Page <span class="pageNumber"></span> of <span class="totalPages"></span></span></div>`;

@@ -26,6 +26,50 @@ const corsHeaders = getCorsHeaders();
 
 const DOCUMENT_CODE = /^[a-z][a-z0-9_]{1,48}$/;
 
+/**
+ * Inline the dealer's logo as a data URI.
+ *
+ * Chromium renders a PDF header template as a separate document and does not
+ * reliably load external images from it, so a plain URL silently renders
+ * nothing at all — which is why the logo was missing rather than broken.
+ *
+ * Failure is never fatal: a document without a logo is still a usable
+ * document, so the caller gets a warning and the render proceeds.
+ */
+const MAX_LOGO_BYTES = 512 * 1024;
+
+async function logoDataUri(url: string | null): Promise<{ uri: string | null; warning?: string }> {
+  if (!url) return { uri: null };
+  try {
+    const res = await fetch(url);
+    if (!res.ok) return { uri: null, warning: `The dealer logo could not be fetched (${res.status}).` };
+
+    const type = (res.headers.get('content-type') ?? '').split(';')[0].trim();
+    if (!/^image\/(png|jpeg|jpg|gif|webp|svg\+xml)$/.test(type)) {
+      return { uri: null, warning: `The dealer logo is not a supported image type (${type || 'unknown'}).` };
+    }
+
+    const bytes = new Uint8Array(await res.arrayBuffer());
+    if (bytes.length > MAX_LOGO_BYTES) {
+      return {
+        uri: null,
+        warning: `The dealer logo is ${Math.round(bytes.length / 1024)}KB, over the ` +
+                 `${MAX_LOGO_BYTES / 1024}KB limit for inlining. Upload a smaller one.`,
+      };
+    }
+
+    let binary = '';
+    const CHUNK = 0x8000;
+    for (let i = 0; i < bytes.length; i += CHUNK) {
+      binary += String.fromCharCode(...bytes.subarray(i, i + CHUNK));
+    }
+    return { uri: `data:${type};base64,${btoa(binary)}` };
+  } catch (err) {
+    console.error('logo fetch failed', err);
+    return { uri: null, warning: 'The dealer logo could not be loaded.' };
+  }
+}
+
 function normalizeObjectType(raw: unknown): 'deals' | 'projects' | null {
   const v = String(raw ?? 'deals').toLowerCase().trim();
   if (['deals', 'deal', '0-3'].includes(v)) return 'deals';
@@ -71,7 +115,9 @@ Deno.serve(async (req: Request) => {
     if (limited) return limited;
 
     const { data: dealer } = await supabase
-      .from('dealer_accounts').select('id').eq('hubspot_portal_id', portalId).maybeSingle();
+      .from('dealer_accounts')
+      .select('id, logo_url, company_name, address_line1, address_line2, phone, website')
+      .eq('hubspot_portal_id', portalId).maybeSingle();
     if (!dealer) return createErrorResponse('Dealer account not found', 404, corsHeaders);
 
     // Only a published template is renderable: a draft being edited must never
@@ -91,6 +137,19 @@ Deno.serve(async (req: Request) => {
         `document type to the template engine.`, 409, corsHeaders);
     }
 
+    // The dealer's branding belongs to the dealer record, not the template, so
+    // one template serves every dealer and each still gets their own letterhead.
+    const logo = await logoDataUri(dealer.logo_url ?? null);
+    const preWarnings: string[] = logo.warning ? [logo.warning] : [];
+
+    const template = {
+      ...(tmpl.template as Record<string, unknown>),
+      chrome: {
+        ...((tmpl.template as { chrome?: Record<string, unknown> })?.chrome ?? {}),
+        ...(logo.uri ? { logoDataUri: logo.uri } : {}),
+      },
+    };
+
     const renderRes = await fetch(`${rendererUrl.replace(/\/$/, '')}/api/render`, {
       method: 'POST',
       headers: {
@@ -98,7 +157,7 @@ Deno.serve(async (req: Request) => {
         ...(renderToken ? { authorization: `Bearer ${renderToken}` } : {}),
       },
       body: JSON.stringify({
-        template: tmpl.template,
+        template,
         data: body.data,
         filename: `${documentCode}-${recordId}`,
       }),
@@ -117,7 +176,10 @@ Deno.serve(async (req: Request) => {
     const pdf = new Uint8Array(await renderRes.arrayBuffer());
     const renderMs = Number(renderRes.headers.get('x-render-ms')) || null;
     const warningDetail = renderRes.headers.get('x-render-warning-detail');
-    const warnings = warningDetail ? decodeURIComponent(warningDetail).split(' | ') : [];
+    const warnings = [
+      ...preWarnings,
+      ...(warningDetail ? decodeURIComponent(warningDetail).split(' | ') : []),
+    ];
 
     // Base64 in chunks: a 250-row document is a few hundred KB, and spreading
     // that into String.fromCharCode in one call overflows the argument limit.
