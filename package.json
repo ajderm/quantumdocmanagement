@@ -9,7 +9,9 @@
     "build:dev": "vite build --mode development",
     "lint": "eslint .",
     "preview": "vite preview",
-    "test:functions": "node --experimental-strip-types --test \"supabase/functions/_shared/__tests__/*.test.ts\""
+    "test:functions": "node --experimental-strip-types --test \"supabase/functions/_shared/__tests__/*.test.ts\"",
+    "test:lib": "node --experimental-strip-types --test \"src/lib/**/__tests__/*.test.ts\"",
+    "test:all": "npm run test:functions && npm run test:lib"
   },
   "dependencies": {
     "@fontsource/dm-sans": "^5.2.8",
