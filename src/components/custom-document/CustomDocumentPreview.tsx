@@ -1,5 +1,6 @@
 import { forwardRef } from 'react';
 import { format } from 'date-fns';
+import { formatDateOnly } from '@/lib/dateUtils';
 import type { CustomDocument, DocumentSection } from '@/components/admin/types';
 import { evaluateFormula, formatFieldNumber } from './DynamicFieldRenderer';
 import { buildDocumentFontCss } from "@/lib/documentFontSizes";

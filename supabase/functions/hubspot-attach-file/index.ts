@@ -152,7 +152,7 @@ Deno.serve(async (req) => {
 
     // Upload file to HubSpot
     const formData = new FormData();
-    formData.append('file', new Blob([bytes], { type: 'application/pdf' }), fileName);
+    formData.append('file', new Blob([bytes as BlobPart], { type: 'application/pdf' }), fileName);
     formData.append('options', JSON.stringify({
       access: 'PRIVATE',
       ttl: 'P3M', // 3 months
