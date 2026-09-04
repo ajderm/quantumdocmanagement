@@ -5,6 +5,8 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Separator } from "@/components/ui/separator";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { EngineModePanel } from "@/components/admin/EngineModePanel";
+import { usePlatformAdmin } from "@/hooks/usePlatformAdmin";
 import {
   Building2,
   Upload,
@@ -24,8 +26,9 @@ import {
   DollarSign,
   Trash2,
   Shield,
+  ShieldCheck,
 } from "lucide-react";
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef, useMemo } from "react";
 import { Link, useSearchParams } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
@@ -104,6 +107,20 @@ export default function AdminSettings({
   const [searchParams] = useSearchParams();
   // Tenant identity comes only from the embed URL or an explicit prop, never a persisted cross-tenant value
   const portalId = portalIdProp || searchParams.get("portalId") || searchParams.get("portal_id");
+
+  // Platform admins (QBS operators, identified by a verified email rather than
+  // a portal-scoped user id) get one extra settings section. The state is held
+  // here and passed down so the verification endpoint is called once.
+  const platformAdmin = usePlatformAdmin();
+  const settingsNav = useMemo(
+    () => (platformAdmin.visible
+      ? [...SETTINGS_NAV, {
+          label: "Platform",
+          items: [{ value: "engine-modes", label: "Document Engine", icon: ShieldCheck }],
+        }]
+      : SETTINGS_NAV),
+    [platformAdmin.visible],
+  );
 
   const [saving, setSaving] = useState(false);
   const [loading, setLoading] = useState(true);
@@ -550,7 +567,7 @@ export default function AdminSettings({
           >
             <TabsList className="!flex !flex-col flex-1 min-h-0 !h-auto !w-full !items-stretch !justify-start !gap-0 !rounded-none !bg-transparent !p-0 !shadow-none">
               <div className="py-2 overflow-y-auto flex-1 min-h-0 w-full">
-                {SETTINGS_NAV.map((group) => (
+                {settingsNav.map((group) => (
                   <div key={group.label} className="mb-1.5">
                     <div className="eyebrow px-4 h-5 flex items-center whitespace-nowrap overflow-hidden opacity-0 group-hover/rail:opacity-100 transition-opacity duration-150">
                       {group.label}
@@ -1409,6 +1426,16 @@ export default function AdminSettings({
             </TabsContent>
 
             <TabsContent value="field-mappings">{portalId && <FieldMappingEditor portalId={portalId} />}</TabsContent>
+
+            <TabsContent value="engine-modes">
+              {portalId && (
+                <EngineModePanel
+                  portalId={portalId}
+                  documentTypes={DOCUMENT_TYPES}
+                  admin={platformAdmin}
+                />
+              )}
+            </TabsContent>
 
             <TabsContent value="custom-documents">
               {portalId && <CustomDocumentBuilder portalId={portalId} />}

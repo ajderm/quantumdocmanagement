@@ -80,3 +80,12 @@ verify_jwt = false
 
 [functions.mcp]
 verify_jwt = false
+
+[functions.platform-admin-verify]
+verify_jwt = false
+
+# The only function in this app that requires a verified JWT. The write path
+# gates a cross-portal capability, so identity must come from the platform
+# rather than from a URL parameter.
+[functions.document-engine-mode]
+verify_jwt = true
