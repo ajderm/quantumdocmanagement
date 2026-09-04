@@ -53,8 +53,11 @@ function parseJwtClaims(token: string): Record<string, unknown> | null {
 }
 
 // Move a message to the dead letter queue and log the reason.
+// deno-lint-ignore no-explicit-any
 async function moveToDlq(
-  supabase: ReturnType<typeof createClient>,
+  // Loose-typed on purpose: this function only inserts a log row and calls an
+  // rpc that the generated client types do not describe in the edge runtime.
+  supabase: any,
   queue: string,
   msg: { msg_id: number; message: Record<string, unknown> },
   reason: string
