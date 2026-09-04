@@ -39,7 +39,7 @@ Deno.serve(async (req: Request) => {
     if (!dealer) {
       // An unknown portal has no modes; every document type falls back to native.
       return action === 'list'
-        ? createJsonResponse({ modes: {} }, 200, corsHeaders)
+        ? createJsonResponse({ modes: {} }, corsHeaders)
         : createErrorResponse('Dealer account not found', 404, corsHeaders);
     }
 
@@ -55,7 +55,7 @@ Deno.serve(async (req: Request) => {
           engine: row.engine, updatedBy: row.updated_by, updatedAt: row.updated_at,
         };
       }
-      return createJsonResponse({ modes }, 200, corsHeaders);
+      return createJsonResponse({ modes }, corsHeaders);
     }
 
     // ---- write path -------------------------------------------------------
@@ -106,7 +106,7 @@ Deno.serve(async (req: Request) => {
     return createJsonResponse({
       ok: true, documentCode, engine,
       previous: before?.engine ?? 'native', updatedBy: decision.email,
-    }, 200, corsHeaders);
+    }, corsHeaders);
   } catch (err) {
     console.error('document-engine-mode failed', err);
     return createErrorResponse('Request failed', 500, corsHeaders);
