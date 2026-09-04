@@ -159,7 +159,7 @@ export function EngineModePanel({
             <div className="flex items-start gap-2">
               <KeyRound className="h-4 w-4 mt-0.5 text-muted-foreground shrink-0" />
               <p className="text-sm text-muted-foreground">
-                Changing an engine needs a signed-in operator. We email a six-digit code to an
+                Changing an engine needs a signed-in operator. We email an eight-digit code to an
                 allowlisted address; the first sign-in sets the account up. Being a HubSpot
                 admin in this portal is not sufficient on its own.
               </p>
@@ -189,15 +189,15 @@ export function EngineModePanel({
             ) : (
               <div className="flex flex-wrap items-end gap-2">
                 <div className="w-[160px]">
-                  <Label htmlFor="pa-code" className="text-xs">Six-digit code</Label>
+                  <Label htmlFor="pa-code" className="text-xs">Eight-digit code</Label>
                   <Input
                     id="pa-code" inputMode="numeric" autoComplete="one-time-code"
-                    maxLength={6} placeholder="123456"
+                    maxLength={8} placeholder="12345678"
                     value={code} onChange={(e) => setCode(e.target.value.replace(/\D/g, ""))}
                   />
                 </div>
                 <Button
-                  disabled={admin.busy || code.length < 6}
+                  disabled={admin.busy || code.length !== 8}
                   onClick={async () => {
                     const r = await admin.submitCode(email, code);
                     if (r.ok) { setCode(""); toast.success("Signed in"); }

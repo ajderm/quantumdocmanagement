@@ -6,7 +6,7 @@ import { supabase } from "@/integrations/supabase/client";
 /**
  * Landing screen for a Supabase email link opened outside HubSpot.
  *
- * Operator sign-in is meant to use a six-digit code entered inside the app.
+ * Operator sign-in is meant to use an eight-digit code entered inside the app.
  * If the Auth email template still sends a link, clicking it opens the app at
  * its own root with auth parameters but no HubSpot context — which otherwise
  * hits the "No record loaded" guard and reads like a broken app.
@@ -88,7 +88,7 @@ export function AuthCallbackNotice() {
               <p className="text-sm text-muted-foreground">
                 Go back to HubSpot, reopen the app's settings, and check whether the
                 Document Engine panel shows you as signed in. If it does not, use the
-                <strong> six-digit code</strong> instead of the link — the panel accepts a code
+                <strong> eight-digit code</strong> instead of the link — the panel accepts a code
                 typed directly into it, which stays in the right browsing context.
               </p>
             </>
@@ -102,7 +102,7 @@ export function AuthCallbackNotice() {
               <p className="text-sm text-muted-foreground">{state.detail}</p>
               <p className="text-sm text-muted-foreground">
                 Sign in from inside HubSpot instead: open the app's settings, go to
-                Document Engine, and enter the <strong>six-digit code</strong> from the email.
+                Document Engine, and enter the <strong>eight-digit code</strong> from the email.
               </p>
             </>
           )}
