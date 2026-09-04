@@ -10,8 +10,9 @@
 
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
 import { validatePortalId, getCorsHeaders, createErrorResponse, createJsonResponse } from '../_shared/validation.ts';
+import { checkRateLimit } from '../_shared/rate-limit.ts';
 import { loadAllowlist, resolveHubspotEmail, sessionEmail } from '../_shared/platform-admin.ts';
-import { decideUiVisibility, decideWrite } from '../_shared/platform-admin-policy.ts';
+import { decideUiVisibility, decideWrite, isAllowlisted, normalizeEmail } from '../_shared/platform-admin-policy.ts';
 
 const corsHeaders = getCorsHeaders();
 
@@ -25,11 +26,28 @@ Deno.serve(async (req: Request) => {
 
     const body = await req.json().catch(() => ({}));
     const portalId = body.portalId;
-    const hubspotUserId = String(body.userId ?? '').trim();
 
     if (!validatePortalId(portalId)) {
       return createErrorResponse('Invalid portal ID format', 400, corsHeaders);
     }
+
+    // ---- eligibility pre-check --------------------------------------------
+    // Answers one question: is this address an operator? The panel asks before
+    // requesting a sign-in code, so a mistyped or non-operator address gets a
+    // clear answer instead of a code that would never grant anything. It is
+    // rate limited because it is unauthenticated and reveals a boolean.
+    if (body.action === 'check-email') {
+      const limited = await checkRateLimit(supabase, String(portalId), 'platform-admin-verify', 20, corsHeaders);
+      if (limited) return limited;
+      const candidate = normalizeEmail(body.email);
+      if (!candidate || candidate.length > 320) {
+        return createErrorResponse('Invalid email', 400, corsHeaders);
+      }
+      const list = await loadAllowlist(supabase);
+      return createJsonResponse({ eligible: isAllowlisted(candidate, list) }, 200, corsHeaders);
+    }
+
+    const hubspotUserId = String(body.userId ?? '').trim();
     if (!/^\d{1,20}$/.test(hubspotUserId)) {
       return createErrorResponse('Invalid user ID format', 400, corsHeaders);
     }

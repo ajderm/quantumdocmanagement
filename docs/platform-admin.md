@@ -55,8 +55,20 @@ without needing two endpoints.
 
 Email OTP — a six-digit code, not a magic link. The app runs inside a HubSpot
 iframe where redirect flows and third-party cookies are unreliable; code entry
-is plain fetch calls and completes in place. `shouldCreateUser: false` means
-the prompt can never mint a new account.
+is plain fetch calls and completes in place. On Lovable preview surfaces the
+session is brokered to the editor by `previewAuthStorage.ts`, so it survives
+across those surfaces rather than being trapped in a partitioned iframe.
+
+**Accounts are self-provisioning.** The panel asks the server whether an
+address is on the allowlist (`action: 'check-email'`, rate limited) and only
+then requests a code; the first successful sign-in creates the account and
+confirms the address. Nobody has to create operators by hand in a backend the
+app does not control.
+
+That is safe because **account existence confers nothing**. Authority is the
+allowlist, re-read from the database on every single write. Someone who calls
+Supabase Auth directly, bypassing the pre-check, can create an account for
+their own address and will find every mode change refused.
 
 Being a HubSpot super admin in the portal is **not** sufficient and is not
 intended to be.
@@ -104,8 +116,11 @@ supabase functions deploy platform-admin-verify
 supabase functions deploy document-engine-mode    # verify_jwt = true
 ```
 
-Then, in Supabase Auth settings, confirm an SMTP sender is configured — OTP
-delivery otherwise falls back to the heavily rate-limited built-in mailer.
+No accounts need creating: the first sign-in provisions the operator.
+
+One optional setting: an SMTP sender for OTP delivery. Without one, codes go
+through the built-in mailer, which is rate limited to a handful per hour —
+fine for two operators, worth configuring before it matters.
 
 ## Known unrelated weakness
 

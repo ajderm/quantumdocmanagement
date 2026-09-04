@@ -19,6 +19,13 @@ import { useHubSpot } from "@/hooks/useHubSpot";
  * Sign-in uses an emailed code rather than a magic link on purpose: the app
  * runs inside a HubSpot iframe, where a redirect-based flow and third-party
  * cookies are unreliable. Code entry is plain fetch calls and works in place.
+ *
+ * An operator's account is created by their first sign-in, so nobody has to
+ * provision accounts by hand in a backend the app does not control. The
+ * address is checked against the allowlist server-side BEFORE a code is sent,
+ * so the prompt cannot be used to create unrelated accounts. Account
+ * existence confers nothing either way: authority is the allowlist, re-read on
+ * every write.
  */
 export interface PlatformAdminState {
   loading: boolean;
@@ -77,11 +84,26 @@ export function usePlatformAdmin() {
   const requestCode = useCallback(async (email: string) => {
     setBusy(true);
     try {
+      const address = email.trim().toLowerCase();
+
+      // Ask the server whether this address is an operator before sending
+      // anything. Cheaper than a wasted code, and a much clearer failure than
+      // "check your email" followed by a sign-in that grants nothing.
+      const { data: check, error: checkError } = await supabase.functions.invoke(
+        "platform-admin-verify", { body: { action: "check-email", portalId, email: address } },
+      );
+      if (checkError) throw checkError;
+      if (!check?.eligible) {
+        return { ok: false as const, message: `${address} is not a platform operator` };
+      }
+
       const { error } = await supabase.auth.signInWithOtp({
-        email: email.trim().toLowerCase(),
-        // Never create an account from this prompt: only an address that
-        // already exists should be able to receive a code here.
-        options: { shouldCreateUser: false },
+        email: address,
+        // The first sign-in creates the account, so operators do not need to
+        // be provisioned by hand. Safe because the address was just checked
+        // against the allowlist, and because an account on its own grants
+        // nothing -- every write re-checks the allowlist server-side.
+        options: { shouldCreateUser: true },
       });
       if (error) throw error;
       setOtpSent(true);
@@ -91,7 +113,7 @@ export function usePlatformAdmin() {
     } finally {
       setBusy(false);
     }
-  }, []);
+  }, [portalId]);
 
   const submitCode = useCallback(async (email: string, code: string) => {
     setBusy(true);

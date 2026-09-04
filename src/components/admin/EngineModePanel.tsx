@@ -122,8 +122,9 @@ export function EngineModePanel({
             <div className="flex items-start gap-2">
               <KeyRound className="h-4 w-4 mt-0.5 text-muted-foreground shrink-0" />
               <p className="text-sm text-muted-foreground">
-                Changing an engine needs a signed-in operator. We email a six-digit code —
-                being a HubSpot admin in this portal is not sufficient on its own.
+                Changing an engine needs a signed-in operator. We email a six-digit code to an
+                allowlisted address; the first sign-in sets the account up. Being a HubSpot
+                admin in this portal is not sufficient on its own.
               </p>
             </div>
             {!admin.otpSent ? (
