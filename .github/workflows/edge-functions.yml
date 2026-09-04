@@ -1,0 +1,19 @@
+name: edge-function policy tests
+
+on:
+  push:
+    paths: ['supabase/functions/**', '.github/workflows/edge-functions.yml']
+  pull_request:
+    paths: ['supabase/functions/**', '.github/workflows/edge-functions.yml']
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      # The policy modules are deliberately Deno-free so they can be tested
+      # here without an edge runtime. No install step is needed.
+      - run: npm run test:functions

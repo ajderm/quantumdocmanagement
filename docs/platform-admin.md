@@ -102,6 +102,25 @@ The single deliberately global thing is **who may toggle** — the
 `platform_admins` allowlist — which is the point: one operator, every portal.
 What they change is always scoped to the portal they are in.
 
+## A note on the shared response helpers
+
+Their argument orders differ, and getting it wrong fails in a way that is very
+hard to see:
+
+```ts
+createJsonResponse(data, corsHeaders, status = 200)   // headers second
+createErrorResponse(message, status, corsHeaders)     // status second
+```
+
+`createJsonResponse(data, 200, corsHeaders)` type-checks under this project's
+loose config, spreads a number where the headers belong (so the response
+carries no CORS headers at all) and passes an object as the status, which makes
+`new Response` throw. Every success path then returns 500 from the catch block,
+and a caller that fails closed renders nothing. That is exactly what happened
+to these two functions on their first deploy.
+
+`npm run test:functions` now scans every edge function for both mistakes.
+
 ## Tables
 
 All three have RLS enabled with **no policies**, deliberately: they are
