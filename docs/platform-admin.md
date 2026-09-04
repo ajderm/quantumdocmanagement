@@ -110,8 +110,12 @@ branch goes.
 
 ## Deploying this change
 
+Applied on 2026-09-04 via
+`supabase/migrations/20260904104851_e3650cd3-a3fd-4359-a626-39e53c0ecef9.sql`
+(Lovable applies migrations under its own generated filenames; that file is the
+one recorded against the live database).
+
 ```bash
-supabase db push                                  # the migration
 supabase functions deploy platform-admin-verify
 supabase functions deploy document-engine-mode    # verify_jwt = true
 ```
