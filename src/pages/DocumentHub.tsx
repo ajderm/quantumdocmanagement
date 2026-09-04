@@ -256,6 +256,12 @@ function DocumentHubContent() {
   const [generating, setGenerating] = useState(false);
   const [saving, setSaving] = useState(false);
   const [showPreview, setShowPreview] = useState(false);
+  // When the template engine serves this document, the preview is the actual
+  // rendered PDF rather than the React layout. That matters: the two look
+  // different, and showing one while generating the other is how you end up
+  // demonstrating a document nobody will receive.
+  const [templatePreviewUrl, setTemplatePreviewUrl] = useState<string | null>(null);
+  const [previewRendering, setPreviewRendering] = useState(false);
   const [formData, setFormData] = useState<QuoteFormData | null>(null);
   const [savedConfig, setSavedConfig] = useState<QuoteFormData | null>(null);
   const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false);
@@ -3085,12 +3091,70 @@ function DocumentHubContent() {
     }
   };
 
-  const handlePreview = () => {
+  const handlePreview = async () => {
     if (!formData) {
       toast.error("Please fill in the quote details first");
       return;
     }
-    setShowPreview(true);
+
+    // Native engine: the React preview already is the output.
+    if (engineFor("quote") !== "template") {
+      setShowPreview(true);
+      return;
+    }
+
+    setPreviewRendering(true);
+    try {
+      const shipTo = labeledContacts?.shippingContact
+        ? `${labeledContacts.shippingContact.firstName ?? ""} ${labeledContacts.shippingContact.lastName ?? ""}`.trim()
+        : null;
+      const selectedTerm = formData.selectedTerms?.[0];
+      const selectedRateFactor = selectedTerm
+        ? (formData.rateOverrides?.[selectedTerm] ?? null)
+        : null;
+
+      const { data, error } = await supabase.functions.invoke("generate-document", {
+        body: {
+          portalId,
+          documentCode: "quote",
+          recordId: deal?.hsObjectId,
+          objectType,
+          // Preview only: nothing is attached to the record and no file is
+          // written anywhere the customer could see.
+          attach: false,
+          data: quoteRenderPayload(formData, {
+            dealerInfo: dealerInfo ?? undefined,
+            deal,
+            shipToContact: shipTo || null,
+            leasingPartnerName: formData.leasingCompanyId || null,
+            rateFactor: selectedRateFactor,
+            today: todayLocalDateString(),
+          }) as unknown as Record<string, unknown>,
+        },
+      });
+      if (error) throw error;
+      if (!data?.pdfBase64) throw new Error("The renderer returned no document");
+      if (data.warnings?.length) console.warn("[template engine]", data.warnings);
+
+      const binary = atob(data.pdfBase64);
+      const bytes = new Uint8Array(binary.length);
+      for (let i = 0; i < binary.length; i++) bytes[i] = binary.charCodeAt(i);
+      const url = URL.createObjectURL(new Blob([bytes], { type: "application/pdf" }));
+
+      // Release the previous object URL rather than leaking one per preview.
+      setTemplatePreviewUrl((prev) => {
+        if (prev) URL.revokeObjectURL(prev);
+        return url;
+      });
+      setShowPreview(true);
+    } catch (err) {
+      console.error("Template preview failed; showing the built-in layout", err);
+      toast.warning("Could not render the template preview — showing the built-in layout");
+      setTemplatePreviewUrl(null);
+      setShowPreview(true);
+    } finally {
+      setPreviewRendering(false);
+    }
   };
 
   const handleInstallationPreview = () => {
@@ -4470,7 +4534,7 @@ function DocumentHubContent() {
                       return m;
                     })()}
                     onGenerate={handleGeneratePDF}
-                    generating={generating}
+                    generating={generating || previewRendering}
                     canGenerate={userPermissions.can_generate}
                     generateLabel="Generate PDF"
                     onPreview={handlePreview}
@@ -5465,11 +5529,38 @@ function DocumentHubContent() {
       </div>
 
       {/* Quote Preview Dialog */}
-      <Dialog open={showPreview} onOpenChange={setShowPreview}>
+      <Dialog
+        open={showPreview}
+        onOpenChange={(open) => {
+          setShowPreview(open);
+          if (!open) {
+            setTemplatePreviewUrl((prev) => {
+              if (prev) URL.revokeObjectURL(prev);
+              return null;
+            });
+          }
+        }}
+      >
         <DialogContent className="max-w-4xl max-h-[90vh] p-0">
           <DialogHeader className="p-4 pb-0">
-            <DialogTitle className="flex items-center gap-2">Quote Preview</DialogTitle>
+            <DialogTitle className="flex items-center gap-2">
+              Quote Preview
+              {templatePreviewUrl && (
+                <span className="text-xs font-normal text-muted-foreground">
+                  · rendered output, identical to the generated PDF
+                </span>
+              )}
+            </DialogTitle>
           </DialogHeader>
+          {templatePreviewUrl ? (
+            <div className="p-4 pt-2">
+              <iframe
+                src={templatePreviewUrl}
+                title="Rendered quote"
+                className="w-full h-[calc(90vh-120px)] border rounded"
+              />
+            </div>
+          ) : (
           <ScrollArea className="max-h-[calc(90vh-80px)]">
             <div className="p-4 flex justify-center">
               {formData && (
@@ -5498,6 +5589,7 @@ function DocumentHubContent() {
               )}
             </div>
           </ScrollArea>
+          )}
         </DialogContent>
       </Dialog>
 
