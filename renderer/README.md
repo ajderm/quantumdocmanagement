@@ -10,6 +10,32 @@ POST /render   { template, data, filename? }  ->  application/pdf
 GET  /health                                  ->  { ok: true }
 ```
 
+## Two deployment targets, one renderer
+
+The browser surface used is five calls — `newPage`, `setContent`, `evaluate`,
+`pdf`, `close` — and Playwright and Puppeteer both expose them identically,
+because both drive Chrome DevTools Protocol's `Page.printToPDF`. So the layout
+work is portable and only the launch differs (`src/browser.js`):
+
+| target | driver | entry |
+|---|---|---|
+| Vercel function | `puppeteer-core` + `@sparticuz/chromium` | `api/render.js` |
+| container | `playwright` + the image's Chromium | `src/server.js` |
+
+Chosen by `RENDERER_RUNTIME` (`serverless` \| `playwright`), inferred from
+`VERCEL`/`AWS_LAMBDA_FUNCTION_NAME` when unset.
+
+**Vercel needs no extra vendor** and is the default: deploy `renderer/` as its
+own project, isolated from the HubSpot card app published out of the same repo.
+`vercel.json` sets 2048MB and a 60s ceiling; renders are 50–600ms warm and
+about 3s cold, since the packed Chromium has to be expanded.
+
+`npm run test:parity` renders the same documents through both drivers and
+compares every glyph's text and position. They are different Chromium builds,
+so a font substitution in either would change what a customer receives while
+every other test still passed. Current result: **0.000pt deviation** across
+64–593 glyph runs per case.
+
 ## Why this exists
 
 The current in-app generator rasterises the DOM with `html2canvas` and slices
@@ -49,6 +75,7 @@ npm test          # 14 unit tests + 20 corpus renders
 npm run corpus    # renders the corpus, writes out/*.pdf, prints a report
 npm run serve     # http://localhost:8080
 npm run raster out/forty-rows.pdf /tmp/x 1,2   # PDF page -> PNG, to eyeball
+npm run test:parity                            # both drivers must agree
 ```
 
 `CHROMIUM_PATH` pins the browser binary; otherwise the resolver looks under

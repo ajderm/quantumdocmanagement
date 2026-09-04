@@ -20,6 +20,8 @@ jobs:
       - run: npm install --no-audit --no-fund
       - run: npx playwright install --with-deps chromium
       - run: npm test
+      - name: Both drivers must render identically
+        run: npm run test:parity
       - name: Render the corpus and keep the PDFs
         run: npm run corpus
       - uses: actions/upload-artifact@v4

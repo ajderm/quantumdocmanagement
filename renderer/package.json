@@ -11,10 +11,14 @@
     "test": "node --test test/*.test.js",
     "corpus": "node test/render-corpus.js",
     "serve": "node src/server.js",
-    "raster": "node tools/raster.mjs"
+    "raster": "node tools/raster.mjs",
+    "serve:vercel": "RENDERER_RUNTIME=serverless node -e \"import(\"./api/render.js\")\"",
+    "test:parity": "node test/parity.js"
   },
   "dependencies": {
-    "playwright": "^1.56.1"
+    "playwright": "^1.56.1",
+    "puppeteer-core": "^24.10.2",
+    "@sparticuz/chromium": "^133.0.0"
   },
   "devDependencies": {
     "@napi-rs/canvas": "^1.0.8",
