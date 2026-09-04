@@ -92,6 +92,7 @@ import type { CustomDocument } from "@/components/admin/types";
 import type { FormCustomizationConfig, FormCustomizationMap } from "@/lib/formCustomization";
 import { DocumentPacketForm } from "@/components/document-packet/DocumentPacketForm";
 const AdminSettings = lazy(() => import("@/pages/admin/AdminSettings"));
+import { AuthCallbackNotice, isAuthCallbackUrl } from "@/components/admin/AuthCallbackNotice";
 
 const documentTypes = [
   { code: "quote", name: "Quote", icon: FileText },
@@ -3790,6 +3791,13 @@ function DocumentHubContent() {
         </Card>
       </div>
     );
+  }
+
+  // An auth email link lands here with auth parameters and no HubSpot context.
+  // Handle it before the missing-parameter guard below, which would otherwise
+  // report a card misconfiguration for what is actually a sign-in redirect.
+  if (isAuthCallbackUrl()) {
+    return <AuthCallbackNotice />;
   }
 
   // No anchor record: the embed URL didn't provide the parameters needed to

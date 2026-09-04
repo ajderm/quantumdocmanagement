@@ -88,6 +88,20 @@ order by created_at desc
 limit 50;
 ```
 
+## Each install is independent
+
+Engine modes are per portal, enforced by the schema rather than by
+convention. `dealer_accounts.hubspot_portal_id` is `TEXT UNIQUE`, so one
+portal maps to exactly one dealer account, and `document_engine_modes` is
+keyed `(dealer_account_id, document_code)`. Every read and write in
+`document-engine-mode` resolves the dealer from the incoming `portalId` first
+and scopes to that id, so a toggle in one portal cannot be seen or reached
+from another. `useDocumentEngine(portalId)` reads only that portal's rows.
+
+The single deliberately global thing is **who may toggle** — the
+`platform_admins` allowlist — which is the point: one operator, every portal.
+What they change is always scoped to the portal they are in.
+
 ## Tables
 
 All three have RLS enabled with **no policies**, deliberately: they are
@@ -150,9 +164,30 @@ supabase functions deploy document-engine-mode    # verify_jwt = true
 
 No accounts need creating: the first sign-in provisions the operator.
 
-One optional setting: an SMTP sender for OTP delivery. Without one, codes go
-through the built-in mailer, which is rate limited to a handful per hour —
-fine for two operators, worth configuring before it matters.
+**One required Auth setting.** The Magic Link email template must contain
+`{{ .Token }}`, or the email arrives as a link with no code in it and the
+panel has nothing to accept. Supabase's default template only renders
+`{{ .ConfirmationURL }}`.
+
+A link is not a workable substitute here: clicking it opens a top-level tab,
+whose storage the browser keeps separate from the app running inside HubSpot's
+iframe, so the session does not carry across. Clicking one lands on
+`AuthCallbackNotice`, which completes the sign-in and says to use the code
+instead — rather than hitting DocumentHub's missing-parameter guard, which
+reads like a broken card.
+
+Suggested template body:
+
+```
+<h2>Your operator sign-in code</h2>
+<p>Enter this code in the Document Engine panel:</p>
+<p style="font-size:28px;letter-spacing:4px;font-weight:700">{{ .Token }}</p>
+<p>It expires in one hour. If you did not request it, ignore this email.</p>
+```
+
+One optional setting: an SMTP sender. Without one, codes go through the
+built-in mailer, which is rate limited to a handful per hour — fine for two
+operators, worth configuring before it matters.
 
 ## Known unrelated weakness
 
