@@ -11,27 +11,21 @@
  *   TERM & PAYMENT INFORMATION
  *   CUSTOMER SIGNATURE      title, date, for, salesperson
  *
- * The FMV note is theirs too, lifted from the footer of their own rate cards:
- * "These are FMV leases with a $1.00 BuyBack of the lease rights by Eakes at
- * the end of the Term." That corroborates the $1.00 residual in their lease
- * assignment paperwork, so it belongs on the document these rates price.
+ * Terms and conditions are NOT authored here. Earlier versions carried four
+ * paragraphs of plausible-sounding prose written by this file's author, on a
+ * document a customer signs; they now come from the dealer's own configured
+ * terms and the section disappears when they have entered none. Their real
+ * terms live in the copier lease tool spreadsheet Mike described (7/31).
+ *
+ * Sales tax likewise comes from the dealer's settings rather than the 8.7%
+ * this file used to assume.
  *
  * Every token here resolves from src/lib/render/payload.ts. Fields the quote
  * form does not capture (county) come through null and drop out rather than
  * printing an empty box.
  */
 
-const TERMS = `<p><strong>Term.</strong> This quotation is valid through the date shown above and is
-contingent on credit approval by the lessor named in Term &amp; Payment Information. Equipment
-remains the property of the lessor for the duration of the lease term.</p>
-<p><strong>Buyback.</strong> These are FMV leases with a $1.00 BuyBack of the lease rights by
-Eakes at the end of the Term.</p>
-<p><strong>Installation.</strong> Installation includes network configuration, driver deployment to
-workstations identified at survey, and end-user orientation at the equipment location listed above.
-Equipment shall not be removed from that location without written consent of the Lessor.</p>
-<p><strong>Billing.</strong> Meter-based overage is billed in arrears. Removal of existing equipment
-is quoted separately and is not included in the totals above. Sales tax is estimated and will be
-assessed at the rate in effect on the invoice date.</p>`;
+
 
 export function eakesLeaseTemplate(over = {}) {
   return {
@@ -48,10 +42,14 @@ export function eakesLeaseTemplate(over = {}) {
       footerNote: '{{dealer.company}} · {{company.name}} · Quote {{deal.quote_number}}',
     },
     styles: { fontFamily: 'Arial, Helvetica, sans-serif', fontSize: 9 },
-    vars: { taxRate: 0.087 },
     computed: {
-      tax: 'round(totals.subtotal * vars.taxRate, 2)',
-      grand: 'totals.subtotal + computed.tax',
+      // The dealer's configured rate, not a number chosen here. Unset means no
+      // tax line at all: this document is customer-facing, and an invented
+      // rate on it is worse than an omission the reader can see.
+      tax: 'round(totals.subtotal * dealer.tax_rate, 2)',
+      // The total survives an absent tax rate by falling back to the bare
+      // subtotal, rather than vanishing with the line it was built from.
+      grand: 'firstNonZero(totals.subtotal + computed.tax, totals.subtotal)',
       // QuoteIQ's payment wins over a payment derived here.
       //
       // The funder's figure is what the customer was quoted; deriving one from
@@ -112,14 +110,17 @@ export function eakesLeaseTemplate(over = {}) {
         { label: 'Salesperson', value: '{{rep.name}}' },
       ] },
 
-      { type: 'summary', rows: [
+      { type: 'summary', hideEmpty: true, rows: [
         { label: 'Equipment subtotal', expr: 'totals.subtotal' },
-        { label: 'Estimated tax ({{vars.taxRate | percent}})', expr: 'computed.tax' },
+        { label: 'Estimated tax ({{dealer.tax_rate | percent}})', expr: 'computed.tax' },
         { label: 'Total financed', expr: 'computed.grand', bold: true, rule: true },
         { label: 'Monthly payment · {{lease.term}} mo', expr: 'computed.monthly' },
       ] },
 
-      { type: 'richText', title: 'Terms & Conditions', html: TERMS },
+      // The dealer's own terms, from their document settings. Omitted entirely
+      // when they have entered none -- this template does not author legal
+      // prose on their behalf.
+      { type: 'richText', title: 'Terms & Conditions', html: '{{terms.html}}', hideEmpty: true },
 
       { type: 'signature', title: 'Customer Signature', signers: [
         { label: '{{company.name}}', sublabel: 'Authorized signature · Title · Date' },

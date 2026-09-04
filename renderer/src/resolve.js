@@ -129,23 +129,30 @@ export function resolve(template, data) {
     return v === undefined || v === null || v === '';
   };
 
-  for (const [key, expr] of Object.entries(template.computed ?? {})) {
+  /**
+   * Is this expression's result missing?
+   *
+   * Anything built from a missing input is missing -- except a firstNonZero,
+   * which exists to fall back, and is missing only when every branch it could
+   * fall back to is. Judged branch by branch: a branch mentioning an
+   * always-present subtotal must not make the whole thing look present when
+   * the figures beside it are gone.
+   */
+  const exprIsMissing = (expr) => {
     const refs = refsIn(expr);
-    // A value is missing if anything it is built from is missing -- except a
-    // firstNonZero, which exists precisely to fall back. That is missing only
-    // when every branch it could fall back to is itself missing, judged branch
-    // by branch: a branch mentioning an always-present subtotal must not make
-    // the whole thing look present when the figures beside it are gone.
+    if (!refs.length) return false;
     const branches = coalesceBranches(expr);
-    const branchMissing = (src) => {
-      const r = refsIn(src);
+    if (!branches) return refs.some(isAbsentPath);
+    return branches.every((b) => {
+      const r = refsIn(b);
       // A branch of pure literals is a real value, never absent.
       return r.length > 0 && r.some(isAbsentPath);
-    };
-    const missing = branches
-      ? branches.every(branchMissing)
-      : refs.some(isAbsentPath);
-    if (refs.length && missing) absent.add(key);
+    });
+  };
+
+  for (const [key, expr] of Object.entries(template.computed ?? {})) {
+    const refs = refsIn(expr);
+    if (exprIsMissing(expr)) absent.add(key);
     try {
       computed[key] = evaluate(String(expr), lookup);
     } catch (err) {
@@ -199,7 +206,7 @@ export function resolve(template, data) {
             // A row resting on absent data renders blank rather than zero.
             // Totals legitimately are zero sometimes (an empty quote), and
             // that still prints — this is about inputs that were never there.
-            if (refsIn(r.expr).some(isAbsentPath)) {
+            if (exprIsMissing(r.expr)) {
               value = '';
             } else {
               try { value = evaluate(String(r.expr), lookup); }
@@ -214,9 +221,16 @@ export function resolve(template, data) {
         blocks.push({ ...block, rows: block.hideEmpty ? rows.filter((r) => r.value !== '') : rows });
         break;
       }
-      case 'richText':
-        blocks.push({ ...block, title: s(block.title), html: s(block.html ?? block.text ?? '') });
+      case 'richText': {
+        const html = s(block.html ?? block.text ?? '');
+        // A terms block sourced from a dealer's own settings is empty until
+        // they have entered any. Printing the heading over nothing invites the
+        // reader to assume the terms are elsewhere; omitting the section says
+        // plainly that this document carries none.
+        if (block.hideEmpty && html.replace(/<[^>]*>/g, '').trim() === '') break;
+        blocks.push({ ...block, title: s(block.title), html });
         break;
+      }
       case 'signature':
         blocks.push({ ...block, title: s(block.title ?? 'Acceptance'),
           signers: (block.signers ?? []).map((g) => ({ label: s(g.label), sublabel: s(g.sublabel ?? '') })) });

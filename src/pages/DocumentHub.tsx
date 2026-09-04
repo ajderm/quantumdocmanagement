@@ -127,6 +127,13 @@ interface DealerSettings {
   /** Document code to open on load (homepage). Empty/absent = first enabled document. */
   default_form?: string;
   /** Portal-configured default lease terms for new quotes (Admin → backend). */
+  /**
+   * Sales tax rate for estimated tax on documents, e.g. "5.5" or "0.055".
+   *
+   * Unset means documents print no tax line. The renderer used to assume
+   * 8.7%, which put a rate nobody had chosen on customer-facing paperwork.
+   */
+  sales_tax_rate?: string | number;
   default_terms?: { enabled?: boolean; terms?: number[] };
   document_styles?: {
     fontFamily?: string;
@@ -3026,6 +3033,8 @@ function DocumentHubContent() {
           rateFactor: selectedRateFactor,
           // QuoteIQ's payment and term, when it has written them.
           quoteiq: deal?.quoteiq ?? null,
+          taxRate: dealerSettings.sales_tax_rate ?? null,
+          termsText: quoteTermsText(),
           documentTitle: docRename("quote"),
           today: todayLocalDateString(),
         }) as unknown as Record<string, unknown>,
@@ -3177,6 +3186,8 @@ function DocumentHubContent() {
             leasingPartnerName: formData.leasingCompanyId || null,
             rateFactor: selectedRateFactor,
             quoteiq: deal?.quoteiq ?? null,
+            taxRate: dealerSettings.sales_tax_rate ?? null,
+            termsText: quoteTermsText(),
             documentTitle: docRename("quote"),
             today: todayLocalDateString(),
           }) as unknown as Record<string, unknown>,
@@ -4052,6 +4063,22 @@ function DocumentHubContent() {
     !dealerSettings.enabled_forms ||
     dealerSettings.enabled_forms.length === 0 ||
     dealerSettings.enabled_forms.includes(code);
+  /**
+   * The terms that apply to the quote as it currently stands.
+   *
+   * A per-document override wins, then the dealer's configured terms for the
+   * selected lease program. Empty means the document prints no terms section
+   * at all rather than prose this app invented.
+   */
+  const quoteTermsText = (): string | null => {
+    if (formData?.overrideTerms) return formData.overrideTermsText || null;
+    const program = formData?.leaseProgram ?? "fmv";
+    const key = program === "dollar_buyout" ? "quote_dollar_buyout"
+      : program === "rental" ? "quote_rental"
+      : "quote_fmv";
+    return documentTerms[key]?.trim() || documentTerms.quote_fmv?.trim() || null;
+  };
+
   /** A document type, carrying the portal's own label for it. */
   const docByCode = (code: string) => {
     const doc = documentTypes.find((d) => d.code === code);

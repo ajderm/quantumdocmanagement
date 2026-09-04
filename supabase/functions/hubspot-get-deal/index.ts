@@ -158,6 +158,20 @@ async function getValidAccessToken(
  * record load over a cosmetic field.
  */
 /**
+ * A HubSpot numeric property, or null when it was never set.
+ *
+ * HubSpot returns '' for an unset number and Number('') is 0, so coercing
+ * blindly turns "nobody entered this" into "the value is zero" -- which on a
+ * document means a $0.00 payment or a 0.0 cent-per-copy rate that reads as
+ * free.
+ */
+function numOrNull(v: unknown): number | null {
+  if (v === null || v === undefined || (typeof v === 'string' && v.trim() === '')) return null;
+  const x = Number(v);
+  return Number.isFinite(x) ? x : null;
+}
+
+/**
  * QuoteIQ's writeback, read off a deal's properties.
  *
  * Kept as its own shape rather than scattered across the deal object so the
@@ -168,11 +182,7 @@ async function getValidAccessToken(
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 function quoteIqWriteback(props: Record<string, any> | undefined | null) {
   const p = props ?? {};
-  const n = (v: unknown) => {
-    if (v === null || v === undefined || (typeof v === 'string' && v.trim() === '')) return null;
-    const x = Number(v);
-    return Number.isFinite(x) ? x : null;
-  };
+  const n = numOrNull;
   const t = (v: unknown) => (typeof v === 'string' && v.trim() !== '' ? v.trim() : null);
   return {
     payment: n(p.lease_payment),
@@ -583,6 +593,17 @@ async function fetchDealLineItems(
           meterMethod: lineItemResponse.properties.meter_method || '',
           meterReadingBW: lineItemResponse.properties.meter_reading_bw || lineItemResponse.properties.meter_reading || '',
           meterReadingColor: lineItemResponse.properties.meter_reading_color || '',
+          // Cost-per-copy, as QuoteIQ stamped it. Andrea (8/28): "Unable to see
+          // additional information such as volumes and rates for copies. Can
+          // not verify project information." The two rates are on every line
+          // item; the volumes and overage rates need a QuoteIQ writeback that
+          // does not exist yet, so they arrive null and simply drop out.
+          cpcMonoRate: numOrNull(lineItemResponse.properties.cpc_mono_rate),
+          cpcColorRate: numOrNull(lineItemResponse.properties.cpc_color_rate),
+          cpcMonoVolume: numOrNull(lineItemResponse.properties.cpc_mono_volume),
+          cpcColorVolume: numOrNull(lineItemResponse.properties.cpc_color_volume),
+          cpcMonoOverageRate: numOrNull(lineItemResponse.properties.cpc_mono_overage_rate),
+          cpcColorOverageRate: numOrNull(lineItemResponse.properties.cpc_color_overage_rate),
           properties: lineItemResponse.properties, // Include raw properties
         };
       });
@@ -694,7 +715,7 @@ Deno.serve(async (req) => {
       // Which paperwork a deal needs is keyed off the contract type.
       'contract_type',
     ]);
-    const lineItemPropsNeeded = new Set(['name', 'description', 'quantity', 'price', 'hs_sku', 'item_number', 'hs_product_id', 'hs_product_type', 'hs_recurring_billing_period', 'hs_cost_of_goods_sold', 'unit_cost', 'condition', 'hs_product_condition', 'dealer', 'manufacturer', 'vendor', 'hs_line_item_dealer', 'color_mono', 'machine_type', 'serial_number', 'equipment_id', 'meter_method', 'meter_reading', 'meter_reading_bw', 'meter_reading_color']);
+    const lineItemPropsNeeded = new Set(['name', 'description', 'quantity', 'price', 'hs_sku', 'item_number', 'hs_product_id', 'hs_product_type', 'hs_recurring_billing_period', 'hs_cost_of_goods_sold', 'unit_cost', 'condition', 'hs_product_condition', 'dealer', 'manufacturer', 'vendor', 'hs_line_item_dealer', 'color_mono', 'machine_type', 'serial_number', 'equipment_id', 'meter_method', 'meter_reading', 'meter_reading_bw', 'meter_reading_color', 'cpc_mono_rate', 'cpc_color_rate', 'cpc_mono_volume', 'cpc_color_volume', 'cpc_mono_overage_rate', 'cpc_color_overage_rate']);
 
     // Add properties from field mappings
     for (const mappings of Object.values(fieldMappings)) {

@@ -180,3 +180,112 @@ test('a malformed data row is still reported as skipped, not excused as a note',
   assert.equal(res.skipped, 1);
   assert.deepEqual(res.notes, []);
 });
+
+/**
+ * The same layout, but with money rates as the strings a spreadsheet actually
+ * yields.
+ *
+ * The fixture above passes numbers for the MON cells, and that is why it kept
+ * passing while the real file was being halved: Excel gives "5.750%", and
+ * Number("5.750%") is NaN. Every money rate came back null, so the two
+ * side-by-side rate sets collided on one key per term and half of each file
+ * was discarded as a duplicate. Fixtures must carry the cell's real form.
+ */
+function tabWithTextRates(
+  name: string, monCells: string[], ladders: number[][][],
+): RateSheetTab {
+  const width = monCells.length * 2;
+  const monRow: unknown[] = [];
+  for (const c of monCells) monRow.push('MON', c);
+  const rows: unknown[][] = [
+    ['SYNTHETIC LEASE RATES', ...Array(width - 1).fill('')],
+    ['June 1, 2026 - November 30, 2026', ...Array(width - 1).fill('')],
+    ['ZERO PAYMENTS', ...Array(width - 1).fill('')],
+    monRow,
+  ];
+  const depth = Math.max(...ladders.map((l) => l.length));
+  for (let i = 0; i < depth; i++) {
+    const row: unknown[] = [];
+    for (const ladder of ladders) {
+      const cell = ladder[i];
+      if (cell) row.push(String(cell[0]), String(cell[1])); else row.push('', '');
+    }
+    rows.push(row);
+  }
+  return { name, rows };
+}
+
+// Two money rates side by side: the higher (leftmost) is what a rep may quote,
+// the lower is the cost of funds. Invented numbers, real shape.
+const STREET = '5.750%';
+const BANK = '4.750%';
+
+test('a percent-formatted money rate is parsed, so both rate sets survive', () => {
+  const t = tabWithTextRates('0 Pymt', [STREET, BANK], [
+    [[60, 0.01922], [59, 0.01950]],
+    [[60, 0.01876], [59, 0.01904]],
+  ]);
+  const out = parseRateMatrix([t]);
+
+  assert.equal(out.warnings.length, 0, out.warnings.join(' | '));
+  assert.equal(out.skipped, 0);
+  assert.equal(out.factors.length, 4, 'four factors, not two -- nothing collided');
+  assert.deepEqual(
+    [...new Set(out.factors.map((f) => f.moneyRate))].sort(),
+    [0.0475, 0.0575],
+    'and each carries the money rate it was priced at',
+  );
+});
+
+test('the leftmost rate set is the one a rep may quote', () => {
+  // Mislabelling these would let a rep quote a customer off Eakes' own cost
+  // of funds, so the mapping is asserted rather than assumed.
+  const out = parseRateMatrix([tabWithTextRates('0 Pymt', [STREET, BANK], [
+    [[60, 0.01922]],
+    [[60, 0.01876]],
+  ])]);
+  const byAudience = new Map(out.factors.map((f) => [f.audience, f.rateFactor]));
+  assert.equal(byAudience.get('street'), 0.01922);
+  assert.equal(byAudience.get('bank'), 0.01876);
+  assert.ok(
+    (byAudience.get('street') ?? 0) > (byAudience.get('bank') ?? 0),
+    'the street factor is the loaded one',
+  );
+});
+
+test('a reordered sheet is left unlabelled rather than labelled wrongly', () => {
+  // Eakes load the rate they quote above what they pay the bank, so a leftmost
+  // rate that is lower means the columns moved and position no longer implies
+  // audience. Storing the rates but refusing to label them is the safe answer.
+  const out = parseRateMatrix([tabWithTextRates('0 Pymt', [BANK, STREET], [
+    [[60, 0.01876]],
+    [[60, 0.01922]],
+  ])]);
+  assert.equal(out.factors.length, 2, 'the rates are still stored');
+  assert.deepEqual(out.factors.map((f) => f.audience), [null, null]);
+  assert.match(out.warnings.join(' '), /reordered/);
+});
+
+test('more than two money rates is unlabelled, not guessed at', () => {
+  const out = parseRateMatrix([tabWithTextRates('0 Pymt', ['6.0%', '5.0%', '4.0%'], [
+    [[60, 0.0203]], [[60, 0.0198]], [[60, 0.0193]],
+  ])]);
+  assert.equal(out.factors.length, 3);
+  assert.deepEqual(out.factors.map((f) => f.audience), [null, null, null]);
+  assert.match(out.warnings.join(' '), /Expected two/);
+});
+
+test('a single rate set needs no audience and gets none', () => {
+  const out = parseRateMatrix([tabWithTextRates('0 Pymt', ['5.750%'], [[[60, 0.01922]]])]);
+  assert.equal(out.warnings.length, 0, out.warnings.join(' | '));
+  assert.equal(out.factors.length, 1);
+  assert.equal(out.factors[0].audience, null);
+  assert.equal(out.factors[0].moneyRate, 0.0575);
+});
+
+test('a money rate cell that is not a rate is refused', () => {
+  const out = parseRateMatrix([tabWithTextRates('0 Pymt', ['150%'], [[[60, 0.01922]]])]);
+  // The factor is kept -- it is a real number -- but priced at nothing known.
+  assert.equal(out.factors.length, 1);
+  assert.equal(out.factors[0].moneyRate, null);
+});

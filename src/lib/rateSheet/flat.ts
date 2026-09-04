@@ -76,6 +76,9 @@ export function parseFlatCsv(text: string): ParseResult {
       promotion: (iPromo >= 0 ? row[iPromo]?.trim() : '') || 'default',
       paymentStructure: null,
       moneyRate: iMoney >= 0 ? NUM(row[iMoney]) : null,
+      // A flat CSV states one rate per row, so the street/bank distinction the
+      // partner matrices carry side by side does not arise here.
+      audience: null,
       minAmount: iMin >= 0 ? NUM(row[iMin]) : null,
       maxAmount: iMax >= 0 ? NUM(row[iMax]) : null,
       termMonths: term,

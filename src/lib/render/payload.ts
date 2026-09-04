@@ -61,7 +61,25 @@ export interface RenderPayload {
   dealer: {
     company: string | null; address: string | null;
     phone: string | null; website: string | null;
+    /**
+     * Sales tax rate as a fraction, e.g. 0.055 -- or null when unset.
+     *
+     * Null must stay null. The template previously carried a hardcoded 0.087,
+     * which put an "Estimated tax (8.7%)" line on a customer-facing document
+     * at a rate nobody had chosen. Absent means the tax line and its share of
+     * the total disappear, which is honest; a guess is not.
+     */
+    tax_rate: number | null;
   };
+  /**
+   * The dealer's own terms and conditions for this document, as HTML.
+   *
+   * Sourced from their configured document terms rather than written here.
+   * Null when they have not entered any, which omits the section: a heading
+   * over invented prose on a document a customer signs is worse than no
+   * heading at all.
+   */
+  terms: { html: string | null };
   today: string;
   line_items: RenderLineItem[];
 }
@@ -90,6 +108,44 @@ export function num(n: unknown): number | null {
   if (typeof n === 'string' && n.trim() === '') return null;
   const v = Number(n);
   return Number.isFinite(v) ? v : null;
+}
+
+/**
+ * A tax rate as a fraction, however it was entered.
+ *
+ * Admins type "5.5" as readily as "0.055", and the difference is a hundredfold
+ * error on a customer's total, so anything above 1 is read as a percent. A
+ * rate at or above 100% is refused rather than printed: it is certainly a typo
+ * and no tax line is better than an absurd one.
+ */
+export function taxRateFraction(input: unknown): number | null {
+  const v = num(typeof input === 'string' ? input.replace(/[%\s]/g, '') : input);
+  if (v === null || v < 0) return null;
+  const fraction = v > 1 ? v / 100 : v;
+  if (fraction === 0 || fraction >= 1) return null;
+  // Rates are quoted to the thousandth of a percent at most.
+  return Math.round(fraction * 1e6) / 1e6;
+}
+
+/**
+ * Plain-text terms as paragraphs, or null when there are none.
+ *
+ * Blank-line separated blocks become paragraphs and single newlines are kept
+ * as line breaks, which is how the text was laid out where it was typed. The
+ * text is escaped: it comes from a settings field, and the renderer's HTML
+ * layer must never be handed markup it did not build.
+ */
+export function termsHtml(text: string | null | undefined): string | null {
+  const raw = (text ?? '').trim();
+  if (raw === '') return null;
+  const esc = (s: string) => s
+    .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+  return raw
+    .split(/\n\s*\n/)
+    .map((para) => para.trim())
+    .filter((para) => para !== '')
+    .map((para) => `<p>${esc(para).replace(/\n/g, '<br />')}</p>`)
+    .join('');
 }
 
 /** Join address parts, dropping the blanks rather than leaving ", ," gaps. */
@@ -149,6 +205,10 @@ export interface RenderContext {
   } | null;
   /** The portal's own name for this document. Absent leaves the template's. */
   documentTitle?: string | null;
+  /** Sales tax rate as a fraction (0.055) or a percent (5.5); null when unset. */
+  taxRate?: unknown;
+  /** The dealer's configured terms for this document, as plain text. */
+  termsText?: string | null;
   /** Injected so a document's date is deterministic in tests. */
   today: string;
 }
@@ -234,7 +294,9 @@ export function quoteRenderPayload(form: QuoteFormLike, ctx: RenderContext): Ren
       address: ctx.dealerInfo?.address?.trim() || null,
       phone: ctx.dealerInfo?.phone?.trim() || null,
       website: ctx.dealerInfo?.website?.trim() || null,
+      tax_rate: taxRateFraction(ctx.taxRate),
     },
+    terms: { html: termsHtml(ctx.termsText) },
     today: ctx.today,
     line_items,
   };

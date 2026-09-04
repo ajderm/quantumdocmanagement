@@ -1,6 +1,8 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { quoteRenderPayload, joinAddress, lineDescription, money, num } from '../../../src/lib/render/payload.ts';
+import {
+  quoteRenderPayload, joinAddress, lineDescription, money, num, taxRateFraction, termsHtml,
+} from '../../../src/lib/render/payload.ts';
 
 const ctx = {
   dealerInfo: { companyName: 'Quantum Office Systems', address: '3300 Maple Valley Rd', phone: '(425) 555-0100', website: 'quantumoffice.example' },
@@ -179,4 +181,61 @@ test('num keeps absent absent where money would coerce it to zero', () => {
   assert.equal(num(0), 0, 'an explicit zero is a real number and survives');
   assert.equal(num('241.99'), 241.99);
   assert.equal(money(''), 0, 'money still coerces, which is right for a line total');
+});
+
+test('a tax rate is read as a percent or a fraction, and nonsense is refused', () => {
+  // "5.5" and "0.055" are both what an admin means; the difference is a
+  // hundredfold error on a customer's total.
+  assert.equal(taxRateFraction('5.5'), 0.055);
+  assert.equal(taxRateFraction(5.5), 0.055);
+  assert.equal(taxRateFraction('0.055'), 0.055);
+  assert.equal(taxRateFraction('5.5%'), 0.055);
+  assert.equal(taxRateFraction(' 7 '), 0.07);
+  // Absent stays absent, so the document omits the tax line entirely.
+  assert.equal(taxRateFraction(''), null);
+  assert.equal(taxRateFraction(null), null);
+  assert.equal(taxRateFraction(undefined), null);
+  assert.equal(taxRateFraction('abc'), null);
+  assert.equal(taxRateFraction(0), null, 'zero tax is no tax line');
+  assert.equal(taxRateFraction(-5), null);
+  // Certainly a typo, and an absurd tax line is worse than none.
+  assert.equal(taxRateFraction(150), null);
+  assert.equal(taxRateFraction(1), null);
+});
+
+test('configured terms become paragraphs, and absent terms omit the section', () => {
+  assert.equal(termsHtml(null), null);
+  assert.equal(termsHtml(''), null);
+  assert.equal(termsHtml('   \n  \n '), null);
+  assert.equal(termsHtml('One clause.'), '<p>One clause.</p>');
+  assert.equal(
+    termsHtml('First clause.\n\nSecond clause.'),
+    '<p>First clause.</p><p>Second clause.</p>',
+    'a blank line starts a new paragraph',
+  );
+  assert.equal(
+    termsHtml('Line one\nline two'),
+    '<p>Line one<br />line two</p>',
+    'a single newline is kept as a break, as it was typed',
+  );
+});
+
+test('terms from a settings field are escaped, never treated as markup', () => {
+  // The renderer's HTML layer must only ever receive markup it built.
+  assert.equal(
+    termsHtml('Rate <script>alert(1)</script> & more'),
+    '<p>Rate &lt;script&gt;alert(1)&lt;/script&gt; &amp; more</p>',
+  );
+});
+
+test('the payload carries the tax rate and terms it was given, or null', () => {
+  const withBoth = quoteRenderPayload({}, {
+    ...ctx, taxRate: '5.5', termsText: 'Eakes retains title.',
+  });
+  assert.equal(withBoth.dealer.tax_rate, 0.055);
+  assert.equal(withBoth.terms.html, '<p>Eakes retains title.</p>');
+
+  const withNeither = quoteRenderPayload({}, ctx);
+  assert.equal(withNeither.dealer.tax_rate, null, 'no invented 8.7%');
+  assert.equal(withNeither.terms.html, null, 'and no invented prose');
 });

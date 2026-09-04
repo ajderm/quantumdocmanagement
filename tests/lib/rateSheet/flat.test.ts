@@ -39,6 +39,9 @@ test('column aliases are accepted', () => {
     leasingCompany: 'Cornerstone', program: 'Commercial', promotion: 'default',
     paymentStructure: null, moneyRate: null, minAmount: null, maxAmount: null,
     termMonths: 60, rateFactor: 0.01974,
+    // A flat CSV states one rate per row, so the street/bank distinction the
+    // partner matrices carry side by side does not arise.
+    audience: null,
   });
 });
 

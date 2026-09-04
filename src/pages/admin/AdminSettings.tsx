@@ -146,6 +146,9 @@ export default function AdminSettings({
   // rate sheet: a dealer who quotes from an external system still has to name
   // the lender on the paperwork.
   const [leasingCompaniesText, setLeasingCompaniesText] = useState("");
+  // Sales tax rate for the estimated-tax line on documents. Blank means no tax
+  // line at all -- documents must not print a rate nobody chose.
+  const [salesTaxRate, setSalesTaxRate] = useState("");
   // Default lease terms for new quotes (backend toggle). When off, quotes fall
   // back to the first three terms the selected funder offers.
   const [defaultTermsEnabled, setDefaultTermsEnabled] = useState(false);
@@ -264,6 +267,9 @@ export default function AdminSettings({
           }
           if (settings.document_labels && typeof settings.document_labels === "object") {
             setDocumentLabels(settings.document_labels as Record<string, string>);
+          }
+          if (settings.sales_tax_rate !== undefined && settings.sales_tax_rate !== null) {
+            setSalesTaxRate(String(settings.sales_tax_rate));
           }
           if (Array.isArray(settings.leasing_companies)) {
             setLeasingCompaniesText((settings.leasing_companies as string[]).join("\n"));
@@ -497,6 +503,9 @@ export default function AdminSettings({
         proposal_template_url: proposalTemplateUrl,
         proposal_template_name: proposalFileName,
         form_customization: formCustomization,
+        // Blank is stored as blank, not zero: it means "no tax line", and the
+        // document layer distinguishes the two.
+        sales_tax_rate: salesTaxRate.trim(),
         // Order is the dealer's, so the list is not sorted or de-duplicated
         // beyond dropping blank lines.
         leasing_companies: leasingCompaniesText
@@ -701,6 +710,26 @@ export default function AdminSettings({
                           ))}
                         </SelectContent>
                       </Select>
+                    </div>
+
+                    {/* Sales tax for the estimated-tax line on documents */}
+                    <div className="mt-6 pt-4 border-t max-w-xs">
+                      <p className="text-sm font-medium">Sales tax rate</p>
+                      <p className="text-xs text-muted-foreground mt-0.5 mb-2">
+                        Used for the estimated tax line. Enter a percent (5.5) or a
+                        fraction (0.055). Leave blank and documents print no tax line at
+                        all &mdash; better than a rate nobody chose.
+                      </p>
+                      <div className="flex items-center gap-2">
+                        <Input
+                          value={salesTaxRate}
+                          onChange={(e) => setSalesTaxRate(e.target.value)}
+                          placeholder="5.5"
+                          inputMode="decimal"
+                          aria-label="Sales tax rate"
+                        />
+                        <span className="text-sm text-muted-foreground">%</span>
+                      </div>
                     </div>
 
                     {/* Lenders this dealer works with */}

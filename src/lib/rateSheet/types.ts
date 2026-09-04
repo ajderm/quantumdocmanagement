@@ -41,6 +41,23 @@ export interface ParsedFactor {
   maxAmount: number | null;
   termMonths: number;
   rateFactor: number;
+  /**
+   * Who this factor may be shown to.
+   *
+   * Each Eakes sheet carries two sets of factors side by side. Mike Nierman,
+   * 2026-07-31: "It's two sets of rates... It is our rate to the bank... And
+   * our rate to our sales reps. In other words, we load a little bit on our
+   * lease rates... what we pay the bank is here. What our rate to the street
+   * is here." Andrea Villela, same call: "the highlighted rates on the left
+   * side are the only ones that are visible to our sales reps."
+   *
+   * So the leftmost money rate is the street rate a rep may quote, and the
+   * one beside it is Eakes' cost of funds. The difference is the margin they
+   * collect up front, which is internal: quoting a customer off a "bank"
+   * factor would hand them Eakes' own cost. Null when a sheet has only one
+   * set and the distinction does not arise.
+   */
+  audience: 'street' | 'bank' | null;
 }
 
 export interface ParseResult {

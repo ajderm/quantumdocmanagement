@@ -111,9 +111,70 @@ function moneyRates(monRow: unknown[]): (number | null)[] {
   const out: (number | null)[] = [];
   for (let c = 0; c < monRow.length; c += 2) {
     if (text(monRow[c]).toUpperCase() !== 'MON') { out.push(null); continue; }
-    const n = Number(monRow[c + 1]);
-    out.push(Number.isFinite(n) && n > 0 && n < 1 ? n : null);
+    out.push(asMoneyRate(monRow[c + 1]));
   }
+  return out;
+}
+
+/**
+ * A money-over-money rate from a MON header cell.
+ *
+ * The cell reads "5.750%", and Number("5.750%") is NaN -- which is how every
+ * money rate in these sheets came back null, collapsing the two side-by-side
+ * rate sets into one key per term and silently discarding half the file. The
+ * percent sign has to be stripped before parsing, and a value above 1 read as
+ * a percent rather than a fraction.
+ */
+function asMoneyRate(cell: unknown): number | null {
+  const raw = text(cell).replace(/[%\s,]/g, '');
+  if (raw === '') return null;
+  const n = Number(raw);
+  if (!Number.isFinite(n) || n <= 0) return null;
+  const fraction = n > 1 ? n / 100 : n;
+  // A money rate over 100% is not a rate; it is a misread cell.
+  if (fraction >= 1) return null;
+  return Math.round(fraction * 1e6) / 1e6;
+}
+
+/**
+ * Which money rate a rep may quote, and which is Eakes' cost of funds.
+ *
+ * The leftmost set is the street rate (Andrea: "the highlighted rates on the
+ * left side are the only ones that are visible to our sales reps"), and Eakes
+ * loads it above what they pay the bank, so the street rate should also be the
+ * higher of the two. When position and magnitude disagree the sheet's layout
+ * has changed and this mapping can no longer be trusted, so it warns rather
+ * than guessing -- mislabelling these would let a rep quote a customer off
+ * Eakes' own cost.
+ */
+function audienceByMoneyRate(
+  rates: (number | null)[], tabName: string, warnings: string[],
+): Map<number, 'street' | 'bank'> {
+  const distinct: number[] = [];
+  for (const r of rates) {
+    if (r !== null && !distinct.includes(r)) distinct.push(r);
+  }
+  const out = new Map<number, 'street' | 'bank'>();
+  if (distinct.length < 2) return out;
+  if (distinct.length > 2) {
+    warnings.push(
+      `Tab "${tabName}": ${distinct.length} money rates found (${distinct.join(', ')}). ` +
+      `Expected two -- a street rate and a bank rate -- so none were labelled. ` +
+      `Rates are stored, but which a rep may quote is unmarked.`,
+    );
+    return out;
+  }
+  const [first, second] = distinct;
+  if (first < second) {
+    warnings.push(
+      `Tab "${tabName}": the leftmost money rate (${first}) is lower than the one beside ` +
+      `it (${second}), but Eakes loads the rate they quote above what they pay the bank. ` +
+      `The columns may have been reordered, so neither set was labelled.`,
+    );
+    return out;
+  }
+  out.set(first, 'street');
+  out.set(second, 'bank');
   return out;
 }
 
@@ -167,6 +228,7 @@ export function parseRateMatrix(tabs: RateSheetTab[]): ParseResult {
 
     const paymentStructure = header.slice(1).find((l) => !parseEffectiveRange(l).from) ?? null;
     const rates = moneyRates(rows[monIndex]);
+    const audiences = audienceByMoneyRate(rates, promotion, warnings);
 
     // Guard against the same (money rate, term) appearing twice in one tab,
     // which would otherwise silently store two different factors for one key.
@@ -211,6 +273,7 @@ export function parseRateMatrix(tabs: RateSheetTab[]): ParseResult {
           promotion, paymentStructure, moneyRate,
           minAmount: null, maxAmount: null,
           termMonths, rateFactor,
+          audience: moneyRate === null ? null : (audiences.get(moneyRate) ?? null),
         });
       }
     }
