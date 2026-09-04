@@ -1615,6 +1615,128 @@ export type Database = {
         }
         Relationships: []
       }
+      render_templates: {
+        Row: {
+          created_at: string
+          created_by: string | null
+          dealer_account_id: string
+          document_code: string
+          id: string
+          is_published: boolean
+          name: string
+          notes: string | null
+          template: Json
+          updated_at: string
+          version: number
+        }
+        Insert: {
+          created_at?: string
+          created_by?: string | null
+          dealer_account_id: string
+          document_code: string
+          id?: string
+          is_published?: boolean
+          name: string
+          notes?: string | null
+          template: Json
+          updated_at?: string
+          version?: number
+        }
+        Update: {
+          created_at?: string
+          created_by?: string | null
+          dealer_account_id?: string
+          document_code?: string
+          id?: string
+          is_published?: boolean
+          name?: string
+          notes?: string | null
+          template?: Json
+          updated_at?: string
+          version?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "render_templates_dealer_account_id_fkey"
+            columns: ["dealer_account_id"]
+            isOneToOne: false
+            referencedRelation: "dealer_accounts"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      rendered_documents: {
+        Row: {
+          byte_size: number | null
+          created_at: string
+          created_by: string | null
+          data_snapshot: Json | null
+          dealer_account_id: string
+          document_code: string
+          hubspot_file_id: string | null
+          id: string
+          object_type: string
+          page_count: number | null
+          record_id: string
+          render_ms: number | null
+          render_template_id: string | null
+          storage_path: string | null
+          template_version: number | null
+          warnings: string[] | null
+        }
+        Insert: {
+          byte_size?: number | null
+          created_at?: string
+          created_by?: string | null
+          data_snapshot?: Json | null
+          dealer_account_id: string
+          document_code: string
+          hubspot_file_id?: string | null
+          id?: string
+          object_type?: string
+          page_count?: number | null
+          record_id: string
+          render_ms?: number | null
+          render_template_id?: string | null
+          storage_path?: string | null
+          template_version?: number | null
+          warnings?: string[] | null
+        }
+        Update: {
+          byte_size?: number | null
+          created_at?: string
+          created_by?: string | null
+          data_snapshot?: Json | null
+          dealer_account_id?: string
+          document_code?: string
+          hubspot_file_id?: string | null
+          id?: string
+          object_type?: string
+          page_count?: number | null
+          record_id?: string
+          render_ms?: number | null
+          render_template_id?: string | null
+          storage_path?: string | null
+          template_version?: number | null
+          warnings?: string[] | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "rendered_documents_dealer_account_id_fkey"
+            columns: ["dealer_account_id"]
+            isOneToOne: false
+            referencedRelation: "dealer_accounts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "rendered_documents_render_template_id_fkey"
+            columns: ["render_template_id"]
+            isOneToOne: false
+            referencedRelation: "render_templates"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       service_agreement_configurations: {
         Row: {
           configuration: Json
