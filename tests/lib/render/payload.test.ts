@@ -1,6 +1,6 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { quoteRenderPayload, joinAddress, lineDescription, money } from '../../../src/lib/render/payload.ts';
+import { quoteRenderPayload, joinAddress, lineDescription, money, num } from '../../../src/lib/render/payload.ts';
 
 const ctx = {
   dealerInfo: { companyName: 'Quantum Office Systems', address: '3300 Maple Valley Rd', phone: '(425) 555-0100', website: 'quantumoffice.example' },
@@ -134,4 +134,49 @@ test('no rename leaves the title null, so the template keeps its own', () => {
   // it, printing a document with no title at all.
   assert.equal(quoteRenderPayload({}, ctx).document.title, null);
   assert.equal(quoteRenderPayload({}, { ...ctx, documentTitle: '   ' }).document.title, null);
+});
+
+test("QuoteIQ's term and payment win over the form's own selection", () => {
+  const p = quoteRenderPayload({ selectedTerms: [36] }, {
+    ...ctx,
+    quoteiq: { payment: 241.99, termMonths: 60, type: 'Commercial FMV' },
+  });
+  assert.equal(p.lease.term, 60, 'the term the customer was quoted, not the rep default');
+  assert.equal(p.lease.payment, 241.99);
+  assert.equal(p.lease.type, 'Commercial FMV');
+});
+
+test('a deal QuoteIQ has not written falls back to the form', () => {
+  const p = quoteRenderPayload({ selectedTerms: [36] }, { ...ctx, quoteiq: null });
+  assert.equal(p.lease.term, 36);
+  assert.equal(p.lease.payment, null, 'null, not 0 -- the document must fall back, not print $0.00');
+  assert.equal(p.lease.type, null);
+});
+
+test('an unset HubSpot number reads as absent, not as zero', () => {
+  // HubSpot returns '' for numeric properties that were never set, and
+  // Number('') is 0 -- which would print a $0.00 monthly payment on a lease.
+  const p = quoteRenderPayload({ selectedTerms: [48] }, {
+    ...ctx,
+    quoteiq: { payment: '', termMonths: '', type: '   ' },
+  });
+  assert.equal(p.lease.payment, null);
+  assert.equal(p.lease.term, 48, 'and the form still supplies the term');
+  assert.equal(p.lease.type, null);
+});
+
+test('a payment carrying float residue is rounded before it reaches a signature page', () => {
+  const p = quoteRenderPayload({}, { ...ctx, quoteiq: { payment: 241.98999999 } });
+  assert.equal(p.lease.payment, 241.99);
+});
+
+test('num keeps absent absent where money would coerce it to zero', () => {
+  assert.equal(num(''), null);
+  assert.equal(num('   '), null);
+  assert.equal(num(null), null);
+  assert.equal(num(undefined), null);
+  assert.equal(num('nope'), null);
+  assert.equal(num(0), 0, 'an explicit zero is a real number and survives');
+  assert.equal(num('241.99'), 241.99);
+  assert.equal(money(''), 0, 'money still coerces, which is right for a line total');
 });

@@ -7,7 +7,7 @@
 // and disagree with itself.
 
 import { applyFormat } from './format.js';
-import { evaluate, refsIn } from './expr.js';
+import { evaluate, refsIn, coalesceBranches } from './expr.js';
 
 export function get(obj, path) {
   if (obj == null) return undefined;
@@ -131,7 +131,21 @@ export function resolve(template, data) {
 
   for (const [key, expr] of Object.entries(template.computed ?? {})) {
     const refs = refsIn(expr);
-    if (refs.some(isAbsentPath)) absent.add(key);
+    // A value is missing if anything it is built from is missing -- except a
+    // firstNonZero, which exists precisely to fall back. That is missing only
+    // when every branch it could fall back to is itself missing, judged branch
+    // by branch: a branch mentioning an always-present subtotal must not make
+    // the whole thing look present when the figures beside it are gone.
+    const branches = coalesceBranches(expr);
+    const branchMissing = (src) => {
+      const r = refsIn(src);
+      // A branch of pure literals is a real value, never absent.
+      return r.length > 0 && r.some(isAbsentPath);
+    };
+    const missing = branches
+      ? branches.every(branchMissing)
+      : refs.some(isAbsentPath);
+    if (refs.length && missing) absent.add(key);
     try {
       computed[key] = evaluate(String(expr), lookup);
     } catch (err) {

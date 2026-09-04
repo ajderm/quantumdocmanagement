@@ -3024,6 +3024,8 @@ function DocumentHubContent() {
           shipToContact: shipTo || null,
           leasingPartnerName: formData.leasingCompanyId || null,
           rateFactor: selectedRateFactor,
+          // QuoteIQ's payment and term, when it has written them.
+          quoteiq: deal?.quoteiq ?? null,
           documentTitle: docRename("quote"),
           today: todayLocalDateString(),
         }) as unknown as Record<string, unknown>,
@@ -3174,6 +3176,7 @@ function DocumentHubContent() {
             shipToContact: shipTo || null,
             leasingPartnerName: formData.leasingCompanyId || null,
             rateFactor: selectedRateFactor,
+            quoteiq: deal?.quoteiq ?? null,
             documentTitle: docRename("quote"),
             today: todayLocalDateString(),
           }) as unknown as Record<string, unknown>,

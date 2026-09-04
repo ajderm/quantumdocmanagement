@@ -6,7 +6,8 @@
 // template can compute a total but can never reach the host.
 //
 // Supported: numbers, dotted refs (totals.subtotal), + - * / ( ),
-// unary minus, and round(x, n) / min(a,b) / max(a,b) / abs(x).
+// unary minus, and round(x, n) / min(a,b) / max(a,b) / abs(x) /
+// firstNonZero(a, b, ...).
 
 const FUNCS = {
   round: (x, n = 0) => {
@@ -16,6 +17,17 @@ const FUNCS = {
   min: Math.min,
   max: Math.max,
   abs: Math.abs,
+  /**
+   * The first argument that is neither zero nor unusable, else zero.
+   *
+   * For choosing an authoritative figure over a computed fallback: a lease
+   * payment quoted by the funder should print instead of one this template
+   * derives from a rate factor. Zero counts as "not supplied" deliberately --
+   * an unresolvable reference already arrives here as 0, and no lease has a
+   * monthly payment of exactly nothing, so there is no real value to lose.
+   * Do not reach for this where 0 is a meaningful answer.
+   */
+  firstNonZero: (...xs) => xs.find((x) => Number.isFinite(x) && x !== 0) ?? 0,
 };
 
 const PREC = { '+': 1, '-': 1, '*': 2, '/': 2, 'u-': 3 };
@@ -57,6 +69,49 @@ export function refsIn(src) {
   } catch {
     return [];
   }
+}
+
+/**
+ * The top-level arguments of a `firstNonZero(...)` expression, else null.
+ *
+ * Absence has to be judged per branch, not over the whole expression: the
+ * fallback `round(computed.grand * lease.rate_factor, 2)` mentions a subtotal
+ * that is always present, so asking "are all references absent?" would answer
+ * no even when neither a quoted payment nor a rate factor exists -- and print
+ * a $0.00 monthly payment, the exact thing absence tracking prevents. Split
+ * into branches, each branch is absent under the ordinary rule and the whole
+ * is absent only when every branch is.
+ *
+ * Splits on commas at paren depth zero, so nested calls stay in one piece.
+ * Recognises the call only as the entire expression; anything wrapped around
+ * it (`round(firstNonZero(a, b))`) is left to the ordinary rule rather than
+ * half-understood.
+ *
+ * @param {string} src
+ * @returns {string[]|null}
+ */
+export function coalesceBranches(src) {
+  const m = /^\s*firstNonZero\s*\(([\s\S]*)\)\s*$/.exec(String(src));
+  if (!m) return null;
+  const body = m[1];
+  const parts = [];
+  let depth = 0, start = 0;
+  for (let i = 0; i < body.length; i++) {
+    const c = body[i];
+    if (c === '(') depth++;
+    else if (c === ')') {
+      depth--;
+      // More closes than opens means the outer parens we stripped were not the
+      // call's own, e.g. `firstNonZero(a) + (b)`. Not our shape.
+      if (depth < 0) return null;
+    } else if (c === ',' && depth === 0) {
+      parts.push(body.slice(start, i));
+      start = i + 1;
+    }
+  }
+  if (depth !== 0) return null;
+  parts.push(body.slice(start));
+  return parts.map((x) => x.trim()).filter((x) => x !== '');
 }
 
 /** @param {string} src @param {(path:string)=>number} lookup */

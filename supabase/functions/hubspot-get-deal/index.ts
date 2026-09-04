@@ -157,6 +157,35 @@ async function getValidAccessToken(
  * with no pipelines, leaves the raw ids showing rather than failing the whole
  * record load over a cosmetic field.
  */
+/**
+ * QuoteIQ's writeback, read off a deal's properties.
+ *
+ * Kept as its own shape rather than scattered across the deal object so the
+ * document layer can tell "QuoteIQ has not written this yet" from "the value
+ * is zero" -- an unset HubSpot number property comes back as an empty string,
+ * and coercing that to 0 would put a $0.00 payment on a signature page.
+ */
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+function quoteIqWriteback(props: Record<string, any> | undefined | null) {
+  const p = props ?? {};
+  const n = (v: unknown) => {
+    if (v === null || v === undefined || (typeof v === 'string' && v.trim() === '')) return null;
+    const x = Number(v);
+    return Number.isFinite(x) ? x : null;
+  };
+  const t = (v: unknown) => (typeof v === 'string' && v.trim() !== '' ? v.trim() : null);
+  return {
+    payment: n(p.lease_payment),
+    termMonths: n(p.lease_term_months),
+    type: t(p.lease_type),
+    provider: t(p.lease_provider),
+    lockedForTerm: t(p.locked_for_term),
+    marginAmount: n(p.margin_amount),
+    marginPercent: n(p.margin_percent),
+    contractType: t(p.contract_type),
+  };
+}
+
 async function resolvePipelineLabels(
   accessToken: string,
   objectPath: string,
@@ -654,7 +683,17 @@ Deno.serve(async (req) => {
       'street_address__del_', 'street_address_line_2__del_', 'city__del_', 'state__del_', 'postal_code__del_', 'zip__del_', 'zip_code__del_',
       'street_address__ap_', 'street_address_line_2__ap_', 'city__ap_', 'state__ap_', 'zip_code__ap_']);
     const contactPropsNeeded = new Set(['firstname', 'lastname', 'email', 'phone', 'jobtitle']);
-    const dealPropsNeeded = new Set(['dealname', 'amount', 'dealstage', 'pipeline', 'closedate', 'hubspot_owner_id', 'hs_object_id']);
+    const dealPropsNeeded = new Set([
+      'dealname', 'amount', 'dealstage', 'pipeline', 'closedate', 'hubspot_owner_id', 'hs_object_id',
+      // QuoteIQ's writeback (property group `quoteiq_writeback`). The quote the
+      // customer was actually shown originates there, so the payment and term
+      // it publishes are authoritative over anything this app derives from a
+      // rate factor. Fetched here so every anchor gets them for free.
+      'lease_payment', 'lease_term_months', 'lease_type', 'lease_provider',
+      'locked_for_term', 'margin_amount', 'margin_percent',
+      // Which paperwork a deal needs is keyed off the contract type.
+      'contract_type',
+    ]);
     const lineItemPropsNeeded = new Set(['name', 'description', 'quantity', 'price', 'hs_sku', 'item_number', 'hs_product_id', 'hs_product_type', 'hs_recurring_billing_period', 'hs_cost_of_goods_sold', 'unit_cost', 'condition', 'hs_product_condition', 'dealer', 'manufacturer', 'vendor', 'hs_line_item_dealer', 'color_mono', 'machine_type', 'serial_number', 'equipment_id', 'meter_method', 'meter_reading', 'meter_reading_bw', 'meter_reading_color']);
 
     // Add properties from field mappings
@@ -707,7 +746,9 @@ Deno.serve(async (req) => {
 
       // Fetch the project record (retry without owner property in case it
       // is not defined on the Projects object in this portal)
-      const baseProjectProps = 'hs_project_title,hs_pipeline_stage,hs_pipeline';
+      // contract_type_proj mirrors the deal's contract_type onto the project,
+      // which is the anchor Eakes actually runs the app from.
+      const baseProjectProps = 'hs_project_title,hs_pipeline_stage,hs_pipeline,contract_type_proj';
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       let projectResponse: any;
       try {
@@ -796,6 +837,11 @@ Deno.serve(async (req) => {
         )),
         closeDate: associatedDealResponse?.properties?.closedate || null,
         ownerId,
+        // The writeback lives on the deal; a project anchor reads it from the
+        // associated deal, the same place its line items come from.
+        quoteiq: quoteIqWriteback(associatedDealResponse?.properties),
+        contractType: projectResponse.properties?.contract_type_proj
+          || associatedDealResponse?.properties?.contract_type || null,
       };
 
       // Raw properties: project properties win; associated deal properties fill
@@ -856,6 +902,7 @@ Deno.serve(async (req) => {
       )),
       closeDate: dealResponse.properties.closedate,
       ownerId: dealResponse.properties.hubspot_owner_id,
+      quoteiq: quoteIqWriteback(dealResponse.properties),
     };
 
     // Fetch deal owner with phone and email

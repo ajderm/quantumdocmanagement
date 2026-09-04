@@ -44,7 +44,20 @@ export interface RenderPayload {
   };
   deal: { name: string | null; quote_number: string | null; close_date: string | null };
   rep: { name: string | null; phone: string | null; email: string | null };
-  lease: { partner: string | null; term: number | null; rate_factor: number | null };
+  /**
+   * Lease terms as the funder quoted them, not as this app derives them.
+   *
+   * QuoteIQ writes the payment and term back to the deal, and Jason has asked
+   * three times (7/31 twice, 8/31) for those to be what the paperwork prints.
+   * They are authoritative: `payment` is a number a customer has been shown,
+   * where a payment computed here from a rate factor is a reconstruction that
+   * can silently disagree with it. `rate_factor` stays for the fallback and
+   * because their own Term & Payment section prints it.
+   */
+  lease: {
+    partner: string | null; term: number | null; rate_factor: number | null;
+    payment: number | null; type: string | null;
+  };
   dealer: {
     company: string | null; address: string | null;
     phone: string | null; website: string | null;
@@ -61,6 +74,22 @@ export interface RenderPayload {
  */
 export function money(n: unknown): number {
   return Math.round((Number(n) || 0) * 100) / 100;
+}
+
+/**
+ * A number, or null when there isn't one.
+ *
+ * `money` coerces anything unusable to 0, which is right for a line total and
+ * wrong for a figure that may simply be absent: HubSpot returns empty strings
+ * for unset numeric properties, and `Number('') === 0` would turn "QuoteIQ has
+ * not written a payment" into "the payment is zero". Absent must stay absent
+ * so the document falls back rather than printing $0.00.
+ */
+export function num(n: unknown): number | null {
+  if (n === null || n === undefined) return null;
+  if (typeof n === 'string' && n.trim() === '') return null;
+  const v = Number(n);
+  return Number.isFinite(v) ? v : null;
 }
 
 /** Join address parts, dropping the blanks rather than leaving ", ," gaps. */
@@ -110,6 +139,14 @@ export interface RenderContext {
   leasingPartnerName?: string | null;
   /** Resolved for the selected term by the form, which owns rate-sheet lookup. */
   rateFactor?: number | null;
+  /**
+   * QuoteIQ's writeback on the deal: `lease_payment`, `lease_term_months`,
+   * `lease_type`. Absent fields fall back to the form's own selection, so a
+   * deal QuoteIQ has not touched still produces a document.
+   */
+  quoteiq?: {
+    payment?: unknown; termMonths?: unknown; type?: unknown;
+  } | null;
   /** The portal's own name for this document. Absent leaves the template's. */
   documentTitle?: string | null;
   /** Injected so a document's date is deterministic in tests. */
@@ -117,9 +154,15 @@ export interface RenderContext {
 }
 
 export function quoteRenderPayload(form: QuoteFormLike, ctx: RenderContext): RenderPayload {
-  const term = Array.isArray(form.selectedTerms) && form.selectedTerms.length
+  const formTerm = Array.isArray(form.selectedTerms) && form.selectedTerms.length
     ? Number(form.selectedTerms[0])
     : null;
+  // QuoteIQ wins where it has spoken. Its term is what the customer was
+  // quoted; the rep's selection is a default for deals it has not reached.
+  const quotedTerm = num(ctx.quoteiq?.termMonths);
+  const term = quotedTerm !== null && quotedTerm > 0 ? Math.round(quotedTerm) : formTerm;
+  const quotedPayment = num(ctx.quoteiq?.payment);
+  const leaseType = typeof ctx.quoteiq?.type === 'string' ? ctx.quoteiq.type.trim() : '';
 
   const line_items: RenderLineItem[] = (form.lineItems ?? [])
     // A zero-quantity line is a placeholder the rep has not filled in; it must
@@ -181,6 +224,10 @@ export function quoteRenderPayload(form: QuoteFormLike, ctx: RenderContext): Ren
       term,
       rate_factor: Number.isFinite(Number(ctx.rateFactor)) && Number(ctx.rateFactor) > 0
         ? Number(ctx.rateFactor) : null,
+      // Rounded to cents: it prints as money, and a writeback carrying float
+      // residue must not put "$241.98999" on a signature page.
+      payment: quotedPayment !== null && quotedPayment > 0 ? money(quotedPayment) : null,
+      type: leaseType || null,
     },
     dealer: {
       company: ctx.dealerInfo?.companyName?.trim() || null,

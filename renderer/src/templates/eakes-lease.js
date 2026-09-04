@@ -52,7 +52,14 @@ export function eakesLeaseTemplate(over = {}) {
     computed: {
       tax: 'round(totals.subtotal * vars.taxRate, 2)',
       grand: 'totals.subtotal + computed.tax',
-      monthly: 'round(computed.grand * lease.rate_factor, 2)',
+      // QuoteIQ's payment wins over a payment derived here.
+      //
+      // The funder's figure is what the customer was quoted; deriving one from
+      // a rate factor is a reconstruction that can disagree with it, and the
+      // customer signs this page, not our arithmetic. The rate-factor form
+      // stays as the fallback for a deal QuoteIQ has not written to, and drops
+      // out entirely when there is no factor either.
+      monthly: 'firstNonZero(lease.payment, round(computed.grand * lease.rate_factor, 2))',
     },
     blocks: [
       { type: 'docTitle', title: 'Equipment Lease Quotation', meta: [
@@ -98,7 +105,9 @@ export function eakesLeaseTemplate(over = {}) {
 
       { type: 'fieldGrid', title: 'Term & Payment Information', columns: 2, hideEmpty: true, fields: [
         { label: 'Lessor', value: '{{lease.partner}}' },
+        { label: 'Lease type', value: '{{lease.type}}' },
         { label: 'Term', value: '{{lease.term}} months' },
+        { label: 'Monthly payment', value: '{{lease.payment | currency}}' },
         { label: 'Rate factor', value: '{{lease.rate_factor | rate}}' },
         { label: 'Salesperson', value: '{{rep.name}}' },
       ] },
