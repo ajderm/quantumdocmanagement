@@ -63,3 +63,9 @@ project_id = "kafsqolkxnrsjddjkhyc"
     verify_jwt = false
   [functions.process-email-queue]
     verify_jwt = true
+
+# Calls the external renderer, holding RENDER_TOKEN server-side so the browser
+# never sees it. Reads its identity the same way the rest of the app does, so
+# it stays consistent with the existing card flow.
+[functions.generate-document]
+verify_jwt = false
