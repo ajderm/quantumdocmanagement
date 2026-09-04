@@ -111,7 +111,10 @@ Deno.serve(async (req) => {
     )
   }
 
-  const supabase = createClient(supabaseUrl, supabaseServiceKey)
+  // Untyped client on purpose: this function only calls rpc() and inserts log
+  // rows, and the generated table types are not available in the edge runtime.
+  // deno-lint-ignore no-explicit-any
+  const supabase: any = createClient(supabaseUrl, supabaseServiceKey)
 
   // 1. Check rate-limit cooldown and read queue config
   const { data: state } = await supabase
