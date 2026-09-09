@@ -2,6 +2,7 @@ import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import {
   quoteRenderPayload, joinAddress, lineDescription, money, num, taxRateFraction, termsHtml,
+  classifyLine, reconcileLineItems,
 } from '../../../src/lib/render/payload.ts';
 
 const ctx = {
@@ -238,4 +239,116 @@ test('the payload carries the tax rate and terms it was given, or null', () => {
   const withNeither = quoteRenderPayload({}, ctx);
   assert.equal(withNeither.dealer.tax_rate, null, 'no invented 8.7%');
   assert.equal(withNeither.terms.html, null, 'and no invented prose');
+});
+
+// The real Arbor Day deal shape: four SKU'd equipment lines, a buyout and a
+// chart line, both with no SKU. Amounts are the actual ones.
+const ARBOR_DAY = [
+  { sku: 'BP-71C31', model: 'BP-71C31', description: 'Sharp BP-71C31', quantity: 1, price: 7664.57 },
+  { sku: 'BP-DE14', model: 'BP-DE14', description: 'Sharp Stand/3 x 550-sheet Paper Drawers', quantity: 1, price: 1358.50 },
+  { sku: 'BP-FX11', model: 'BP-FX11', description: 'Sharp Fax Expansion Kit', quantity: 1, price: 1004.40 },
+  { sku: 'BP-TU11', model: 'BP-TU11', description: 'Sharp Center Exit Tray', quantity: 1, price: 84.04 },
+  { sku: null, model: 'Chart 0/Zone 3', description: 'Chart 0/Zone 3', quantity: 1, price: 0 },
+  { sku: null, model: 'BUYOUT', description: 'BUYOUT', quantity: 1, price: 2000 },
+];
+
+test('a buyout and a chart line are classified apart, not lumped together', () => {
+  // Both have no SKU, but they are not the same thing: one is counted in the
+  // total and hidden, the other is excluded from both.
+  assert.equal(classifyLine({ model: 'BUYOUT' }), 'nonTaxable');
+  assert.equal(classifyLine({ model: 'Chart 0/Zone 3' }), 'suppressed');
+  assert.equal(classifyLine({ model: 'BP-71C31' }), 'equipment');
+  // Variants Eakes actually say.
+  assert.equal(classifyLine({ description: 'Rollover from prior lease' }), 'nonTaxable');
+  assert.equal(classifyLine({ description: 'Knock-out' }), 'nonTaxable');
+  assert.equal(classifyLine({ description: 'Buy Out of existing' }), 'nonTaxable');
+  // Stated unconditionally ("Buyout. Never customer facing"), so the name rule
+  // wins even where the line also carries a SKU.
+  assert.equal(classifyLine({ sku: 'MISC-1', model: 'BUYOUT' } as never), 'nonTaxable');
+});
+
+test('a line with no SKU is still shown -- hiding real equipment is the worse failure', () => {
+  // Every line a rep adds by hand has no SKU. An earlier rule hid those, which
+  // silently dropped equipment off customer paperwork; showing a line that
+  // should have been hidden is visible and correctable, so the default shows.
+  assert.equal(classifyLine({ model: 'Adjustment' }), 'equipment');
+  assert.equal(classifyLine({ model: '' }), 'equipment');
+  const p = quoteRenderPayload({ lineItems: [{ model: 'Hand-typed unit', quantity: 1, price: 500 }] }, ctx);
+  assert.equal(p.line_items.length, 1);
+  assert.equal(p.amounts.taxable, 500);
+  assert.equal(p.amounts.total, 500);
+});
+
+test('the customer sees equipment only, but the total still counts the buyout', () => {
+  const p = quoteRenderPayload({ lineItems: ARBOR_DAY }, ctx);
+
+  assert.equal(p.line_items.length, 4, 'the buyout and chart line are not listed');
+  assert.ok(!p.line_items.some((l) => /BUYOUT|Chart|Zone/i.test(l.name)));
+
+  assert.equal(p.amounts.taxable, 10111.51, 'equipment is the taxable portion');
+  assert.equal(p.amounts.non_taxable, 2000, 'the buyout is counted, though never shown');
+  // Mike: "we wouldn't see the buyout, but it would be included."
+  assert.equal(p.amounts.total, 12111.51, 'and the total reconciles to the deal amount');
+});
+
+test('an empty non-taxable total is null, so its row disappears', () => {
+  // A $0.00 non-taxable line on paperwork the bank reconciles is a claim, not
+  // an absence. Only equipment here.
+  const p = quoteRenderPayload({ lineItems: ARBOR_DAY.slice(0, 4) }, ctx);
+  assert.equal(p.amounts.non_taxable, null);
+  assert.equal(p.amounts.total, 10111.51);
+});
+
+test('an unrecognised line joins the equipment it resembles', () => {
+  const p = quoteRenderPayload({
+    lineItems: [...ARBOR_DAY, { sku: null, model: 'Freight adjustment', quantity: 1, price: 150 }],
+  }, ctx);
+  assert.equal(p.line_items.length, 5, 'it is shown');
+  assert.equal(p.amounts.taxable, 10261.51);
+  assert.equal(p.amounts.total, 12261.51);
+});
+
+test('a suppressed line never reaches the total even when it carries money', () => {
+  // Chart 0/Zone 3 is 0.00 on the deal inspected, which is the only reason
+  // lumping it with the buyout would not yet have shown up as a wrong total.
+  const p = quoteRenderPayload({
+    lineItems: [ARBOR_DAY[0], { sku: null, model: 'Chart 0/Zone 3', quantity: 1, price: 500 }],
+  }, ctx);
+  assert.equal(p.amounts.total, 7664.57);
+  assert.equal(p.amounts.non_taxable, null);
+});
+
+test('duplicated line items are reported against the deal amount, not deduplicated', () => {
+  // QuoteIQ wrote the Arbor Day set twice. Deduplicating here would hide a bug
+  // Jason owns and would break genuine multi-machine deals.
+  const doubled = [...ARBOR_DAY, ...ARBOR_DAY];
+  const msg = reconcileLineItems(doubled, 12111.51);
+  assert.ok(msg, 'the disagreement is reported');
+  assert.match(msg!, /24,223\.02/, 'with what the lines actually total');
+  assert.match(msg!, /12,111\.51/, 'and what the deal says');
+  assert.match(msg!, /duplicated/, 'and names the likely cause');
+
+  // Still doubled in the payload -- reporting is not correcting.
+  const p = quoteRenderPayload({ lineItems: doubled }, ctx);
+  assert.equal(p.amounts.total, 24223.02);
+  assert.equal(p.line_items.length, 8);
+});
+
+test('reconciliation stays quiet when there is nothing to say', () => {
+  assert.equal(reconcileLineItems(ARBOR_DAY, 12111.51), null, 'a match is silent');
+  assert.equal(reconcileLineItems(ARBOR_DAY, null), null, 'no deal amount, no claim');
+  assert.equal(reconcileLineItems(ARBOR_DAY, 0), null);
+  assert.equal(reconcileLineItems(undefined, 12111.51), null);
+  // A cent of rounding drift is not a discrepancy worth interrupting for.
+  assert.equal(reconcileLineItems(ARBOR_DAY, 12111.5), null);
+  // A real gap is.
+  assert.match(reconcileLineItems(ARBOR_DAY, 9000)!, /Verify before sending/);
+});
+
+test('a zero-quantity placeholder affects neither the list nor the totals', () => {
+  const p = quoteRenderPayload({
+    lineItems: [...ARBOR_DAY, { sku: 'BP-XX', model: 'BP-XX', quantity: 0, price: 999 }],
+  }, ctx);
+  assert.equal(p.line_items.length, 4);
+  assert.equal(p.amounts.total, 12111.51);
 });

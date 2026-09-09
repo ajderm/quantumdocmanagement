@@ -56,7 +56,7 @@ import { QuoteAdditionalCosts } from "@/components/quote/QuoteAdditionalCosts";
 import { computeCommissionTotals, mapQuoteLineItemsToCommission, buyoutFromQuoteConfig } from "@/components/commission/commissionCalc";
 import { todayLocalDateString } from "@/lib/dateUtils";
 import { useDocumentEngine } from "@/hooks/useDocumentEngine";
-import { quoteRenderPayload } from "@/lib/render/payload";
+import { quoteRenderPayload, reconcileLineItems } from "@/lib/render/payload";
 import { useConfirm } from "@/hooks/useConfirm";
 import { SummaryRail, type SummaryMetric } from "@/components/shared";
 import { quantumLogo } from "@/assets/quantumLogo";
@@ -134,6 +134,8 @@ interface DealerSettings {
    * 8.7%, which put a rate nobody had chosen on customer-facing paperwork.
    */
   sales_tax_rate?: string | number;
+  /** Lender new quotes start on. Eakes place 98% with one partner. */
+  primary_lender?: string;
   default_terms?: { enabled?: boolean; terms?: number[] };
   document_styles?: {
     fontFamily?: string;
@@ -3003,6 +3005,12 @@ function DocumentHubContent() {
       }
 
 
+      // Andrea cannot verify amounts she cannot see disagreeing. QuoteIQ has
+      // written duplicated line-item sets before, so a total that does not
+      // match the deal is surfaced rather than quietly printed.
+      const mismatch = reconcileLineItems(formData.lineItems, deal?.amount);
+      if (mismatch) toast.warning(mismatch, { duration: 12000 });
+
       const sanitizedCompanyName = (formData.companyName || "Draft")
         .replace(/[^a-zA-Z0-9\s]/g, "")
         .replace(/\s+/g, "_");
@@ -4403,6 +4411,7 @@ function DocumentHubContent() {
                       formCustomization={dealerSettings.form_customization?.quote}
                       defaultTerms={dealerSettings.default_terms}
                       documentLabel={docLabel("quote")}
+                      primaryLender={dealerSettings.primary_lender}
                     />
 
                     {/* Additional Costs + commission summary — a second view of the

@@ -51,6 +51,16 @@ export interface QuoteLineItem {
   /** Intentionally not paired to a hardware unit (billed on its own). */
   standalone?: boolean;
   itemNumber?: string;
+  /**
+   * HubSpot's `hs_sku`, or null on a line that has none.
+   *
+   * Carried because its ABSENCE is the discriminator: on Eakes' deals every
+   * genuine equipment line has a SKU and every line that must not reach a
+   * customer (BUYOUT, Chart 0/Zone 3) has none. `model` cannot stand in for
+   * it -- it falls back to the line's name, so a SKU-less line arrives here
+   * looking populated.
+   */
+  sku?: string | null;
   serial?: string;
   equipmentId?: string;
 }
@@ -134,6 +144,14 @@ interface QuoteFormProps {
   defaultTerms?: { enabled?: boolean; terms?: number[] };
   /** What this portal calls this document, e.g. "Lease Agreement". */
   documentLabel?: string;
+  /**
+   * The lender new quotes should start on.
+   *
+   * Eakes place 98% of their leasing with one partner and go elsewhere only on
+   * a decline, so starting on the first name in an alphabetical list makes the
+   * common case the one that needs correcting.
+   */
+  primaryLender?: string;
 }
 
 interface RateFactor {
@@ -181,12 +199,15 @@ export function QuoteForm({
   formCustomization,
   defaultTerms,
   documentLabel,
+  primaryLender,
 }: QuoteFormProps) {
   const hasInitializedRef = useRef(false);
   const savedConfigRef = useRef(savedConfig);
   // The portal's name for this document, for anything user-facing.
   const docName = documentLabel?.trim() || "Quote";
   const leasingCompanyIdRef = useRef("");
+  const primaryLenderRef = useRef<string | undefined>(primaryLender);
+  primaryLenderRef.current = primaryLender;
   const [expandedRows, setExpandedRows] = useState<Set<string>>(new Set());
   const [formData, setFormData] = useState<QuoteFormData>({
     quoteNumber: "",
@@ -300,9 +321,12 @@ export function QuoteForm({
           setRateFactors(data.rateFactors);
         }
 
-        // Auto-select the first lender if none selected (refs avoid a stale closure)
+        // Start on the portal's primary lender when it offers one, else the
+        // first available. Refs avoid a stale closure.
         if (!leasingCompanyIdRef.current && !savedConfigRef.current?.leasingCompanyId && companies.length > 0) {
-          setFormData((prev) => ({ ...prev, leasingCompanyId: companies[0] }));
+          const preferred = (primaryLenderRef.current ?? "").trim();
+          const initial = preferred && companies.includes(preferred) ? preferred : companies[0];
+          setFormData((prev) => ({ ...prev, leasingCompanyId: initial }));
         }
       } catch (err) {
         console.error("Failed to fetch rate factors:", err);
@@ -631,6 +655,7 @@ export function QuoteForm({
         id: item.id,
         quantity: item.quantity,
         model: item.model || item.sku || "",
+        sku: item.sku ?? null,
         description: item.description || item.name || "",
         cost: item.cost || 0,
         markupPercent: 0,

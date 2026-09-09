@@ -43,13 +43,18 @@ export function eakesLeaseTemplate(over = {}) {
     },
     styles: { fontFamily: 'Arial, Helvetica, sans-serif', fontSize: 9 },
     computed: {
-      // The dealer's configured rate, not a number chosen here. Unset means no
-      // tax line at all: this document is customer-facing, and an invented
-      // rate on it is worse than an omission the reader can see.
-      tax: 'round(totals.subtotal * dealer.tax_rate, 2)',
-      // The total survives an absent tax rate by falling back to the bare
-      // subtotal, rather than vanishing with the line it was built from.
-      grand: 'firstNonZero(totals.subtotal + computed.tax, totals.subtotal)',
+      // Tax applies to the taxable equipment only. A rollover or buyout has
+      // already been taxed once (Andrea, 8/31), so taxing it again on the
+      // paperwork the bank checks would overstate what is owed.
+      //
+      // The rate is the dealer's configured one, never a number chosen here:
+      // this document is customer-facing, and an invented rate on it is worse
+      // than an omission the reader can see.
+      tax: 'round(amounts.taxable * dealer.tax_rate, 2)',
+      // Everything financed, tax included -- and surviving an absent tax rate
+      // by falling back to the untaxed total rather than vanishing with the
+      // line it was built from.
+      grand: 'firstNonZero(amounts.total + computed.tax, amounts.total)',
       // QuoteIQ's payment wins over a payment derived here.
       //
       // The funder's figure is what the customer was quoted; deriving one from
@@ -110,8 +115,13 @@ export function eakesLeaseTemplate(over = {}) {
         { label: 'Salesperson', value: '{{rep.name}}' },
       ] },
 
+      // Taxable and non-taxable are both stated, because the bank reconciles
+      // them: "the paperwork we show the bank should have a taxable total and
+      // non-taxable total" (Mike, 8/31). The non-taxable row disappears when
+      // there is nothing in it.
       { type: 'summary', hideEmpty: true, rows: [
-        { label: 'Equipment subtotal', expr: 'totals.subtotal' },
+        { label: 'Equipment subtotal (taxable)', expr: 'amounts.taxable' },
+        { label: 'Rollover / buyout (non-taxable)', expr: 'amounts.non_taxable' },
         { label: 'Estimated tax ({{dealer.tax_rate | percent}})', expr: 'computed.tax' },
         { label: 'Total financed', expr: 'computed.grand', bold: true, rule: true },
         { label: 'Monthly payment · {{lease.term}} mo', expr: 'computed.monthly' },

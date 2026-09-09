@@ -149,6 +149,10 @@ export default function AdminSettings({
   // Sales tax rate for the estimated-tax line on documents. Blank means no tax
   // line at all -- documents must not print a rate nobody chose.
   const [salesTaxRate, setSalesTaxRate] = useState("");
+  // The lender quotes default to. Andrea (7/31): "have one particular lender
+  // classified as our primary lender that we go through" -- Mike: "we do, what,
+  // 98% of our leasing with one company."
+  const [primaryLender, setPrimaryLender] = useState("");
   // Default lease terms for new quotes (backend toggle). When off, quotes fall
   // back to the first three terms the selected funder offers.
   const [defaultTermsEnabled, setDefaultTermsEnabled] = useState(false);
@@ -270,6 +274,9 @@ export default function AdminSettings({
           }
           if (settings.sales_tax_rate !== undefined && settings.sales_tax_rate !== null) {
             setSalesTaxRate(String(settings.sales_tax_rate));
+          }
+          if (typeof settings.primary_lender === "string") {
+            setPrimaryLender(settings.primary_lender);
           }
           if (Array.isArray(settings.leasing_companies)) {
             setLeasingCompaniesText((settings.leasing_companies as string[]).join("\n"));
@@ -506,6 +513,7 @@ export default function AdminSettings({
         // Blank is stored as blank, not zero: it means "no tax line", and the
         // document layer distinguishes the two.
         sales_tax_rate: salesTaxRate.trim(),
+        primary_lender: primaryLender.trim(),
         // Order is the dealer's, so the list is not sorted or de-duplicated
         // beyond dropping blank lines.
         leasing_companies: leasingCompaniesText
@@ -748,6 +756,32 @@ export default function AdminSettings({
                         className="font-mono text-sm"
                         aria-label="Leasing companies, one per line"
                       />
+                      <div className="mt-3">
+                        <p className="text-sm font-medium">Primary lender</p>
+                        <p className="text-xs text-muted-foreground mt-0.5 mb-2">
+                          Pre-selected on new quotes. Reps can still choose another.
+                        </p>
+                        <Select
+                          value={primaryLender || "__none__"}
+                          onValueChange={(v) => setPrimaryLender(v === "__none__" ? "" : v)}
+                        >
+                          <SelectTrigger>
+                            <SelectValue placeholder="No primary lender" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="__none__">No primary lender</SelectItem>
+                            {leasingCompaniesText
+                              .split("\n")
+                              .map((c) => c.trim())
+                              .filter((c) => c !== "")
+                              .map((c) => (
+                                <SelectItem key={c} value={c}>
+                                  {c}
+                                </SelectItem>
+                              ))}
+                          </SelectContent>
+                        </Select>
+                      </div>
                     </div>
 
                     {/* Per-portal document names */}
