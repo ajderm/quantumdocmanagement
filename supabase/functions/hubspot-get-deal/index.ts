@@ -45,7 +45,8 @@ function validateDealId(dealId: string): boolean {
 function normalizeAnchorObjectType(raw: string | null | undefined): string | null {
   const v = (raw || 'deals').toLowerCase().trim();
   if (v === 'deals' || v === 'deal' || v === '0-3') return 'deals';
-  if (v === 'projects' || v === 'project' || v === '0-54') return 'projects';
+  if (v === 'projects' || v === 'project' || v === '0-54' || v === '0-970') return 'projects';
+  if (v === 'tickets' || v === 'ticket' || v === '0-5') return 'tickets';
   return null;
 }
 
@@ -755,6 +756,90 @@ Deno.serve(async (req) => {
     const dealPropsString = Array.from(dealPropsNeeded).join(',');
 
     // ============================================================
+    // TICKET ANCHOR: the app is mounted on a fulfillment ticket.
+    //
+    // A ticket is not a third kind of record here -- it resolves to the project
+    // that contains it and then runs the project path unchanged, so the same
+    // saved configurations, document queue and attachments appear from either
+    // place. Andrea Villela, 2026-08-31: "at the ticket level... you don't have
+    // access to the document queue... So I have to go back to the project, go
+    // into the quantum document app, and then consistently going back and
+    // forth." Keying a ticket's documents to the ticket itself would rebuild
+    // that wall one level down.
+    // ============================================================
+    let anchorId = dealId;
+    let anchorType = objectType;
+    let ticketInfo: Record<string, unknown> | null = null;
+
+    if (objectType === 'tickets') {
+      const ticketProps = 'subject,hs_pipeline,hs_pipeline_stage,hs_object_id';
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      let ticketResponse: any = null;
+      try {
+        ticketResponse = await hubspotRequest(
+          accessToken, `/crm/v3/objects/tickets/${dealId}?properties=${ticketProps}`);
+      } catch (err) {
+        console.error('Failed to fetch ticket:', err);
+        return new Response(
+          JSON.stringify({ error: 'That ticket could not be read from HubSpot.' }),
+          { status: 502, headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
+      }
+
+      ticketInfo = {
+        id: ticketResponse.id,
+        subject: ticketResponse.properties?.subject || 'Untitled ticket',
+        stage: ticketResponse.properties?.hs_pipeline_stage || '',
+        pipeline: ticketResponse.properties?.hs_pipeline || '',
+        ...(await resolvePipelineLabels(
+          accessToken, 'tickets',
+          ticketResponse.properties?.hs_pipeline, ticketResponse.properties?.hs_pipeline_stage,
+        )),
+      };
+
+      let parentProjectId: string | null = null;
+      try {
+        const assoc = await hubspotRequest(
+          accessToken, `/crm/v4/objects/tickets/${dealId}/associations/projects`);
+        const projects = assoc.results || [];
+        if (projects.length > 0) parentProjectId = String(projects[0].toObjectId);
+      } catch (err) {
+        console.error('Failed to resolve the ticket\'s project:', err);
+      }
+
+      if (parentProjectId) {
+        console.log('Ticket', dealId, 'resolved to project', parentProjectId);
+        anchorId = parentProjectId;
+        anchorType = 'projects';
+      } else {
+        // A ticket with no project still has work to do: fall back to its own
+        // deal so the app opens rather than showing nothing, and say which
+        // record it settled on rather than pretending it found the project.
+        let fallbackDealId: string | null = null;
+        try {
+          const assoc = await hubspotRequest(
+            accessToken, `/crm/v4/objects/tickets/${dealId}/associations/deals`);
+          const deals = assoc.results || [];
+          if (deals.length > 0) fallbackDealId = String(deals[0].toObjectId);
+        } catch (err) {
+          console.error('Failed to resolve the ticket\'s deal:', err);
+        }
+        if (!fallbackDealId) {
+          return new Response(
+            JSON.stringify({
+              error: 'This ticket is not associated with a project or a deal, so there '
+                + 'is nothing to build a document from. Associate it with its '
+                + 'fulfillment project and reload.',
+              ticketInfo,
+            }),
+            { status: 409, headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
+        }
+        console.log('Ticket', dealId, 'has no project; using deal', fallbackDealId);
+        anchorId = fallbackDealId;
+        anchorType = 'deals';
+      }
+    }
+
+    // ============================================================
     // PROJECT ANCHOR: the app is mounted on a HubSpot Project record.
     // The project is the primary record (persistence keys off its ID);
     // company/contacts come from the project's own associations (falling
@@ -762,8 +847,8 @@ Deno.serve(async (req) => {
     // associated deal since HubSpot does not support project<->line_item
     // associations.
     // ============================================================
-    if (objectType === 'projects') {
-      console.log('Hydrating project anchor:', dealId);
+    if (anchorType === 'projects') {
+      console.log('Hydrating project anchor:', anchorId);
 
       // Fetch the project record (retry without owner property in case it
       // is not defined on the Projects object in this portal)
@@ -775,12 +860,12 @@ Deno.serve(async (req) => {
       try {
         projectResponse = await hubspotRequest(
           accessToken,
-          `/crm/v3/objects/projects/${dealId}?properties=${baseProjectProps},hubspot_owner_id`
+          `/crm/v3/objects/projects/${anchorId}?properties=${baseProjectProps},hubspot_owner_id`
         );
       } catch (_ownerPropErr) {
         projectResponse = await hubspotRequest(
           accessToken,
-          `/crm/v3/objects/projects/${dealId}?properties=${baseProjectProps}`
+          `/crm/v3/objects/projects/${anchorId}?properties=${baseProjectProps}`
         );
       }
 
@@ -798,7 +883,7 @@ Deno.serve(async (req) => {
       try {
         const assocResponse = await hubspotRequest(
           accessToken,
-          `/crm/v4/objects/projects/${dealId}/associations/deals`
+          `/crm/v4/objects/projects/${anchorId}/associations/deals`
         );
         const associatedDeals = assocResponse.results || [];
         if (associatedDeals.length > 0) {
@@ -815,7 +900,7 @@ Deno.serve(async (req) => {
 
       // Company + labeled contacts: project's own association first, then the deal's
       let companyResult = await fetchCompanyForAnchor(
-        accessToken, 'projects', dealId, companyPropsNeeded, companyContactLabels
+        accessToken, 'projects', anchorId, companyPropsNeeded, companyContactLabels
       );
       if (!companyResult.company && associatedDealResponse) {
         companyResult = await fetchCompanyForAnchor(
@@ -824,7 +909,7 @@ Deno.serve(async (req) => {
       }
 
       // Contacts: project's own association first, then the deal's
-      let contacts = await fetchContactsForAnchor(accessToken, 'projects', dealId, contactPropsNeeded);
+      let contacts = await fetchContactsForAnchor(accessToken, 'projects', anchorId, contactPropsNeeded);
       if (contacts.length === 0 && associatedDealResponse) {
         contacts = await fetchContactsForAnchor(accessToken, 'deals', associatedDealResponse.id, contactPropsNeeded);
       }
@@ -841,7 +926,8 @@ Deno.serve(async (req) => {
       const dealOwner = ownerId ? await fetchOwner(accessToken, supabase, ownerId) : null;
 
       // Anchor record presented in the deal-shaped slot the frontend expects.
-      // dealId/hsObjectId are the PROJECT's ID: all persistence keys off it.
+      // dealId/hsObjectId are the PROJECT's ID: all persistence keys off it,
+      // which is what lets a ticket see the same documents as its project.
       const deal = {
         dealId: projectResponse.id,
         hsObjectId: projectResponse.properties?.hs_object_id || projectResponse.id,
@@ -886,6 +972,10 @@ Deno.serve(async (req) => {
         properties: rawProperties,
         fieldMappings,
         projectInfo,
+        // Present only when the card was opened from a ticket. The documents
+        // belong to the project either way; this just says where the rep came
+        // from, so the header can show it.
+        ticketInfo,
         anchorObjectType: 'projects',
         associatedDealId: associatedDealResponse ? String(associatedDealResponse.id) : null,
       };
@@ -905,7 +995,7 @@ Deno.serve(async (req) => {
     // Fetch deal with dynamic properties
     const dealResponse = await hubspotRequest(
       accessToken,
-      `/crm/v3/objects/deals/${dealId}?properties=${dealPropsString}`
+      `/crm/v3/objects/deals/${anchorId}?properties=${dealPropsString}`
     );
 
     console.log('Deal fetched:', dealResponse.id);
@@ -931,14 +1021,14 @@ Deno.serve(async (req) => {
 
     // Fetch associated company (and labeled contacts) with all address fields
     const { company, labeledContacts, companyContacts } = await fetchCompanyForAnchor(
-      accessToken, 'deals', dealId, companyPropsNeeded, companyContactLabels
+      accessToken, 'deals', anchorId, companyPropsNeeded, companyContactLabels
     );
 
     // Fetch associated contacts (from deal)
-    const contacts = await fetchContactsForAnchor(accessToken, 'deals', dealId, contactPropsNeeded);
+    const contacts = await fetchContactsForAnchor(accessToken, 'deals', anchorId, contactPropsNeeded);
 
     // Fetch line items with model field
-    const lineItems = await fetchDealLineItems(accessToken, dealId, lineItemPropsNeeded);
+    const lineItems = await fetchDealLineItems(accessToken, anchorId, lineItemPropsNeeded);
 
     // Build raw properties object for custom field resolution
     const rawProperties = {
@@ -961,6 +1051,7 @@ Deno.serve(async (req) => {
       projectInfo: null, // populated only when the app is anchored on a project
       anchorObjectType: 'deals',
       associatedDealId: null,
+      ticketInfo,
     };
 
     console.log('Returning data successfully, companyContacts labels:', Object.keys(companyContacts));

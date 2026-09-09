@@ -187,6 +187,7 @@ function DocumentHubContent() {
     portalId,
     userId,
     objectType,
+    ticketInfo,
   } = useHubSpot();
 
   // App-wide confirmation dialog (native confirm() is blocked in the sandboxed iframe)
@@ -4190,6 +4191,17 @@ function DocumentHubContent() {
               <h2 className="text-[17px] font-bold tracking-tight truncate text-qbs-navy">{deal.dealName}</h2>
               {/* The label when HubSpot gave us one; the raw stage id is a
                   number and reads as noise, so it is only a last resort. */}
+              {/* Opened from a ticket: name it, so a rep sees why the queue
+                  they are looking at is the project's and not the ticket's. */}
+              {ticketInfo && (
+                <Badge
+                  variant="outline"
+                  className="text-[10px] font-medium px-2 py-0.5 rounded-md shrink-0 max-w-[220px] truncate"
+                  title={`Opened from ticket: ${ticketInfo.subject}`}
+                >
+                  Ticket: {ticketInfo.subject}
+                </Badge>
+              )}
               {(deal.stageLabel || deal.stage) && (
                 <Badge className="text-[10px] font-medium px-2 py-0.5 rounded-md shrink-0 bg-qbs-navy text-white hover:bg-qbs-navy">
                   {deal.stageLabel || deal.stage}

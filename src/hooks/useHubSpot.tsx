@@ -31,6 +31,21 @@ interface ProjectInfo {
   pipeline: string;
 }
 
+/**
+ * The ticket the card was opened from, when it was.
+ *
+ * Documents belong to the parent project regardless, so this is context for
+ * the header rather than an identity the app keys off.
+ */
+interface TicketInfo {
+  id: string;
+  subject: string;
+  stage: string;
+  pipeline: string;
+  stageLabel?: string | null;
+  pipelineLabel?: string | null;
+}
+
 type HubSpotContextType = {
   portalId: string | null;
   userId: string | null;
@@ -38,6 +53,8 @@ type HubSpotContextType = {
   objectType: AnchorObjectType;
   /** Populated when the app is anchored on a project. */
   projectInfo: ProjectInfo | null;
+  /** Populated when the card was opened from a ticket under that project. */
+  ticketInfo: TicketInfo | null;
   /** The project's first associated deal (line-item source), when anchored on a project. */
   associatedDealId: string | null;
   deal: any;
@@ -79,6 +96,7 @@ export function HubSpotProvider({ children }: { children: ReactNode }) {
 
   const [objectType] = useState<AnchorObjectType>(() => readHubSpotParams().objectType);
   const [projectInfo, setProjectInfo] = useState<ProjectInfo | null>(null);
+  const [ticketInfo, setTicketInfo] = useState<TicketInfo | null>(null);
   const [associatedDealId, setAssociatedDealId] = useState<string | null>(null);
   const [deal, setDeal] = useState<any>(null);
   const [company, setCompany] = useState<any>(null);
@@ -162,6 +180,7 @@ export function HubSpotProvider({ children }: { children: ReactNode }) {
 
         if (data?.deal) setDeal(data.deal);
         setProjectInfo(data?.projectInfo || null);
+        setTicketInfo(data?.ticketInfo || null);
         setAssociatedDealId(data?.associatedDealId || null);
         if (data?.company) setCompany(data.company);
         if (data?.contacts) setContacts(data.contacts);
@@ -198,6 +217,7 @@ export function HubSpotProvider({ children }: { children: ReactNode }) {
         userId,
         objectType,
         projectInfo,
+        ticketInfo,
         associatedDealId,
         deal,
         company,

@@ -10,17 +10,20 @@
 // installs a small interceptor at bootstrap that injects `objectType` into
 // every plain-object invoke body that doesn't already set one. Edge functions
 // that don't care about it ignore the extra field.
+//
+// A ticket anchor is a third case, and deliberately not a third identity: a
+// ticket resolves to the project that contains it and then behaves exactly as
+// a project anchor does, sharing its saved configurations, document queue and
+// attachments. Andrea Villela, 2026-08-31: "you don't have access to the
+// document queue... So I have to go back to the project, go into the quantum
+// document app, and then consistently going back and forth." Keying a ticket's
+// documents to the ticket would rebuild that wall one level down.
 
 import { supabase } from "@/integrations/supabase/client";
+import { normalizeAnchorObjectType, type AnchorObjectType } from "./anchorObjectType.ts";
 
-export type AnchorObjectType = "deals" | "projects";
-
-/** Normalize a raw objectType value from the card URL. Unknown values fall back to deals. */
-export function normalizeAnchorObjectType(raw: string | null | undefined): AnchorObjectType {
-  const v = (raw || "deals").toLowerCase().trim();
-  if (v === "projects" || v === "project" || v === "0-54") return "projects";
-  return "deals";
-}
+export type { AnchorObjectType } from './anchorObjectType.ts';
+export { normalizeAnchorObjectType } from './anchorObjectType.ts';
 
 /** Read the anchor object type from the current URL (objectType / object_type param). */
 export function getAnchorObjectType(): AnchorObjectType {
