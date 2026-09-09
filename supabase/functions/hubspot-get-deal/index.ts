@@ -236,7 +236,15 @@ async function hubspotRequest(accessToken: string, endpoint: string) {
   if (!response.ok) {
     const errorText = await response.text();
     console.error('HubSpot API error:', response.status, errorText);
-    throw new Error(`HubSpot API error: ${response.status}`);
+    // The status is attached, not just formatted into the message: callers need
+    // to tell "the app was never granted this scope" (403) from "no such
+    // record" (404), because only the first one needs a reinstall.
+    const err = new Error(`HubSpot API error: ${response.status}`) as Error & {
+      status?: number; body?: string;
+    };
+    err.status = response.status;
+    err.body = errorText.slice(0, 400);
+    throw err;
   }
 
   return response.json();
@@ -780,9 +788,26 @@ Deno.serve(async (req) => {
           accessToken, `/crm/v3/objects/tickets/${dealId}?properties=${ticketProps}`);
       } catch (err) {
         console.error('Failed to fetch ticket:', err);
+        const status = (err as { status?: number })?.status;
+        // 403 here means one thing in practice: the app's access token for
+        // this portal was issued before `tickets` was a requested scope, and a
+        // refresh token keeps the scopes it was granted with. Adding the scope
+        // to the app is not enough -- the portal has to reauthorize. Say so,
+        // because the alternative is an afternoon spent looking at the card
+        // configuration, which is a different setting entirely.
+        const message = status === 403
+          ? 'This app is not authorized to read tickets in this portal. Add the '
+            + '"tickets" scope to the app in the HubSpot developer account, then '
+            + 'reinstall (reauthorize) the app in this portal -- an existing '
+            + 'token keeps the scopes it was granted with, so the scope alone '
+            + 'does not take effect.'
+          : status === 404
+            ? 'That ticket no longer exists in HubSpot.'
+            : 'That ticket could not be read from HubSpot.';
         return new Response(
-          JSON.stringify({ error: 'That ticket could not be read from HubSpot.' }),
-          { status: 502, headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
+          JSON.stringify({ error: message, ticketId: dealId, hubspotStatus: status ?? null }),
+          { status: status === 403 ? 403 : 502,
+            headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
       }
 
       ticketInfo = {
