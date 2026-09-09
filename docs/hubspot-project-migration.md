@@ -41,9 +41,32 @@ bump** — all of it is Supabase, keyed by `hubspot_portal_id`:
 So the worst realistic outcome of the migration is a broken card for a few
 minutes, not lost work.
 
-## Use a separate repository, not this one
+## Where it goes
 
-Lovable commits to this repository's `main` branch autonomously. Over a single
+Local path: `/Users/macbookpro/Quantum Document Management` (note the spaces --
+quote it in shell commands).
+
+Destination: the **Quantum-Business-Solutions** org, not a personal account.
+Continuity is the reason: a live client's app configuration on one person's
+account is inaccessible the moment that person is.
+
+Before creating anything, check **Quantum-Business-Solutions/doccommand** --
+it already exists (private, last pushed 2026-07-21) and may be the intended
+home or an abandoned start. The org's naming pattern is `<thing>command`
+(clientcommand, commissioncommand, quotecommand, BrandCommand), so
+`doccommand` is plausibly deliberate. Reuse it if it is empty or stale; pick a
+name that distinguishes the HubSpot project from the React app if it is not.
+
+Related, and a separate task: **`ajderm/quantumdocmanagement`** -- the React
+app this live client actually runs -- is also on a personal account, with the
+same continuity problem. GitHub can transfer a repo to an org preserving
+history and redirecting the old URL, but Lovable's git connection would need
+re-pointing afterwards, so it should not be done in the middle of this
+migration.
+
+## Use a separate repository, not the app repo
+
+Lovable commits to `ajderm/quantumdocmanagement`'s `main` branch autonomously. Over a single
 afternoon it pushed four commits, re-filed hand-written migrations under its
 own generated names, and forced a rebase on every push. The HubSpot project
 definition controls a live client's app scopes and CRM cards; putting it where
