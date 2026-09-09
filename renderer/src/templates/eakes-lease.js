@@ -43,26 +43,23 @@ export function eakesLeaseTemplate(over = {}) {
     },
     styles: { fontFamily: 'Arial, Helvetica, sans-serif', fontSize: 9 },
     computed: {
-      // Tax applies to the taxable equipment only. A rollover or buyout has
-      // already been taxed once (Andrea, 8/31), so taxing it again on the
-      // paperwork the bank checks would overstate what is owed.
+      // Their arithmetic, not ours. Verified to the cent against the signed
+      // Cornerstone Bank agreement (4/24/2026) and the Hometown worksheet:
       //
-      // The rate is the dealer's configured one, never a number chosen here:
-      // this document is customer-facing, and an invented rate on it is worse
-      // than an omission the reader can see.
-      tax: 'round(amounts.taxable * dealer.tax_rate, 2)',
-      // Everything financed, tax included -- and surviving an absent tax rate
-      // by falling back to the untaxed total rather than vanishing with the
-      // line it was built from.
-      grand: 'firstNonZero(amounts.total + computed.tax, amounts.total)',
-      // QuoteIQ's payment wins over a payment derived here.
+      //   Equipment Total 4,391.84 x rate 0.019980 = 87.75  base monthly
+      //   87.75 x 7% tax                           =  6.14  monthly sales tax
+      //                                              93.89  total monthly
       //
-      // The funder's figure is what the customer was quoted; deriving one from
-      // a rate factor is a reconstruction that can disagree with it, and the
-      // customer signs this page, not our arithmetic. The rate-factor form
-      // stays as the fallback for a deal QuoteIQ has not written to, and drops
-      // out entirely when there is no factor either.
-      monthly: 'firstNonZero(lease.payment, round(computed.grand * lease.rate_factor, 2))',
+      // Two earlier mistakes are corrected here. Tax was applied to the
+      // equipment subtotal, where their form applies it to the monthly
+      // payment; and the payment was derived from a tax-inclusive grand total,
+      // where theirs comes from the equipment total alone.
+      monthly: 'firstNonZero(lease.payment, round(amounts.taxable * lease.rate_factor, 2))',
+      payment_tax: 'round(computed.monthly * dealer.tax_rate, 2)',
+      // Falls back to the untaxed payment rather than vanishing with the tax
+      // line it is built from, which is what an unset tax rate would
+      // otherwise do to the total.
+      total_monthly: 'firstNonZero(computed.monthly + computed.payment_tax, computed.monthly)',
     },
     blocks: [
       { type: 'docTitle', title: 'Equipment Lease Quotation', meta: [
@@ -95,23 +92,28 @@ export function eakesLeaseTemplate(over = {}) {
         '<p><em>Equipment shall not be removed from this location without written consent of ' +
         'Lessor.</em></p>' },
 
+      // Exhibit A's own columns, and deliberately no pricing: Andrea, 8/31,
+      // "Exhibit A lists the items but carries no prices." Their signed
+      // Exhibit A reads Make & Model / Description, Serial, Initial Meter
+      // Reading, Location -- the Amount column exists only on the internal
+      // CLT input sheet, never on the page a customer sees.
       { type: 'table', title: 'Equipment Information', bind: 'line_items',
-        amountKey: 'extended', qtyKey: 'quantity', maxRows: 100,
-        emptyText: 'No equipment has been added to this quotation.',
         columns: [
-          { key: 'name', label: 'Description', width: '44%' },
-          { key: 'type', label: 'Type', width: '13%' },
           { key: 'quantity', label: 'Qty', width: '8%', align: 'right' },
-          { key: 'unit', label: 'Unit', width: '16%', align: 'right', format: 'currency' },
-          { key: 'extended', label: 'Extended', width: '19%', align: 'right', format: 'currency' },
+          { key: 'name', label: 'Make & Model / Description', width: '46%' },
+          { key: 'serial', label: 'Serial Number', width: '18%' },
+          { key: 'meter', label: 'Initial Meter', width: '13%', align: 'right' },
+          { key: 'site', label: 'Location', width: '15%' },
         ] },
 
       { type: 'fieldGrid', title: 'Term & Payment Information', columns: 2, hideEmpty: true, fields: [
         { label: 'Lessor', value: '{{lease.partner}}' },
         { label: 'Lease type', value: '{{lease.type}}' },
         { label: 'Term', value: '{{lease.term}} months' },
-        { label: 'Monthly payment', value: '{{lease.payment | currency}}' },
-        { label: 'Rate factor', value: '{{lease.rate_factor | rate}}' },
+        // Payment moved to the summary below, where their form puts it. The
+        // rate factor is not here at all: their signed page 1 does not show
+        // one, and it belongs on the Hometown worksheet, not in front of a
+        // customer.
         { label: 'Salesperson', value: '{{rep.name}}' },
       ] },
 
@@ -119,12 +121,13 @@ export function eakesLeaseTemplate(over = {}) {
       // them: "the paperwork we show the bank should have a taxable total and
       // non-taxable total" (Mike, 8/31). The non-taxable row disappears when
       // there is nothing in it.
+      // Their Term & Payment block, in their order and their words. No
+      // equipment total: their signed page 1 carries none, and Eakes do not
+      // put itemised pricing in front of a customer.
       { type: 'summary', hideEmpty: true, rows: [
-        { label: 'Equipment subtotal (taxable)', expr: 'amounts.taxable' },
-        { label: 'Rollover / buyout (non-taxable)', expr: 'amounts.non_taxable' },
-        { label: 'Estimated tax ({{dealer.tax_rate | percent}})', expr: 'computed.tax' },
-        { label: 'Total financed', expr: 'computed.grand', bold: true, rule: true },
-        { label: 'Monthly payment · {{lease.term}} mo', expr: 'computed.monthly' },
+        { label: 'Monthly payment', expr: 'computed.monthly' },
+        { label: 'Sales tax ({{dealer.tax_rate | percent}})', expr: 'computed.payment_tax' },
+        { label: 'Total monthly payment', expr: 'computed.total_monthly', bold: true, rule: true },
       ] },
 
       // The dealer's own terms, from their document settings. Omitted entirely

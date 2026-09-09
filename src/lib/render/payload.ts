@@ -13,9 +13,20 @@ export interface RenderLineItem {
   name: string;
   type: string | null;
   quantity: number;
+  /**
+   * Unit and extended price.
+   *
+   * Carried because the quote and the internal CLT sheet both price the line,
+   * and because the taxable total is derived from `extended`. Eakes' signed
+   * Exhibit A does NOT print either -- Andrea, 8/31: "Exhibit A lists the items
+   * but carries no prices" -- so a customer-facing template must not bind a
+   * column to them.
+   */
   unit: number;
   extended: number;
   serial: string | null;
+  /** Initial meter reading, an Exhibit A column on their own paperwork. */
+  meter: string | null;
   site: string | null;
 }
 
@@ -246,6 +257,7 @@ export interface QuoteFormLike {
   lineItems?: {
     model?: string; description?: string; quantity?: number; price?: number;
     productType?: string; serial?: string; sku?: string | null;
+    meterReading?: string | number;
   }[];
 }
 
@@ -301,6 +313,7 @@ export function quoteRenderPayload(form: QuoteFormLike, ctx: RenderContext): Ren
       unit,
       extended: money(unit * quantity),
       serial: (item.serial ?? '').trim() || null,
+      meter: (item.meterReading ?? '').toString().trim() || null,
       site: null,
     };
   };

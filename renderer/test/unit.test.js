@@ -214,3 +214,48 @@ test('a quoted payment prints even when the fallback it replaces is absent', () 
   assert.equal(row({ payment: null, rate_factor: null }), '',
     'and with neither the row is blank, never $0.00');
 });
+
+test("Eakes' own payment arithmetic, to the cent", () => {
+  // From their signed Cornerstone Bank agreement, 4/24/2026, cross-checked
+  // against the Hometown worksheet that accompanies it:
+  //
+  //   Equipment Total 4,391.84 x rate 0.019980 = 87.75  base monthly
+  //   87.75 x 7% sales tax                     =  6.14  monthly tax
+  //                                              93.89  total monthly
+  //
+  // Two things this locks down. Tax is on the PAYMENT, not the equipment
+  // subtotal; and the payment comes off the equipment total, not a
+  // tax-inclusive grand total. This template got both wrong before their
+  // signed document was read past page 1.
+  const t = {
+    computed: {
+      monthly: 'firstNonZero(lease.payment, round(amounts.taxable * lease.rate_factor, 2))',
+      payment_tax: 'round(computed.monthly * dealer.tax_rate, 2)',
+      total_monthly: 'computed.monthly + computed.payment_tax',
+    },
+    blocks: [{ type: 'summary', hideEmpty: true, rows: [
+      { label: 'Monthly payment', expr: 'computed.monthly' },
+      { label: 'Sales tax', expr: 'computed.payment_tax' },
+      { label: 'Total monthly payment', expr: 'firstNonZero(computed.monthly + computed.payment_tax, computed.monthly)' },
+    ] }],
+  };
+  const rows = (data) => resolve(t, data).blocks[0].rows.map((r) => r.value);
+
+  assert.deepEqual(
+    rows({ amounts: { taxable: 4391.84 }, lease: { rate_factor: 0.019980, payment: null }, dealer: { tax_rate: 0.07 } }),
+    ['$87.75', '$6.14', '$93.89'],
+  );
+
+  // A funder-quoted payment is taxed the same way, and still wins.
+  assert.deepEqual(
+    rows({ amounts: { taxable: 9999 }, lease: { rate_factor: 0.02, payment: 241.99 }, dealer: { tax_rate: 0.07 } }),
+    ['$241.99', '$16.94', '$258.93'],
+  );
+
+  // No tax rate configured: the tax line goes (hideEmpty drops it), and the
+  // total survives as the untaxed payment rather than disappearing with it.
+  assert.deepEqual(
+    rows({ amounts: { taxable: 4391.84 }, lease: { rate_factor: 0.019980, payment: null }, dealer: {} }),
+    ['$87.75', '$87.75'],
+  );
+});
