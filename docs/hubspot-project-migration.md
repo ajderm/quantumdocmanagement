@@ -50,12 +50,19 @@ Destination: the **Quantum-Business-Solutions** org, not a personal account.
 Continuity is the reason: a live client's app configuration on one person's
 account is inaccessible the moment that person is.
 
-Before creating anything, check **Quantum-Business-Solutions/doccommand** --
-it already exists (private, last pushed 2026-07-21) and may be the intended
-home or an abandoned start. The org's naming pattern is `<thing>command`
-(clientcommand, commissioncommand, quotecommand, BrandCommand), so
-`doccommand` is plausibly deliberate. Reuse it if it is empty or stale; pick a
-name that distinguishes the HubSpot project from the React app if it is not.
+Stand up a **new private repo**. Suggested name:
+`Quantum-Business-Solutions/doccommand-hubspot-project` -- it follows the
+org's `<thing>command` convention while saying which of the two codebases it
+holds, so it cannot be mistaken for the React app.
+
+Private, not public: this is app configuration for a live client, including
+which scopes the app requests.
+
+Do NOT reuse `Quantum-Business-Solutions/doccommand`. It already exists
+(private, last pushed 2026-07-21) and is Shawn's version of this app. Worth
+noting separately that two divergent codebases exist for one product -- not a
+blocker here, but somebody should reconcile them before the wrong one gets
+deployed.
 
 Related, and a separate task: **`ajderm/quantumdocmanagement`** -- the React
 app this live client actually runs -- is also on a personal account, with the
