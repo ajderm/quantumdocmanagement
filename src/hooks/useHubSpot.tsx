@@ -1,6 +1,6 @@
 import { createContext, useContext, useEffect, useState, type ReactNode } from "react";
 import { supabase } from "@/integrations/supabase/client";
-import { normalizeAnchorObjectType, type AnchorObjectType } from "@/lib/anchorContext";
+import { normalizeAnchorObjectType, setResolvedAnchor, type AnchorObjectType } from "@/lib/anchorContext";
 
 interface LabeledContact {
   firstName: string;
