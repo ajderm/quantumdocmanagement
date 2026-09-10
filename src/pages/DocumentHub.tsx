@@ -266,7 +266,7 @@ function DocumentHubContent() {
     } catch {
       // Intentionally ignored: last_time_app_used is best-effort telemetry.
     }
-  }, [portalId, deal?.hsObjectId]);
+  }, [portalId, deal?.hsObjectId, isDealAnchor]);
 
   // Write the timestamp once when the app is opened on a deal.
   useEffect(() => {
