@@ -1002,6 +1002,7 @@ Deno.serve(async (req) => {
         // from, so the header can show it.
         ticketInfo,
         anchorObjectType: 'projects',
+        anchorId: String(anchorId),
         associatedDealId: associatedDealResponse ? String(associatedDealResponse.id) : null,
       };
 
