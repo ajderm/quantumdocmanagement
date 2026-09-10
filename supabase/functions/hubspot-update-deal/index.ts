@@ -128,7 +128,7 @@ Deno.serve(async (req) => {
     // 'projects' PATCHes the native Projects object instead.
     const rawObjectType = String(body.objectType || 'deals').toLowerCase().trim();
     const objectType = ['deals', 'deal', '0-3'].includes(rawObjectType) ? 'deals'
-      : ['projects', 'project', '0-54'].includes(rawObjectType) ? 'projects'
+      : ['projects', 'project', '0-54', '0-970'].includes(rawObjectType) ? 'projects'
       : null;
     if (!objectType) {
       return new Response(

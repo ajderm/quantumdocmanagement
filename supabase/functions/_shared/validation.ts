@@ -40,7 +40,7 @@ export function validateLineItemId(lineItemId: unknown): lineItemId is string {
 export function normalizeAnchorObjectType(raw: unknown): string | null {
   const v = (typeof raw === 'string' && raw ? raw : 'deals').toLowerCase().trim();
   if (v === 'deals' || v === 'deal' || v === '0-3') return 'deals';
-  if (v === 'projects' || v === 'project' || v === '0-54') return 'projects';
+  if (v === 'projects' || v === 'project' || v === '0-54' || v === '0-970') return 'projects';
   return null;
 }
 

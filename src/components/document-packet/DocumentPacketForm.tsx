@@ -7,7 +7,7 @@ import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
 import { Upload, FileText, Image, File, Trash2, GripVertical, ChevronUp, ChevronDown, Loader2, AlertCircle, Package } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
-import { getAnchorObjectType } from "@/lib/anchorContext";
+import { getEffectiveAnchorObjectType, resolveAnchorRecordId } from "@/lib/anchorContext";
 import { toast } from "sonner";
 
 interface PacketFile {
@@ -168,8 +168,8 @@ export function DocumentPacketForm({
         fd.append('action', 'upload');
         fd.append('folder', 'document-packets');
         fd.append('portalId', portalId);
-        fd.append('dealId', dealId);
-      fd.append('objectType', getAnchorObjectType()); // FormData bypasses the invoke interceptor
+        fd.append('dealId', String(resolveAnchorRecordId(dealId) ?? dealId));
+        fd.append('objectType', getEffectiveAnchorObjectType()); // FormData bypasses the invoke interceptor
         fd.append('file', file);
         const { data, error: uploadError } = await supabase.functions.invoke('company-asset-upload', { body: fd });
 
@@ -227,8 +227,8 @@ export function DocumentPacketForm({
         fd.append('action', 'delete');
         fd.append('folder', 'document-packets');
         fd.append('portalId', portalId);
-        fd.append('dealId', dealId);
-        fd.append('objectType', getAnchorObjectType()); // FormData bypasses the invoke interceptor
+        fd.append('dealId', String(resolveAnchorRecordId(dealId) ?? dealId));
+        fd.append('objectType', getEffectiveAnchorObjectType()); // FormData bypasses the invoke interceptor
         fd.append('path', file.storagePath);
         await supabase.functions.invoke('company-asset-upload', { body: fd });
       } catch { /* continue */ }

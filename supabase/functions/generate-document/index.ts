@@ -74,7 +74,7 @@ async function logoDataUri(url: string | null): Promise<{ uri: string | null; wa
 function normalizeObjectType(raw: unknown): 'deals' | 'projects' | null {
   const v = String(raw ?? 'deals').toLowerCase().trim();
   if (['deals', 'deal', '0-3'].includes(v)) return 'deals';
-  if (['projects', 'project', '0-54'].includes(v)) return 'projects';
+  if (['projects', 'project', '0-54', '0-970'].includes(v)) return 'projects';
   return null;
 }
 

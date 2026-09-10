@@ -32,6 +32,43 @@ export function getAnchorObjectType(): AnchorObjectType {
   return normalizeAnchorObjectType(params.get("objectType") || params.get("object_type"));
 }
 
+/** The raw record id the card URL carries (on a ticket anchor this is the TICKET id). */
+export function getUrlRecordId(): string | null {
+  if (typeof window === "undefined") return null;
+  const params = new URLSearchParams(window.location.search);
+  return params.get("dealId") || params.get("recordId") || params.get("objectId");
+}
+
+// The anchor as resolved server-side by hubspot-get-deal. On a ticket anchor
+// both the type and the record id differ from the URL: the ticket resolves to
+// its parent project (or, failing that, its associated deal), and persistence
+// must key to that record — not the ticket.
+let resolvedAnchor: { objectType: AnchorObjectType; recordId: string } | null = null;
+
+export function setResolvedAnchor(objectType: AnchorObjectType, recordId: string): void {
+  resolvedAnchor = { objectType, recordId: String(recordId) };
+}
+
+export function getResolvedAnchor(): { objectType: AnchorObjectType; recordId: string } | null {
+  return resolvedAnchor;
+}
+
+/** Resolved anchor type when known, otherwise the URL value. */
+export function getEffectiveAnchorObjectType(): AnchorObjectType {
+  return resolvedAnchor?.objectType ?? getAnchorObjectType();
+}
+
+/**
+ * Map a record id to the resolved anchor id, but only when it is the raw id
+ * from the card URL. Call sites that deliberately pass a different id (line
+ * items pass associatedDealId) are left alone.
+ */
+export function resolveAnchorRecordId(id: string | null | undefined): string | null | undefined {
+  if (!resolvedAnchor || id == null) return id;
+  const rawUrlId = getUrlRecordId();
+  return rawUrlId && String(id) === String(rawUrlId) ? resolvedAnchor.recordId : id;
+}
+
 /**
  * Patch FunctionsClient.invoke so every request body carries the anchor
  * objectType. Explicit objectType values at a call site win over the injected
@@ -64,9 +101,30 @@ export function installAnchorContextInterceptor(): void {
       !(body instanceof Blob) &&
       !(body instanceof ArrayBuffer);
 
-    if (isPlainObject && body.objectType === undefined) {
-      return originalInvoke.call(this, name, { ...options, body: { ...body, objectType: getAnchorObjectType() } });
+    if (!isPlainObject) return originalInvoke.call(this, name, options);
+
+    // hubspot-get-deal performs the resolution itself, so it must keep the raw
+    // ticket id and the URL objectType.
+    const isResolver = name === "hubspot-get-deal";
+
+    const patched: Record<string, unknown> = { ...body };
+    let changed = false;
+
+    if (body.objectType === undefined) {
+      patched.objectType = isResolver ? getAnchorObjectType() : getEffectiveAnchorObjectType();
+      changed = true;
     }
-    return originalInvoke.call(this, name, options);
+
+    if (!isResolver && body.dealId !== undefined) {
+      const mapped = resolveAnchorRecordId(String(body.dealId));
+      if (mapped !== undefined && mapped !== null && String(mapped) !== String(body.dealId)) {
+        patched.dealId = mapped;
+        changed = true;
+      }
+    }
+
+    if (!changed) return originalInvoke.call(this, name, options);
+    return originalInvoke.call(this, name, { ...options, body: patched });
   };
 }
+

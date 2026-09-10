@@ -1,6 +1,6 @@
 import { createContext, useContext, useEffect, useState, type ReactNode } from "react";
 import { supabase } from "@/integrations/supabase/client";
-import { normalizeAnchorObjectType, type AnchorObjectType } from "@/lib/anchorContext";
+import { normalizeAnchorObjectType, setResolvedAnchor, type AnchorObjectType } from "@/lib/anchorContext";
 
 interface LabeledContact {
   firstName: string;
@@ -181,6 +181,12 @@ export function HubSpotProvider({ children }: { children: ReactNode }) {
         if (data?.deal) setDeal(data.deal);
         setProjectInfo(data?.projectInfo || null);
         setTicketInfo(data?.ticketInfo || null);
+        // A ticket anchor resolves server-side to its parent project (or its
+        // deal). Remember that resolved identity so every other function gets
+        // a record it understands, keyed to the right record.
+        if (data?.anchorObjectType && data?.anchorId) {
+          setResolvedAnchor(normalizeAnchorObjectType(data.anchorObjectType), String(data.anchorId));
+        }
         setAssociatedDealId(data?.associatedDealId || null);
         if (data?.company) setCompany(data.company);
         if (data?.contacts) setContacts(data.contacts);
