@@ -252,6 +252,9 @@ function DocumentHubContent() {
     const currentPortalId = portalId || localStorage.getItem("hs_portal_id");
     const dealId = deal?.hsObjectId;
     if (!currentPortalId || !dealId) return;
+    // last_time_app_used is a deal property; projects (including ticket-resolved
+    // project anchors) do not have it and HubSpot rejects the PATCH with a 400.
+    if (!isDealAnchor) return;
     try {
       await supabase.functions.invoke("hubspot-update-deal", {
         body: {
@@ -263,7 +266,7 @@ function DocumentHubContent() {
     } catch {
       // Intentionally ignored: last_time_app_used is best-effort telemetry.
     }
-  }, [portalId, deal?.hsObjectId]);
+  }, [portalId, deal?.hsObjectId, isDealAnchor]);
 
   // Write the timestamp once when the app is opened on a deal.
   useEffect(() => {
