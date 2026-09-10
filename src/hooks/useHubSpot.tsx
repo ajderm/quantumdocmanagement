@@ -94,7 +94,9 @@ export function HubSpotProvider({ children }: { children: ReactNode }) {
     typeof window !== "undefined" ? window.localStorage.getItem(STORAGE_KEYS.userId) : null,
   );
 
-  const [objectType] = useState<AnchorObjectType>(() => readHubSpotParams().objectType);
+  // Initial value is the URL value: correct before resolution, and what the
+  // resolver itself must be called with. Updated once the anchor resolves.
+  const [objectType, setObjectType] = useState<AnchorObjectType>(() => readHubSpotParams().objectType);
   const [projectInfo, setProjectInfo] = useState<ProjectInfo | null>(null);
   const [ticketInfo, setTicketInfo] = useState<TicketInfo | null>(null);
   const [associatedDealId, setAssociatedDealId] = useState<string | null>(null);
@@ -186,6 +188,11 @@ export function HubSpotProvider({ children }: { children: ReactNode }) {
         // a record it understands, keyed to the right record.
         if (data?.anchorObjectType && data?.anchorId) {
           setResolvedAnchor(normalizeAnchorObjectType(data.anchorObjectType), String(data.anchorId));
+        }
+        // Consumers that pass objectType explicitly (generate-document) bypass
+        // the invoke interceptor, so the exposed value must follow resolution.
+        if (data?.anchorObjectType) {
+          setObjectType(normalizeAnchorObjectType(data.anchorObjectType));
         }
         setAssociatedDealId(data?.associatedDealId || null);
         if (data?.company) setCompany(data.company);
