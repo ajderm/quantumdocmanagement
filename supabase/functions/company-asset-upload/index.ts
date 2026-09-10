@@ -31,7 +31,7 @@ serve(async (req) => {
     // anchors (e.g. projects) are namespaced so record IDs can't collide.
     const rawObjectType = String(formData.get("objectType") || "deals").toLowerCase().trim();
     const objectType = ["deals", "deal", "0-3"].includes(rawObjectType) ? "deals"
-      : ["projects", "project", "0-54"].includes(rawObjectType) ? "projects"
+      : ["projects", "project", "0-54", "0-970"].includes(rawObjectType) ? "projects"
       : null;
     if (!objectType) {
       return new Response(JSON.stringify({ error: "Unsupported objectType" }), {
