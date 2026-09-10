@@ -1076,6 +1076,7 @@ Deno.serve(async (req) => {
       fieldMappings,
       projectInfo: null, // populated only when the app is anchored on a project
       anchorObjectType: 'deals',
+      anchorId: String(anchorId),
       associatedDealId: null,
       ticketInfo,
     };
