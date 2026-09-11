@@ -3194,8 +3194,6 @@ function DocumentHubContent() {
 
     setInstallationGenerating(true);
     try {
-      const pdf = await generateMultiPagePDF(installationPreviewRef.current);
-
       const sanitizedCompanyName = (installationFormData.shipToCompany || "Draft")
         .replace(/[^a-zA-Z0-9\s]/g, "")
         .replace(/\s+/g, "_");
@@ -3204,36 +3202,15 @@ function DocumentHubContent() {
       const timeStr = now.toTimeString().slice(0, 5).replace(":", "-");
       const fileName = `${docFileStem("installation", "Installation_Report")}_${sanitizedCompanyName}_Hardware_${dateStr}_${timeStr}.pdf`;
 
-      pdf.save(fileName);
-
-      const currentPortalId = portalId;
-      const currentDealId = deal?.hsObjectId;
-
-      if (currentPortalId && currentDealId) {
-        try {
-          const pdfBase64 = pdf.output("datauristring").split(",")[1];
-
-          const { data, error: attachError } = await supabase.functions.invoke("hubspot-attach-file", {
-            body: {
-              portalId: currentPortalId,
-              dealId: currentDealId,
-              fileName: fileName,
-              fileBase64: pdfBase64,
-            },
-          });
-
-          if (attachError || data?.error) {
-            toast.success("PDF downloaded! (Could not attach to deal)");
-          } else {
-            toast.success("PDF downloaded and attached to deal!");
-          }
-        } catch (attachErr) {
-          console.error("Failed to attach to HubSpot:", attachErr);
-          toast.success("PDF downloaded! (Could not attach to deal)");
-        }
-      } else {
-        toast.success("Installation PDF downloaded successfully!");
-      }
+      const pdfBytes = await producePdfBytes(
+        "installation",
+        installationPreviewRef.current,
+        () => installationRenderPayload(
+          installationFormData,
+          docRenderContext("installation", documentTerms.installation?.trim() || null),
+        ) as unknown as Record<string, unknown>,
+      );
+      await deliverPdfBytes(pdfBytes, fileName, "Installation");
     } catch (err) {
       console.error("PDF generation error:", err);
       toast.error("Failed to generate PDF");
@@ -3472,8 +3449,6 @@ function DocumentHubContent() {
 
     setFmvLeaseGenerating(true);
     try {
-      const pdf = await generateMultiPagePDF(fmvLeasePreviewRef.current);
-
       const sanitizedCompanyName = (fmvLeaseFormData.companyLegalName || "Draft")
         .replace(/[^a-zA-Z0-9\s]/g, "")
         .replace(/\s+/g, "_");
@@ -3482,36 +3457,20 @@ function DocumentHubContent() {
       const timeStr = now.toTimeString().slice(0, 5).replace(":", "-");
       const fileName = `${docFileStem("fmv_lease", "FMV_Lease")}_${sanitizedCompanyName}_${dateStr}_${timeStr}.pdf`;
 
-      pdf.save(fileName);
-
-      const currentPortalId = portalId;
-      const currentDealId = deal?.hsObjectId;
-
-      if (currentPortalId && currentDealId) {
-        try {
-          const pdfBase64 = pdf.output("datauristring").split(",")[1];
-
-          const { data, error: attachError } = await supabase.functions.invoke("hubspot-attach-file", {
-            body: {
-              portalId: currentPortalId,
-              dealId: currentDealId,
-              fileName: fileName,
-              fileBase64: pdfBase64,
-            },
-          });
-
-          if (attachError || data?.error) {
-            toast.success("PDF downloaded! (Could not attach to deal)");
-          } else {
-            toast.success("PDF downloaded and attached to deal!");
-          }
-        } catch (attachErr) {
-          console.error("Failed to attach to HubSpot:", attachErr);
-          toast.success("PDF downloaded! (Could not attach to deal)");
-        }
-      } else {
-        toast.success("FMV Lease PDF downloaded successfully!");
-      }
+      const pdfBytes = await producePdfBytes(
+        "fmv_lease",
+        fmvLeasePreviewRef.current,
+        () => fmvLeaseRenderPayload(
+          fmvLeaseFormData,
+          docRenderContext(
+            "fmv_lease",
+            fmvLeaseFormData.overrideTerms
+              ? (fmvLeaseFormData.overrideTermsText || null)
+              : (documentTerms.fmv_lease?.trim() || null),
+          ),
+        ) as unknown as Record<string, unknown>,
+      );
+      await deliverPdfBytes(pdfBytes, fileName, "FMV Lease");
     } catch (err) {
       console.error("PDF generation error:", err);
       toast.error("Failed to generate PDF");
@@ -3612,8 +3571,6 @@ function DocumentHubContent() {
 
     setLeaseFundingGenerating(true);
     try {
-      const pdf = await generateMultiPagePDF(leaseFundingPreviewRef.current);
-
       const sanitizedCompanyName = (leaseFundingFormData.customerName || "Draft")
         .replace(/[^a-zA-Z0-9\s]/g, "")
         .replace(/\s+/g, "_");
@@ -3622,36 +3579,21 @@ function DocumentHubContent() {
       const timeStr = now.toTimeString().slice(0, 5).replace(":", "-");
       const fileName = `${docFileStem("lease_funding", "Lease_Funding")}_${sanitizedCompanyName}_${dateStr}_${timeStr}.pdf`;
 
-      pdf.save(fileName);
-
-      const currentPortalId = portalId;
-      const currentDealId = deal?.hsObjectId;
-
-      if (currentPortalId && currentDealId) {
-        try {
-          const pdfBase64 = pdf.output("datauristring").split(",")[1];
-
-          const { data, error: attachError } = await supabase.functions.invoke("hubspot-attach-file", {
-            body: {
-              portalId: currentPortalId,
-              dealId: currentDealId,
-              fileName: fileName,
-              fileBase64: pdfBase64,
-            },
-          });
-
-          if (attachError || data?.error) {
-            toast.success("PDF downloaded! (Could not attach to deal)");
-          } else {
-            toast.success("PDF downloaded and attached to deal!");
-          }
-        } catch (attachErr) {
-          console.error("Failed to attach to HubSpot:", attachErr);
-          toast.success("PDF downloaded! (Could not attach to deal)");
-        }
-      } else {
-        toast.success("Lease Funding PDF downloaded successfully!");
-      }
+      const pdfBytes = await producePdfBytes(
+        "lease_funding",
+        leaseFundingPreviewRef.current,
+        () => leaseFundingRenderPayload(
+          leaseFundingFormData,
+          docRenderContext(
+            "lease_funding",
+            leaseFundingFormData.termsInclude === false
+              ? null
+              : (leaseFundingFormData.termsCustomText?.trim()
+                || documentTerms.lease_funding?.trim() || null),
+          ),
+        ) as unknown as Record<string, unknown>,
+      );
+      await deliverPdfBytes(pdfBytes, fileName, "Lease Funding");
     } catch (err) {
       console.error("PDF generation error:", err);
       toast.error("Failed to generate PDF");
