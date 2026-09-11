@@ -12,7 +12,7 @@
  */
 
 import {
-  money, num, taxRateFraction, termsHtml,
+  classifyLine, money, num, taxRateFraction, termsHtml,
   type RenderPayload, type RenderLineItem,
 } from "./payload";
 
@@ -105,6 +105,36 @@ function amountsFrom(lines: RenderLineItem[]): RenderPayload["amounts"] {
   return { taxable, non_taxable: null, total: taxable };
 }
 
+/** The text `classifyLine` reads, for a line already mapped to render shape. */
+type ClassifiableSource = { model?: string; description?: string; name?: string };
+
+/**
+ * Apply the quote's own visibility rules to any document's lines.
+ *
+ * Same treatment `quoteRenderPayload` gives every line: chart/zone lines are
+ * neither listed nor counted, buyout/rollover/knockout lines are counted but
+ * never listed, everything else is listed and taxable. A BUYOUT row on a
+ * signed lease is a customer-visible error, so no builder may skip this.
+ */
+function classified(
+  entries: { source: ClassifiableSource; line: RenderLineItem }[],
+): { lines: RenderLineItem[]; taxable: number; nonTaxable: number | null } {
+  const lines: RenderLineItem[] = [];
+  let taxable = 0;
+  let nonTaxable = 0;
+  for (const { source, line } of entries) {
+    const kind = classifyLine(source);
+    if (kind === "suppressed") continue;
+    if (kind === "nonTaxable") {
+      nonTaxable = money(nonTaxable + line.extended);
+      continue;
+    }
+    taxable = money(taxable + line.extended);
+    lines.push(line);
+  }
+  return { lines, taxable, nonTaxable: nonTaxable > 0 ? nonTaxable : null };
+}
+
 /* ------------------------------------------------------------------ */
 /* New customer application                                            */
 /* ------------------------------------------------------------------ */
@@ -162,18 +192,33 @@ export interface LoiLike {
 
 export function loiRenderPayload(form: LoiLike, ctx: DocRenderContext): RenderPayload {
   const { city, state } = splitCityState(form.customerCityState);
-  const lines: RenderLineItem[] = (form.equipment ?? [])
+  // The equipment list arrives flattened from the deal's line items, which can
+  // repeat the same model/serial pair when a hardware unit's accessories are
+  // expanded more than once. A letter of intent identifies equipment, so the
+  // same identity twice is noise, not two machines.
+  const seen = new Set<string>();
+  const entries = (form.equipment ?? [])
     .filter((e) => clean(e.model) || clean(e.serial))
+    .filter((e) => {
+      const key = `${(e.model ?? "").trim().toLowerCase()}|${(e.serial ?? "").trim().toLowerCase()}`;
+      if (seen.has(key)) return false;
+      seen.add(key);
+      return true;
+    })
     .map((e) => ({
-      name: clean(e.model) ?? "Equipment",
-      type: null,
-      quantity: 1,
-      unit: 0,
-      extended: 0,
-      serial: clean(e.serial),
-      meter: null,
-      site: null,
+      source: { model: e.model },
+      line: {
+        name: clean(e.model) ?? "Equipment",
+        type: null,
+        quantity: 1,
+        unit: 0,
+        extended: 0,
+        serial: clean(e.serial),
+        meter: null,
+        site: null,
+      } satisfies RenderLineItem,
     }));
+  const lines = classified(entries).lines;
   return {
     ...shared(ctx),
     company: {
@@ -220,32 +265,39 @@ export function installationRenderPayload(
     if (m && d && m !== d) return `${m} — ${d}`;
     return m ?? d ?? "Item";
   };
-  const lines: RenderLineItem[] = [];
+  const entries: { source: ClassifiableSource; line: RenderLineItem }[] = [];
   if (clean(form.installedModel) || clean(form.installedDescription)) {
-    lines.push({
-      name: describe(form.installedModel, form.installedDescription),
-      type: "Hardware",
-      quantity: Number(form.installedQty) > 0 ? Number(form.installedQty) : 1,
-      unit: 0,
-      extended: 0,
-      serial: clean(form.installedSerial),
-      meter: clean(form.meterTotal) ?? clean(form.meterBlack),
-      site: null,
+    entries.push({
+      source: { model: form.installedModel, description: form.installedDescription },
+      line: {
+        name: describe(form.installedModel, form.installedDescription),
+        type: "Hardware",
+        quantity: Number(form.installedQty) > 0 ? Number(form.installedQty) : 1,
+        unit: 0,
+        extended: 0,
+        serial: clean(form.installedSerial),
+        meter: clean(form.meterTotal) ?? clean(form.meterBlack),
+        site: null,
+      },
     });
   }
   for (const a of form.linkedAccessories ?? []) {
     if (!clean(a.model) && !clean(a.description)) continue;
-    lines.push({
-      name: describe(a.model, a.description),
-      type: clean(a.productType),
-      quantity: Number(a.quantity) > 0 ? Number(a.quantity) : 1,
-      unit: 0,
-      extended: 0,
-      serial: null,
-      meter: null,
-      site: null,
+    entries.push({
+      source: { model: a.model, description: a.description },
+      line: {
+        name: describe(a.model, a.description),
+        type: clean(a.productType),
+        quantity: Number(a.quantity) > 0 ? Number(a.quantity) : 1,
+        unit: 0,
+        extended: 0,
+        serial: null,
+        meter: null,
+        site: null,
+      },
     });
   }
+  const lines = classified(entries).lines;
   return {
     ...shared(ctx),
     company: {
@@ -292,18 +344,21 @@ export interface FmvLeaseLike {
 export function fmvLeaseRenderPayload(
   form: FmvLeaseLike, ctx: DocRenderContext,
 ): RenderPayload {
-  const lines: RenderLineItem[] = (form.equipmentItems ?? [])
+  const lines = classified((form.equipmentItems ?? [])
     .filter((e) => clean(e.makeModelDescription) || clean(e.serialNumber))
     .map((e) => ({
-      name: clean(e.makeModelDescription) ?? "Equipment",
-      type: null,
-      quantity: Number(e.quantity) > 0 ? Number(e.quantity) : 1,
-      unit: 0,
-      extended: 0,
-      serial: clean(e.serialNumber),
-      meter: null,
-      site: clean(e.idNumber),
-    }));
+      source: { description: e.makeModelDescription },
+      line: {
+        name: clean(e.makeModelDescription) ?? "Equipment",
+        type: null,
+        quantity: Number(e.quantity) > 0 ? Number(e.quantity) : 1,
+        unit: 0,
+        extended: 0,
+        serial: clean(e.serialNumber),
+        meter: null,
+        site: clean(e.idNumber),
+      } satisfies RenderLineItem,
+    }))).lines;
   const term = num(form.termInMonths);
   const payment = num(form.paymentAmount);
   return {
@@ -353,18 +408,22 @@ export function leaseFundingRenderPayload(
 ): RenderPayload {
   const funding = num(form.invoiceFundingAmount);
   const amount = funding !== null && funding > 0 ? money(funding) : 0;
-  const lines: RenderLineItem[] = clean(form.equipmentMakeModel)
+  const split = classified(clean(form.equipmentMakeModel)
     ? [{
-      name: clean(form.equipmentMakeModel) ?? "Equipment",
-      type: null,
-      quantity: 1,
-      unit: amount,
-      extended: amount,
-      serial: clean(form.serialNumber),
-      meter: null,
-      site: clean(form.idNumber) ?? clean(form.locationBranch),
+      source: { model: form.equipmentMakeModel },
+      line: {
+        name: clean(form.equipmentMakeModel) ?? "Equipment",
+        type: null,
+        quantity: 1,
+        unit: amount,
+        extended: amount,
+        serial: clean(form.serialNumber),
+        meter: null,
+        site: clean(form.idNumber) ?? clean(form.locationBranch),
+      } satisfies RenderLineItem,
     }]
-    : [];
+    : []);
+  const lines = split.lines;
   const term = num(form.termLength);
   const payment = num(form.monthlyPayment);
   const rate = num(form.rate);
@@ -390,7 +449,7 @@ export function leaseFundingRenderPayload(
       type: clean(form.leaseType),
     },
     amounts: amount > 0
-      ? { taxable: amount, non_taxable: null, total: amount }
+      ? { taxable: split.taxable, non_taxable: split.nonTaxable, total: amount }
       : amountsFrom(lines),
     line_items: lines,
   };
