@@ -1556,11 +1556,24 @@ function DocumentHubContent() {
     }
     setNewCustomerGenerating(true);
     try {
-      const pdf = await generateMultiPagePDF(newCustomerPreviewRef.current);
       const sanitizedCompanyName = (newCustomerFormData.companyName || "Draft")
         .replace(/[^a-zA-Z0-9\s]/g, "")
         .replace(/\s+/g, "_");
-      pdf.save(`NewCustomer_${sanitizedCompanyName}_${new Date().toISOString().split("T")[0]}.pdf`);
+      const fileName = `NewCustomer_${sanitizedCompanyName}_${new Date().toISOString().split("T")[0]}.pdf`;
+      const pdfBytes = await producePdfBytes(
+        "new_customer",
+        newCustomerPreviewRef.current,
+        () => newCustomerRenderPayload(
+          newCustomerFormData,
+          docRenderContext(
+            "new_customer",
+            newCustomerFormData.overrideTerms
+              ? (newCustomerFormData.overrideTermsText || null)
+              : (documentTerms.new_customer?.trim() || null),
+          ),
+        ) as unknown as Record<string, unknown>,
+      );
+      downloadPdfBytes(pdfBytes, fileName);
       toast.success("PDF generated");
     } catch (err) {
       console.error("PDF error:", err);
@@ -1934,34 +1947,24 @@ function DocumentHubContent() {
     }
     setLoiGenerating(true);
     try {
-      const pdf = await generateMultiPagePDF(loiPreviewRef.current);
       const sanitizedCompanyName = (loiFormData.businessName || "Draft")
         .replace(/[^a-zA-Z0-9\s]/g, "")
         .replace(/\s+/g, "_");
       const fileName = `${docFileStem("loi", "LOI")}_${sanitizedCompanyName}_${new Date().toISOString().split("T")[0]}.pdf`;
-      pdf.save(fileName);
-
-      const currentPortalId = portalId;
-      const currentDealId = deal?.hsObjectId;
-
-      if (currentPortalId && currentDealId) {
-        try {
-          const pdfBase64 = pdf.output("datauristring").split(",")[1];
-          const { data, error: attachError } = await supabase.functions.invoke("hubspot-attach-file", {
-            body: { portalId: currentPortalId, dealId: currentDealId, fileName, fileBase64: pdfBase64 },
-          });
-          if (attachError || data?.error) {
-            toast.success("PDF downloaded! (Could not attach to deal)");
-          } else {
-            toast.success("PDF downloaded and attached to deal!");
-          }
-        } catch (attachErr) {
-          console.error("Failed to attach to HubSpot:", attachErr);
-          toast.success("PDF downloaded! (Could not attach to deal)");
-        }
-      } else {
-        toast.success("LOI PDF downloaded successfully!");
-      }
+      const pdfBytes = await producePdfBytes(
+        "loi",
+        loiPreviewRef.current,
+        () => loiRenderPayload(
+          loiFormData,
+          docRenderContext(
+            "loi",
+            loiFormData.termsInclude === false
+              ? null
+              : (loiFormData.termsCustomText?.trim() || documentTerms.loi?.trim() || null),
+          ),
+        ) as unknown as Record<string, unknown>,
+      );
+      await deliverPdfBytes(pdfBytes, fileName, "LOI");
     } catch (err) {
       console.error("PDF error:", err);
       toast.error("Failed to generate PDF");
@@ -2516,6 +2519,86 @@ function DocumentHubContent() {
     }
     const pdf = await generateMultiPagePDF(element);
     return pdf.output("arraybuffer");
+  };
+
+  /** The shipping contact's name, or null when the deal has none. */
+  const shipToName = (): string | null => {
+    const c = labeledContacts?.shippingContact;
+    if (!c) return null;
+    return `${c.firstName ?? ""} ${c.lastName ?? ""}`.trim() || null;
+  };
+
+  /**
+   * The context every non-quote template needs: who the dealer is, what the
+   * portal calls this document, the tax rate and the terms.
+   */
+  const docRenderContext = (code: string, termsText: string | null): DocRenderContext => ({
+    dealerInfo: dealerInfo ?? undefined,
+    deal,
+    documentTitle: docRename(code),
+    taxRate: dealerSettings.sales_tax_rate ?? null,
+    termsText,
+    repName: dealOwner
+      ? `${dealOwner.firstName ?? ""} ${dealOwner.lastName ?? ""}`.trim() || null
+      : null,
+    shipToContact: shipToName(),
+    today: todayLocalDateString(),
+  });
+
+  /** Save the bytes to the rep's machine. Identical for both engines. */
+  const downloadPdfBytes = (bytes: ArrayBuffer, fileName: string) => {
+    const blob = new Blob([bytes], { type: "application/pdf" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = fileName;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+  };
+
+  /**
+   * Download, then attach to the record exactly once.
+   *
+   * Both engines hand back bytes, so the attachment is built the same way
+   * whichever produced them — the old jsPDF `output("datauristring")` path
+   * existed only because the native generator returned a document object.
+   */
+  const deliverPdfBytes = async (
+    bytes: ArrayBuffer,
+    fileName: string,
+    label: string,
+  ) => {
+    downloadPdfBytes(bytes, fileName);
+    const currentPortalId = portalId;
+    const currentDealId = deal?.hsObjectId;
+    if (!currentPortalId || !currentDealId) {
+      toast.success(`${label} PDF downloaded successfully!`);
+      return;
+    }
+    try {
+      const uint8Array = new Uint8Array(bytes);
+      let binary = "";
+      uint8Array.forEach((byte) => (binary += String.fromCharCode(byte)));
+      const pdfBase64 = btoa(binary);
+      const { data, error: attachError } = await supabase.functions.invoke("hubspot-attach-file", {
+        body: {
+          portalId: currentPortalId,
+          dealId: currentDealId,
+          fileName,
+          fileBase64: pdfBase64,
+        },
+      });
+      if (attachError || data?.error) {
+        toast.success("PDF downloaded! (Could not attach to deal)");
+      } else {
+        toast.success("PDF downloaded and attached to deal!");
+      }
+    } catch (attachErr) {
+      console.error("Failed to attach to HubSpot:", attachErr);
+      toast.success("PDF downloaded! (Could not attach to deal)");
+    }
   };
 
   // Helper function for multi-page PDF generation
