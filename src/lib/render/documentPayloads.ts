@@ -449,7 +449,7 @@ export function leaseFundingRenderPayload(
       type: clean(form.leaseType),
     },
     amounts: amount > 0
-      ? { taxable: amount, non_taxable: null, total: amount }
+      ? { taxable: split.taxable, non_taxable: split.nonTaxable, total: amount }
       : amountsFrom(lines),
     line_items: lines,
   };
