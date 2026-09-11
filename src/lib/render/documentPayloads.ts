@@ -12,7 +12,7 @@
  */
 
 import {
-  money, num, taxRateFraction, termsHtml,
+  classifyLine, money, num, taxRateFraction, termsHtml,
   type RenderPayload, type RenderLineItem,
 } from "./payload";
 
@@ -103,6 +103,36 @@ function shared(ctx: DocRenderContext) {
 function amountsFrom(lines: RenderLineItem[]): RenderPayload["amounts"] {
   const taxable = lines.reduce((sum, l) => money(sum + l.extended), 0);
   return { taxable, non_taxable: null, total: taxable };
+}
+
+/** The text `classifyLine` reads, for a line already mapped to render shape. */
+type ClassifiableSource = { model?: string; description?: string; name?: string };
+
+/**
+ * Apply the quote's own visibility rules to any document's lines.
+ *
+ * Same treatment `quoteRenderPayload` gives every line: chart/zone lines are
+ * neither listed nor counted, buyout/rollover/knockout lines are counted but
+ * never listed, everything else is listed and taxable. A BUYOUT row on a
+ * signed lease is a customer-visible error, so no builder may skip this.
+ */
+function classified(
+  entries: { source: ClassifiableSource; line: RenderLineItem }[],
+): { lines: RenderLineItem[]; taxable: number; nonTaxable: number | null } {
+  const lines: RenderLineItem[] = [];
+  let taxable = 0;
+  let nonTaxable = 0;
+  for (const { source, line } of entries) {
+    const kind = classifyLine(source);
+    if (kind === "suppressed") continue;
+    if (kind === "nonTaxable") {
+      nonTaxable = money(nonTaxable + line.extended);
+      continue;
+    }
+    taxable = money(taxable + line.extended);
+    lines.push(line);
+  }
+  return { lines, taxable, nonTaxable: nonTaxable > 0 ? nonTaxable : null };
 }
 
 /* ------------------------------------------------------------------ */
