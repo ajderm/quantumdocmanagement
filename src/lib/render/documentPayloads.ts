@@ -265,32 +265,39 @@ export function installationRenderPayload(
     if (m && d && m !== d) return `${m} — ${d}`;
     return m ?? d ?? "Item";
   };
-  const lines: RenderLineItem[] = [];
+  const entries: { source: ClassifiableSource; line: RenderLineItem }[] = [];
   if (clean(form.installedModel) || clean(form.installedDescription)) {
-    lines.push({
-      name: describe(form.installedModel, form.installedDescription),
-      type: "Hardware",
-      quantity: Number(form.installedQty) > 0 ? Number(form.installedQty) : 1,
-      unit: 0,
-      extended: 0,
-      serial: clean(form.installedSerial),
-      meter: clean(form.meterTotal) ?? clean(form.meterBlack),
-      site: null,
+    entries.push({
+      source: { model: form.installedModel, description: form.installedDescription },
+      line: {
+        name: describe(form.installedModel, form.installedDescription),
+        type: "Hardware",
+        quantity: Number(form.installedQty) > 0 ? Number(form.installedQty) : 1,
+        unit: 0,
+        extended: 0,
+        serial: clean(form.installedSerial),
+        meter: clean(form.meterTotal) ?? clean(form.meterBlack),
+        site: null,
+      },
     });
   }
   for (const a of form.linkedAccessories ?? []) {
     if (!clean(a.model) && !clean(a.description)) continue;
-    lines.push({
-      name: describe(a.model, a.description),
-      type: clean(a.productType),
-      quantity: Number(a.quantity) > 0 ? Number(a.quantity) : 1,
-      unit: 0,
-      extended: 0,
-      serial: null,
-      meter: null,
-      site: null,
+    entries.push({
+      source: { model: a.model, description: a.description },
+      line: {
+        name: describe(a.model, a.description),
+        type: clean(a.productType),
+        quantity: Number(a.quantity) > 0 ? Number(a.quantity) : 1,
+        unit: 0,
+        extended: 0,
+        serial: null,
+        meter: null,
+        site: null,
+      },
     });
   }
+  const lines = classified(entries).lines;
   return {
     ...shared(ctx),
     company: {
