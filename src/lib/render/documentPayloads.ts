@@ -408,18 +408,22 @@ export function leaseFundingRenderPayload(
 ): RenderPayload {
   const funding = num(form.invoiceFundingAmount);
   const amount = funding !== null && funding > 0 ? money(funding) : 0;
-  const lines: RenderLineItem[] = clean(form.equipmentMakeModel)
+  const split = classified(clean(form.equipmentMakeModel)
     ? [{
-      name: clean(form.equipmentMakeModel) ?? "Equipment",
-      type: null,
-      quantity: 1,
-      unit: amount,
-      extended: amount,
-      serial: clean(form.serialNumber),
-      meter: null,
-      site: clean(form.idNumber) ?? clean(form.locationBranch),
+      source: { model: form.equipmentMakeModel },
+      line: {
+        name: clean(form.equipmentMakeModel) ?? "Equipment",
+        type: null,
+        quantity: 1,
+        unit: amount,
+        extended: amount,
+        serial: clean(form.serialNumber),
+        meter: null,
+        site: clean(form.idNumber) ?? clean(form.locationBranch),
+      } satisfies RenderLineItem,
     }]
-    : [];
+    : []);
+  const lines = split.lines;
   const term = num(form.termLength);
   const payment = num(form.monthlyPayment);
   const rate = num(form.rate);
