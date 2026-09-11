@@ -344,18 +344,21 @@ export interface FmvLeaseLike {
 export function fmvLeaseRenderPayload(
   form: FmvLeaseLike, ctx: DocRenderContext,
 ): RenderPayload {
-  const lines: RenderLineItem[] = (form.equipmentItems ?? [])
+  const lines = classified((form.equipmentItems ?? [])
     .filter((e) => clean(e.makeModelDescription) || clean(e.serialNumber))
     .map((e) => ({
-      name: clean(e.makeModelDescription) ?? "Equipment",
-      type: null,
-      quantity: Number(e.quantity) > 0 ? Number(e.quantity) : 1,
-      unit: 0,
-      extended: 0,
-      serial: clean(e.serialNumber),
-      meter: null,
-      site: clean(e.idNumber),
-    }));
+      source: { description: e.makeModelDescription },
+      line: {
+        name: clean(e.makeModelDescription) ?? "Equipment",
+        type: null,
+        quantity: Number(e.quantity) > 0 ? Number(e.quantity) : 1,
+        unit: 0,
+        extended: 0,
+        serial: clean(e.serialNumber),
+        meter: null,
+        site: clean(e.idNumber),
+      } satisfies RenderLineItem,
+    }))).lines;
   const term = num(form.termInMonths);
   const payment = num(form.paymentAmount);
   return {
