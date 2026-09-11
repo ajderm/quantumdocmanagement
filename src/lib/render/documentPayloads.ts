@@ -192,18 +192,33 @@ export interface LoiLike {
 
 export function loiRenderPayload(form: LoiLike, ctx: DocRenderContext): RenderPayload {
   const { city, state } = splitCityState(form.customerCityState);
-  const lines: RenderLineItem[] = (form.equipment ?? [])
+  // The equipment list arrives flattened from the deal's line items, which can
+  // repeat the same model/serial pair when a hardware unit's accessories are
+  // expanded more than once. A letter of intent identifies equipment, so the
+  // same identity twice is noise, not two machines.
+  const seen = new Set<string>();
+  const entries = (form.equipment ?? [])
     .filter((e) => clean(e.model) || clean(e.serial))
+    .filter((e) => {
+      const key = `${(e.model ?? "").trim().toLowerCase()}|${(e.serial ?? "").trim().toLowerCase()}`;
+      if (seen.has(key)) return false;
+      seen.add(key);
+      return true;
+    })
     .map((e) => ({
-      name: clean(e.model) ?? "Equipment",
-      type: null,
-      quantity: 1,
-      unit: 0,
-      extended: 0,
-      serial: clean(e.serial),
-      meter: null,
-      site: null,
+      source: { model: e.model },
+      line: {
+        name: clean(e.model) ?? "Equipment",
+        type: null,
+        quantity: 1,
+        unit: 0,
+        extended: 0,
+        serial: clean(e.serial),
+        meter: null,
+        site: null,
+      } satisfies RenderLineItem,
     }));
+  const lines = classified(entries).lines;
   return {
     ...shared(ctx),
     company: {
