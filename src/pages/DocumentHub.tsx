@@ -57,6 +57,14 @@ import { computeCommissionTotals, mapQuoteLineItemsToCommission, buyoutFromQuote
 import { todayLocalDateString } from "@/lib/dateUtils";
 import { useDocumentEngine } from "@/hooks/useDocumentEngine";
 import { quoteRenderPayload, reconcileLineItems } from "@/lib/render/payload";
+import {
+  newCustomerRenderPayload,
+  loiRenderPayload,
+  installationRenderPayload,
+  fmvLeaseRenderPayload,
+  leaseFundingRenderPayload,
+  type DocRenderContext,
+} from "@/lib/render/documentPayloads";
 import { useConfirm } from "@/hooks/useConfirm";
 import { SummaryRail, type SummaryMetric } from "@/components/shared";
 import { quantumLogo } from "@/assets/quantumLogo";
