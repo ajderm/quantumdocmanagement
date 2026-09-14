@@ -189,6 +189,7 @@ function DocumentHubContent() {
     dealOwner,
     labeledContacts,
     companyContacts,
+    dealContacts,
     properties,
     loading,
     error,
