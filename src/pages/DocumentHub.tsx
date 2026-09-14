@@ -3291,6 +3291,7 @@ function DocumentHubContent() {
             termsText: quoteTermsText(),
             documentTitle: docRename("quote"),
             today: todayLocalDateString(),
+            crm: crmExtras(),
           }) as unknown as Record<string, unknown>,
         },
       });
