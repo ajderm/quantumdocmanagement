@@ -424,8 +424,12 @@ export function quoteRenderPayload(form: QuoteFormLike, ctx: RenderContext): Ren
       // Not captured by the quote form today. Carried so the template can
       // reference it, and it simply drops until the field exists.
       county: null,
+      ...companyCrmFields(ctx.crm),
     },
-    contact: { ship_to: ctx.shipToContact?.trim() || null },
+    contact: {
+      ship_to: ctx.shipToContact?.trim() || null,
+      ...contactCrmFields(ctx.crm),
+    },
     document: { title: ctx.documentTitle?.trim() || null },
     location: {
       street: [form.address, form.address2].map((x) => (x ?? '').trim())
@@ -447,6 +451,7 @@ export function quoteRenderPayload(form: QuoteFormLike, ctx: RenderContext): Ren
       name: (form.preparedBy ?? '').trim() || null,
       phone: (form.preparedByPhone ?? '').trim() || null,
       email: (form.preparedByEmail ?? '').trim() || null,
+      code: repCodeField(ctx.crm),
     },
     lease: {
       partner: ctx.leasingPartnerName?.trim() || null,
