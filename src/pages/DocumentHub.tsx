@@ -2537,6 +2537,24 @@ function DocumentHubContent() {
   };
 
   /**
+   * Values that come off the CRM records rather than off a form: the account
+   * number and EIN on the company, the rep's salesperson code, and the meter
+   * and signer contacts the deal's association labels identify. Built once so
+   * every document prints the same values.
+   */
+  const crmExtras = (): CrmExtras => ({
+    companyAccountNumber: company?.accountNumber ?? null,
+    companyFederalEin: company?.federalEin ?? null,
+    repCode:
+      (deal?.salesperson__ as string | undefined)
+      ?? (properties?.deal?.salesperson__ as string | undefined)
+      ?? (properties?.deal?.lead_routing_salesperson____syncari_ as string | undefined)
+      ?? null,
+    meterContact: dealContacts?.meter ?? null,
+    signerContact: dealContacts?.signer ?? null,
+  });
+
+  /**
    * The context every non-quote template needs: who the dealer is, what the
    * portal calls this document, the tax rate and the terms.
    */
@@ -2551,6 +2569,7 @@ function DocumentHubContent() {
       : null,
     shipToContact: shipToName(),
     today: todayLocalDateString(),
+    crm: crmExtras(),
   });
 
   /** Save the bytes to the rep's machine. Identical for both engines. */
