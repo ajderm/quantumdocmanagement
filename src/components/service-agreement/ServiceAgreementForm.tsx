@@ -632,27 +632,22 @@ export function ServiceAgreementForm({
             </Select>
           </div>
           <div className="space-y-2">
-            <Label htmlFor="paperStaples">Paper & Staples</Label>
-            <Select value={formData.paperStaples} onValueChange={(value) => updateField("paperStaples", value)}>
+            <Label htmlFor="paperStaples">Staples</Label>
+            <Select
+              value={formData.paperStaples || STAPLES_DEFAULT}
+              onValueChange={(value) => updateField("paperStaples", value)}
+            >
               <SelectTrigger>
                 <SelectValue placeholder="Select option" />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="Excludes Paper">Excludes Paper</SelectItem>
-                <SelectItem value="Excludes Paper & Staples">Excludes Paper & Staples</SelectItem>
-              </SelectContent>
-            </Select>
-          </div>
-          <div className="space-y-2">
-            <Label htmlFor="drumToner">Drum & Toner</Label>
-            <Select value={formData.drumToner} onValueChange={(value) => updateField("drumToner", value)}>
-              <SelectTrigger>
-                <SelectValue placeholder="Select option" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="Drum & Toner Included MDT">Drum & Toner Included MDT</SelectItem>
-                <SelectItem value="Drum Included MD">Drum Included MD</SelectItem>
-                <SelectItem value="Drum Excluded MA">Drum Excluded MA</SelectItem>
+                {/* A previously saved paper-era value stays selectable until the
+                    user picks one of the two current options. */}
+                {formData.paperStaples && !STAPLES_OPTIONS.includes(formData.paperStaples) && (
+                  <SelectItem value={formData.paperStaples}>{formData.paperStaples}</SelectItem>
+                )}
+                <SelectItem value="Excludes staples">Excludes staples</SelectItem>
+                <SelectItem value="Includes staples">Includes staples</SelectItem>
               </SelectContent>
             </Select>
           </div>
