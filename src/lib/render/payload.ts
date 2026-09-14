@@ -69,7 +69,11 @@ export interface RenderPayload {
     zip: string | null; county: string | null;
   };
   deal: { name: string | null; quote_number: string | null; close_date: string | null };
-  rep: { name: string | null; phone: string | null; email: string | null };
+  rep: {
+    name: string | null; phone: string | null; email: string | null;
+    /** Four-digit salesperson code. Null when the deal has none. */
+    code: string | null;
+  };
   /**
    * Lease terms as the funder quoted them, not as this app derives them.
    *
