@@ -1058,6 +1058,7 @@ Deno.serve(async (req) => {
         lineItems,
         labeledContacts: companyResult.labeledContacts,
         companyContacts: companyResult.companyContacts,
+        dealContacts,
         properties: rawProperties,
         fieldMappings,
         projectInfo,
@@ -1115,7 +1116,7 @@ Deno.serve(async (req) => {
     );
 
     // Fetch associated contacts (from deal)
-    const contacts = await fetchContactsForAnchor(accessToken, 'deals', anchorId, contactPropsNeeded);
+    const { contacts, dealContacts } = await fetchContactsForAnchor(accessToken, 'deals', anchorId, contactPropsNeeded);
 
     // Fetch line items with model field
     const lineItems = await fetchDealLineItems(accessToken, anchorId, lineItemPropsNeeded);
@@ -1135,6 +1136,7 @@ Deno.serve(async (req) => {
       lineItems,
       labeledContacts,
       companyContacts, // Add company contacts keyed by association label
+      dealContacts, // Meter / signer contacts, resolved by association label
       // Include raw properties for custom document field resolution
       properties: rawProperties,
       fieldMappings,
