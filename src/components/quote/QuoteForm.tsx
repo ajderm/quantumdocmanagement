@@ -33,7 +33,7 @@ import { ProductSearchModal, HubSpotProduct } from "./ProductSearchModal";
 import { getLabel, isSectionVisible, type FormCustomizationConfig } from "@/lib/formCustomization";
 import { todayLocalDateString } from "@/lib/dateUtils";
 import { priceFromCostMarkup, markupFromCostPrice, paymentFromRate, rateFromPayment } from "@/lib/pricing";
-import { SectionCard, FieldGrid, Field, EmptyState, DealTermsOverride } from "@/components/shared";
+import { SectionCard, FieldGrid, Field, EmptyState, DealTermsOverride, FromHubSpotPill } from "@/components/shared";
 
 export interface QuoteLineItem {
   id: string;
@@ -96,6 +96,8 @@ export interface QuoteFormData {
   priceDisplay: "both" | "purchase_only" | "lease_only";
   equipmentDisplay: "itemized" | "total_only";
   leasingPriceType: "without_buyout" | "with_buyout";
+  /** QuoteIQ's `locked_for_term` from the deal; editable like everything else. */
+  lockedForTerm?: string;
   leaseProgram: "fmv" | "dollar_buyout" | "rental";
   // Special Pricing Tier (deal-level)
   specialPricingTier: string;
