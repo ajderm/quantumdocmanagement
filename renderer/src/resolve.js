@@ -235,7 +235,7 @@ export function resolve(template, data) {
         // reader to assume the terms are elsewhere; omitting the section says
         // plainly that this document carries none.
         if (block.hideEmpty && html.replace(/<[^>]*>/g, '').trim() === '') break;
-        blocks.push({ ...block, title: s(block.title), html });
+        blocks.push({ ...block, title: s(block.title), html, ...(isTerms ? { terms: true } : {}) });
         break;
       }
       case 'signature':
