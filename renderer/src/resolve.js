@@ -222,13 +222,20 @@ export function resolve(template, data) {
         break;
       }
       case 'richText': {
-        const html = s(block.html ?? block.text ?? '');
+        const raw = String(block.html ?? block.text ?? '');
+        const html = s(raw);
+        // A terms block either sources the dealer's terms token or is titled
+        // as one. It gets a `terms` flag so the print stylesheet can render
+        // legal prose lighter than body copy without inline styles, which the
+        // sanitiser in html.js strips.
+        const isTerms = /^\s*\{\{\s*terms\.html\s*\}\}\s*$/.test(raw) ||
+          /\bterms\b/i.test(String(block.title ?? ''));
         // A terms block sourced from a dealer's own settings is empty until
         // they have entered any. Printing the heading over nothing invites the
         // reader to assume the terms are elsewhere; omitting the section says
         // plainly that this document carries none.
         if (block.hideEmpty && html.replace(/<[^>]*>/g, '').trim() === '') break;
-        blocks.push({ ...block, title: s(block.title), html });
+        blocks.push({ ...block, title: s(block.title), html, ...(isTerms ? { terms: true } : {}) });
         break;
       }
       case 'signature':

@@ -90,7 +90,7 @@ function renderBlock(b) {
       ).join('')}</div></section>`;
 
     case 'richText':
-      return `<section class="block richText${b.keepTogether ? ' keep' : ''}">
+      return `<section class="block richText${b.terms ? ' terms' : ''}${b.keepTogether ? ' keep' : ''}">
         ${b.title ? `<div class="sectionHead">${esc(b.title)}</div>` : ''}
         <div class="body">${sanitizeHtml(b.html)}</div></section>`;
 
