@@ -364,6 +364,8 @@ export interface RenderContext {
   termsText?: string | null;
   /** Injected so a document's date is deterministic in tests. */
   today: string;
+  /** Values read straight off the CRM records. */
+  crm?: CrmExtras;
 }
 
 export function quoteRenderPayload(form: QuoteFormLike, ctx: RenderContext): RenderPayload {
