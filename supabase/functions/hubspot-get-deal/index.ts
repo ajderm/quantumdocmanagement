@@ -776,6 +776,8 @@ Deno.serve(async (req) => {
       'locked_for_term', 'margin_amount', 'margin_percent',
       // Which paperwork a deal needs is keyed off the contract type.
       'contract_type',
+      // The four-digit salesperson code the paperwork prints beside the rep.
+      'salesperson__', 'lead_routing_salesperson____syncari_',
     ]);
     const lineItemPropsNeeded = new Set(['name', 'description', 'quantity', 'price', 'hs_sku', 'item_number', 'hs_product_id', 'hs_product_type', 'hs_recurring_billing_period', 'hs_cost_of_goods_sold', 'unit_cost', 'condition', 'hs_product_condition', 'dealer', 'manufacturer', 'vendor', 'hs_line_item_dealer', 'color_mono', 'machine_type', 'serial_number', 'equipment_id', 'meter_method', 'meter_reading', 'meter_reading_bw', 'meter_reading_color', 'cpc_mono_rate', 'cpc_color_rate', 'cpc_mono_volume', 'cpc_color_volume', 'cpc_mono_overage_rate', 'cpc_color_overage_rate']);
 
