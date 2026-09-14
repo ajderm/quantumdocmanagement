@@ -1,131 +1,69 @@
+# Three changes from the client call
 
+## 1. Serial numbers editable on Service Agreement and Lease Agreement
 
-# Fix: Race Condition in Form Initialization Across All Document Types
+**Lease Agreement (Quote tab)**
+Each equipment line already carries a serial number pulled from HubSpot, but there is
+nowhere to type one. Add a Serial field to the expanded detail area of each line item,
+next to Model and Item Number. Typing a serial saves with the rest of the quote and
+flows straight onto the printed document (the document layer already reads it).
 
-## Problem Summary
+**Service Agreement**
+The Equipment table shows Serial as plain read-only text. Turn that column into an
+editable box per row. Values are stored on the Service Agreement's own saved data, so
+editing here never overwrites the quote.
 
-Saved form data is overwritten by HubSpot defaults on page reload because forms initialize before the database-saved configurations have loaded. Two parallel async operations -- HubSpot data fetch and Supabase config bulk load -- complete at different times, but forms begin rendering as soon as HubSpot data arrives.
+Value shown in the box, in order:
+1. what the user typed on this Service Agreement
+2. the serial on the quote line
+3. the serial captured on the installation document (already wired)
 
-## Root Causes
+The printed Service Agreement uses the same order.
 
-### Race Condition (All Document Types)
-1. `useHubSpot()` fetches deal data. When it completes, `loading` becomes `false` and `DocumentHubContent` renders all forms.
-2. `loadAllConfigs` (bulk Supabase fetch) runs in a separate `useEffect`. It depends on `deal?.hsObjectId`, which is only available after HubSpot loads.
-3. Forms mount and initialize with HubSpot defaults before `savedConfig` arrives from the bulk load.
-4. When `savedConfig` finally arrives, some forms (like ServiceAgreement) have already set `hasInitializedRef = true`, so they ignore the saved data entirely.
+## 2. Lease fields read from the deal
 
-### retailPrice Override (Quote)
-The Quote init effect always sets `retailPrice = deal.amount`, even when `savedConfig` exists. If the user edited line item prices or manually adjusted the retail price, those edits are lost on every reload.
+The deal already carries QuoteIQ's values (provider, term in months, lease type,
+payment, locked-for-term) and they already reach the app — they are just not used to
+fill the form. Pre-fill the lease section on the Quote tab from them:
 
-### No hasInitializedRef Guard (Quote)
-Unlike other forms, the Quote init `useEffect` does NOT use `hasInitializedRef` as a guard. It re-runs on every `deal`, `company`, `dealOwner`, `lineItems`, or `savedConfig` change, repeatedly overwriting form state.
+| Deal value | Fills |
+| --- | --- |
+| lease_provider | Leasing company |
+| lease_term_months | Selected term |
+| lease_type | Lease program (FMV / $1 buyout / rental, matched by wording) |
+| lease_payment | Payment for that term |
+| locked_for_term | New "Locked for term" field in the lease section |
 
----
+Rules:
+- Every pre-filled value stays fully editable — a manual edit always wins and is never
+  overwritten afterwards.
+- Each auto-filled field gets the existing green "From HubSpot" marker, plus a small
+  reset control to go back to the deal's value after an edit.
+- Saved work wins over the deal on reopen, matching how the rest of the app behaves.
+- A blank or missing value on the deal changes nothing — the field keeps its current
+  behaviour (rate-sheet lookup, defaults) rather than going blank or zero.
 
-## Solution
+## 3. Staples options
 
-### Step 1: Add `configsLoaded` Gate in DocumentHub
+On the Service Agreement terms:
+- Rename the "Paper & Staples" choice to "Staples".
+- Exactly two options: **Excludes staples** (default for new agreements) and
+  **Includes staples**. All paper wording is removed.
+- Remove the separate Drum & Toner selector from the form.
+- Update the admin label list so the renamed field shows correctly there too.
 
-Add a `configsLoaded` boolean state that starts as `false` and becomes `true` only after the `loadAllConfigs` call completes (whether it finds data or not). Gate the rendering of all form content on BOTH `!loading` (HubSpot done) AND `configsLoaded` (Supabase done). While either is pending, show a loading skeleton.
+Existing saved agreements that hold an old paper value keep displaying it until someone
+picks one of the two new options.
 
-```text
-// New state
-const [configsLoaded, setConfigsLoaded] = useState(false);
+## Technical notes
 
-// In loadAllConfigs effect:
-// Set to true in finally block, even if there's an error
-// This ensures forms never render before we know whether saved data exists
-
-// In the render:
-if (loading || !configsLoaded) {
-  return <LoadingSkeleton />;
-}
-```
-
-### Step 2: Fix QuoteForm retailPrice Logic
-
-Change QuoteForm init effect (lines 319-394):
-- Add `hasInitializedRef` guard (same pattern as other forms)
-- When `savedConfig` exists: use `savedConfig.retailPrice` instead of `deal.amount`
-- The existing line-item recalculation effect (lines 396-403) will still reactively update `retailPrice` when the user edits line items
-
-```text
-// Current (broken):
-const retailPriceToUse = hubspotData.retailPrice; // Always deal.amount
-
-// Fixed:
-const retailPriceToUse = savedConfig.retailPrice || hubspotData.retailPrice;
-```
-
-### Step 3: Add hasInitializedRef Guard to QuoteForm
-
-Add the same `if (hasInitializedRef.current) return;` guard at the top of the Quote init effect, matching the pattern used by ServiceAgreement, LeaseReturn, and other forms.
-
-### Step 4: Add Autosave Status Indicator
-
-Add a small "Saving..." / "Saved" text indicator near each save button. This uses existing auto-save infrastructure -- just surface the state visually.
-
----
-
-## Technical Details
-
-### DocumentHub.tsx Changes
-
-```text
-New state variable:
-  const [configsLoaded, setConfigsLoaded] = useState(false);
-
-In loadAllConfigs effect (around line 468):
-  - Wrap the async function body in try/finally
-  - Add setConfigsLoaded(true) in the finally block
-  - Also set configsLoaded = true if the early return fires (no portalId/dealId)
-
-In the loading check (around line 2690):
-  Change: if (loading) { return <Loader /> }
-  To:     if (loading || !configsLoaded) { return <Loader /> }
-
-Add save status indicator near each Save button:
-  - Show "Saving..." text while auto-save is in progress
-  - Show "Saved" text briefly after successful save
-  - Uses existing hasUnsavedChanges / lastSavedData state
-```
-
-### QuoteForm.tsx Changes
-
-```text
-Init effect (lines 319-394):
-  1. Add guard: if (hasInitializedRef.current) return;
-  2. Change retailPrice logic:
-     - If savedConfig exists: retailPriceToUse = savedConfig.retailPrice || hubspotData.retailPrice
-     - If no savedConfig: retailPriceToUse = hubspotData.retailPrice (current behavior)
-  3. Set hasInitializedRef.current = true at end of both branches
-```
-
-### ServiceAgreementForm.tsx -- No Changes Needed
-
-The existing `hasInitializedRef` guard is correct. The race condition fix in DocumentHub (gating on `configsLoaded`) ensures `savedConfig` is available before the form mounts, so the guard works as intended.
-
-### Other Forms -- No Changes Needed
-
-LeaseReturnForm, CommissionForm, InterterritorialForm, FMVLeaseForm, LoiForm, NewCustomerForm, RelocationForm, RemovalForm, InstallationForm, LeaseFundingForm all use `hasInitializedRef` or receive data directly via props from DocumentHub. The `configsLoaded` gate in DocumentHub fixes all of them simultaneously.
-
----
-
-## Files Modified
-
-| File | Changes |
-|------|---------|
-| `src/pages/DocumentHub.tsx` | Add `configsLoaded` state, set it in `loadAllConfigs`, gate form rendering, add save status indicators |
-| `src/components/quote/QuoteForm.tsx` | Add `hasInitializedRef` guard to init effect, fix `retailPrice` to use saved value when available |
-
-## What This Does NOT Change
-
-- Save/auto-save logic (already working correctly)
-- Edge functions (no changes)
-- Database schema (no changes)
-- Other form components (fixed by the DocumentHub gate)
-
-## Why This Works
-
-By preventing forms from mounting until both data sources are ready, we eliminate the race condition at the architectural level. Every form's init effect will see the correct `savedConfig` on its first (and only) run. The `hasInitializedRef` guard then prevents re-initialization if props change later.
-
+- Files: `src/components/quote/QuoteForm.tsx`, `src/components/service-agreement/ServiceAgreementForm.tsx`
+  and `ServiceAgreementPreview.tsx`, `src/lib/formCustomization.ts`, and the Service
+  Agreement defaults in `src/pages/DocumentHub.tsx`.
+- Service Agreement form data gains `serials: Record<lineItemId, string>`; the preview
+  receives it and resolves serial as override → line item → installation config.
+- Lease pre-fill reads `deal.quoteiq` (already returned by `hubspot-get-deal` for both
+  deal and project anchors); no backend change, no migration, no function redeploy.
+- Pre-fill is applied once during the quote form's existing initialization, alongside
+  saved-config merging, and tracked per field so later edits are not clobbered.
+- Document templates are untouched.
