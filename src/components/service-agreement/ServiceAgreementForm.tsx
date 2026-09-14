@@ -13,6 +13,24 @@ import { CalendarIcon } from "lucide-react";
 import { format } from "date-fns";
 import { cn } from "@/lib/utils";
 
+/** The only two supply options this dealer offers. Paper is never provided. */
+export const STAPLES_OPTIONS = ["Excludes staples", "Includes staples"];
+export const STAPLES_DEFAULT = "Excludes staples";
+
+/**
+ * Serial shown for an equipment row: what was typed on this agreement wins,
+ * then the serial carried on the quote line, then the installation capture.
+ */
+export function resolveServiceAgreementSerial(
+  serials: Record<string, string> | undefined,
+  lineItemId: string,
+  lineItemSerial?: string,
+): string {
+  const override = (serials?.[lineItemId] ?? "").trim();
+  if (override) return override;
+  return (lineItemSerial ?? "").trim();
+}
+
 export interface ServiceAgreementFormData {
   overrideTerms?: boolean;
   overrideTermsText?: string;
@@ -44,7 +62,11 @@ export interface ServiceAgreementFormData {
   // Terms
   maintenanceType: string;
   paperStaples: string;
+  /** Retained so previously saved agreements keep their value; no longer offered. */
   drumToner: string;
+
+  /** Serial typed on this agreement, keyed by line item id. Overrides the quote. */
+  serials?: Record<string, string>;
   effectiveDate: Date | null;
   contractLengthMonths: string;
   billingPeriod: "monthly" | "quarterly" | "annual";
@@ -368,6 +390,10 @@ export function ServiceAgreementForm({
     onChange({ ...formData, [field]: value });
   };
 
+  const updateSerial = (lineItemId: string, value: string) => {
+    onChange({ ...formData, serials: { ...(formData.serials || {}), [lineItemId]: value } });
+  };
+
   const updateRate = (lineItemId: string, field: string, value: string) => {
     const currentRate = formData.rates[lineItemId] || {
       includesBW: "",
@@ -632,27 +658,22 @@ export function ServiceAgreementForm({
             </Select>
           </div>
           <div className="space-y-2">
-            <Label htmlFor="paperStaples">Paper & Staples</Label>
-            <Select value={formData.paperStaples} onValueChange={(value) => updateField("paperStaples", value)}>
+            <Label htmlFor="paperStaples">Staples</Label>
+            <Select
+              value={formData.paperStaples || STAPLES_DEFAULT}
+              onValueChange={(value) => updateField("paperStaples", value)}
+            >
               <SelectTrigger>
                 <SelectValue placeholder="Select option" />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="Excludes Paper">Excludes Paper</SelectItem>
-                <SelectItem value="Excludes Paper & Staples">Excludes Paper & Staples</SelectItem>
-              </SelectContent>
-            </Select>
-          </div>
-          <div className="space-y-2">
-            <Label htmlFor="drumToner">Drum & Toner</Label>
-            <Select value={formData.drumToner} onValueChange={(value) => updateField("drumToner", value)}>
-              <SelectTrigger>
-                <SelectValue placeholder="Select option" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="Drum & Toner Included MDT">Drum & Toner Included MDT</SelectItem>
-                <SelectItem value="Drum Included MD">Drum Included MD</SelectItem>
-                <SelectItem value="Drum Excluded MA">Drum Excluded MA</SelectItem>
+                {/* A previously saved paper-era value stays selectable until the
+                    user picks one of the two current options. */}
+                {formData.paperStaples && !STAPLES_OPTIONS.includes(formData.paperStaples) && (
+                  <SelectItem value={formData.paperStaples}>{formData.paperStaples}</SelectItem>
+                )}
+                <SelectItem value="Excludes staples">Excludes staples</SelectItem>
+                <SelectItem value="Includes staples">Includes staples</SelectItem>
               </SelectContent>
             </Select>
           </div>
@@ -718,7 +739,14 @@ export function ServiceAgreementForm({
                     <td className="px-4 py-2">{item.quantity}</td>
                     <td className="px-4 py-2">{item.name}</td>
                     <td className="px-4 py-2">{item.description || "-"}</td>
-                    <td className="px-4 py-2">{item.serial || "-"}</td>
+                    <td className="px-4 py-2">
+                      <Input
+                        className="h-9 w-40 text-sm"
+                        value={resolveServiceAgreementSerial(formData.serials, item.id, item.serial)}
+                        placeholder="Serial"
+                        onChange={(e) => updateSerial(item.id, e.target.value)}
+                      />
+                    </td>
                   </tr>
                 ))}
               </tbody>

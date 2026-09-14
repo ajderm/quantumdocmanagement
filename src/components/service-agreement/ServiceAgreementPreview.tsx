@@ -1,6 +1,10 @@
 import { forwardRef } from "react";
 import { format } from "date-fns";
-import { ServiceAgreementFormData } from "./ServiceAgreementForm";
+import {
+  ServiceAgreementFormData,
+  STAPLES_DEFAULT,
+  resolveServiceAgreementSerial,
+} from "./ServiceAgreementForm";
 
 import { buildDocumentFontCss } from "@/lib/documentFontSizes";
 interface LineItem {
@@ -213,12 +217,11 @@ export const ServiceAgreementPreview = forwardRef<HTMLDivElement, ServiceAgreeme
           <table className="w-full border-collapse text-[12px]">
             <thead>
               <tr className="border-b-2 border-black">
-                <th colSpan={5} className="text-left py-1 pb-2 font-bold">TERMS</th>
+                <th colSpan={4} className="text-left py-1 pb-2 font-bold">TERMS</th>
               </tr>
               <tr className="border-b border-gray-300">
                 <th className="py-1 text-center font-semibold"><span className="underline">Maintenance Type</span></th>
-                <th className="py-1 text-center font-semibold"><span className="underline">Paper & Staples</span></th>
-                <th className="py-1 text-center font-semibold"><span className="underline">Drum & Toner</span></th>
+                <th className="py-1 text-center font-semibold"><span className="underline">Staples</span></th>
                 <th className="py-1 text-center font-semibold"><span className="underline">Effective Date</span></th>
                 <th className="py-1 text-center font-semibold"><span className="underline">Contract Length</span></th>
               </tr>
@@ -226,8 +229,7 @@ export const ServiceAgreementPreview = forwardRef<HTMLDivElement, ServiceAgreeme
             <tbody>
               <tr className="border-b border-gray-300">
                 <td className="py-1 text-center">{formData.maintenanceType || '-'}</td>
-                <td className="py-1 text-center">{formData.paperStaples || '-'}</td>
-                <td className="py-1 text-center">{formData.drumToner || '-'}</td>
+                <td className="py-1 text-center">{formData.paperStaples || STAPLES_DEFAULT}</td>
                 <td className="py-1 text-center">{formData.effectiveDate ? format(formData.effectiveDate, 'MM/dd/yyyy') : '-'}</td>
                 <td className="py-1 text-center">{formData.contractLengthMonths ? `${formData.contractLengthMonths} Months` : '-'}</td>
               </tr>
@@ -260,7 +262,9 @@ export const ServiceAgreementPreview = forwardRef<HTMLDivElement, ServiceAgreeme
                     <td className="py-1">{item.quantity}</td>
                     <td className="py-1">{item.name}</td>
                     <td className="py-1">{item.description || '-'}</td>
-                    <td className="py-1">{item.serial || '-'}</td>
+                    <td className="py-1">
+                      {resolveServiceAgreementSerial(formData.serials, item.id, item.serial) || '-'}
+                    </td>
                   </tr>
                 ))
               )}

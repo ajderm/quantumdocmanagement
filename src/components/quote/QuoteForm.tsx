@@ -33,7 +33,7 @@ import { ProductSearchModal, HubSpotProduct } from "./ProductSearchModal";
 import { getLabel, isSectionVisible, type FormCustomizationConfig } from "@/lib/formCustomization";
 import { todayLocalDateString } from "@/lib/dateUtils";
 import { priceFromCostMarkup, markupFromCostPrice, paymentFromRate, rateFromPayment } from "@/lib/pricing";
-import { SectionCard, FieldGrid, Field, EmptyState, DealTermsOverride } from "@/components/shared";
+import { SectionCard, FieldGrid, Field, EmptyState, DealTermsOverride, FromHubSpotPill } from "@/components/shared";
 
 export interface QuoteLineItem {
   id: string;
@@ -96,6 +96,8 @@ export interface QuoteFormData {
   priceDisplay: "both" | "purchase_only" | "lease_only";
   equipmentDisplay: "itemized" | "total_only";
   leasingPriceType: "without_buyout" | "with_buyout";
+  /** QuoteIQ's `locked_for_term` from the deal; editable like everything else. */
+  lockedForTerm?: string;
   leaseProgram: "fmv" | "dollar_buyout" | "rental";
   // Special Pricing Tier (deal-level)
   specialPricingTier: string;
@@ -177,6 +179,33 @@ const parseCurrency = (value: string): number => {
 // Render a rate factor compactly (e.g. 0.02190 -> "0.0219"), blank when unset.
 const formatRateFactor = (r: number): string =>
   r > 0 ? r.toFixed(5).replace(/0+$/, "").replace(/\.$/, "") : "";
+
+/**
+ * QuoteIQ writes a free-text lease type on the deal; the form works in three
+ * programs. Unrecognised wording leaves the rep's own selection alone.
+ */
+function leaseProgramFromType(raw: string | null): "fmv" | "dollar_buyout" | "rental" | null {
+  const v = (raw ?? "").toLowerCase();
+  if (!v) return null;
+  if (v.includes("rent")) return "rental";
+  if (v.includes("fmv") || v.includes("fair market")) return "fmv";
+  if (v.includes("$1") || v.includes("buyout") || v.includes("dollar") || v.includes("out")) return "dollar_buyout";
+  return null;
+}
+
+/** Match the deal's funder name against the portal's configured list. */
+function matchLeasingCompany(provider: string | null, companies: string[]): string | null {
+  const want = (provider ?? "").trim().toLowerCase();
+  if (!want) return null;
+  return (
+    companies.find((c) => c.trim().toLowerCase() === want) ||
+    companies.find((c) => {
+      const have = c.trim().toLowerCase();
+      return have.includes(want) || want.includes(have);
+    }) ||
+    null
+  );
+}
 
 const DEFAULT_RATE_FACTORS: Record<number, number> = {
   12: 0.088,
@@ -324,8 +353,11 @@ export function QuoteForm({
         // Start on the portal's primary lender when it offers one, else the
         // first available. Refs avoid a stale closure.
         if (!leasingCompanyIdRef.current && !savedConfigRef.current?.leasingCompanyId && companies.length > 0) {
+          // The funder on the deal wins over the portal default: it is the one
+          // the customer was actually quoted with.
+          const fromDeal = matchLeasingCompany(dealLeaseRef.current?.provider ?? null, companies);
           const preferred = (primaryLenderRef.current ?? "").trim();
-          const initial = preferred && companies.includes(preferred) ? preferred : companies[0];
+          const initial = fromDeal || (preferred && companies.includes(preferred) ? preferred : companies[0]);
           setFormData((prev) => ({ ...prev, leasingCompanyId: initial }));
         }
       } catch (err) {
@@ -403,8 +435,38 @@ export function QuoteForm({
     }));
   };
 
+  // ---- Lease values written to the deal by QuoteIQ -------------------------
+  // These used to be re-keyed by hand. They pre-fill the lease section; every
+  // one of them stays editable, and a manual edit is never overwritten.
+  const dealLease = useMemo(() => {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const q: any = deal?.quoteiq ?? {};
+    const text = (v: unknown) => (typeof v === "string" && v.trim() !== "" ? v.trim() : null);
+    const positive = (v: unknown) => {
+      const n = Number(v);
+      return Number.isFinite(n) && n > 0 ? n : null;
+    };
+    const term = positive(q.termMonths);
+    return {
+      provider: text(q.provider),
+      termMonths: term !== null ? Math.round(term) : null,
+      program: leaseProgramFromType(text(q.type)),
+      payment: positive(q.payment),
+      lockedForTerm: text(q.lockedForTerm),
+    };
+  }, [deal?.quoteiq]);
+
+  const dealLeaseRef = useRef(dealLease);
+  dealLeaseRef.current = dealLease;
+
+  /** The deal's provider matched against the portal's configured funder list. */
+  const matchedLeaseProvider = useMemo(
+    () => matchLeasingCompany(dealLease.provider, leasingCompanies),
+    [dealLease.provider, leasingCompanies],
+  );
+
   // Get available terms for selected company and program
-  const availableTerms = useMemo(() => {
+  const availableTermsBase = useMemo(() => {
     // Rental is always month-to-month - offer common rental terms
     if (formData.leaseProgram === "rental") {
       return [1, 3, 6, 12, 24, 36];
@@ -421,6 +483,87 @@ export function QuoteForm({
 
     return [...new Set(terms)].sort((a, b) => a - b);
   }, [rateFactors, formData.leasingCompanyId, formData.leaseProgram, hasRateSheet]);
+
+  // The term the customer was actually quoted is offered even when the rate
+  // sheet doesn't carry it, so reading it off the deal can never drop it.
+  const availableTerms = useMemo(() => {
+    const quoted = dealLease.termMonths;
+    if (!quoted || availableTermsBase.includes(quoted)) return availableTermsBase;
+    return [...availableTermsBase, quoted].sort((a, b) => a - b);
+  }, [availableTermsBase, dealLease.termMonths]);
+
+  // Pre-fill the lease section from the deal, once. Anything the rep has
+  // already saved wins, and every value stays editable afterwards.
+  const leaseAutofillRef = useRef(false);
+  useEffect(() => {
+    if (leaseAutofillRef.current) return;
+    const hasAnything =
+      dealLease.provider || dealLease.termMonths || dealLease.program || dealLease.payment || dealLease.lockedForTerm;
+    if (!hasAnything) return;
+    // Wait for the funder list before matching a provider against it.
+    if (dealLease.provider && leasingCompanies.length === 0) return;
+
+    leaseAutofillRef.current = true;
+    const saved = savedConfigRef.current;
+
+    setFormData((prev) => {
+      const next = { ...prev };
+      if (matchedLeaseProvider && !saved?.leasingCompanyId) next.leasingCompanyId = matchedLeaseProvider;
+      if (dealLease.program && !saved?.leaseProgram) next.leaseProgram = dealLease.program;
+      if (dealLease.termMonths && !(saved?.selectedTerms?.length ?? 0)) next.selectedTerms = [dealLease.termMonths];
+      if (dealLease.lockedForTerm && !saved?.lockedForTerm) next.lockedForTerm = dealLease.lockedForTerm;
+      const term = dealLease.termMonths;
+      if (dealLease.payment && term && !saved?.paymentOverrides?.[term]) {
+        next.paymentOverrides = { ...prev.paymentOverrides, [term]: dealLease.payment };
+      }
+      return next;
+    });
+
+    const term = dealLease.termMonths;
+    if (dealLease.payment && term && !saved?.paymentOverrides?.[term]) {
+      setPaymentOverrideTexts((prev) => ({ ...prev, [term]: String(dealLease.payment) }));
+    }
+  }, [dealLease, matchedLeaseProvider, leasingCompanies]);
+
+  /** Put a field back to the value QuoteIQ wrote on the deal. */
+  const resetLeaseFieldToDeal = (field: "leasingCompanyId" | "leaseProgram" | "term" | "payment" | "lockedForTerm") => {
+    setFormData((prev) => {
+      const next = { ...prev };
+      if (field === "leasingCompanyId" && matchedLeaseProvider) next.leasingCompanyId = matchedLeaseProvider;
+      if (field === "leaseProgram" && dealLease.program) next.leaseProgram = dealLease.program;
+      if (field === "term" && dealLease.termMonths) next.selectedTerms = [dealLease.termMonths];
+      if (field === "lockedForTerm") next.lockedForTerm = dealLease.lockedForTerm ?? "";
+      if (field === "payment" && dealLease.payment && dealLease.termMonths) {
+        next.paymentOverrides = { ...prev.paymentOverrides, [dealLease.termMonths]: dealLease.payment };
+      }
+      return next;
+    });
+    if (field === "payment" && dealLease.payment && dealLease.termMonths) {
+      setPaymentOverrideTexts((prev) => ({ ...prev, [dealLease.termMonths!]: String(dealLease.payment) }));
+    }
+  };
+
+  /** Renders the green marker plus a reset control for a deal-sourced field. */
+  const dealFieldBadge = (
+    present: boolean,
+    matches: boolean,
+    field: "leasingCompanyId" | "leaseProgram" | "term" | "payment" | "lockedForTerm",
+  ) =>
+    present ? (
+      <span className="inline-flex items-center gap-1">
+        <FromHubSpotPill label="From deal" />
+        {!matches && (
+          <button
+            type="button"
+            onClick={() => resetLeaseFieldToDeal(field)}
+            className="text-[10px] underline text-muted-foreground hover:text-foreground"
+            title="Use the value from the deal"
+          >
+            reset
+          </button>
+        )}
+      </span>
+    ) : null;
 
   // Check if the selected company has any rates for the selected program
   const hasRatesForSelection = useMemo(() => {
@@ -1264,6 +1407,14 @@ export function QuoteForm({
                       placeholder="Pricing Source"
                     />
                   </Field>
+                  <Field label="Serial #" hint="Prints on the agreement">
+                    <Input
+                      value={item.serial || ""}
+                      onChange={(e) => updateLineItem(idx, "serial", e.target.value)}
+                      className="h-9 text-sm"
+                      placeholder="Serial number"
+                    />
+                  </Field>
                 </FieldGrid>
                 <Field label="Description">
                   <Input
@@ -1711,6 +1862,11 @@ export function QuoteForm({
                       )}
                     </SelectContent>
                   </Select>
+                  {dealFieldBadge(
+                    Boolean(matchedLeaseProvider),
+                    formData.leasingCompanyId === matchedLeaseProvider,
+                    "leasingCompanyId",
+                  )}
                 </Field>
                 <Field label="Lease Program">
                   <Select
@@ -1726,6 +1882,11 @@ export function QuoteForm({
                       <SelectItem value="rental">Rental (Month-to-Month)</SelectItem>
                     </SelectContent>
                   </Select>
+                  {dealFieldBadge(
+                    Boolean(dealLease.program),
+                    formData.leaseProgram === dealLease.program,
+                    "leaseProgram",
+                  )}
                 </Field>
                 <Field label="Leasing Price">
                   <Select
@@ -1749,6 +1910,19 @@ export function QuoteForm({
                     />
                     <span className="text-xs text-muted-foreground">Show "Financing provided by"</span>
                   </label>
+                </Field>
+                <Field label="Locked for term" hint="From the deal; edit if it differs">
+                  <Input
+                    value={formData.lockedForTerm ?? ""}
+                    onChange={(e) => updateField("lockedForTerm", e.target.value)}
+                    className="h-9 text-sm"
+                    placeholder="e.g. Yes"
+                  />
+                  {dealFieldBadge(
+                    Boolean(dealLease.lockedForTerm),
+                    (formData.lockedForTerm ?? "") === (dealLease.lockedForTerm ?? ""),
+                    "lockedForTerm",
+                  )}
                 </Field>
               </FieldGrid>
             </div>
@@ -1820,7 +1994,25 @@ export function QuoteForm({
                         {t} mo
                       </Button>
                     ))}
+                    {dealFieldBadge(
+                      Boolean(dealLease.termMonths),
+                      formData.selectedTerms.length === 1 && formData.selectedTerms[0] === dealLease.termMonths,
+                      "term",
+                    )}
                   </div>
+                  {dealLease.payment !== null && dealLease.termMonths !== null && (
+                    <p className="mt-2 text-xs text-muted-foreground">
+                      Deal payment for {dealLease.termMonths} months: $
+                      {dealLease.payment.toLocaleString()}/mo{" "}
+                      <button
+                        type="button"
+                        onClick={() => resetLeaseFieldToDeal("payment")}
+                        className="underline hover:text-foreground"
+                      >
+                        use this
+                      </button>
+                    </p>
+                  )}
                   <div className="mt-3 space-y-2">
                     {formData.selectedTerms.map((t) => {
                       const calculatedPayment = calculateLeasePayment(t);
