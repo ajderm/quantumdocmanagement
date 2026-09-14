@@ -758,7 +758,13 @@ Deno.serve(async (req) => {
     // Build dynamic property lists from mappings
     const companyPropsNeeded = new Set(['name', 'address', 'address2', 'city', 'state', 'zip', 'phone', 'domain', 'customer_number',
       'street_address__del_', 'street_address_line_2__del_', 'city__del_', 'state__del_', 'postal_code__del_', 'zip__del_', 'zip_code__del_',
-      'street_address__ap_', 'street_address_line_2__ap_', 'city__ap_', 'state__ap_', 'zip_code__ap_']);
+      'street_address__ap_', 'street_address_line_2__ap_', 'city__ap_', 'state__ap_', 'zip_code__ap_',
+      // Printed on the lease paperwork. `account_number` is the one shown at
+      // the top of the company record and already carries the trimmed number
+      // plus department; the trimmed pair is kept as a fallback for portals
+      // where the headline field is empty.
+      'account_number', 'trimmed_account_number___department', 'trimmed_account_number',
+      'federal_ein']);
     const contactPropsNeeded = new Set(['firstname', 'lastname', 'email', 'phone', 'jobtitle']);
     const dealPropsNeeded = new Set([
       'dealname', 'amount', 'dealstage', 'pipeline', 'closedate', 'hubspot_owner_id', 'hs_object_id',
