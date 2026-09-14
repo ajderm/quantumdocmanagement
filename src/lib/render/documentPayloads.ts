@@ -176,7 +176,10 @@ export function newCustomerRenderPayload(
       state: clean(form.billingState) ?? form.hqState,
       zip: clean(form.billingZip) ?? form.hqZip,
     }),
-    contact: { ship_to: clean(ctx.shipToContact) ?? clean(form.principalName) },
+    contact: {
+      ship_to: clean(ctx.shipToContact) ?? clean(form.principalName),
+      ...contactCrmFields(ctx.crm),
+    },
     lease: { partner: null, term: null, rate_factor: null, payment: null, type: null },
     amounts: { taxable: 0, non_taxable: null, total: 0 },
     line_items: [],
@@ -332,6 +335,7 @@ export function installationRenderPayload(
       name: clean(form.salesRep) ?? clean(ctx.repName),
       phone: clean(ctx.repPhone),
       email: clean(ctx.repEmail),
+      code: repCodeField(ctx.crm),
     },
     lease: { partner: null, term: null, rate_factor: null, payment: null, type: null },
     // An installation report records what was delivered, not what it cost.
