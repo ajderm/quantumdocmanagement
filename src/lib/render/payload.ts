@@ -38,8 +38,23 @@ export interface RenderPayload {
     // carried alongside the joined form rather than only the joined form.
     street: string | null; city: string | null; state: string | null;
     zip: string | null; county: string | null;
+    /** Account number as shown at the top of the company record. */
+    account_number: string | null;
+    /** Federal EIN, a private company property. Blank when unset. */
+    federal_ein: string | null;
   };
-  contact: { ship_to: string | null };
+  /**
+   * The named people on the deal.
+   *
+   * `ship_to` is the shipping contact; meter and signer come from the deal's
+   * own contact associations, told apart by association label, because the
+   * person who reads the meters is rarely the person who signs.
+   */
+  contact: {
+    ship_to: string | null;
+    meter_name: string | null; meter_phone: string | null; meter_email: string | null;
+    signer_name: string | null; signer_phone: string | null; signer_email: string | null;
+  };
   /**
    * What this portal calls the document.
    *
@@ -54,7 +69,11 @@ export interface RenderPayload {
     zip: string | null; county: string | null;
   };
   deal: { name: string | null; quote_number: string | null; close_date: string | null };
-  rep: { name: string | null; phone: string | null; email: string | null };
+  rep: {
+    name: string | null; phone: string | null; email: string | null;
+    /** Four-digit salesperson code. Null when the deal has none. */
+    code: string | null;
+  };
   /**
    * Lease terms as the funder quoted them, not as this app derives them.
    *
@@ -261,6 +280,65 @@ export interface QuoteFormLike {
   }[];
 }
 
+/** A person as HubSpot hands them back. */
+export interface CrmContactLike {
+  firstName?: string | null; lastName?: string | null;
+  email?: string | null; phone?: string | null;
+}
+
+/**
+ * Values that come straight off the CRM records rather than off a form.
+ *
+ * Gathered once where the HubSpot data lives and passed into every builder,
+ * so a template that prints the account number gets the same value whichever
+ * document it is on.
+ */
+export interface CrmExtras {
+  companyAccountNumber?: string | null;
+  companyFederalEin?: string | null;
+  repCode?: string | null;
+  meterContact?: CrmContactLike | null;
+  signerContact?: CrmContactLike | null;
+}
+
+const blankToNull = (value: unknown): string | null => {
+  const text = value == null ? '' : String(value).trim();
+  return text || null;
+};
+
+const contactName = (c?: CrmContactLike | null): string | null =>
+  c ? blankToNull(`${c.firstName ?? ''} ${c.lastName ?? ''}`) : null;
+
+/** The account-number / EIN pair every company block carries. */
+export function companyCrmFields(crm?: CrmExtras): {
+  account_number: string | null; federal_ein: string | null;
+} {
+  return {
+    account_number: blankToNull(crm?.companyAccountNumber),
+    federal_ein: blankToNull(crm?.companyFederalEin),
+  };
+}
+
+/** The meter and signer columns of the contact block. Unset renders blank. */
+export function contactCrmFields(crm?: CrmExtras): {
+  meter_name: string | null; meter_phone: string | null; meter_email: string | null;
+  signer_name: string | null; signer_phone: string | null; signer_email: string | null;
+} {
+  return {
+    meter_name: contactName(crm?.meterContact),
+    meter_phone: blankToNull(crm?.meterContact?.phone),
+    meter_email: blankToNull(crm?.meterContact?.email),
+    signer_name: contactName(crm?.signerContact),
+    signer_phone: blankToNull(crm?.signerContact?.phone),
+    signer_email: blankToNull(crm?.signerContact?.email),
+  };
+}
+
+/** The rep's salesperson code. */
+export function repCodeField(crm?: CrmExtras): string | null {
+  return blankToNull(crm?.repCode);
+}
+
 export interface RenderContext {
   dealerInfo?: {
     companyName?: string; address?: string; phone?: string; website?: string;
@@ -286,6 +364,8 @@ export interface RenderContext {
   termsText?: string | null;
   /** Injected so a document's date is deterministic in tests. */
   today: string;
+  /** Values read straight off the CRM records. */
+  crm?: CrmExtras;
 }
 
 export function quoteRenderPayload(form: QuoteFormLike, ctx: RenderContext): RenderPayload {
@@ -344,8 +424,12 @@ export function quoteRenderPayload(form: QuoteFormLike, ctx: RenderContext): Ren
       // Not captured by the quote form today. Carried so the template can
       // reference it, and it simply drops until the field exists.
       county: null,
+      ...companyCrmFields(ctx.crm),
     },
-    contact: { ship_to: ctx.shipToContact?.trim() || null },
+    contact: {
+      ship_to: ctx.shipToContact?.trim() || null,
+      ...contactCrmFields(ctx.crm),
+    },
     document: { title: ctx.documentTitle?.trim() || null },
     location: {
       street: [form.address, form.address2].map((x) => (x ?? '').trim())
@@ -367,6 +451,7 @@ export function quoteRenderPayload(form: QuoteFormLike, ctx: RenderContext): Ren
       name: (form.preparedBy ?? '').trim() || null,
       phone: (form.preparedByPhone ?? '').trim() || null,
       email: (form.preparedByEmail ?? '').trim() || null,
+      code: repCodeField(ctx.crm),
     },
     lease: {
       partner: ctx.leasingPartnerName?.trim() || null,

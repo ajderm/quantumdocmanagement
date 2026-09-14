@@ -18,6 +18,17 @@ interface LabeledContacts {
 // Company contacts keyed by association label
 type CompanyContacts = Record<string, LabeledContact>;
 
+/**
+ * Deal→contact associations resolved by label.
+ *
+ * The meter reader and the signer are two different people on Eakes' lease
+ * paperwork, and only the association label tells them apart.
+ */
+interface DealContacts {
+  meter: LabeledContact | null;
+  signer: LabeledContact | null;
+}
+
 interface RawProperties {
   company: Record<string, any>;
   deal: Record<string, any>;
@@ -64,6 +75,7 @@ type HubSpotContextType = {
   dealOwner: any;
   labeledContacts: LabeledContacts | null;
   companyContacts: CompanyContacts | null;
+  dealContacts: DealContacts | null;
   properties: RawProperties | null;
   loading: boolean;
   isEmbedded: boolean;
@@ -107,6 +119,7 @@ export function HubSpotProvider({ children }: { children: ReactNode }) {
   const [dealOwner, setDealOwner] = useState<any>(null);
   const [labeledContacts, setLabeledContacts] = useState<LabeledContacts | null>(null);
   const [companyContacts, setCompanyContacts] = useState<CompanyContacts | null>(null);
+  const [dealContacts, setDealContacts] = useState<DealContacts | null>(null);
   const [properties, setProperties] = useState<RawProperties | null>(null);
 
   const [loading, setLoading] = useState(true);
@@ -147,6 +160,7 @@ export function HubSpotProvider({ children }: { children: ReactNode }) {
         setDealOwner(null);
         setLabeledContacts(null);
         setCompanyContacts(null);
+        setDealContacts(null);
         setProperties(null);
         setError(null);
       }
@@ -201,6 +215,7 @@ export function HubSpotProvider({ children }: { children: ReactNode }) {
         if (data?.dealOwner) setDealOwner(data.dealOwner);
         if (data?.labeledContacts) setLabeledContacts(data.labeledContacts);
         if (data?.companyContacts) setCompanyContacts(data.companyContacts);
+        if (data?.dealContacts) setDealContacts(data.dealContacts);
         if (data?.properties) setProperties(data.properties);
 
         setError(null);
@@ -239,6 +254,7 @@ export function HubSpotProvider({ children }: { children: ReactNode }) {
         dealOwner,
         labeledContacts,
         companyContacts,
+        dealContacts,
         properties,
         loading,
         isEmbedded,

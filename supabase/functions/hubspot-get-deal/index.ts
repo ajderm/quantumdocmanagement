@@ -470,6 +470,13 @@ async function fetchCompanyForAnchor(
         phone: companyResponse.properties.phone,
         domain: companyResponse.properties.domain,
         customerNumber: companyResponse.properties.customer_number || '',
+        // Printed on the lease. Absent stays absent -- an empty string here
+        // renders as a blank field rather than a fabricated account number.
+        accountNumber: companyResponse.properties.account_number
+          || companyResponse.properties.trimmed_account_number___department
+          || companyResponse.properties.trimmed_account_number
+          || null,
+        federalEin: companyResponse.properties.federal_ein || null,
         // Ship To (Delivery) Address
         deliveryAddress: companyResponse.properties.street_address__del_ || '',
         deliveryAddress2: companyResponse.properties.street_address_line_2__del_ || '',
@@ -497,31 +504,72 @@ async function fetchCompanyForAnchor(
   return { company, labeledContacts, companyContacts };
 }
 
-// Fetch associated contacts (up to 5) for any anchor object.
+/**
+ * The deal→contact associations a document needs by NAME, not by position.
+ *
+ * Two roles are printed on the paperwork: whoever reads the meters, and
+ * whoever signs. They are told apart by their HubSpot association label, so
+ * the v4 endpoint is used — v3 returns ids with no labels at all, which is why
+ * these fields rendered blank. Matching is by keyword so a portal that calls
+ * the label "Meter Contact", "Meter Reading Contact" or "Signer" all resolve.
+ */
+type DealContactRole = 'meter' | 'signer';
+
+function roleForLabel(label: string): DealContactRole | null {
+  const l = label.toLowerCase();
+  if (l.includes('meter')) return 'meter';
+  if (l.includes('signer') || l.includes('signor') || l.includes('signature')
+    || l.includes('signatory')) return 'signer';
+  return null;
+}
+
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
+type DealContacts = Record<DealContactRole, any | null>;
+
+// Fetch associated contacts for any anchor object, keeping the labelled ones.
 async function fetchContactsForAnchor(
   accessToken: string,
   fromObjectType: string,
   fromId: string,
   contactPropsNeeded: Set<string>,
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
-): Promise<any[]> {
+): Promise<{ contacts: any[]; dealContacts: DealContacts }> {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   let contacts: any[] = [];
+  const dealContacts: DealContacts = { meter: null, signer: null };
   try {
+    // v4: the only associations endpoint that carries the labels.
     const contactAssociations = await hubspotRequest(
       accessToken,
-      `/crm/v3/objects/${fromObjectType}/${fromId}/associations/contacts`
+      `/crm/v4/objects/${fromObjectType}/${fromId}/associations/contacts`
     );
 
-    if (contactAssociations.results?.length > 0) {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const results: any[] = contactAssociations.results ?? [];
+    if (results.length > 0) {
+      // Roles are resolved BEFORE any truncation: a deal with more than five
+      // contacts must not silently drop the one the document needs.
+      const roleById = new Map<string, DealContactRole>();
+      for (const result of results) {
+        const id = String(result.toObjectId ?? result.id);
+        for (const assocType of result.associationTypes ?? []) {
+          const role = assocType.label ? roleForLabel(String(assocType.label)) : null;
+          if (role && !roleById.has(id)) roleById.set(id, role);
+        }
+      }
+
+      const allIds = results.map((r) => String(r.toObjectId ?? r.id));
+      const labelledIds = allIds.filter((id) => roleById.has(id));
+      const rest = allIds.filter((id) => !roleById.has(id));
+      // Labelled contacts first, then fill the rest of the budget.
+      const idsToFetch = [...labelledIds, ...rest].slice(0, Math.max(5, labelledIds.length));
+
       // Use dynamic contact properties list
       const contactPropsString = Array.from(contactPropsNeeded).join(',');
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const contactPromises = contactAssociations.results.slice(0, 5).map(async (assoc: any) => {
+      const contactPromises = idsToFetch.map(async (id: string) => {
         const contactResponse = await hubspotRequest(
           accessToken,
-          `/crm/v3/objects/contacts/${assoc.id}?properties=${contactPropsString}`
+          `/crm/v3/objects/contacts/${id}?properties=${contactPropsString}`
         );
         return {
           contactId: contactResponse.id,
@@ -534,12 +582,18 @@ async function fetchContactsForAnchor(
         };
       });
       contacts = await Promise.all(contactPromises);
-      console.log('Contacts fetched:', contacts.length);
+
+      for (const contact of contacts) {
+        const role = roleById.get(String(contact.contactId));
+        if (role && !dealContacts[role]) dealContacts[role] = contact;
+      }
+      console.log('Contacts fetched:', contacts.length,
+        'labelled roles:', Object.keys(dealContacts).filter((k) => dealContacts[k as DealContactRole]));
     }
   } catch (e) {
     console.error('Failed to fetch contacts:', e);
   }
-  return contacts;
+  return { contacts, dealContacts };
 }
 
 // Fetch a deal's line items (with model/cost/etc mapping and product item_number fallback).
@@ -711,7 +765,13 @@ Deno.serve(async (req) => {
     // Build dynamic property lists from mappings
     const companyPropsNeeded = new Set(['name', 'address', 'address2', 'city', 'state', 'zip', 'phone', 'domain', 'customer_number',
       'street_address__del_', 'street_address_line_2__del_', 'city__del_', 'state__del_', 'postal_code__del_', 'zip__del_', 'zip_code__del_',
-      'street_address__ap_', 'street_address_line_2__ap_', 'city__ap_', 'state__ap_', 'zip_code__ap_']);
+      'street_address__ap_', 'street_address_line_2__ap_', 'city__ap_', 'state__ap_', 'zip_code__ap_',
+      // Printed on the lease paperwork. `account_number` is the one shown at
+      // the top of the company record and already carries the trimmed number
+      // plus department; the trimmed pair is kept as a fallback for portals
+      // where the headline field is empty.
+      'account_number', 'trimmed_account_number___department', 'trimmed_account_number',
+      'federal_ein']);
     const contactPropsNeeded = new Set(['firstname', 'lastname', 'email', 'phone', 'jobtitle']);
     const dealPropsNeeded = new Set([
       'dealname', 'amount', 'dealstage', 'pipeline', 'closedate', 'hubspot_owner_id', 'hs_object_id',
@@ -723,6 +783,8 @@ Deno.serve(async (req) => {
       'locked_for_term', 'margin_amount', 'margin_percent',
       // Which paperwork a deal needs is keyed off the contract type.
       'contract_type',
+      // The four-digit salesperson code the paperwork prints beside the rep.
+      'salesperson__', 'lead_routing_salesperson____syncari_',
     ]);
     const lineItemPropsNeeded = new Set(['name', 'description', 'quantity', 'price', 'hs_sku', 'item_number', 'hs_product_id', 'hs_product_type', 'hs_recurring_billing_period', 'hs_cost_of_goods_sold', 'unit_cost', 'condition', 'hs_product_condition', 'dealer', 'manufacturer', 'vendor', 'hs_line_item_dealer', 'color_mono', 'machine_type', 'serial_number', 'equipment_id', 'meter_method', 'meter_reading', 'meter_reading_bw', 'meter_reading_color', 'cpc_mono_rate', 'cpc_color_rate', 'cpc_mono_volume', 'cpc_color_volume', 'cpc_mono_overage_rate', 'cpc_color_overage_rate']);
 
@@ -934,10 +996,12 @@ Deno.serve(async (req) => {
       }
 
       // Contacts: project's own association first, then the deal's
-      let contacts = await fetchContactsForAnchor(accessToken, 'projects', anchorId, contactPropsNeeded);
-      if (contacts.length === 0 && associatedDealResponse) {
-        contacts = await fetchContactsForAnchor(accessToken, 'deals', associatedDealResponse.id, contactPropsNeeded);
+      let contactsResult = await fetchContactsForAnchor(accessToken, 'projects', anchorId, contactPropsNeeded);
+      if (contactsResult.contacts.length === 0 && associatedDealResponse) {
+        contactsResult = await fetchContactsForAnchor(accessToken, 'deals', associatedDealResponse.id, contactPropsNeeded);
       }
+      const contacts = contactsResult.contacts;
+      const dealContacts = contactsResult.dealContacts;
 
       // Line items: only available via the associated deal
       const lineItems = associatedDealResponse
@@ -994,6 +1058,7 @@ Deno.serve(async (req) => {
         lineItems,
         labeledContacts: companyResult.labeledContacts,
         companyContacts: companyResult.companyContacts,
+        dealContacts,
         properties: rawProperties,
         fieldMappings,
         projectInfo,
@@ -1051,7 +1116,7 @@ Deno.serve(async (req) => {
     );
 
     // Fetch associated contacts (from deal)
-    const contacts = await fetchContactsForAnchor(accessToken, 'deals', anchorId, contactPropsNeeded);
+    const { contacts, dealContacts } = await fetchContactsForAnchor(accessToken, 'deals', anchorId, contactPropsNeeded);
 
     // Fetch line items with model field
     const lineItems = await fetchDealLineItems(accessToken, anchorId, lineItemPropsNeeded);
@@ -1071,6 +1136,7 @@ Deno.serve(async (req) => {
       lineItems,
       labeledContacts,
       companyContacts, // Add company contacts keyed by association label
+      dealContacts, // Meter / signer contacts, resolved by association label
       // Include raw properties for custom document field resolution
       properties: rawProperties,
       fieldMappings,

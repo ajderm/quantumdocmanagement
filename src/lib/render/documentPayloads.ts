@@ -12,8 +12,9 @@
  */
 
 import {
-  classifyLine, money, num, taxRateFraction, termsHtml,
-  type RenderPayload, type RenderLineItem,
+  classifyLine, companyCrmFields, contactCrmFields, money, num, repCodeField,
+  taxRateFraction, termsHtml,
+  type CrmExtras, type RenderPayload, type RenderLineItem,
 } from "./payload";
 
 export interface DocRenderContext {
@@ -35,6 +36,8 @@ export interface DocRenderContext {
   shipToContact?: string | null;
   /** Injected so a document's date is deterministic. */
   today: string;
+  /** Values read straight off the CRM records. */
+  crm?: CrmExtras;
 }
 
 const clean = (s: unknown): string | null => {
@@ -75,7 +78,7 @@ const addressBlock = (a: AddressParts) => ({
 /** The parts every document shares, built once. */
 function shared(ctx: DocRenderContext) {
   return {
-    contact: { ship_to: clean(ctx.shipToContact) },
+    contact: { ship_to: clean(ctx.shipToContact), ...contactCrmFields(ctx.crm) },
     document: { title: clean(ctx.documentTitle) },
     deal: {
       name: clean(ctx.deal?.dealname),
@@ -86,6 +89,7 @@ function shared(ctx: DocRenderContext) {
       name: clean(ctx.repName),
       phone: clean(ctx.repPhone),
       email: clean(ctx.repEmail),
+      code: repCodeField(ctx.crm),
     },
     dealer: {
       company: clean(ctx.dealerInfo?.companyName),
@@ -163,6 +167,7 @@ export function newCustomerRenderPayload(
       ...addressBlock({
         street: hqStreet, city: form.hqCity, state: form.hqState, zip: form.hqZip,
       }),
+      ...companyCrmFields(ctx.crm),
     },
     // Billing office where one is captured, else the headquarters address.
     location: addressBlock({
@@ -171,7 +176,10 @@ export function newCustomerRenderPayload(
       state: clean(form.billingState) ?? form.hqState,
       zip: clean(form.billingZip) ?? form.hqZip,
     }),
-    contact: { ship_to: clean(ctx.shipToContact) ?? clean(form.principalName) },
+    contact: {
+      ship_to: clean(ctx.shipToContact) ?? clean(form.principalName),
+      ...contactCrmFields(ctx.crm),
+    },
     lease: { partner: null, term: null, rate_factor: null, payment: null, type: null },
     amounts: { taxable: 0, non_taxable: null, total: 0 },
     line_items: [],
@@ -226,8 +234,12 @@ export function loiRenderPayload(form: LoiLike, ctx: DocRenderContext): RenderPa
       address: joinParts(form.customerAddress, form.customerCityState, form.customerZip),
       phone: clean(form.customerPhone),
       ...addressBlock({ street: form.customerAddress, city, state, zip: form.customerZip }),
+      ...companyCrmFields(ctx.crm),
     },
-    contact: { ship_to: clean(form.customerContact) ?? clean(ctx.shipToContact) },
+    contact: {
+      ship_to: clean(form.customerContact) ?? clean(ctx.shipToContact),
+      ...contactCrmFields(ctx.crm),
+    },
     location: addressBlock({ street: form.customerAddress, city, state, zip: form.customerZip }),
     lease: {
       partner: clean(form.leaseVendor),
@@ -309,8 +321,12 @@ export function installationRenderPayload(
         street: form.shipToAddress, city: form.shipToCity,
         state: form.shipToState, zip: form.shipToZip,
       }),
+      ...companyCrmFields(ctx.crm),
     },
-    contact: { ship_to: clean(form.shipToAttn) ?? clean(ctx.shipToContact) },
+    contact: {
+      ship_to: clean(form.shipToAttn) ?? clean(ctx.shipToContact),
+      ...contactCrmFields(ctx.crm),
+    },
     location: addressBlock({
       street: form.shipToAddress, city: form.shipToCity,
       state: form.shipToState, zip: form.shipToZip,
@@ -319,6 +335,7 @@ export function installationRenderPayload(
       name: clean(form.salesRep) ?? clean(ctx.repName),
       phone: clean(ctx.repPhone),
       email: clean(ctx.repEmail),
+      code: repCodeField(ctx.crm),
     },
     lease: { partner: null, term: null, rate_factor: null, payment: null, type: null },
     // An installation report records what was delivered, not what it cost.
@@ -372,6 +389,7 @@ export function fmvLeaseRenderPayload(
         street: form.billingAddress, city: form.billingCity,
         state: form.billingState, zip: form.billingZip,
       }),
+      ...companyCrmFields(ctx.crm),
     },
     // Where the equipment goes; falls back to the billing address when unset.
     location: addressBlock({
@@ -434,12 +452,14 @@ export function leaseFundingRenderPayload(
       address: "",
       phone: null,
       street: null, city: null, state: null, zip: null, county: null,
+      ...companyCrmFields(ctx.crm),
     },
     location: { street: null, city: null, state: null, zip: null, county: null },
     rep: {
       name: clean(form.salesRepresentative) ?? clean(ctx.repName),
       phone: clean(ctx.repPhone),
       email: clean(ctx.repEmail),
+      code: repCodeField(ctx.crm),
     },
     lease: {
       partner: clean(form.leaseVendor),
