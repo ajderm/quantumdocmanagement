@@ -62,7 +62,11 @@ export interface ServiceAgreementFormData {
   // Terms
   maintenanceType: string;
   paperStaples: string;
+  /** Retained so previously saved agreements keep their value; no longer offered. */
   drumToner: string;
+
+  /** Serial typed on this agreement, keyed by line item id. Overrides the quote. */
+  serials?: Record<string, string>;
   effectiveDate: Date | null;
   contractLengthMonths: string;
   billingPeriod: "monthly" | "quarterly" | "annual";
