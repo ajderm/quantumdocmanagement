@@ -996,10 +996,12 @@ Deno.serve(async (req) => {
       }
 
       // Contacts: project's own association first, then the deal's
-      let contacts = await fetchContactsForAnchor(accessToken, 'projects', anchorId, contactPropsNeeded);
-      if (contacts.length === 0 && associatedDealResponse) {
-        contacts = await fetchContactsForAnchor(accessToken, 'deals', associatedDealResponse.id, contactPropsNeeded);
+      let contactsResult = await fetchContactsForAnchor(accessToken, 'projects', anchorId, contactPropsNeeded);
+      if (contactsResult.contacts.length === 0 && associatedDealResponse) {
+        contactsResult = await fetchContactsForAnchor(accessToken, 'deals', associatedDealResponse.id, contactPropsNeeded);
       }
+      const contacts = contactsResult.contacts;
+      const dealContacts = contactsResult.dealContacts;
 
       // Line items: only available via the associated deal
       const lineItems = associatedDealResponse
