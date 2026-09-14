@@ -1911,6 +1911,19 @@ export function QuoteForm({
                     <span className="text-xs text-muted-foreground">Show "Financing provided by"</span>
                   </label>
                 </Field>
+                <Field label="Locked for term" hint="From the deal; edit if it differs">
+                  <Input
+                    value={formData.lockedForTerm ?? ""}
+                    onChange={(e) => updateField("lockedForTerm", e.target.value)}
+                    className="h-9 text-sm"
+                    placeholder="e.g. Yes"
+                  />
+                  {dealFieldBadge(
+                    Boolean(dealLease.lockedForTerm),
+                    (formData.lockedForTerm ?? "") === (dealLease.lockedForTerm ?? ""),
+                    "lockedForTerm",
+                  )}
+                </Field>
               </FieldGrid>
             </div>
           </SectionCard>
