@@ -178,6 +178,33 @@ const parseCurrency = (value: string): number => {
 const formatRateFactor = (r: number): string =>
   r > 0 ? r.toFixed(5).replace(/0+$/, "").replace(/\.$/, "") : "";
 
+/**
+ * QuoteIQ writes a free-text lease type on the deal; the form works in three
+ * programs. Unrecognised wording leaves the rep's own selection alone.
+ */
+function leaseProgramFromType(raw: string | null): "fmv" | "dollar_buyout" | "rental" | null {
+  const v = (raw ?? "").toLowerCase();
+  if (!v) return null;
+  if (v.includes("rent")) return "rental";
+  if (v.includes("fmv") || v.includes("fair market")) return "fmv";
+  if (v.includes("$1") || v.includes("buyout") || v.includes("dollar") || v.includes("out")) return "dollar_buyout";
+  return null;
+}
+
+/** Match the deal's funder name against the portal's configured list. */
+function matchLeasingCompany(provider: string | null, companies: string[]): string | null {
+  const want = (provider ?? "").trim().toLowerCase();
+  if (!want) return null;
+  return (
+    companies.find((c) => c.trim().toLowerCase() === want) ||
+    companies.find((c) => {
+      const have = c.trim().toLowerCase();
+      return have.includes(want) || want.includes(have);
+    }) ||
+    null
+  );
+}
+
 const DEFAULT_RATE_FACTORS: Record<number, number> = {
   12: 0.088,
   24: 0.046,
@@ -402,6 +429,36 @@ export function QuoteForm({
       }),
     }));
   };
+
+  // ---- Lease values written to the deal by QuoteIQ -------------------------
+  // These used to be re-keyed by hand. They pre-fill the lease section; every
+  // one of them stays editable, and a manual edit is never overwritten.
+  const dealLease = useMemo(() => {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const q: any = deal?.quoteiq ?? {};
+    const text = (v: unknown) => (typeof v === "string" && v.trim() !== "" ? v.trim() : null);
+    const positive = (v: unknown) => {
+      const n = Number(v);
+      return Number.isFinite(n) && n > 0 ? n : null;
+    };
+    const term = positive(q.termMonths);
+    return {
+      provider: text(q.provider),
+      termMonths: term !== null ? Math.round(term) : null,
+      program: leaseProgramFromType(text(q.type)),
+      payment: positive(q.payment),
+      lockedForTerm: text(q.lockedForTerm),
+    };
+  }, [deal?.quoteiq]);
+
+  const dealLeaseRef = useRef(dealLease);
+  dealLeaseRef.current = dealLease;
+
+  /** The deal's provider matched against the portal's configured funder list. */
+  const matchedLeaseProvider = useMemo(
+    () => matchLeasingCompany(dealLease.provider, leasingCompanies),
+    [dealLease.provider, leasingCompanies],
+  );
 
   // Get available terms for selected company and program
   const availableTermsBase = useMemo(() => {
