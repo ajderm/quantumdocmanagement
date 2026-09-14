@@ -280,6 +280,65 @@ export interface QuoteFormLike {
   }[];
 }
 
+/** A person as HubSpot hands them back. */
+export interface CrmContactLike {
+  firstName?: string | null; lastName?: string | null;
+  email?: string | null; phone?: string | null;
+}
+
+/**
+ * Values that come straight off the CRM records rather than off a form.
+ *
+ * Gathered once where the HubSpot data lives and passed into every builder,
+ * so a template that prints the account number gets the same value whichever
+ * document it is on.
+ */
+export interface CrmExtras {
+  companyAccountNumber?: string | null;
+  companyFederalEin?: string | null;
+  repCode?: string | null;
+  meterContact?: CrmContactLike | null;
+  signerContact?: CrmContactLike | null;
+}
+
+const blankToNull = (value: unknown): string | null => {
+  const text = value == null ? '' : String(value).trim();
+  return text || null;
+};
+
+const contactName = (c?: CrmContactLike | null): string | null =>
+  c ? blankToNull(`${c.firstName ?? ''} ${c.lastName ?? ''}`) : null;
+
+/** The account-number / EIN pair every company block carries. */
+export function companyCrmFields(crm?: CrmExtras): {
+  account_number: string | null; federal_ein: string | null;
+} {
+  return {
+    account_number: blankToNull(crm?.companyAccountNumber),
+    federal_ein: blankToNull(crm?.companyFederalEin),
+  };
+}
+
+/** The meter and signer columns of the contact block. Unset renders blank. */
+export function contactCrmFields(crm?: CrmExtras): {
+  meter_name: string | null; meter_phone: string | null; meter_email: string | null;
+  signer_name: string | null; signer_phone: string | null; signer_email: string | null;
+} {
+  return {
+    meter_name: contactName(crm?.meterContact),
+    meter_phone: blankToNull(crm?.meterContact?.phone),
+    meter_email: blankToNull(crm?.meterContact?.email),
+    signer_name: contactName(crm?.signerContact),
+    signer_phone: blankToNull(crm?.signerContact?.phone),
+    signer_email: blankToNull(crm?.signerContact?.email),
+  };
+}
+
+/** The rep's salesperson code. */
+export function repCodeField(crm?: CrmExtras): string | null {
+  return blankToNull(crm?.repCode);
+}
+
 export interface RenderContext {
   dealerInfo?: {
     companyName?: string; address?: string; phone?: string; website?: string;
