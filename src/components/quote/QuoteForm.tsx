@@ -1264,6 +1264,14 @@ export function QuoteForm({
                       placeholder="Pricing Source"
                     />
                   </Field>
+                  <Field label="Serial #" hint="Prints on the agreement">
+                    <Input
+                      value={item.serial || ""}
+                      onChange={(e) => updateLineItem(idx, "serial", e.target.value)}
+                      className="h-9 text-sm"
+                      placeholder="Serial number"
+                    />
+                  </Field>
                 </FieldGrid>
                 <Field label="Description">
                   <Input
