@@ -56,7 +56,7 @@ import { QuoteAdditionalCosts } from "@/components/quote/QuoteAdditionalCosts";
 import { computeCommissionTotals, mapQuoteLineItemsToCommission, buyoutFromQuoteConfig } from "@/components/commission/commissionCalc";
 import { todayLocalDateString } from "@/lib/dateUtils";
 import { useDocumentEngine } from "@/hooks/useDocumentEngine";
-import { quoteRenderPayload, reconcileLineItems } from "@/lib/render/payload";
+import { quoteRenderPayload, reconcileLineItems, type CrmExtras } from "@/lib/render/payload";
 import {
   newCustomerRenderPayload,
   loiRenderPayload,
@@ -3160,6 +3160,7 @@ function DocumentHubContent() {
           termsText: quoteTermsText(),
           documentTitle: docRename("quote"),
           today: todayLocalDateString(),
+          crm: crmExtras(),
         }) as unknown as Record<string, unknown>,
       );
 
