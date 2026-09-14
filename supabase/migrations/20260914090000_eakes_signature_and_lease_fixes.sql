@@ -208,7 +208,15 @@ begin
 end $$;
 
 -- ------------------------------------------------------------------
--- 3. Verify no template still carries the wrong shape.
+-- 3. Verify the four templates THIS migration is responsible for.
+--
+--    Scoped deliberately. lease_funding and new_customer also carry the
+--    wrong shape at this point, and are fixed by
+--    20260914091000_eakes_customer_summary_merge.sql, which unpublishes
+--    lease_funding and republishes new_customer as v2. An unscoped check
+--    here would assert a condition this migration cannot satisfy and would
+--    roll back correct work - which is exactly what happened on the first
+--    attempt.
 -- ------------------------------------------------------------------
 do $$
 declare bad int;
@@ -218,15 +226,23 @@ begin
     join public.dealer_accounts da on da.id = rt.dealer_account_id
    where da.hubspot_portal_id = '43692327'
      and rt.is_published
+     and rt.document_code in ('quote','loi','fmv_lease','installation')
      and rt.template::text like '%signatories%';
   if bad > 0 then
-    raise exception 'still % published Eakes template(s) using signatories instead of signers', bad;
+    raise exception
+      'still % published Eakes template(s) among quote/loi/fmv_lease/installation using signatories instead of signers', bad;
   end if;
 end $$;
 
+-- Full picture, including the two this migration does not own. Expect
+-- lease_funding and new_customer to still show has_bad_shape = true here;
+-- 20260914091000 resolves both.
 select rt.document_code, rt.version, rt.name, rt.is_published,
        (rt.template::text like '%"signers"%') as has_signers,
-       (rt.template::text like '%signatories%') as has_bad_shape
+       (rt.template::text like '%signatories%') as has_bad_shape,
+       case when rt.document_code in ('quote','loi','fmv_lease','installation')
+            then 'fixed by this migration'
+            else 'fixed by 20260914091000' end as owner
   from public.render_templates rt
   join public.dealer_accounts da on da.id = rt.dealer_account_id
  where da.hubspot_portal_id = '43692327'
