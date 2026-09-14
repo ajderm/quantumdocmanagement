@@ -1994,7 +1994,25 @@ export function QuoteForm({
                         {t} mo
                       </Button>
                     ))}
+                    {dealFieldBadge(
+                      Boolean(dealLease.termMonths),
+                      formData.selectedTerms.length === 1 && formData.selectedTerms[0] === dealLease.termMonths,
+                      "term",
+                    )}
                   </div>
+                  {dealLease.payment !== null && dealLease.termMonths !== null && (
+                    <p className="mt-2 text-xs text-muted-foreground">
+                      Deal payment for {dealLease.termMonths} months: $
+                      {dealLease.payment.toLocaleString()}/mo{" "}
+                      <button
+                        type="button"
+                        onClick={() => resetLeaseFieldToDeal("payment")}
+                        className="underline hover:text-foreground"
+                      >
+                        use this
+                      </button>
+                    </p>
+                  )}
                   <div className="mt-3 space-y-2">
                     {formData.selectedTerms.map((t) => {
                       const calculatedPayment = calculateLeasePayment(t);
