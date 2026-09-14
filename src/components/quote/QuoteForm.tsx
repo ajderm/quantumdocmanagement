@@ -404,7 +404,7 @@ export function QuoteForm({
   };
 
   // Get available terms for selected company and program
-  const availableTerms = useMemo(() => {
+  const availableTermsBase = useMemo(() => {
     // Rental is always month-to-month - offer common rental terms
     if (formData.leaseProgram === "rental") {
       return [1, 3, 6, 12, 24, 36];
@@ -421,6 +421,14 @@ export function QuoteForm({
 
     return [...new Set(terms)].sort((a, b) => a - b);
   }, [rateFactors, formData.leasingCompanyId, formData.leaseProgram, hasRateSheet]);
+
+  // The term the customer was actually quoted is offered even when the rate
+  // sheet doesn't carry it, so reading it off the deal can never drop it.
+  const availableTerms = useMemo(() => {
+    const quoted = dealLease.termMonths;
+    if (!quoted || availableTermsBase.includes(quoted)) return availableTermsBase;
+    return [...availableTermsBase, quoted].sort((a, b) => a - b);
+  }, [availableTermsBase, dealLease.termMonths]);
 
   // Check if the selected company has any rates for the selected program
   const hasRatesForSelection = useMemo(() => {
