@@ -13,6 +13,24 @@ import { CalendarIcon } from "lucide-react";
 import { format } from "date-fns";
 import { cn } from "@/lib/utils";
 
+/** The only two supply options this dealer offers. Paper is never provided. */
+export const STAPLES_OPTIONS = ["Excludes staples", "Includes staples"];
+export const STAPLES_DEFAULT = "Excludes staples";
+
+/**
+ * Serial shown for an equipment row: what was typed on this agreement wins,
+ * then the serial carried on the quote line, then the installation capture.
+ */
+export function resolveServiceAgreementSerial(
+  serials: Record<string, string> | undefined,
+  lineItemId: string,
+  lineItemSerial?: string,
+): string {
+  const override = (serials?.[lineItemId] ?? "").trim();
+  if (override) return override;
+  return (lineItemSerial ?? "").trim();
+}
+
 export interface ServiceAgreementFormData {
   overrideTerms?: boolean;
   overrideTermsText?: string;
