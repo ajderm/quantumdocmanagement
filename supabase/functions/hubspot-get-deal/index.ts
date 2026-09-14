@@ -497,31 +497,72 @@ async function fetchCompanyForAnchor(
   return { company, labeledContacts, companyContacts };
 }
 
-// Fetch associated contacts (up to 5) for any anchor object.
+/**
+ * The deal→contact associations a document needs by NAME, not by position.
+ *
+ * Two roles are printed on the paperwork: whoever reads the meters, and
+ * whoever signs. They are told apart by their HubSpot association label, so
+ * the v4 endpoint is used — v3 returns ids with no labels at all, which is why
+ * these fields rendered blank. Matching is by keyword so a portal that calls
+ * the label "Meter Contact", "Meter Reading Contact" or "Signer" all resolve.
+ */
+type DealContactRole = 'meter' | 'signer';
+
+function roleForLabel(label: string): DealContactRole | null {
+  const l = label.toLowerCase();
+  if (l.includes('meter')) return 'meter';
+  if (l.includes('signer') || l.includes('signor') || l.includes('signature')
+    || l.includes('signatory')) return 'signer';
+  return null;
+}
+
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
+type DealContacts = Record<DealContactRole, any | null>;
+
+// Fetch associated contacts for any anchor object, keeping the labelled ones.
 async function fetchContactsForAnchor(
   accessToken: string,
   fromObjectType: string,
   fromId: string,
   contactPropsNeeded: Set<string>,
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
-): Promise<any[]> {
+): Promise<{ contacts: any[]; dealContacts: DealContacts }> {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   let contacts: any[] = [];
+  const dealContacts: DealContacts = { meter: null, signer: null };
   try {
+    // v4: the only associations endpoint that carries the labels.
     const contactAssociations = await hubspotRequest(
       accessToken,
-      `/crm/v3/objects/${fromObjectType}/${fromId}/associations/contacts`
+      `/crm/v4/objects/${fromObjectType}/${fromId}/associations/contacts`
     );
 
-    if (contactAssociations.results?.length > 0) {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const results: any[] = contactAssociations.results ?? [];
+    if (results.length > 0) {
+      // Roles are resolved BEFORE any truncation: a deal with more than five
+      // contacts must not silently drop the one the document needs.
+      const roleById = new Map<string, DealContactRole>();
+      for (const result of results) {
+        const id = String(result.toObjectId ?? result.id);
+        for (const assocType of result.associationTypes ?? []) {
+          const role = assocType.label ? roleForLabel(String(assocType.label)) : null;
+          if (role && !roleById.has(id)) roleById.set(id, role);
+        }
+      }
+
+      const allIds = results.map((r) => String(r.toObjectId ?? r.id));
+      const labelledIds = allIds.filter((id) => roleById.has(id));
+      const rest = allIds.filter((id) => !roleById.has(id));
+      // Labelled contacts first, then fill the rest of the budget.
+      const idsToFetch = [...labelledIds, ...rest].slice(0, Math.max(5, labelledIds.length));
+
       // Use dynamic contact properties list
       const contactPropsString = Array.from(contactPropsNeeded).join(',');
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const contactPromises = contactAssociations.results.slice(0, 5).map(async (assoc: any) => {
+      const contactPromises = idsToFetch.map(async (id: string) => {
         const contactResponse = await hubspotRequest(
           accessToken,
-          `/crm/v3/objects/contacts/${assoc.id}?properties=${contactPropsString}`
+          `/crm/v3/objects/contacts/${id}?properties=${contactPropsString}`
         );
         return {
           contactId: contactResponse.id,
@@ -534,12 +575,18 @@ async function fetchContactsForAnchor(
         };
       });
       contacts = await Promise.all(contactPromises);
-      console.log('Contacts fetched:', contacts.length);
+
+      for (const contact of contacts) {
+        const role = roleById.get(String(contact.contactId));
+        if (role && !dealContacts[role]) dealContacts[role] = contact;
+      }
+      console.log('Contacts fetched:', contacts.length,
+        'labelled roles:', Object.keys(dealContacts).filter((k) => dealContacts[k as DealContactRole]));
     }
   } catch (e) {
     console.error('Failed to fetch contacts:', e);
   }
-  return contacts;
+  return { contacts, dealContacts };
 }
 
 // Fetch a deal's line items (with model/cost/etc mapping and product item_number fallback).
