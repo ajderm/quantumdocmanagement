@@ -735,7 +735,14 @@ export function ServiceAgreementForm({
                     <td className="px-4 py-2">{item.quantity}</td>
                     <td className="px-4 py-2">{item.name}</td>
                     <td className="px-4 py-2">{item.description || "-"}</td>
-                    <td className="px-4 py-2">{item.serial || "-"}</td>
+                    <td className="px-4 py-2">
+                      <Input
+                        className="h-9 w-40 text-sm"
+                        value={resolveServiceAgreementSerial(formData.serials, item.id, item.serial)}
+                        placeholder="Serial"
+                        onChange={(e) => updateSerial(item.id, e.target.value)}
+                      />
+                    </td>
                   </tr>
                 ))}
               </tbody>
