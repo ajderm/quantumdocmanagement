@@ -1862,6 +1862,11 @@ export function QuoteForm({
                       )}
                     </SelectContent>
                   </Select>
+                  {dealFieldBadge(
+                    Boolean(matchedLeaseProvider),
+                    formData.leasingCompanyId === matchedLeaseProvider,
+                    "leasingCompanyId",
+                  )}
                 </Field>
                 <Field label="Lease Program">
                   <Select
@@ -1877,6 +1882,11 @@ export function QuoteForm({
                       <SelectItem value="rental">Rental (Month-to-Month)</SelectItem>
                     </SelectContent>
                   </Select>
+                  {dealFieldBadge(
+                    Boolean(dealLease.program),
+                    formData.leaseProgram === dealLease.program,
+                    "leaseProgram",
+                  )}
                 </Field>
                 <Field label="Leasing Price">
                   <Select
