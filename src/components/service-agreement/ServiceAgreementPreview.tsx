@@ -262,7 +262,9 @@ export const ServiceAgreementPreview = forwardRef<HTMLDivElement, ServiceAgreeme
                     <td className="py-1">{item.quantity}</td>
                     <td className="py-1">{item.name}</td>
                     <td className="py-1">{item.description || '-'}</td>
-                    <td className="py-1">{item.serial || '-'}</td>
+                    <td className="py-1">
+                      {resolveServiceAgreementSerial(formData.serials, item.id, item.serial) || '-'}
+                    </td>
                   </tr>
                 ))
               )}
