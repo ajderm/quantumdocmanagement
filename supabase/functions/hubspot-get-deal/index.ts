@@ -470,6 +470,13 @@ async function fetchCompanyForAnchor(
         phone: companyResponse.properties.phone,
         domain: companyResponse.properties.domain,
         customerNumber: companyResponse.properties.customer_number || '',
+        // Printed on the lease. Absent stays absent -- an empty string here
+        // renders as a blank field rather than a fabricated account number.
+        accountNumber: companyResponse.properties.account_number
+          || companyResponse.properties.trimmed_account_number___department
+          || companyResponse.properties.trimmed_account_number
+          || null,
+        federalEin: companyResponse.properties.federal_ein || null,
         // Ship To (Delivery) Address
         deliveryAddress: companyResponse.properties.street_address__del_ || '',
         deliveryAddress2: companyResponse.properties.street_address_line_2__del_ || '',
