@@ -160,6 +160,7 @@ export function HubSpotProvider({ children }: { children: ReactNode }) {
         setDealOwner(null);
         setLabeledContacts(null);
         setCompanyContacts(null);
+        setDealContacts(null);
         setProperties(null);
         setError(null);
       }
