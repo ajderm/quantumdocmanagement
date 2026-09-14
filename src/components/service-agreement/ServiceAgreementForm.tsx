@@ -390,6 +390,10 @@ export function ServiceAgreementForm({
     onChange({ ...formData, [field]: value });
   };
 
+  const updateSerial = (lineItemId: string, value: string) => {
+    onChange({ ...formData, serials: { ...(formData.serials || {}), [lineItemId]: value } });
+  };
+
   const updateRate = (lineItemId: string, field: string, value: string) => {
     const currentRate = formData.rates[lineItemId] || {
       includesBW: "",
