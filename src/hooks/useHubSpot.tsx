@@ -18,6 +18,17 @@ interface LabeledContacts {
 // Company contacts keyed by association label
 type CompanyContacts = Record<string, LabeledContact>;
 
+/**
+ * Deal→contact associations resolved by label.
+ *
+ * The meter reader and the signer are two different people on Eakes' lease
+ * paperwork, and only the association label tells them apart.
+ */
+interface DealContacts {
+  meter: LabeledContact | null;
+  signer: LabeledContact | null;
+}
+
 interface RawProperties {
   company: Record<string, any>;
   deal: Record<string, any>;
