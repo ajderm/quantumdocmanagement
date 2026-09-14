@@ -490,6 +490,79 @@ export function QuoteForm({
     return [...availableTermsBase, quoted].sort((a, b) => a - b);
   }, [availableTermsBase, dealLease.termMonths]);
 
+  // Pre-fill the lease section from the deal, once. Anything the rep has
+  // already saved wins, and every value stays editable afterwards.
+  const leaseAutofillRef = useRef(false);
+  useEffect(() => {
+    if (leaseAutofillRef.current) return;
+    const hasAnything =
+      dealLease.provider || dealLease.termMonths || dealLease.program || dealLease.payment || dealLease.lockedForTerm;
+    if (!hasAnything) return;
+    // Wait for the funder list before matching a provider against it.
+    if (dealLease.provider && leasingCompanies.length === 0) return;
+
+    leaseAutofillRef.current = true;
+    const saved = savedConfigRef.current;
+
+    setFormData((prev) => {
+      const next = { ...prev };
+      if (matchedLeaseProvider && !saved?.leasingCompanyId) next.leasingCompanyId = matchedLeaseProvider;
+      if (dealLease.program && !saved?.leaseProgram) next.leaseProgram = dealLease.program;
+      if (dealLease.termMonths && !(saved?.selectedTerms?.length ?? 0)) next.selectedTerms = [dealLease.termMonths];
+      if (dealLease.lockedForTerm && !saved?.lockedForTerm) next.lockedForTerm = dealLease.lockedForTerm;
+      const term = dealLease.termMonths;
+      if (dealLease.payment && term && !saved?.paymentOverrides?.[term]) {
+        next.paymentOverrides = { ...prev.paymentOverrides, [term]: dealLease.payment };
+      }
+      return next;
+    });
+
+    const term = dealLease.termMonths;
+    if (dealLease.payment && term && !saved?.paymentOverrides?.[term]) {
+      setPaymentOverrideTexts((prev) => ({ ...prev, [term]: String(dealLease.payment) }));
+    }
+  }, [dealLease, matchedLeaseProvider, leasingCompanies]);
+
+  /** Put a field back to the value QuoteIQ wrote on the deal. */
+  const resetLeaseFieldToDeal = (field: "leasingCompanyId" | "leaseProgram" | "term" | "payment" | "lockedForTerm") => {
+    setFormData((prev) => {
+      const next = { ...prev };
+      if (field === "leasingCompanyId" && matchedLeaseProvider) next.leasingCompanyId = matchedLeaseProvider;
+      if (field === "leaseProgram" && dealLease.program) next.leaseProgram = dealLease.program;
+      if (field === "term" && dealLease.termMonths) next.selectedTerms = [dealLease.termMonths];
+      if (field === "lockedForTerm") next.lockedForTerm = dealLease.lockedForTerm ?? "";
+      if (field === "payment" && dealLease.payment && dealLease.termMonths) {
+        next.paymentOverrides = { ...prev.paymentOverrides, [dealLease.termMonths]: dealLease.payment };
+      }
+      return next;
+    });
+    if (field === "payment" && dealLease.payment && dealLease.termMonths) {
+      setPaymentOverrideTexts((prev) => ({ ...prev, [dealLease.termMonths!]: String(dealLease.payment) }));
+    }
+  };
+
+  /** Renders the green marker plus a reset control for a deal-sourced field. */
+  const dealFieldBadge = (
+    present: boolean,
+    matches: boolean,
+    field: "leasingCompanyId" | "leaseProgram" | "term" | "payment" | "lockedForTerm",
+  ) =>
+    present ? (
+      <span className="inline-flex items-center gap-1">
+        <FromHubSpotPill label="From deal" />
+        {!matches && (
+          <button
+            type="button"
+            onClick={() => resetLeaseFieldToDeal(field)}
+            className="text-[10px] underline text-muted-foreground hover:text-foreground"
+            title="Use the value from the deal"
+          >
+            reset
+          </button>
+        )}
+      </span>
+    ) : null;
+
   // Check if the selected company has any rates for the selected program
   const hasRatesForSelection = useMemo(() => {
     if (formData.leaseProgram === "rental") return true; // Rental doesn't need rate sheets
