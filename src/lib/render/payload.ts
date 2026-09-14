@@ -38,8 +38,23 @@ export interface RenderPayload {
     // carried alongside the joined form rather than only the joined form.
     street: string | null; city: string | null; state: string | null;
     zip: string | null; county: string | null;
+    /** Account number as shown at the top of the company record. */
+    account_number: string | null;
+    /** Federal EIN, a private company property. Blank when unset. */
+    federal_ein: string | null;
   };
-  contact: { ship_to: string | null };
+  /**
+   * The named people on the deal.
+   *
+   * `ship_to` is the shipping contact; meter and signer come from the deal's
+   * own contact associations, told apart by association label, because the
+   * person who reads the meters is rarely the person who signs.
+   */
+  contact: {
+    ship_to: string | null;
+    meter_name: string | null; meter_phone: string | null; meter_email: string | null;
+    signer_name: string | null; signer_phone: string | null; signer_email: string | null;
+  };
   /**
    * What this portal calls the document.
    *
