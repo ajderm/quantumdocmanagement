@@ -351,8 +351,11 @@ export function QuoteForm({
         // Start on the portal's primary lender when it offers one, else the
         // first available. Refs avoid a stale closure.
         if (!leasingCompanyIdRef.current && !savedConfigRef.current?.leasingCompanyId && companies.length > 0) {
+          // The funder on the deal wins over the portal default: it is the one
+          // the customer was actually quoted with.
+          const fromDeal = matchLeasingCompany(dealLeaseRef.current?.provider ?? null, companies);
           const preferred = (primaryLenderRef.current ?? "").trim();
-          const initial = preferred && companies.includes(preferred) ? preferred : companies[0];
+          const initial = fromDeal || (preferred && companies.includes(preferred) ? preferred : companies[0]);
           setFormData((prev) => ({ ...prev, leasingCompanyId: initial }));
         }
       } catch (err) {
