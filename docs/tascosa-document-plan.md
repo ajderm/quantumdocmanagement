@@ -46,9 +46,30 @@ Stephen's 8 Sep email lists what must exist per sale. Mapping it against
 | **Network Survey** | **missing** |
 | **Customer Contact Form** | **missing** — `new_customer` is an application, not this |
 
-Samples for these are in the shared Google Drive (Stephen, 9 Sep). Build them as
-**template-engine documents**, not new React preview components — that is what
-the engine exists for, and it keeps them out of the `native` rasteriser.
+### 2.1a What the samples actually showed — only ONE is ours to generate
+
+Stephen's Drive folder holds one complete worked deal (Peoples Bank 82nd, Canon
+6155) covering all nine numbered items. Reading them corrects the scope above:
+
+| Doc | The sample is | Verdict |
+| --- | --- | --- |
+| Invoice | A Canon Financial Services / e-Automate invoice (No. 676700) | **Not ours.** Produced by their ERP/accounting. Track it, don't generate it. |
+| Configuration Sheet | A Canon spec sheet for the imageFORCE 6155 — dimensions, power, plug | **Not ours.** Per-model manufacturer collateral, not per-deal. Attach from the product library. |
+| **Network Survey** | A Tascosa-branded fillable form: customer info, equipment, pre-install checklist, network/scan/fax config, 90-day terms, dual signature + initials | **Build it.** New document type `network_survey`. |
+| Customer Contact Form | An Outlook `.msg` email thread | **Not ours.** A HubSpot email template + form — matches the 18 Aug action item for early/late-stage contact-form emails. |
+
+So the build is **one document type, not four**. The other three are documents to
+**collect and track**, which is exactly what the checklist in §2.2 is for.
+
+`network_survey` auto-fills substantially: customer name / address / main and IT
+contacts from the company record; Manufacturer & Model, Serial and **Meter
+Method** from the deal's line items (that last one also closes the 16 Jun
+"meter method not carrying into install docs" item). Its 90-day terms belong in
+`document_terms`, not in the template — see the engine doc's "Terms are the
+dealer's, never the template's".
+
+Build it as a **template-engine document**, not a React preview component — that
+is what the engine exists for, and it keeps it off the `native` rasteriser.
 
 ### 2.2 Required-documents checklist
 
