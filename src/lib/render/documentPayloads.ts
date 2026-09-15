@@ -228,9 +228,15 @@ export function newCustomerRenderPayload(
       ship_to: clean(ctx.shipToContact) ?? clean(form.principalName),
       ...contactCrmFields(ctx.crm),
     },
-    lease: { partner: null, term: null, rate_factor: null, payment: null, type: null },
-    amounts: { taxable: 0, non_taxable: null, total: 0 },
-    line_items: [],
+    // The customer summary absorbed the lease funding document, so it carries
+    // the quoted lease and the equipment behind it.
+    lease: leaseFromDeal(ctx),
+    amounts: {
+      taxable: split.taxable,
+      non_taxable: split.nonTaxable,
+      total: money(split.taxable + (split.nonTaxable ?? 0)),
+    },
+    line_items: split.lines,
   };
 }
 
