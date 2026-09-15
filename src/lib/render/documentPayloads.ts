@@ -12,9 +12,9 @@
  */
 
 import {
-  classifyLine, companyCrmFields, contactCrmFields, money, num, repCodeField,
-  taxRateFraction, termsHtml,
-  type CrmExtras, type RenderPayload, type RenderLineItem,
+  classifyLine, companyCrmFields, contactCrmFields, lineDescription, money, num,
+  repCodeField, taxRateFraction, termsHtml,
+  type CrmExtras, type QuoteFormLike, type RenderPayload, type RenderLineItem,
 } from "./payload";
 
 export interface DocRenderContext {
@@ -38,6 +38,54 @@ export interface DocRenderContext {
   today: string;
   /** Values read straight off the CRM records. */
   crm?: CrmExtras;
+  /**
+   * QuoteIQ's writeback on the deal: `lease_provider`, `lease_term_months`,
+   * `lease_type`, `lease_payment`. Read the same way the quote reads them, so
+   * a document that shows lease terms shows the quoted ones. Absent stays
+   * absent: an unwritten payment renders blank, never $0.00.
+   */
+  quoteiq?: {
+    provider?: unknown; payment?: unknown; termMonths?: unknown; type?: unknown;
+  } | null;
+  /** The deal's line items, in the shape the quote form holds them. */
+  lineItems?: QuoteFormLike["lineItems"];
+}
+
+/** The lease block as QuoteIQ wrote it on the deal. */
+function leaseFromDeal(ctx: DocRenderContext): RenderPayload["lease"] {
+  const q = ctx.quoteiq ?? {};
+  const term = num(q.termMonths);
+  const payment = num(q.payment);
+  return {
+    partner: clean(q.provider),
+    term: term !== null && term > 0 ? Math.round(term) : null,
+    rate_factor: null,
+    payment: payment !== null && payment > 0 ? money(payment) : null,
+    type: clean(q.type),
+  };
+}
+
+/** The deal's line items, given the quote's own visibility and tax rules. */
+function dealLines(ctx: DocRenderContext) {
+  return classified((ctx.lineItems ?? [])
+    .filter((item) => Number(item.quantity) > 0)
+    .map((item) => {
+      const quantity = Number(item.quantity) || 0;
+      const unit = money(item.price ?? 0);
+      return {
+        source: { model: item.model, description: item.description },
+        line: {
+          name: lineDescription(item),
+          type: clean(item.productType),
+          quantity,
+          unit,
+          extended: money(unit * quantity),
+          serial: clean(item.serial),
+          meter: clean(item.meterReading),
+          site: null,
+        } satisfies RenderLineItem,
+      };
+    }));
 }
 
 const clean = (s: unknown): string | null => {
