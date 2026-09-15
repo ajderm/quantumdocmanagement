@@ -2571,6 +2571,10 @@ function DocumentHubContent() {
     shipToContact: shipToName(),
     today: todayLocalDateString(),
     crm: crmExtras(),
+    // QuoteIQ's lease writeback and the deal's line items, for the documents
+    // that show lease terms and equipment.
+    quoteiq: deal?.quoteiq ?? null,
+    lineItems: formData?.lineItems ?? [],
   });
 
   /** Save the bytes to the rep's machine. Identical for both engines. */
