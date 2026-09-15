@@ -1,0 +1,61 @@
+-- Tascosa: Customer Network Survey and Installation Agreement, as a custom document.
+-- Source: "5. Tascosa Customer Network Survey and Installation Agreement
+-- (edit v2026.09.09.3.1).docx", shared by Stephen Ross 9 Sep 2026.
+-- Data-only insert into existing custom_documents table, scoped to Tascosa portal 244111826.
+
+begin;
+
+insert into public.custom_documents
+  (dealer_account_id, code, name, icon, description, is_active, sort_order,
+   terms_and_conditions, schema)
+select
+  da.id,
+  'network_survey',
+  'Network Survey',
+  'ClipboardCheck',
+  'Customer Network Survey and Installation Agreement — completed and returned before installation is scheduled.',
+  true,
+  60,
+  $terms$1. General: Tascosa Office Machines will provide the following connectivity support of the device at no additional charge to the customer for a period of ninety (90) days effective from the date of installation.
+a. Installation, configuration assistance and training to IT Personnel and key operator for your hardware/software solution.
+b. Tascosa will install and configure print drivers and applicable software on the customer's server and four (4) client workstations. This also applies to peer to peer, or to direct print environments. If the customer requests additional workstations, then additional charges will apply.
+c. The installation will be deemed complete if Tascosa personnel provides to Customer a Windows test print page or scanned image from device(s).
+d. Tascosa may activate and use monitoring software to provide meter readings as well as report service issues and provide supply levels for networked equipment. If this service is declined by the customer for any reason, there may be additional fees.
+
+2. Exclusions: Under no circumstances will Tascosa be considered responsible for:
+a. Re-Coding or modifying applications or application output.
+b. Training on the customer's installed operating systems or applications.
+c. File corruptions or file errors that cause inconsistent output.
+d. Any losses incurred by the customer or other entities for configuration support or trouble shooting related to the hardware or software supplied by Tascosa.
+e. Virus protection.
+
+3. Customer Responsibilities:
+a. Customer is responsible for maintaining a current backup of program and data files to restore lost data. Tascosa, nor its assignees, may be held responsible for any loss of data or loss of use due to the installation and configuration of device(s) and its associated software.
+b. Customer is responsible for all network cabling and electrical wiring required for the equipment.
+c. Customer is responsible for a suitable physical and electrical environment for the equipment.
+d. Customer is responsible for providing personnel with enough knowledge of the network and applications.
+e. Customer is responsible for maintaining all software installed by Tascosa, or its assignees, including but not limited to, all licensing.
+f. Customer is required to secure and maintain all virus detection/malware protection and firewalls for these devices and their resident network.
+
+4. Diagnostic Services: Tascosa may charge current hourly rates if it is determined that proper installation and operations may not be achieved due to causes beyond its control. Examples include but are not limited to:
+a. Defective cabling.
+b. Defective network components.
+c. Password changes.$terms$,
+  $schema${"sections":[{"id":"sec_header","type":"header","title":"Customer Network Survey and Installation Agreement","showDealerLogo":true,"showDealerAddress":true},{"id":"sec_customer","type":"fields","title":"Customer Information","fields":[{"id":"customer_name","label":"Customer Name","type":"text","required":true,"width":"half","mapping":{"source":"existing","existingFieldKey":"companyName"}},{"id":"main_phone","label":"Main Phone Number","type":"text","required":false,"width":"half","mapping":{"source":"existing","existingFieldKey":"companyPhone"}},{"id":"equipment_address","label":"Equipment Address","type":"text","required":true,"width":"full","mapping":{"source":"existing","existingFieldKey":"shipToAddress"}},{"id":"city","label":"City","type":"text","required":false,"width":"third","mapping":{"source":"existing","existingFieldKey":"shipToCity"}},{"id":"state","label":"State","type":"text","required":false,"width":"third","mapping":{"source":"existing","existingFieldKey":"shipToState"}},{"id":"zip","label":"Zip","type":"text","required":false,"width":"third","mapping":{"source":"existing","existingFieldKey":"shipToZip"}},{"id":"department_location","label":"Department / Building / Location","type":"text","required":false,"width":"half","mapping":{"source":"manual"}},{"id":"room_number","label":"Room #","type":"text","required":false,"width":"half","mapping":{"source":"manual"}},{"id":"main_contact","label":"Main Contact","type":"text","required":false,"width":"third","mapping":{"source":"existing","existingFieldKey":"shipToContact"}},{"id":"main_contact_email","label":"Main Contact Email","type":"text","required":false,"width":"third","mapping":{"source":"existing","existingFieldKey":"shipToEmail"}},{"id":"main_contact_phone","label":"Main Contact Phone","type":"text","required":false,"width":"third","mapping":{"source":"existing","existingFieldKey":"shipToPhone"}},{"id":"it_contact","label":"IT Contact","type":"text","required":false,"width":"third","mapping":{"source":"existing","existingFieldKey":"itContactName"}},{"id":"it_contact_email","label":"IT Contact Email","type":"text","required":false,"width":"third","mapping":{"source":"existing","existingFieldKey":"itContactEmail"}},{"id":"it_contact_phone","label":"IT Contact Phone","type":"text","required":false,"width":"third","mapping":{"source":"existing","existingFieldKey":"itContactPhone"}},{"id":"has_network_support","label":"Customer has network support that can help answer these questions","type":"checkbox","required":false,"width":"full","mapping":{"source":"manual"}}]},{"id":"sec_equipment","type":"table","title":"Equipment Purchased","maxRows":12,"columns":[{"id":"make_model","label":"Manufacturer & Model","mapping":{"source":"line_item","property":"description"}},{"id":"serial","label":"Copier ID / Serial Number","mapping":{"source":"line_item","property":"serialNumber"}},{"id":"meter_method","label":"Meter Method","mapping":{"source":"manual"}},{"id":"additional_software","label":"Additional Software Solutions","mapping":{"source":"manual"}}]},{"id":"sec_preinstall","type":"fields","title":"Customer Responsibility: Pre-Installation Checklist","fields":[{"id":"pre_outlet","label":"An appropriate electrical outlet is available at the planned equipment location","type":"checkbox","required":false,"width":"full","mapping":{"source":"manual"}},{"id":"pre_patch_cable","label":"A network patch cable is available from the data jack to the device","type":"checkbox","required":false,"width":"full","mapping":{"source":"manual"}},{"id":"pre_clearance","label":"There is sufficient clearance for operation, service access, and paper-path / jam access","type":"checkbox","required":false,"width":"full","mapping":{"source":"manual"}},{"id":"pre_receptacle_type","label":"Receptacle type for the MFP outlet","type":"text","required":false,"width":"half","mapping":{"source":"manual"}}]},{"id":"sec_capabilities","type":"fields","title":"Requested Machine Capabilities","fields":[{"id":"cap_print","label":"Users will print from computers to the MFP","type":"checkbox","required":false,"width":"full","mapping":{"source":"manual"}},{"id":"cap_scan_folder","label":"Scan to Network Folder","type":"checkbox","required":false,"width":"full","mapping":{"source":"manual"}},{"id":"cap_scan_email","label":"Scan to Email","type":"checkbox","required":false,"width":"full","mapping":{"source":"manual"}},{"id":"cap_fax","label":"Fax","type":"checkbox","required":false,"width":"full","mapping":{"source":"manual"}},{"id":"cap_remote_ui","label":"Remote UI","type":"checkbox","required":false,"width":"full","mapping":{"source":"manual"}},{"id":"cap_account_track","label":"Account Tracking / Department ID","type":"checkbox","required":false,"width":"full","mapping":{"source":"manual"}}]},{"id":"sec_network","type":"fields","title":"Network Environment","fields":[{"id":"net_ip_address","label":"IP Address (MFP)","type":"text","required":false,"width":"third","mapping":{"source":"manual"}},{"id":"net_subnet_mask","label":"Subnet Mask","type":"text","required":false,"width":"third","mapping":{"source":"manual"}},{"id":"net_gateway","label":"Gateway / Router","type":"text","required":false,"width":"third","mapping":{"source":"manual"}},{"id":"net_dhcp","label":"DHCP Enabled","type":"checkbox","required":false,"width":"half","mapping":{"source":"manual"}},{"id":"net_dns1","label":"DNS Server 1","type":"text","required":false,"width":"half","mapping":{"source":"manual"}},{"id":"net_dns2","label":"DNS Server 2","type":"text","required":false,"width":"half","mapping":{"source":"manual"}},{"id":"net_domain","label":"Domain Name","type":"text","required":false,"width":"half","mapping":{"source":"manual"}}]},{"id":"sec_email","type":"fields","title":"SMTP / Email Settings","fields":[{"id":"smtp_server","label":"SMTP Server","type":"text","required":false,"width":"half","mapping":{"source":"manual"}},{"id":"smtp_port","label":"SMTP Port","type":"text","required":false,"width":"half","mapping":{"source":"manual"}},{"id":"smtp_auth","label":"SMTP Authentication Required","type":"checkbox","required":false,"width":"half","mapping":{"source":"manual"}},{"id":"smtp_user","label":"SMTP User Name","type":"text","required":false,"width":"half","mapping":{"source":"manual"}},{"id":"smtp_password","label":"SMTP Password","type":"text","required":false,"width":"half","mapping":{"source":"manual"}},{"id":"smtp_tls_ssl","label":"TLS / SSL","type":"checkbox","required":false,"width":"half","mapping":{"source":"manual"}},{"id":"scan_to_email_from","label":"Scan-to-Email From Address","type":"text","required":false,"width":"half","mapping":{"source":"manual"}},{"id":"scan_to_email_server","label":"Scan-to-Email Server Address","type":"text","required":false,"width":"half","mapping":{"source":"manual"}}]},{"id":"sec_print","type":"fields","title":"Print Deployment","fields":[{"id":"print_server_name","label":"Print Server Name","type":"text","required":false,"width":"half","mapping":{"source":"manual"}},{"id":"print_server_ip","label":"Print Server IP","type":"text","required":false,"width":"half","mapping":{"source":"manual"}},{"id":"print_queue_name","label":"Print Queue Name","type":"text","required":false,"width":"half","mapping":{"source":"manual"}},{"id":"print_driver","label":"Print Driver / PDL","type":"text","required":false,"width":"half","mapping":{"source":"manual"}},{"id":"print_workstations","label":"Number of Workstations to Install Driver","type":"text","required":false,"width":"half","mapping":{"source":"manual"}},{"id":"print_color_default","label":"Default to Color","type":"checkbox","required":false,"width":"half","mapping":{"source":"manual"}}]},{"id":"sec_signatures","type":"fields","title":"Authorization","fields":[{"id":"auth_customer_sig","label":"Customer Signature","type":"signature","required":true,"width":"half","mapping":{"source":"manual"}},{"id":"auth_customer_date","label":"Date","type":"text","required":false,"width":"half","mapping":{"source":"manual"}},{"id":"auth_tascosa_sig","label":"Tascosa Representative Signature","type":"signature","required":false,"width":"half","mapping":{"source":"manual"}},{"id":"auth_tascosa_date","label":"Date","type":"text","required":false,"width":"half","mapping":{"source":"manual"}}]}]}$schema$
+from public.dealer_accounts da
+where da.hubspot_portal_id = '244111826'
+on conflict (dealer_account_id, code) do update set
+  name = excluded.name,
+  icon = excluded.icon,
+  description = excluded.description,
+  is_active = excluded.is_active,
+  sort_order = excluded.sort_order,
+  terms_and_conditions = excluded.terms_and_conditions,
+  schema = excluded.schema;
+
+commit;
+
+select da.hubspot_portal_id, cd.code, cd.name, cd.is_active
+  from custom_documents cd
+  join dealer_accounts da on da.id = cd.dealer_account_id
+ where cd.code = 'network_survey';
