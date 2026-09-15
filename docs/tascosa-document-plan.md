@@ -65,12 +65,10 @@ Conditional items must be skippable with a reason ("not all take the service
 agreement") rather than blocking. Nothing like this exists in the codebase today
 (`grep -i checklist` returns nothing).
 
-### 2.3 Client survey / inbound qualification questionnaire
+### 2.3 Client survey — OUT OF SCOPE for this app
 
-Attached to Stephen's 9 Sep email; originally agreed 18 Aug. Reps fill it per new
-opportunity. This is most likely a **HubSpot-side** artifact (property group or
-form on the deal), not a document in this app — confirm with Stephen before
-building it here.
+Decided 15 Sep: the inbound qualification questionnaire will be built as a
+**HubSpot survey**, not a document type here. No work in this repo.
 
 ### 2.4 Smaller, unverified
 
@@ -123,20 +121,25 @@ That lands on the same code paths as Tascosa's `pickDefaultTerms()` (the backend
 default-terms setting) and the `rateOverrides` / `paymentOverrides` pair. Agree
 the precedence before either side edits, or the last writer silently wins:
 
-> **Proposed precedence for selected term and payment:**
-> saved config → deal (QuoteIQ) pre-fill → portal default terms → first three
-> terms the funder offers. A manual edit always wins and is never overwritten.
+> **DECIDED (Marko, 15 Sep) — precedence for selected term and payment:**
+>
+> manual edit → saved config → **deal (QuoteIQ) value** → portal default terms →
+> first three terms the funder offers.
 
-This is consistent with both plans ("a manual edit always wins", and default
-terms only applying when nothing else has chosen). It needs one line of
-agreement, not a redesign.
+QuoteIQ wins over the portal default. Eakes is the portal that carries QuoteIQ
+values; **Tascosa and most other portals do not**, so they fall through to the
+portal default terms automatically.
+
+This needs **no per-portal branching**. The chain degrades on absence: a deal
+with no QuoteIQ lease values simply moves to the next source. Implement it as an
+ordered fallback, not an `if (portal === ...)`.
 
 ## 5. Sequence
 
-1. **Agree the term/payment precedence above** with the Eakes session. Blocking
-   for anything touching `QuoteForm`'s lease section; nothing else waits on it.
-2. **Confirm scope with Stephen** — the four new documents against the Drive
-   samples, and whether the client survey belongs in HubSpot rather than here.
+1. ~~Agree the term/payment precedence~~ — **decided, see §4.** Implement as an
+   ordered fallback whenever `QuoteForm`'s lease section is next touched.
+2. ~~Confirm scope with Stephen~~ — **done.** Four documents confirmed; the client
+   survey is a HubSpot survey, not a document type (§2.3).
 3. **Build the four documents as Tascosa-scoped template rows.** One document
    type at a time: seed the template, flip `document_engine_modes` for
    `244111826` only, verify, move on. No renderer code changes expected.
