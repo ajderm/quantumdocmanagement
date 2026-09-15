@@ -205,6 +205,7 @@ export function newCustomerRenderPayload(
 ): RenderPayload {
   const hqStreet = joinParts(form.hqAddress, form.hqAddress2);
   const billingStreet = joinParts(form.billingAddress, form.billingAddress2);
+  const split = dealLines(ctx);
   return {
     ...shared(ctx),
     company: {
