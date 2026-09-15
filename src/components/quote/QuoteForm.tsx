@@ -32,7 +32,13 @@ import { supabase } from "@/integrations/supabase/client";
 import { ProductSearchModal, HubSpotProduct } from "./ProductSearchModal";
 import { getLabel, isSectionVisible, type FormCustomizationConfig } from "@/lib/formCustomization";
 import { todayLocalDateString } from "@/lib/dateUtils";
-import { priceFromCostMarkup, markupFromCostPrice, paymentFromRate, rateFromPayment } from "@/lib/pricing";
+import {
+  priceFromCostMarkup,
+  markupFromCostPrice,
+  paymentFromRate,
+  rateFromPayment,
+  buyoutFromQuoteConfig,
+} from "@/lib/pricing";
 import { SectionCard, FieldGrid, Field, EmptyState, DealTermsOverride, FromHubSpotPill } from "@/components/shared";
 
 export interface QuoteLineItem {
@@ -572,9 +578,12 @@ export function QuoteForm({
     return availableTerms.length > 0;
   }, [hasRateSheet, formData.leasingCompanyId, availableTerms]);
 
-  // Calculate total buyout for "with buyout" formula
-  const totalBuyoutForCalc =
-    formData.paymentAmount * formData.paymentsRemaining + formData.earlyTerminationFee + formData.returnShipping;
+  // The buyout used for the "with buyout" amount financed. Shared with the
+  // commission's Total Cost (see lib/pricing) so a hand-typed Total Buyout moves
+  // the customer's payment and the dealer's cost by the same amount. Deriving it
+  // here from the individual fields alone is what let a typed total reach Total
+  // Cost while the payment was priced as if there were no buyout.
+  const totalBuyoutForCalc = buyoutFromQuoteConfig(formData);
 
   // Amount financed for the lease math — the single base used both to derive
   // payments from rate factors and to convert between rate and payment
@@ -732,6 +741,10 @@ export function QuoteForm({
     formData.paymentsRemaining,
     formData.earlyTerminationFee,
     formData.returnShipping,
+    // A hand-typed Total Buyout changes the amount financed too, so it has to
+    // re-price the terms — without these the payment kept the old value.
+    formData.totalBuyoutManuallySet,
+    formData.totalBuyoutOverride,
     rateFactors,
   ]);
 

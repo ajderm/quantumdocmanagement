@@ -6,42 +6,10 @@
 
 import type { CommissionFormData } from "./CommissionForm";
 
-/**
- * Lease buyout / trade-in cost implied by a quote configuration. This is the
- * dealer's cost to pay off the customer's existing lease, and it must land in
- * the commission's Total Cost (Stephen Ross, 26 Aug 2026: "the doc app is not
- * including the lease buyout costs into the TOTAL COST but it should").
- *
- * Mirrors the quote's own "Total Buyout" field so the two always show the same
- * number:
- *   1. A hand-entered Total Buyout override wins (the rep typed the total
- *      directly because they don't have the individual figures).
- *   2. Otherwise the calculated total: remaining payments + early termination +
- *      return shipping.
- *   3. Legacy fallback: older quotes that stored the buyout as a financed amount.
- * Accepts loosely-typed quote form data (values may be numbers or strings).
- */
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-export function buyoutFromQuoteConfig(quote: any): number {
-  if (!quote) return 0;
-  const num = (v: unknown) => parseFloat(String(v ?? "")) || 0;
-
-  // 1. Manual Total Buyout override — the authoritative total the rep sees.
-  if (quote.totalBuyoutManuallySet) {
-    const override = parseFloat(String(quote.totalBuyoutOverride ?? ""));
-    if (Number.isFinite(override)) return override;
-  }
-
-  // 2. Calculated from the individual buyout fields.
-  const computed =
-    num(quote.paymentAmount) * num(quote.paymentsRemaining) +
-    num(quote.earlyTerminationFee) +
-    num(quote.returnShipping);
-  if (computed > 0) return computed;
-
-  // 3. Legacy: buyout stored as a financed amount on older quotes.
-  return num(quote.buyoutFinancingAmount);
-}
+// The buyout lives in lib/pricing with the rest of the shared pricing math,
+// because the quote's amount-financed needs the same number. Re-exported here
+// so existing importers keep their import path.
+export { buyoutFromQuoteConfig } from "@/lib/pricing";
 
 export interface CommissionTotals {
   totalBilled: number;

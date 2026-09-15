@@ -53,3 +53,46 @@ export function rateFromPayment(baseAmount: number, payment: number): number {
   if (!(baseAmount > 0) || !(payment > 0)) return 0;
   return Math.round((payment / baseAmount) * 1e6) / 1e6;
 }
+
+/**
+ * The lease buyout on a quote — one definition, used by every consumer.
+ *
+ * This number does two jobs and they must agree: it is the dealer's cost to pay
+ * off the customer's existing lease (so it belongs in the commission's Total
+ * Cost), and when the quote is priced "with buyout" it is added to the amount
+ * financed (so it moves the customer's monthly payment). Deriving it in two
+ * places is how they came apart: a hand-typed total reached Total Cost but not
+ * the payment, so the same deal was quoted as if there were no buyout while the
+ * commission counted one.
+ *
+ * Resolution mirrors the quote's own "Total Buyout" field, so the figure a rep
+ * reads on screen is the figure both consumers use:
+ *   1. A hand-entered Total Buyout override wins — the rep typed the total
+ *      directly because they don't have the individual figures.
+ *   2. Otherwise the calculated total: remaining payments + early termination +
+ *      return shipping.
+ *   3. Legacy fallback: older quotes that stored the buyout as a financed amount.
+ *
+ * Accepts loosely-typed quote form data (values may be numbers or strings).
+ */
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+export function buyoutFromQuoteConfig(quote: any): number {
+  if (!quote) return 0;
+  const num = (v: unknown) => parseFloat(String(v ?? "")) || 0;
+
+  // 1. Manual Total Buyout override — the authoritative total the rep sees.
+  if (quote.totalBuyoutManuallySet) {
+    const override = parseFloat(String(quote.totalBuyoutOverride ?? ""));
+    if (Number.isFinite(override)) return override;
+  }
+
+  // 2. Calculated from the individual buyout fields.
+  const computed =
+    num(quote.paymentAmount) * num(quote.paymentsRemaining) +
+    num(quote.earlyTerminationFee) +
+    num(quote.returnShipping);
+  if (computed > 0) return computed;
+
+  // 3. Legacy: buyout stored as a financed amount on older quotes.
+  return num(quote.buyoutFinancingAmount);
+}
