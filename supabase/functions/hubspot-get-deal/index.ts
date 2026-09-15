@@ -1,5 +1,6 @@
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.49.1';
 import { encryptToken, decryptToken } from '../_shared/crypto.ts';
+import { resolveRepPhone } from '../_shared/rep-phone.ts';
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -365,9 +366,10 @@ async function fetchLabeledContacts(
   return { labeledContacts, companyContacts };
 }
 
-// Fetch a HubSpot owner by ID, with commission_user_settings phone fallback.
+// Fetch a HubSpot owner by ID. Name and email come from HubSpot; the phone
+// comes from the dealer's own Settings and nowhere else -- see _shared/rep-phone.ts.
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
-async function fetchOwner(accessToken: string, supabase: any, ownerId: string): Promise<any | null> {
+async function fetchOwner(accessToken: string, supabase: any, ownerId: string, portalId: string): Promise<any | null> {
   try {
     const ownerResponse = await hubspotRequest(accessToken, `/crm/v3/owners/${ownerId}`);
     const owner = {
@@ -375,29 +377,49 @@ async function fetchOwner(accessToken: string, supabase: any, ownerId: string): 
       firstName: ownerResponse.firstName,
       lastName: ownerResponse.lastName,
       email: ownerResponse.email || null,
-      phone: ownerResponse.phone || null,
+      phone: null as string | null,
     };
     console.log('Owner fetched:', owner.firstName, owner.lastName, 'email:', owner.email);
 
-    // If HubSpot owner record doesn't have a phone, check commission_user_settings
-    if (!owner.phone) {
-      try {
-        const { data: repSettings } = await supabase
-          .from('commission_user_settings')
-          .select('phone')
-          .eq('hubspot_user_id', ownerResponse.userId || ownerResponse.id)
-          .maybeSingle();
-        if (repSettings?.phone) {
-          owner.phone = repSettings.phone;
-          console.log('Rep phone from settings:', owner.phone);
-        }
-      } catch (_phoneErr) {
-        // Non-critical - continue without phone
-      }
-    }
+    owner.phone = await fetchRepPhone(supabase, portalId, ownerResponse);
     return owner;
   } catch (e) {
     console.error('Failed to fetch owner:', e);
+    return null;
+  }
+}
+
+/**
+ * The rep's phone for documents, from this portal's commission-user settings.
+ *
+ * Deliberately does NOT read HubSpot's owner phone: it is often blank or holds
+ * a main-office number, and a dealer cannot correct it from this app. Settings
+ * is the field they can edit, so Settings is the only source. A dealer who has
+ * not filled it in gets no phone rather than a wrong one.
+ *
+ * Scoped to the portal's own dealer account, so one portal's rep numbers can
+ * never surface in another's documents.
+ */
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+async function fetchRepPhone(supabase: any, portalId: string, ownerResponse: any): Promise<string | null> {
+  try {
+    const { data: dealer } = await supabase
+      .from('dealer_accounts')
+      .select('id')
+      .eq('hubspot_portal_id', portalId)
+      .maybeSingle();
+    if (!dealer?.id) return null;
+
+    const { data: rows } = await supabase
+      .from('commission_user_settings')
+      .select('hubspot_user_id, hubspot_user_name, phone')
+      .eq('dealer_account_id', dealer.id);
+
+    const phone = resolveRepPhone(rows, ownerResponse);
+    if (phone) console.log('Rep phone from settings:', phone);
+    return phone;
+  } catch (_phoneErr) {
+    // Non-critical: a document without a rep phone still generates.
     return null;
   }
 }
@@ -1012,7 +1034,7 @@ Deno.serve(async (req) => {
       const ownerId = projectResponse.properties?.hubspot_owner_id
         || associatedDealResponse?.properties?.hubspot_owner_id
         || null;
-      const dealOwner = ownerId ? await fetchOwner(accessToken, supabase, ownerId) : null;
+      const dealOwner = ownerId ? await fetchOwner(accessToken, supabase, ownerId, portalId) : null;
 
       // Anchor record presented in the deal-shaped slot the frontend expects.
       // dealId/hsObjectId are the PROJECT's ID: all persistence keys off it,
@@ -1108,7 +1130,7 @@ Deno.serve(async (req) => {
     };
 
     // Fetch deal owner with phone and email
-    const dealOwner = deal.ownerId ? await fetchOwner(accessToken, supabase, deal.ownerId) : null;
+    const dealOwner = deal.ownerId ? await fetchOwner(accessToken, supabase, deal.ownerId, portalId) : null;
 
     // Fetch associated company (and labeled contacts) with all address fields
     const { company, labeledContacts, companyContacts } = await fetchCompanyForAnchor(
