@@ -997,11 +997,18 @@ Deno.serve(async (req) => {
 
       // Contacts: project's own association first, then the deal's
       let contactsResult = await fetchContactsForAnchor(accessToken, 'projects', anchorId, contactPropsNeeded);
-      if (contactsResult.contacts.length === 0 && associatedDealResponse) {
-        contactsResult = await fetchContactsForAnchor(accessToken, 'deals', associatedDealResponse.id, contactPropsNeeded);
+      let dealContacts = contactsResult.dealContacts;
+      if (associatedDealResponse) {
+        const dealContactsResult = await fetchContactsForAnchor(accessToken, 'deals', associatedDealResponse.id, contactPropsNeeded);
+        // Meter/Signer labels live on the deal's associations, not the
+        // project's — resolve them from the deal even when the project has
+        // its own contacts.
+        dealContacts = dealContactsResult.dealContacts;
+        if (contactsResult.contacts.length === 0) {
+          contactsResult = dealContactsResult;
+        }
       }
       const contacts = contactsResult.contacts;
-      const dealContacts = contactsResult.dealContacts;
 
       // Line items: only available via the associated deal
       const lineItems = associatedDealResponse
