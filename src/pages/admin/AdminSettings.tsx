@@ -27,6 +27,7 @@ import {
   Trash2,
   Shield,
   ShieldCheck,
+  MapPin,
 } from "lucide-react";
 import { useState, useEffect, useRef, useMemo } from "react";
 import { Link, useSearchParams } from "react-router-dom";
@@ -1795,6 +1796,20 @@ export default function AdminSettings({
                   )}
                 </Button>
               </div>
+            </TabsContent>
+
+            <TabsContent value="branches">
+              {portalId ? (
+                <BranchLocationsManager
+                  portalId={portalId}
+                  locations={dealerLocations}
+                  onSaved={setDealerLocations}
+                />
+              ) : (
+                <div className="text-center py-8 text-sm text-muted-foreground">
+                  Connect this portal to manage branch locations.
+                </div>
+              )}
             </TabsContent>
 
             <TabsContent value="leasing">
