@@ -417,6 +417,59 @@ export type Database = {
         }
         Relationships: []
       }
+      dealer_locations: {
+        Row: {
+          city: string | null
+          code: string
+          created_at: string
+          dealer_account_id: string
+          is_main: boolean
+          name: string
+          phone: string | null
+          rep_prefixes: string[]
+          state: string | null
+          street: string | null
+          updated_at: string
+          zip: string | null
+        }
+        Insert: {
+          city?: string | null
+          code: string
+          created_at?: string
+          dealer_account_id: string
+          is_main?: boolean
+          name: string
+          phone?: string | null
+          rep_prefixes?: string[]
+          state?: string | null
+          street?: string | null
+          updated_at?: string
+          zip?: string | null
+        }
+        Update: {
+          city?: string | null
+          code?: string
+          created_at?: string
+          dealer_account_id?: string
+          is_main?: boolean
+          name?: string
+          phone?: string | null
+          rep_prefixes?: string[]
+          state?: string | null
+          street?: string | null
+          updated_at?: string
+          zip?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "dealer_locations_dealer_account_id_fkey"
+            columns: ["dealer_account_id"]
+            isOneToOne: false
+            referencedRelation: "dealer_accounts"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       dealer_settings: {
         Row: {
           created_at: string

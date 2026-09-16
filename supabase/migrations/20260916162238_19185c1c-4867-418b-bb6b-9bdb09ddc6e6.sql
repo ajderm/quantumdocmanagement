@@ -1,54 +1,3 @@
--- Branch locations, so documents carry the selling branch rather than the
--- dealer's single head-office address.
---
--- Mike, 11 Sept call, 16:24: "We're trying to appear more local to our
--- customers, Marko, and so instead of having our corporate headquarters, we
--- want our location branch address there."
---
--- ================== WHY A TABLE AND NOT ARITHMETIC ==================
---
--- The branch is resolved from the salesperson number on the deal. Nate,
--- 17:33: "A Lincoln salesman, Marko, is 51... 5107, right? 51 means Lincoln."
---
--- But it is NOT simply the leading digits of the location number. Nate,
--- 21:07: "The only weird one is Grand Island actually starts with a 17
--- instead of 6." Grand Island is location 6; its reps start 17. Mike's
--- explanation, 21:18: "Leading zero, baby" - 06 could not lead with a zero.
---
--- So the rep prefix is stored per location as data, not derived. Any further
--- exceptions are a row edit rather than a code change.
---
--- ========================= CONFIRMED ================================
---
--- Stated on the call:
---     51 -> Lincoln      (Nate, 17:33)
---     17 -> Grand Island (Nate, 21:07)
---
--- Nate Schaf confirmed on 2026-09-15 that Grand Island is the ONLY exception:
--- every other branch's rep numbers start with its location code. The seed
--- below reflects that. If a further exception ever appears it is a single
--- UPDATE to that row's rep_prefixes, not a code change.
---
--- Addresses and phone numbers were taken from eakes.com/contact/locations/*
--- on 2026-09-15. Omaha reads 11108 Q St, which matches the address printed
--- on their own signed Cornerstone packet - so the source cross-checks.
---
--- Location 1, Central Warehouse-Grand Island, is their Distribution Center on
--- Stolley Park Road - confirmed by Nate Schaf, 2026-09-15. It carries no rep
--- prefix, so it can only ever be chosen manually.
---
--- Grand Island is the main office and the fallback when a deal's salesperson
--- number is missing or unmatched. On the test deal that number was blank
--- (Marko, 18:54: "look at the salesperson number, it is blank"), so the
--- fallback is not an edge case - it is the current normal.
---
--- This migration is data and schema only. Resolution, the payload change and
--- the override dropdown are app work; see LOCATIONS_app_changes.md.
---
--- Multi-tenant: the table is per dealer. Only Eakes rows are seeded. Any
--- other dealer with no rows keeps exactly today's behaviour, because the app
--- falls back to dealer_accounts when a portal has no locations.
-
 begin;
 
 create table if not exists public.dealer_locations (
@@ -60,8 +9,6 @@ create table if not exists public.dealer_locations (
   state             text,
   zip               text,
   phone             text,
-  -- Salesperson-number prefixes that resolve to this branch. Stored, not
-  -- derived: Grand Island is location 6 but its reps start 17.
   rep_prefixes      text[] not null default '{}',
   is_main           boolean not null default false,
   created_at        timestamptz not null default now(),
@@ -71,7 +18,6 @@ create table if not exists public.dealer_locations (
 
 alter table public.dealer_locations enable row level security;
 
--- At most one main office per dealer, so the fallback is never ambiguous.
 create unique index if not exists dealer_locations_one_main
   on public.dealer_locations (dealer_account_id)
   where is_main;
@@ -86,9 +32,6 @@ comment on column public.dealer_locations.rep_prefixes is
 comment on column public.dealer_locations.is_main is
   'The fallback branch when a deal has no salesperson number or no prefix matches.';
 
--- ------------------------------------------------------------------
--- Eakes' twelve branches.
--- ------------------------------------------------------------------
 insert into public.dealer_locations
   (dealer_account_id, code, name, street, city, state, zip, phone, rep_prefixes, is_main)
 select da.id, v.code, v.name, v.street, v.city, v.state, v.zip, v.phone, v.prefixes, v.is_main
@@ -114,7 +57,6 @@ on conflict (dealer_account_id, code) do update
       rep_prefixes = excluded.rep_prefixes, is_main = excluded.is_main,
       updated_at = now();
 
--- Guard: exactly one main, and no prefix claimed by two branches.
 do $$
 declare v_dealer uuid; n int; dupe text;
 begin
@@ -138,8 +80,6 @@ begin
   end if;
 end $$;
 
--- Every column qualified: dealer_accounts carries city/state/zip too, so
--- unqualified names are ambiguous across this join.
 select dl.code, dl.name, dl.street, dl.city, dl.state, dl.zip, dl.phone,
        dl.rep_prefixes, dl.is_main
   from public.dealer_locations dl
