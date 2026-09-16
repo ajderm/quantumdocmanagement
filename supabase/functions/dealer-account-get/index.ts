@@ -64,6 +64,7 @@ Deno.serve(async (req) => {
     let customDocuments: unknown[] = [];
     let fieldMappings: Record<string, unknown[]> = { global: [] };
     let commissionUsers: unknown[] = [];
+    let dealerLocations: unknown[] = [];
     
     if (data?.id) {
       // Fetch document terms
@@ -133,6 +134,19 @@ Deno.serve(async (req) => {
       if (!commissionUsersError && commissionUsersData) {
         commissionUsers = commissionUsersData;
       }
+
+      // Branch offices. The table is service-role only, so this function is
+      // the only way the app sees them. A portal with no rows returns an
+      // empty array and the app keeps using the dealer account address.
+      const { data: locationsData, error: locationsError } = await supabase
+        .from('dealer_locations')
+        .select('code, name, street, city, state, zip, phone, rep_prefixes, is_main')
+        .eq('dealer_account_id', data.id)
+        .order('code');
+
+      if (!locationsError && locationsData) {
+        dealerLocations = locationsData;
+      }
     }
 
     console.log('Dealer account found:', data ? data.id : 'none');
@@ -144,6 +158,7 @@ Deno.serve(async (req) => {
       customDocuments,
       fieldMappings,
       commissionUsers,
+      dealerLocations,
     }), {
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
     });

@@ -12,15 +12,17 @@
  */
 
 import {
-  classifyLine, companyCrmFields, contactCrmFields, lineDescription, money, num,
+  classifyLine, companyCrmFields, contactCrmFields, dealerBlock, lineDescription, money, num,
   repCodeField, taxRateFraction, termsHtml,
-  type CrmExtras, type QuoteFormLike, type RenderPayload, type RenderLineItem,
+  type CrmExtras, type QuoteFormLike, type RenderBranch, type RenderPayload, type RenderLineItem,
 } from "./payload";
 
 export interface DocRenderContext {
   dealerInfo?: {
     companyName?: string; address?: string; phone?: string; website?: string;
   };
+  /** The resolved (or rep-overridden) selling branch; null leaves chrome as-is. */
+  branch?: RenderBranch | null;
   deal?: { dealname?: string; closedate?: string } | null;
   /** Quote number, where the document carries one. */
   quoteNumber?: string | null;
@@ -139,13 +141,7 @@ function shared(ctx: DocRenderContext) {
       email: clean(ctx.repEmail),
       code: repCodeField(ctx.crm),
     },
-    dealer: {
-      company: clean(ctx.dealerInfo?.companyName),
-      address: clean(ctx.dealerInfo?.address),
-      phone: clean(ctx.dealerInfo?.phone),
-      website: clean(ctx.dealerInfo?.website),
-      tax_rate: taxRateFraction(ctx.taxRate),
-    },
+    dealer: dealerBlock(ctx),
     terms: { html: termsHtml(ctx.termsText) },
     today: ctx.today,
   };
@@ -208,6 +204,11 @@ export function newCustomerRenderPayload(
   const split = dealLines(ctx);
   return {
     ...shared(ctx),
+    // The customer summary carries a fixed credit-department return block
+    // (P.O. Box 2098, Grand Island NE 68802-2098, credit@eakes.com). That is
+    // the credit department, not the selling branch, so this one document
+    // deliberately ignores the branch and keeps the dealer account address.
+    dealer: dealerBlock({ ...ctx, branch: null }),
     company: {
       name: clean(form.companyName) ?? "Customer",
       address: joinParts(hqStreet, form.hqCity,

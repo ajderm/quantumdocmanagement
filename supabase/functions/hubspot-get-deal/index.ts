@@ -197,6 +197,25 @@ function quoteIqWriteback(props: Record<string, any> | undefined | null) {
   };
 }
 
+/**
+ * The salesperson number the branch resolver matches on.
+ *
+ * Two property names are in play across portals; the Syncari-routed one is
+ * the fallback. Empty stays null so a document falls back to the main office
+ * rather than matching on an empty string.
+ */
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+function salespersonNumberFrom(...propSets: (Record<string, any> | undefined | null)[]) {
+  for (const props of propSets) {
+    for (const key of ['salesperson__', 'lead_routing_salesperson____syncari_']) {
+      const value = props?.[key];
+      if (typeof value === 'string' && value.trim() !== '') return value.trim();
+      if (typeof value === 'number') return String(value);
+    }
+  }
+  return null;
+}
+
 async function resolvePipelineLabels(
   accessToken: string,
   objectPath: string,
@@ -1043,6 +1062,10 @@ Deno.serve(async (req) => {
         // The writeback lives on the deal; a project anchor reads it from the
         // associated deal, the same place its line items come from.
         quoteiq: quoteIqWriteback(associatedDealResponse?.properties),
+        // Branch resolution: the project's own number wins, else the deal's.
+        salespersonNumber: salespersonNumberFrom(
+          projectResponse.properties, associatedDealResponse?.properties,
+        ),
         contractType: projectResponse.properties?.contract_type_proj
           || associatedDealResponse?.properties?.contract_type || null,
       };
@@ -1112,6 +1135,7 @@ Deno.serve(async (req) => {
       closeDate: dealResponse.properties.closedate,
       ownerId: dealResponse.properties.hubspot_owner_id,
       quoteiq: quoteIqWriteback(dealResponse.properties),
+      salespersonNumber: salespersonNumberFrom(dealResponse.properties),
     };
 
     // Fetch deal owner with phone and email
