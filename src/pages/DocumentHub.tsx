@@ -1,4 +1,4 @@
-import { useState, useRef, useCallback, useEffect, lazy, Suspense } from "react";
+import { useState, useRef, useCallback, useEffect, useMemo, lazy, Suspense } from "react";
 
 type TimerId = ReturnType<typeof setTimeout>;
 import { HubSpotProvider, useHubSpot } from "@/hooks/useHubSpot";
@@ -103,6 +103,8 @@ import type { FormCustomizationConfig, FormCustomizationMap } from "@/lib/formCu
 import { DocumentPacketForm } from "@/components/document-packet/DocumentPacketForm";
 const AdminSettings = lazy(() => import("@/pages/admin/AdminSettings"));
 import { AuthCallbackNotice, isAuthCallbackUrl } from "@/components/admin/AuthCallbackNotice";
+import { BranchSelector } from "@/components/shared/BranchSelector";
+import { branchForPayload, resolveBranch, type DealerLocation } from "@/lib/branches";
 
 const documentTypes = [
   { code: "quote", name: "Quote", icon: FileText },
@@ -531,6 +533,12 @@ function DocumentHubContent() {
   // configsLoaded gate: prevents forms from rendering before saved configs are fetched
   const [configsLoaded, setConfigsLoaded] = useState(false);
 
+  // Branch offices for this portal. Empty for portals that have none, which
+  // is the normal case: those keep the dealer account address everywhere.
+  const [dealerLocations, setDealerLocations] = useState<DealerLocation[]>([]);
+  // The rep's explicit branch choice for this record, by location code.
+  const [branchOverride, setBranchOverride] = useState<string | null>(null);
+
   // Custom Documents state
   const [customDocuments, setCustomDocuments] = useState<CustomDocument[]>([]);
   const [customDocFormData, setCustomDocFormData] = useState<Record<string, Record<string, any>>>({});
@@ -764,6 +772,9 @@ function DocumentHubContent() {
       if (data?.commissionUsers) {
         setCommissionUsers(data.commissionUsers);
       }
+
+      // Branch offices. Absent or empty means this portal has none.
+      setDealerLocations(Array.isArray(data?.dealerLocations) ? data.dealerLocations : []);
     } catch (err) {
       console.error("Failed to fetch dealer info:", err);
     }
@@ -777,6 +788,8 @@ function DocumentHubContent() {
     setDocumentTerms({});
     setCommissionUsers([]);
     setCustomDocuments([]);
+    setDealerLocations([]);
+    setBranchOverride(null);
     setConfigsLoaded(false);
 
     loadDealerInfo();
@@ -2537,6 +2550,26 @@ function DocumentHubContent() {
     return `${c.firstName ?? ""} ${c.lastName ?? ""}`.trim() || null;
   };
 
+  /** The salesperson number the branch resolver matches rep prefixes against. */
+  const salespersonNumber =
+    (deal?.salespersonNumber as string | undefined)
+    ?? (properties?.deal?.salesperson__ as string | undefined)
+    ?? (properties?.deal?.lead_routing_salesperson____syncari_ as string | undefined)
+    ?? null;
+
+  /**
+   * The selling branch: resolved from the salesperson number, unless the rep
+   * picked a different one on this record. Null for portals with no branches,
+   * which leaves the dealer account address in place.
+   */
+  const activeBranch = useMemo(() => {
+    const resolved = resolveBranch(salespersonNumber, dealerLocations);
+    if (!branchOverride) return resolved;
+    return dealerLocations.find((l) => l.code === branchOverride) ?? resolved;
+  }, [salespersonNumber, dealerLocations, branchOverride]);
+
+  const branchPayload = useMemo(() => branchForPayload(activeBranch), [activeBranch]);
+
   /**
    * Values that come off the CRM records rather than off a form: the account
    * number and EIN on the company, the rep's salesperson code, and the meter
@@ -2561,6 +2594,7 @@ function DocumentHubContent() {
    */
   const docRenderContext = (code: string, termsText: string | null): DocRenderContext => ({
     dealerInfo: dealerInfo ?? undefined,
+    branch: branchPayload,
     deal,
     documentTitle: docRename(code),
     taxRate: dealerSettings.sales_tax_rate ?? null,
@@ -3154,6 +3188,7 @@ function DocumentHubContent() {
         previewRef.current,
         () => quoteRenderPayload(formData, {
           dealerInfo: dealerInfo ?? undefined,
+          branch: branchPayload,
           deal,
           shipToContact: shipTo || null,
           leasingPartnerName: formData.leasingCompanyId || null,
@@ -3286,6 +3321,7 @@ function DocumentHubContent() {
           format: "html",
           data: quoteRenderPayload(formData, {
             dealerInfo: dealerInfo ?? undefined,
+            branch: branchPayload,
             deal,
             shipToContact: shipTo || null,
             leasingPartnerName: formData.leasingCompanyId || null,
@@ -4303,6 +4339,14 @@ function DocumentHubContent() {
                 {lineItems.length} item{lineItems.length !== 1 ? "s" : ""}
               </span>
             </div>
+            {/* Nothing renders for portals without branch offices. */}
+            <BranchSelector
+              locations={dealerLocations}
+              active={activeBranch}
+              override={branchOverride}
+              onOverrideChange={setBranchOverride}
+              disabled={!userPermissions.can_edit}
+            />
           </div>
         </div>
       )}

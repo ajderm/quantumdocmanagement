@@ -339,10 +339,41 @@ export function repCodeField(crm?: CrmExtras): string | null {
   return blankToNull(crm?.repCode);
 }
 
+/**
+ * The selling branch, when the portal has branches and one resolved.
+ *
+ * Null for portals with no `dealer_locations` rows, which keeps their
+ * documents on the dealer account address exactly as before.
+ */
+export interface RenderBranch {
+  name?: string | null;
+  address?: string | null;
+  phone?: string | null;
+}
+
+/** Dealer chrome: company and website stay put, address and phone follow the branch. */
+export function dealerBlock(ctx: {
+  dealerInfo?: { companyName?: string; address?: string; phone?: string; website?: string };
+  branch?: RenderBranch | null;
+  taxRate?: unknown;
+}) {
+  const branchAddr = ctx.branch?.address?.trim() || null;
+  const branchPhone = ctx.branch?.phone?.trim() || null;
+  return {
+    company: ctx.dealerInfo?.companyName?.trim() || null,
+    address: branchAddr ?? (ctx.dealerInfo?.address?.trim() || null),
+    phone: branchPhone ?? (ctx.dealerInfo?.phone?.trim() || null),
+    website: ctx.dealerInfo?.website?.trim() || null,
+    tax_rate: taxRateFraction(ctx.taxRate),
+  };
+}
+
 export interface RenderContext {
   dealerInfo?: {
     companyName?: string; address?: string; phone?: string; website?: string;
   };
+  /** The resolved (or rep-overridden) selling branch; null leaves chrome as-is. */
+  branch?: RenderBranch | null;
   deal?: { dealname?: string; closedate?: string } | null;
   shipToContact?: string | null;
   leasingPartnerName?: string | null;
@@ -463,13 +494,7 @@ export function quoteRenderPayload(form: QuoteFormLike, ctx: RenderContext): Ren
       payment: quotedPayment !== null && quotedPayment > 0 ? money(quotedPayment) : null,
       type: leaseType || null,
     },
-    dealer: {
-      company: ctx.dealerInfo?.companyName?.trim() || null,
-      address: ctx.dealerInfo?.address?.trim() || null,
-      phone: ctx.dealerInfo?.phone?.trim() || null,
-      website: ctx.dealerInfo?.website?.trim() || null,
-      tax_rate: taxRateFraction(ctx.taxRate),
-    },
+    dealer: dealerBlock(ctx),
     terms: { html: termsHtml(ctx.termsText) },
     today: ctx.today,
     amounts: {

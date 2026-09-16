@@ -27,6 +27,7 @@ import {
   Trash2,
   Shield,
   ShieldCheck,
+  MapPin,
 } from "lucide-react";
 import { useState, useEffect, useRef, useMemo } from "react";
 import { Link, useSearchParams } from "react-router-dom";
@@ -37,6 +38,8 @@ import { FieldMappingEditor } from "@/components/admin/FieldMappingEditor";
 import { CustomDocumentBuilder } from "@/components/admin/CustomDocumentBuilder";
 import { FormCustomizationTab } from "@/components/admin/FormCustomizationTab";
 import { UserRolesManager } from "@/components/admin/UserRolesManager";
+import { BranchLocationsManager } from "@/components/admin/BranchLocationsManager";
+import type { DealerLocation } from "@/lib/branches";
 import LeasingPartners from "./LeasingPartners";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import type { FormCustomizationMap } from "@/lib/formCustomization";
@@ -45,7 +48,10 @@ import type { FormCustomizationMap } from "@/lib/formCustomization";
 const SETTINGS_NAV: { label: string; items: { value: string; label: string; icon: typeof Building2 }[] }[] = [
   {
     label: "General",
-    items: [{ value: "company", label: "Company", icon: Building2 }],
+    items: [
+      { value: "company", label: "Company", icon: Building2 },
+      { value: "branches", label: "Branch Locations", icon: MapPin },
+    ],
   },
   {
     label: "Documents",
@@ -125,6 +131,8 @@ export default function AdminSettings({
   const [saving, setSaving] = useState(false);
   const [loading, setLoading] = useState(true);
   const [dealerAccountId, setDealerAccountId] = useState<string | null>(null);
+  // Branch offices; empty for portals that do not use them.
+  const [dealerLocations, setDealerLocations] = useState<DealerLocation[]>([]);
   const [logoUrl, setLogoUrl] = useState<string | null>(null);
   const [uploadingLogo, setUploadingLogo] = useState(false);
   const [activeTermsTab, setActiveTermsTab] = useState("quote");
@@ -251,6 +259,8 @@ export default function AdminSettings({
             terms_and_conditions: data.terms_and_conditions || "",
           });
         }
+
+        setDealerLocations(Array.isArray(result?.dealerLocations) ? result.dealerLocations : []);
 
         // Load document-specific terms
         if (result?.documentTerms) {
@@ -1786,6 +1796,20 @@ export default function AdminSettings({
                   )}
                 </Button>
               </div>
+            </TabsContent>
+
+            <TabsContent value="branches">
+              {portalId ? (
+                <BranchLocationsManager
+                  portalId={portalId}
+                  locations={dealerLocations}
+                  onSaved={setDealerLocations}
+                />
+              ) : (
+                <div className="text-center py-8 text-sm text-muted-foreground">
+                  Connect this portal to manage branch locations.
+                </div>
+              )}
             </TabsContent>
 
             <TabsContent value="leasing">
