@@ -1,4 +1,4 @@
-import { useState, useRef, useCallback, useEffect, lazy, Suspense } from "react";
+import { useState, useRef, useCallback, useEffect, useMemo, lazy, Suspense } from "react";
 
 type TimerId = ReturnType<typeof setTimeout>;
 import { HubSpotProvider, useHubSpot } from "@/hooks/useHubSpot";
