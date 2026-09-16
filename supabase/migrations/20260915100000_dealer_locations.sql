@@ -138,10 +138,13 @@ begin
   end if;
 end $$;
 
-select code, name, city, state, zip, phone, rep_prefixes, is_main
+-- Every column qualified: dealer_accounts carries city/state/zip too, so
+-- unqualified names are ambiguous across this join.
+select dl.code, dl.name, dl.street, dl.city, dl.state, dl.zip, dl.phone,
+       dl.rep_prefixes, dl.is_main
   from public.dealer_locations dl
   join public.dealer_accounts da on da.id = dl.dealer_account_id
  where da.hubspot_portal_id = '43692327'
- order by (code)::int;
+ order by (dl.code)::int;
 
 commit;
