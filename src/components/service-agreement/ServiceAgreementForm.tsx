@@ -676,20 +676,21 @@ export function ServiceAgreementForm({
           <div className="space-y-2">
             <Label htmlFor="paperStaples">Staples</Label>
             <Select
-              value={formData.paperStaples || STAPLES_DEFAULT}
+              value={formData.paperStaples || supplyDefault(supplyOptions)}
               onValueChange={(value) => updateField("paperStaples", value)}
             >
               <SelectTrigger>
                 <SelectValue placeholder="Select option" />
               </SelectTrigger>
               <SelectContent>
-                {/* A previously saved paper-era value stays selectable until the
-                    user picks one of the two current options. */}
-                {formData.paperStaples && !STAPLES_OPTIONS.includes(formData.paperStaples) && (
+                {/* A previously saved value outside the configured list stays
+                    selectable until the user picks one of the current options. */}
+                {formData.paperStaples && !supplyOptions.includes(formData.paperStaples) && (
                   <SelectItem value={formData.paperStaples}>{formData.paperStaples}</SelectItem>
                 )}
-                <SelectItem value="Excludes staples">Excludes staples</SelectItem>
-                <SelectItem value="Includes staples">Includes staples</SelectItem>
+                {supplyOptions.map((option) => (
+                  <SelectItem key={option} value={option}>{option}</SelectItem>
+                ))}
               </SelectContent>
             </Select>
           </div>
