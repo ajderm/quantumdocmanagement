@@ -4856,7 +4856,7 @@ function DocumentHubContent() {
                           billToPhone: "",
                           billToEmail: "",
                           maintenanceType: "",
-                          paperStaples: "Excludes staples",
+                          paperStaples: supplyDefault(resolveSupplyOptions(dealerSettings)),
                           drumToner: "",
                           serials: {},
                           effectiveDate: null,
