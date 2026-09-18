@@ -62,6 +62,8 @@ export interface QuoteLineItem {
    */
   sku?: string | null;
   serial?: string;
+  /** Paperwork location for this unit; editable independently of serial. */
+  location?: string;
   equipmentId?: string;
 }
 export interface QuoteFormData {
@@ -154,6 +156,8 @@ interface QuoteFormProps {
    * common case the one that needs correcting.
    */
   primaryLender?: string;
+  /** Temporary default until QuoteIQ supplies a dedicated per-line field. */
+  equipmentLocationDefault?: string;
 }
 
 interface RateFactor {
@@ -229,6 +233,7 @@ export function QuoteForm({
   defaultTerms,
   documentLabel,
   primaryLender,
+  equipmentLocationDefault,
 }: QuoteFormProps) {
   const hasInitializedRef = useRef(false);
   const savedConfigRef = useRef(savedConfig);
@@ -810,6 +815,7 @@ export function QuoteForm({
         parentLineItemId: "",
         itemNumber: item.itemNumber || item.properties?.item_number || "",
         serial: item.serial || item.properties?.serial_number || "",
+        location: item.location || item.properties?.location || equipmentLocationDefault || "",
         equipmentId: item.equipmentId || item.properties?.equipment_id || "",
       })),
       retailPrice: dealAmount,
@@ -1009,6 +1015,7 @@ export function QuoteForm({
           productType: "",
           parentLineItemId: "",
           itemNumber: "",
+          location: equipmentLocationDefault || "",
         },
       ],
     }));
@@ -1066,6 +1073,7 @@ export function QuoteForm({
       productType: product.productType || "",
       parentLineItemId: "",
       itemNumber: product.itemNumber || "",
+      location: equipmentLocationDefault || "",
     };
     setFormData((prev) => ({ ...prev, lineItems: [...prev.lineItems, newItem] }));
   };
@@ -1089,6 +1097,7 @@ export function QuoteForm({
           productType: "Hardware",
           parentLineItemId: "",
           itemNumber: "",
+          location: equipmentLocationDefault || "",
         },
       ],
     }));
@@ -1113,6 +1122,7 @@ export function QuoteForm({
           productType: "Accessory",
           parentLineItemId: hardwareId,
           itemNumber: "",
+          location: equipmentLocationDefault || "",
         },
       ],
     }));
@@ -1138,6 +1148,7 @@ export function QuoteForm({
           parentLineItemId: "",
           standalone: true,
           itemNumber: "",
+          location: equipmentLocationDefault || "",
         },
       ],
     }));
@@ -1413,6 +1424,14 @@ export function QuoteForm({
                       onChange={(e) => updateLineItem(idx, "serial", e.target.value)}
                       className="h-9 text-sm"
                       placeholder="Serial number"
+                    />
+                  </Field>
+                  <Field label="Location" hint="Prints on the agreement">
+                    <Input
+                      value={item.location || ""}
+                      onChange={(e) => updateLineItem(idx, "location", e.target.value)}
+                      className="h-9 text-sm"
+                      placeholder="Equipment location"
                     />
                   </Field>
                 </FieldGrid>

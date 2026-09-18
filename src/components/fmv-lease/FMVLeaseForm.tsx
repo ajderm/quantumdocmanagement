@@ -18,6 +18,7 @@ export interface FMVLeaseEquipmentItem {
   makeModelDescription: string;
   serialNumber: string;
   idNumber: string;
+  location: string;
 }
 
 export interface FMVLeaseFormData {
@@ -178,6 +179,7 @@ export function FMVLeaseForm({
           .replace(/\s*-$/, ""),
         serialNumber: savedItem?.serialNumber || item.serial || "",
         idNumber: savedItem?.idNumber || "",
+        location: savedItem?.location || joinAddress(equipmentAddress, equipmentCity, equipmentState, equipmentZip),
       };
     });
 
@@ -367,6 +369,14 @@ export function FMVLeaseForm({
                       onChange={(e) => updateEquipmentItem(index, "idNumber", e.target.value)}
                       className="h-8 text-sm"
                       placeholder="Enter ID number"
+                    />
+                  </Field>
+                  <Field label="Location">
+                    <Input
+                      value={item.location || ""}
+                      onChange={(e) => updateEquipmentItem(index, "location", e.target.value)}
+                      className="h-8 text-sm"
+                      placeholder="Equipment location"
                     />
                   </Field>
                 </FieldGrid>
