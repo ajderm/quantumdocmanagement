@@ -519,8 +519,9 @@ type DealContactRole = 'meter' | 'signer';
 function roleForLabel(label: string): DealContactRole | null {
   const l = label.toLowerCase();
   if (l.includes('meter')) return 'meter';
-  if (l.includes('signer') || l.includes('signor') || l.includes('signature')
-    || l.includes('signatory')) return 'signer';
+  // "Signing Authority" and "Authorized Signer" are both in use across
+  // portals, so the whole sign- family matches rather than four fixed words.
+  if (l.includes('sign')) return 'signer';
   return null;
 }
 
