@@ -128,10 +128,11 @@ table.grid tr.empty td { color: ${st.muted}; font-style: italic; }
 .richText .body ol, .richText .body ul { margin: 0 0 4pt; padding-left: 14pt; }
 
 /* A dealer may request terms as noticeably lighter fine print. Opacity rather
-   than a paler colour means any
-   emphasis inside the terms lightens with the block instead of jumping back
-   to full ink. */
-.richText.terms .body { opacity: .55; }
+   than a paler colour means any emphasis inside the terms lightens with the
+   block instead of jumping back to full ink. The compact leading is scoped to
+   that same opt-in treatment so ordinary rich text pagination is unchanged. */
+.richText.terms .body { opacity: .55; line-height: 1.4; }
+.richText.terms .body p { margin-bottom: 2pt; }
 .richText.terms .body strong { color: inherit; }
 
 /* ---- signature ------------------------------------------------------- */
