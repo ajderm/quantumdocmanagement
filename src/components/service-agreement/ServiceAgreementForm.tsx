@@ -704,7 +704,7 @@ export function ServiceAgreementForm({
             </Select>
           </div>
           <div className="space-y-2">
-            <Label htmlFor="paperStaples">Staples</Label>
+            <Label htmlFor="paperStaples">{supplyLabel}</Label>
             <Select
               value={formData.paperStaples || supplyDefault(supplyOptions)}
               onValueChange={(value) => updateField("paperStaples", value)}
@@ -724,6 +724,24 @@ export function ServiceAgreementForm({
               </SelectContent>
             </Select>
           </div>
+          {drumTonerOptions.length > 0 && (
+            <div className="space-y-2">
+              <Label htmlFor="drumToner">Drum &amp; Toner</Label>
+              <Select value={formData.drumToner} onValueChange={(value) => updateField("drumToner", value)}>
+                <SelectTrigger>
+                  <SelectValue placeholder="Select option" />
+                </SelectTrigger>
+                <SelectContent>
+                  {formData.drumToner && !drumTonerOptions.includes(formData.drumToner) && (
+                    <SelectItem value={formData.drumToner}>{formData.drumToner}</SelectItem>
+                  )}
+                  {drumTonerOptions.map((option) => (
+                    <SelectItem key={option} value={option}>{option}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+          )}
           <div className="space-y-2">
             <Label>Effective Date</Label>
             <Popover>
