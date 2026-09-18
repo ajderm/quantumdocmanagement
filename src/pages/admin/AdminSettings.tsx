@@ -43,6 +43,10 @@ import type { DealerLocation } from "@/lib/branches";
 import LeasingPartners from "./LeasingPartners";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import type { FormCustomizationMap } from "@/lib/formCustomization";
+import {
+  DEFAULT_DRUM_TONER_OPTIONS,
+  DEFAULT_SUPPLY_LABEL,
+} from "@/components/service-agreement/ServiceAgreementForm";
 
 // Left-rail navigation groups (mirrors the document hub's grouped rail)
 const SETTINGS_NAV: { label: string; items: { value: string; label: string; icon: typeof Building2 }[] }[] = [
