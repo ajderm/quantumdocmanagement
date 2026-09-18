@@ -1618,9 +1618,89 @@ export default function AdminSettings({
                            Add
                          </Button>
                        </div>
-                     </div>
+                      </div>
 
-                     <Separator />
+                      <Separator />
+
+                      {/* Supplies field label */}
+                      <div className="space-y-2">
+                        <Label htmlFor="supply_label">Supplies Field Label</Label>
+                        <p className="text-xs text-muted-foreground">
+                          Name of the supplies field on the Service Agreement. Leave empty for the
+                          standard label ({DEFAULT_SUPPLY_LABEL}).
+                        </p>
+                        <Input
+                          id="supply_label"
+                          value={supplyLabel}
+                          onChange={(e) => setSupplyLabel(e.target.value)}
+                          placeholder={DEFAULT_SUPPLY_LABEL}
+                        />
+                      </div>
+
+                      <Separator />
+
+                      {/* Drum & Toner options */}
+                      <div className="space-y-3">
+                        <Label>Drum &amp; Toner</Label>
+                        <p className="text-xs text-muted-foreground">
+                          Shown on the Service Agreement unless turned off for this account.
+                        </p>
+                        <div className="flex items-center gap-2">
+                          <input
+                            id="drum_toner_enabled"
+                            type="checkbox"
+                            className="h-4 w-4"
+                            checked={drumTonerEnabled}
+                            onChange={(e) => setDrumTonerEnabled(e.target.checked)}
+                          />
+                          <Label htmlFor="drum_toner_enabled" className="text-sm font-normal">
+                            Show the Drum &amp; Toner field
+                          </Label>
+                        </div>
+                        {drumTonerEnabled && (
+                          <>
+                            <div className="flex flex-wrap gap-2 mb-2">
+                              {drumTonerOptions.map((option) => (
+                                <Badge key={option} variant="secondary" className="flex items-center gap-1 px-2 py-1">
+                                  {option}
+                                  <button
+                                    type="button"
+                                    onClick={() => handleRemoveDrumTonerOption(option)}
+                                    className="ml-1 hover:text-destructive"
+                                  >
+                                    <X className="h-3 w-3" />
+                                  </button>
+                                </Badge>
+                              ))}
+                              {drumTonerOptions.length === 0 && (
+                                <span className="text-xs text-muted-foreground italic">
+                                  Using the standard drum &amp; toner list
+                                </span>
+                              )}
+                            </div>
+                            <div className="flex gap-2">
+                              <Input
+                                value={newDrumTonerOption}
+                                onChange={(e) => setNewDrumTonerOption(e.target.value)}
+                                placeholder="e.g., Drum Included MD"
+                                className="flex-1"
+                                onKeyDown={(e) => {
+                                  if (e.key === "Enter") {
+                                    e.preventDefault();
+                                    handleAddDrumTonerOption();
+                                  }
+                                }}
+                              />
+                              <Button type="button" variant="outline" size="sm" onClick={handleAddDrumTonerOption}>
+                                <Plus className="h-4 w-4 mr-1" />
+                                Add
+                              </Button>
+                            </div>
+                          </>
+                        )}
+                      </div>
+
+                      <Separator />
 
                      {/* CCA Value */}
                     <div className="space-y-2">
