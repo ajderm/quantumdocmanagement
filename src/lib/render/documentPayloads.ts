@@ -557,8 +557,58 @@ export interface ServiceQuoteRates {
   overageBWRate?: unknown; overageColorRate?: unknown; serviceBaseRate?: unknown;
 }
 
+/**
+ * A deal line item as QuoteIQ stamps it, carrying the cost-per-copy figures.
+ *
+ * These are the last resort for the rates table: reps had been typing the
+ * volumes and rates by hand because nothing read the properties QuoteIQ
+ * already writes onto each line.
+ */
+export interface ServiceCrmRateLine {
+  cpcMonoVolume?: unknown; cpcColorVolume?: unknown;
+  cpcMonoRate?: unknown; cpcColorRate?: unknown;
+  cpcMonoOverageRate?: unknown; cpcColorOverageRate?: unknown;
+}
+
+/** The rates QuoteIQ stamped on the deal's lines, rolled up to one set. */
+function crmRates(lines: ServiceCrmRateLine[] | null | undefined): ServiceQuoteRates {
+  const rows = lines ?? [];
+  const total = (pick: (l: ServiceCrmRateLine) => unknown) => {
+    const values = rows.map(pick).map(positive).filter((v): v is number => v !== null);
+    return values.length ? money(values.reduce((a, b) => a + b, 0)) : null;
+  };
+  const firstOf = (...picks: ((l: ServiceCrmRateLine) => unknown)[]) => {
+    for (const row of rows) {
+      for (const pick of picks) {
+        const v = positive(pick(row));
+        if (v !== null) return v;
+      }
+    }
+    return null;
+  };
+  // Base rate is what the included volume costs at the contracted per-copy
+  // rate — the same arithmetic the form does when a rep fills it in by hand.
+  const base = rows.reduce((sum, row) => {
+    const bw = (positive(row.cpcMonoVolume) ?? 0) * (positive(row.cpcMonoRate) ?? 0);
+    const color = (positive(row.cpcColorVolume) ?? 0) * (positive(row.cpcColorRate) ?? 0);
+    return sum + bw + color;
+  }, 0);
+  return {
+    includedBWCopies: total((l) => l.cpcMonoVolume),
+    includedColorCopies: total((l) => l.cpcColorVolume),
+    overageBWRate: firstOf((l) => l.cpcMonoOverageRate, (l) => l.cpcMonoRate),
+    overageColorRate: firstOf((l) => l.cpcColorOverageRate, (l) => l.cpcColorRate),
+    serviceBaseRate: base > 0 ? money(base) : null,
+  };
+}
+
 const BILLING_LABEL: Record<string, string> = {
   monthly: "Monthly", quarterly: "Quarterly", annual: "Annual",
+};
+
+/** How many times a year the base rate is billed. Unset bills monthly. */
+const PERIODS_PER_YEAR: Record<string, number> = {
+  monthly: 12, quarterly: 4, annual: 1,
 };
 
 /** Positive numbers only: an unset rate must stay absent, never zero. */
@@ -581,7 +631,11 @@ const positive = (value: unknown): number | null => {
 export function serviceAgreementRenderPayload(
   form: ServiceAgreementLike,
   ctx: DocRenderContext,
-  options?: { quoteRates?: ServiceQuoteRates | null; equipmentLocationDefault?: string | null },
+  options?: {
+    quoteRates?: ServiceQuoteRates | null;
+    crmLines?: ServiceCrmRateLine[] | null;
+    equipmentLocationDefault?: string | null;
+  },
 ): RenderPayload {
   const serials = form.serials ?? {};
   const locations = form.locations ?? {};
@@ -612,7 +666,17 @@ export function serviceAgreementRenderPayload(
   // the agreement's face carries. Volumes add up across the covered machines;
   // a rate per copy does not, so the first one entered stands.
   const rateRows = Object.values(form.rates ?? {});
-  const q = options?.quoteRates ?? {};
+  // What the rep typed wins, then the quote, then what QuoteIQ stamped on the
+  // deal's own lines — so the commercial figures print even when nobody typed.
+  const fromCrm = crmRates(options?.crmLines);
+  const quoted = options?.quoteRates ?? {};
+  const q: ServiceQuoteRates = {
+    includedBWCopies: positive(quoted.includedBWCopies) ?? fromCrm.includedBWCopies,
+    includedColorCopies: positive(quoted.includedColorCopies) ?? fromCrm.includedColorCopies,
+    overageBWRate: positive(quoted.overageBWRate) ?? fromCrm.overageBWRate,
+    overageColorRate: positive(quoted.overageColorRate) ?? fromCrm.overageColorRate,
+    serviceBaseRate: positive(quoted.serviceBaseRate) ?? fromCrm.serviceBaseRate,
+  };
   const sum = (pick: (r: ServiceAgreementRateLike) => unknown, fallback: unknown) => {
     const values = rateRows.map(pick).map(positive).filter((v): v is number => v !== null);
     if (values.length) return money(values.reduce((a, b) => a + b, 0));
@@ -628,6 +692,7 @@ export function serviceAgreementRenderPayload(
 
   const term = num(form.contractLengthMonths) ?? leaseFromDeal(ctx).term;
   const billing = (form.billingPeriod ?? "").toLowerCase();
+  const baseRate = sum((r) => r.baseRate, q.serviceBaseRate);
 
   return {
     ...shared(ctx),
@@ -667,7 +732,10 @@ export function serviceAgreementRenderPayload(
       included_color: sum((r) => r.includesColor, q.includedColorCopies),
       overage_bw: first((r) => r.overagesBW, q.overageBWRate),
       overage_color: first((r) => r.overagesColor, q.overageColorRate),
-      base_rate: sum((r) => r.baseRate, q.serviceBaseRate),
+      base_rate: baseRate,
+      annual_total: baseRate === null
+        ? null
+        : money(baseRate * (PERIODS_PER_YEAR[billing] ?? 12)),
     },
     amounts: { taxable: split.taxable, non_taxable: split.nonTaxable, total: split.taxable },
     line_items: split.lines,

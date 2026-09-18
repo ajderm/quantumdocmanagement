@@ -3471,6 +3471,7 @@ function DocumentHubContent() {
           ),
           {
             quoteRates: formData ?? null,
+            crmLines: lineItems ?? null,
             equipmentLocationDefault,
           },
         ) as unknown as Record<string, unknown>,

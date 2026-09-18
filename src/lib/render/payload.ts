@@ -146,6 +146,8 @@ export interface RenderPayload {
     overage_bw: number | null;
     overage_color: number | null;
     base_rate: number | null;
+    /** The base rate over a year, at this agreement's billing frequency. */
+    annual_total: number | null;
   };
 }
 
@@ -288,8 +290,12 @@ export function joinAddress(parts: {
  * of defect as the "Term months" dangling unit.
  */
 export function lineDescription(item: { model?: string; description?: string }): string {
-  const model = (item.model ?? '').trim();
-  const description = (item.description ?? '').trim();
+  // Source descriptions arrive from a concatenation upstream and carry its
+  // separator: "...Workgroup Document System;". The trailing punctuation is
+  // an artefact, never content, so it is stripped before the line prints.
+  const tidy = (v?: string) => (v ?? '').replace(/[;,]+\s*$/, '').trim();
+  const model = tidy(item.model);
+  const description = tidy(item.description);
   if (model && description && description !== model) return `${model} — ${description}`;
   return model || description || 'Item';
 }
