@@ -45,11 +45,17 @@ interface ServiceAgreementPreviewProps {
   installationConfigs?: Record<string, { installedSerial?: string; idNumber?: string }>;
   /** Portal-configured supply options; unset falls back to the standard list. */
   supplyOptions?: string[];
+  /** Portal-configured label for the supplies column; unset = "Paper & Staples". */
+  supplyLabel?: string;
+  /** Portal-configured Drum & Toner options; explicitly empty hides the column. */
+  drumTonerOptions?: string[] | null;
 }
 
 export const ServiceAgreementPreview = forwardRef<HTMLDivElement, ServiceAgreementPreviewProps>(
-  ({ formData, dealerInfo, lineItems, termsAndConditions, documentStyles, installationConfigs, supplyOptions }, ref) => {
+  ({ formData, dealerInfo, lineItems, termsAndConditions, documentStyles, installationConfigs, supplyOptions, supplyLabel, drumTonerOptions }, ref) => {
     const resolvedSupplyOptions = resolveSupplyOptions({ supply_options: supplyOptions });
+    const resolvedSupplyLabel = resolveSupplyLabel({ supply_label: supplyLabel });
+    const showDrumToner = resolveDrumTonerOptions({ drum_toner_options: drumTonerOptions }).length > 0;
     const hardwareLineItems = (() => {
       const hw = lineItems.filter(
         (item) => item.category?.toLowerCase() === 'hardware'
