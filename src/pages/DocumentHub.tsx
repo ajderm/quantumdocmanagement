@@ -132,6 +132,8 @@ interface DealerInfo {
 
 interface DealerSettings {
   meter_methods?: string[];
+  /** Supply options for the Service Agreement dropdown (per portal). */
+  supply_options?: string[];
   cca_value?: string;
   enabled_forms?: string[];
   /** Document code to open on load (homepage). Empty/absent = first enabled document. */
