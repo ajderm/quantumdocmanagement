@@ -520,6 +520,7 @@ export default function AdminSettings({
 
       const dealerSettings = {
         meter_methods: meterMethods,
+        supply_options: supplyOptions,
         cca_value: ccaValue,
         enabled_forms: enabledForms,
         // Persist homepage only if it's still an enabled document; otherwise
