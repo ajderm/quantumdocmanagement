@@ -70,7 +70,7 @@ import { SummaryRail, type SummaryMetric } from "@/components/shared";
 import { quantumLogo } from "@/assets/quantumLogo";
 import { InstallationForm, InstallationFormData } from "@/components/installation/InstallationForm";
 import { InstallationPreview } from "@/components/installation/InstallationPreview";
-import { ServiceAgreementForm, ServiceAgreementFormData } from "@/components/service-agreement/ServiceAgreementForm";
+import { ServiceAgreementForm, ServiceAgreementFormData, resolveSupplyOptions, supplyDefault } from "@/components/service-agreement/ServiceAgreementForm";
 import { ServiceAgreementPreview } from "@/components/service-agreement/ServiceAgreementPreview";
 import { FMVLeaseForm, FMVLeaseFormData } from "@/components/fmv-lease/FMVLeaseForm";
 import { FMVLeasePreview } from "@/components/fmv-lease/FMVLeasePreview";
