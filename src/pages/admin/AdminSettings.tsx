@@ -433,6 +433,18 @@ export default function AdminSettings({
     }
   };
 
+  const handleAddSupplyOption = () => {
+    const value = newSupplyOption.trim();
+    if (value && !supplyOptions.includes(value)) {
+      setSupplyOptions((prev) => [...prev, value]);
+      setNewSupplyOption("");
+    }
+  };
+
+  const handleRemoveSupplyOption = (option: string) => {
+    setSupplyOptions((prev) => prev.filter((o) => o !== option));
+  };
+
   const handleRemoveMeterMethod = (method: string) => {
     setMeterMethods((prev) => prev.filter((m) => m !== method));
   };
