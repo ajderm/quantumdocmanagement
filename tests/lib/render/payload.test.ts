@@ -4,7 +4,7 @@ import {
   quoteRenderPayload, joinAddress, lineDescription, money, num, taxRateFraction, termsHtml,
   classifyLine, reconcileLineItems,
 } from '../../../src/lib/render/payload.ts';
-import { fmvLeaseRenderPayload, newCustomerRenderPayload } from '../../../src/lib/render/documentPayloads.ts';
+import { fmvLeaseRenderPayload, newCustomerRenderPayload, serviceAgreementRenderPayload } from '../../../src/lib/render/documentPayloads.ts';
 
 const ctx = {
   dealerInfo: { companyName: 'Quantum Office Systems', address: '3300 Maple Valley Rd', phone: '(425) 555-0100', website: 'quantumoffice.example' },
@@ -387,4 +387,89 @@ test('a zero-quantity placeholder affects neither the list nor the totals', () =
   }, ctx);
   assert.equal(p.line_items.length, 4);
   assert.equal(p.amounts.total, 12111.51);
+});
+
+/* ---------------- service agreement ---------------- */
+
+const SA_CTX = {
+  ...ctx,
+  crm: { companyAccountNumber: '160015' },
+  lineItems: ARBOR_DAY,
+};
+
+const SA_FORM = {
+  billToCompany: 'Arbor Day Foundation',
+  billToAddress: '211 N 12th St', billToCity: 'Lincoln', billToState: 'NE', billToZip: '68508',
+  shipToAddress: '100 Arbor Ave', shipToCity: 'Nebraska City', shipToState: 'NE', shipToZip: '68410',
+  contractLengthMonths: '60',
+  billingPeriod: 'quarterly',
+  rates: {},
+};
+
+test('the service agreement lists every equipment line, not only the hardware', () => {
+  const p = serviceAgreementRenderPayload(SA_FORM, SA_CTX);
+  assert.equal(p.line_items.length, 4, 'the engine and its three accessories');
+  assert.deepEqual(
+    p.line_items.map((l) => l.name.split(' ')[0]).sort(),
+    ARBOR_DAY.map((l) => String(l.model)).sort(),
+  );
+});
+
+test('the service agreement prints the company account number', () => {
+  assert.equal(serviceAgreementRenderPayload(SA_FORM, SA_CTX).company.account_number, '160015');
+  // A correction typed on the agreement itself wins.
+  assert.equal(
+    serviceAgreementRenderPayload({ ...SA_FORM, customerNumberOverride: '160099' }, SA_CTX)
+      .company.account_number,
+    '160099',
+  );
+});
+
+test('serials and locations typed on the agreement reach the document', () => {
+  const id = String(ARBOR_DAY[0].id ?? '');
+  const p = serviceAgreementRenderPayload(
+    { ...SA_FORM, serials: { [id]: 'SN-4471' }, locations: { [id]: 'Suite 200' } },
+    SA_CTX,
+    { equipmentLocationDefault: 'Main office' },
+  );
+  const line = p.line_items.find((l) => l.serial === 'SN-4471');
+  assert.ok(line, 'the typed serial is carried');
+  assert.equal(line!.site, 'Suite 200');
+  // Lines with nothing typed fall back to the deal's equipment location.
+  assert.equal(p.line_items.filter((l) => l.site === 'Main office').length, 3);
+});
+
+test('service rates fall back to the quote and unset figures stay blank', () => {
+  const p = serviceAgreementRenderPayload(SA_FORM, SA_CTX, {
+    quoteRates: {
+      includedBWCopies: '5000', includedColorCopies: '',
+      overageBWRate: '0.007', overageColorRate: '0.065', serviceBaseRate: '129.50',
+    },
+  });
+  assert.equal(p.service!.included_bw, 5000);
+  assert.equal(p.service!.included_color, null, 'unset prints blank, never zero');
+  assert.equal(p.service!.overage_bw, 0.007);
+  assert.equal(p.service!.base_rate, 129.5);
+  assert.equal(p.service!.billing_period, 'Quarterly');
+  assert.equal(p.lease.term, 60);
+});
+
+test('per-line rates roll up: volumes add, a rate per copy does not', () => {
+  const p = serviceAgreementRenderPayload({
+    ...SA_FORM,
+    rates: {
+      a: { includesBW: '2000', overagesBW: '0.008', baseRate: '75' },
+      b: { includesBW: '3000', overagesBW: '0.008', baseRate: '50' },
+    },
+  }, SA_CTX, { quoteRates: { includedBWCopies: '1', serviceBaseRate: '1' } });
+  assert.equal(p.service!.included_bw, 5000);
+  assert.equal(p.service!.base_rate, 125);
+  assert.equal(p.service!.overage_bw, 0.008);
+});
+
+test('terms already written as markup are not escaped', () => {
+  const html = '<p><strong>Eakes</strong> terms</p><ol><li>Eligible Products</li></ol>';
+  assert.equal(termsHtml(html), html);
+  // Typed prose is still escaped, tags and all.
+  assert.equal(termsHtml('5 < 6 and a > b'), '<p>5 &lt; 6 and a &gt; b</p>');
 });
