@@ -20,11 +20,39 @@ import { cn } from "@/lib/utils";
  */
 export const DEFAULT_SUPPLY_OPTIONS = ["Excludes Paper", "Excludes Paper & Staples"];
 
-export function resolveSupplyOptions(
-  dealerSettings?: { supply_options?: string[] } | null,
-): string[] {
+/** Field label for the supplies dropdown; portals may rename it (Eakes uses "Staples"). */
+export const DEFAULT_SUPPLY_LABEL = "Paper & Staples";
+
+/**
+ * Drum & Toner options. Unset dealer setting = the original three options
+ * (unchanged behaviour). An explicitly empty configured list hides the field,
+ * which is how Eakes opts out.
+ */
+export const DEFAULT_DRUM_TONER_OPTIONS = [
+  "Drum & Toner Included MDT",
+  "Drum Included MD",
+  "Drum Excluded MA",
+];
+
+export interface SupplyDealerSettings {
+  supply_options?: string[];
+  supply_label?: string;
+  drum_toner_options?: string[] | null;
+}
+
+export function resolveSupplyOptions(dealerSettings?: SupplyDealerSettings | null): string[] {
   const configured = (dealerSettings?.supply_options || []).filter((o) => (o || "").trim());
   return configured.length > 0 ? configured : DEFAULT_SUPPLY_OPTIONS;
+}
+
+export function resolveSupplyLabel(dealerSettings?: SupplyDealerSettings | null): string {
+  return (dealerSettings?.supply_label || "").trim() || DEFAULT_SUPPLY_LABEL;
+}
+
+export function resolveDrumTonerOptions(dealerSettings?: SupplyDealerSettings | null): string[] {
+  const configured = dealerSettings?.drum_toner_options;
+  if (configured === undefined || configured === null) return DEFAULT_DRUM_TONER_OPTIONS;
+  return configured.filter((o) => (o || "").trim());
 }
 
 /** First configured option is the default for a new agreement. */
