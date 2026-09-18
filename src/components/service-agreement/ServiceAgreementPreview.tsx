@@ -233,7 +233,7 @@ export const ServiceAgreementPreview = forwardRef<HTMLDivElement, ServiceAgreeme
             <tbody>
               <tr className="border-b border-gray-300">
                 <td className="py-1 text-center">{formData.maintenanceType || '-'}</td>
-                <td className="py-1 text-center">{formData.paperStaples || STAPLES_DEFAULT}</td>
+                <td className="py-1 text-center">{formData.paperStaples || supplyDefault(resolvedSupplyOptions)}</td>
                 <td className="py-1 text-center">{formData.effectiveDate ? format(formData.effectiveDate, 'MM/dd/yyyy') : '-'}</td>
                 <td className="py-1 text-center">{formData.contractLengthMonths ? `${formData.contractLengthMonths} Months` : '-'}</td>
               </tr>
