@@ -143,6 +143,11 @@ export default function AdminSettings({
   const [newMeterMethod, setNewMeterMethod] = useState("");
   const [supplyOptions, setSupplyOptions] = useState<string[]>([]);
   const [newSupplyOption, setNewSupplyOption] = useState("");
+  const [supplyLabel, setSupplyLabel] = useState("");
+  // Drum & Toner: enabled with the standard list unless this portal turned it off.
+  const [drumTonerEnabled, setDrumTonerEnabled] = useState(true);
+  const [drumTonerOptions, setDrumTonerOptions] = useState<string[]>(DEFAULT_DRUM_TONER_OPTIONS);
+  const [newDrumTonerOption, setNewDrumTonerOption] = useState("");
   const [ccaValue, setCcaValue] = useState("");
 
   // Form visibility settings
@@ -280,6 +285,14 @@ export default function AdminSettings({
           }
           if (settings.supply_options) {
             setSupplyOptions(settings.supply_options as string[]);
+          }
+          if (typeof settings.supply_label === "string") {
+            setSupplyLabel(settings.supply_label);
+          }
+          if (Array.isArray(settings.drum_toner_options)) {
+            const list = (settings.drum_toner_options as string[]).filter((o) => (o || "").trim());
+            setDrumTonerEnabled(list.length > 0);
+            setDrumTonerOptions(list.length > 0 ? list : DEFAULT_DRUM_TONER_OPTIONS);
           }
           if (settings.cca_value) {
             setCcaValue(settings.cca_value);
@@ -443,6 +456,18 @@ export default function AdminSettings({
 
   const handleRemoveSupplyOption = (option: string) => {
     setSupplyOptions((prev) => prev.filter((o) => o !== option));
+  };
+
+  const handleAddDrumTonerOption = () => {
+    const value = newDrumTonerOption.trim();
+    if (value && !drumTonerOptions.includes(value)) {
+      setDrumTonerOptions((prev) => [...prev, value]);
+      setNewDrumTonerOption("");
+    }
+  };
+
+  const handleRemoveDrumTonerOption = (option: string) => {
+    setDrumTonerOptions((prev) => prev.filter((o) => o !== option));
   };
 
   const handleRemoveMeterMethod = (method: string) => {
