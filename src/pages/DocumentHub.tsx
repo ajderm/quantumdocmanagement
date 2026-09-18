@@ -63,6 +63,7 @@ import {
   installationRenderPayload,
   fmvLeaseRenderPayload,
   leaseFundingRenderPayload,
+  serviceAgreementRenderPayload,
   type DocRenderContext,
 } from "@/lib/render/documentPayloads";
 import { useConfirm } from "@/hooks/useConfirm";
