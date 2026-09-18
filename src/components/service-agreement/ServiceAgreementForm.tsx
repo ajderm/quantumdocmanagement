@@ -20,11 +20,39 @@ import { cn } from "@/lib/utils";
  */
 export const DEFAULT_SUPPLY_OPTIONS = ["Excludes Paper", "Excludes Paper & Staples"];
 
-export function resolveSupplyOptions(
-  dealerSettings?: { supply_options?: string[] } | null,
-): string[] {
+/** Field label for the supplies dropdown; portals may rename it (Eakes uses "Staples"). */
+export const DEFAULT_SUPPLY_LABEL = "Paper & Staples";
+
+/**
+ * Drum & Toner options. Unset dealer setting = the original three options
+ * (unchanged behaviour). An explicitly empty configured list hides the field,
+ * which is how Eakes opts out.
+ */
+export const DEFAULT_DRUM_TONER_OPTIONS = [
+  "Drum & Toner Included MDT",
+  "Drum Included MD",
+  "Drum Excluded MA",
+];
+
+export interface SupplyDealerSettings {
+  supply_options?: string[];
+  supply_label?: string;
+  drum_toner_options?: string[] | null;
+}
+
+export function resolveSupplyOptions(dealerSettings?: SupplyDealerSettings | null): string[] {
   const configured = (dealerSettings?.supply_options || []).filter((o) => (o || "").trim());
   return configured.length > 0 ? configured : DEFAULT_SUPPLY_OPTIONS;
+}
+
+export function resolveSupplyLabel(dealerSettings?: SupplyDealerSettings | null): string {
+  return (dealerSettings?.supply_label || "").trim() || DEFAULT_SUPPLY_LABEL;
+}
+
+export function resolveDrumTonerOptions(dealerSettings?: SupplyDealerSettings | null): string[] {
+  const configured = dealerSettings?.drum_toner_options;
+  if (configured === undefined || configured === null) return DEFAULT_DRUM_TONER_OPTIONS;
+  return configured.filter((o) => (o || "").trim());
 }
 
 /** First configured option is the default for a new agreement. */
@@ -165,7 +193,7 @@ interface ServiceAgreementFormProps {
     zip?: string;
   } | null;
   lineItems: LineItem[];
-  dealerSettings: { meter_methods?: string[]; supply_options?: string[] } | null;
+  dealerSettings: ({ meter_methods?: string[] } & SupplyDealerSettings) | null;
   savedConfig: ServiceAgreementFormData | null;
   labeledContacts: LabeledContacts;
   quoteFormData?: QuoteFormData | null;
@@ -186,6 +214,8 @@ export function ServiceAgreementForm({
 }: ServiceAgreementFormProps) {
   const meterMethods = dealerSettings?.meter_methods || ["FMAudit", "PrintFleet", "Manual Entry"];
   const supplyOptions = resolveSupplyOptions(dealerSettings);
+  const supplyLabel = resolveSupplyLabel(dealerSettings);
+  const drumTonerOptions = resolveDrumTonerOptions(dealerSettings);
 
   // Filter to main units only (exclude accessories) for the rates table
   const hardwareLineItems = (() => {
@@ -674,7 +704,7 @@ export function ServiceAgreementForm({
             </Select>
           </div>
           <div className="space-y-2">
-            <Label htmlFor="paperStaples">Staples</Label>
+            <Label htmlFor="paperStaples">{supplyLabel}</Label>
             <Select
               value={formData.paperStaples || supplyDefault(supplyOptions)}
               onValueChange={(value) => updateField("paperStaples", value)}
@@ -694,6 +724,24 @@ export function ServiceAgreementForm({
               </SelectContent>
             </Select>
           </div>
+          {drumTonerOptions.length > 0 && (
+            <div className="space-y-2">
+              <Label htmlFor="drumToner">Drum &amp; Toner</Label>
+              <Select value={formData.drumToner} onValueChange={(value) => updateField("drumToner", value)}>
+                <SelectTrigger>
+                  <SelectValue placeholder="Select option" />
+                </SelectTrigger>
+                <SelectContent>
+                  {formData.drumToner && !drumTonerOptions.includes(formData.drumToner) && (
+                    <SelectItem value={formData.drumToner}>{formData.drumToner}</SelectItem>
+                  )}
+                  {drumTonerOptions.map((option) => (
+                    <SelectItem key={option} value={option}>{option}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+          )}
           <div className="space-y-2">
             <Label>Effective Date</Label>
             <Popover>

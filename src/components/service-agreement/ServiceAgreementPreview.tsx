@@ -3,6 +3,8 @@ import { format } from "date-fns";
 import {
   ServiceAgreementFormData,
   resolveSupplyOptions,
+  resolveSupplyLabel,
+  resolveDrumTonerOptions,
   supplyDefault,
   resolveServiceAgreementSerial,
 } from "./ServiceAgreementForm";
@@ -43,11 +45,17 @@ interface ServiceAgreementPreviewProps {
   installationConfigs?: Record<string, { installedSerial?: string; idNumber?: string }>;
   /** Portal-configured supply options; unset falls back to the standard list. */
   supplyOptions?: string[];
+  /** Portal-configured label for the supplies column; unset = "Paper & Staples". */
+  supplyLabel?: string;
+  /** Portal-configured Drum & Toner options; explicitly empty hides the column. */
+  drumTonerOptions?: string[] | null;
 }
 
 export const ServiceAgreementPreview = forwardRef<HTMLDivElement, ServiceAgreementPreviewProps>(
-  ({ formData, dealerInfo, lineItems, termsAndConditions, documentStyles, installationConfigs, supplyOptions }, ref) => {
+  ({ formData, dealerInfo, lineItems, termsAndConditions, documentStyles, installationConfigs, supplyOptions, supplyLabel, drumTonerOptions }, ref) => {
     const resolvedSupplyOptions = resolveSupplyOptions({ supply_options: supplyOptions });
+    const resolvedSupplyLabel = resolveSupplyLabel({ supply_label: supplyLabel });
+    const showDrumToner = resolveDrumTonerOptions({ drum_toner_options: drumTonerOptions }).length > 0;
     const hardwareLineItems = (() => {
       const hw = lineItems.filter(
         (item) => item.category?.toLowerCase() === 'hardware'
@@ -221,11 +229,14 @@ export const ServiceAgreementPreview = forwardRef<HTMLDivElement, ServiceAgreeme
           <table className="w-full border-collapse text-[12px]">
             <thead>
               <tr className="border-b-2 border-black">
-                <th colSpan={4} className="text-left py-1 pb-2 font-bold">TERMS</th>
+                <th colSpan={showDrumToner ? 5 : 4} className="text-left py-1 pb-2 font-bold">TERMS</th>
               </tr>
               <tr className="border-b border-gray-300">
                 <th className="py-1 text-center font-semibold"><span className="underline">Maintenance Type</span></th>
-                <th className="py-1 text-center font-semibold"><span className="underline">Staples</span></th>
+                <th className="py-1 text-center font-semibold"><span className="underline">{resolvedSupplyLabel}</span></th>
+                {showDrumToner && (
+                  <th className="py-1 text-center font-semibold"><span className="underline">Drum &amp; Toner</span></th>
+                )}
                 <th className="py-1 text-center font-semibold"><span className="underline">Effective Date</span></th>
                 <th className="py-1 text-center font-semibold"><span className="underline">Contract Length</span></th>
               </tr>
@@ -234,6 +245,7 @@ export const ServiceAgreementPreview = forwardRef<HTMLDivElement, ServiceAgreeme
               <tr className="border-b border-gray-300">
                 <td className="py-1 text-center">{formData.maintenanceType || '-'}</td>
                 <td className="py-1 text-center">{formData.paperStaples || supplyDefault(resolvedSupplyOptions)}</td>
+                {showDrumToner && <td className="py-1 text-center">{formData.drumToner || '-'}</td>}
                 <td className="py-1 text-center">{formData.effectiveDate ? format(formData.effectiveDate, 'MM/dd/yyyy') : '-'}</td>
                 <td className="py-1 text-center">{formData.contractLengthMonths ? `${formData.contractLengthMonths} Months` : '-'}</td>
               </tr>

@@ -43,6 +43,10 @@ import type { DealerLocation } from "@/lib/branches";
 import LeasingPartners from "./LeasingPartners";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import type { FormCustomizationMap } from "@/lib/formCustomization";
+import {
+  DEFAULT_DRUM_TONER_OPTIONS,
+  DEFAULT_SUPPLY_LABEL,
+} from "@/components/service-agreement/ServiceAgreementForm";
 
 // Left-rail navigation groups (mirrors the document hub's grouped rail)
 const SETTINGS_NAV: { label: string; items: { value: string; label: string; icon: typeof Building2 }[] }[] = [
@@ -143,6 +147,11 @@ export default function AdminSettings({
   const [newMeterMethod, setNewMeterMethod] = useState("");
   const [supplyOptions, setSupplyOptions] = useState<string[]>([]);
   const [newSupplyOption, setNewSupplyOption] = useState("");
+  const [supplyLabel, setSupplyLabel] = useState("");
+  // Drum & Toner: enabled with the standard list unless this portal turned it off.
+  const [drumTonerEnabled, setDrumTonerEnabled] = useState(true);
+  const [drumTonerOptions, setDrumTonerOptions] = useState<string[]>(DEFAULT_DRUM_TONER_OPTIONS);
+  const [newDrumTonerOption, setNewDrumTonerOption] = useState("");
   const [ccaValue, setCcaValue] = useState("");
 
   // Form visibility settings
@@ -280,6 +289,14 @@ export default function AdminSettings({
           }
           if (settings.supply_options) {
             setSupplyOptions(settings.supply_options as string[]);
+          }
+          if (typeof settings.supply_label === "string") {
+            setSupplyLabel(settings.supply_label);
+          }
+          if (Array.isArray(settings.drum_toner_options)) {
+            const list = (settings.drum_toner_options as string[]).filter((o) => (o || "").trim());
+            setDrumTonerEnabled(list.length > 0);
+            setDrumTonerOptions(list.length > 0 ? list : DEFAULT_DRUM_TONER_OPTIONS);
           }
           if (settings.cca_value) {
             setCcaValue(settings.cca_value);
@@ -445,6 +462,18 @@ export default function AdminSettings({
     setSupplyOptions((prev) => prev.filter((o) => o !== option));
   };
 
+  const handleAddDrumTonerOption = () => {
+    const value = newDrumTonerOption.trim();
+    if (value && !drumTonerOptions.includes(value)) {
+      setDrumTonerOptions((prev) => [...prev, value]);
+      setNewDrumTonerOption("");
+    }
+  };
+
+  const handleRemoveDrumTonerOption = (option: string) => {
+    setDrumTonerOptions((prev) => prev.filter((o) => o !== option));
+  };
+
   const handleRemoveMeterMethod = (method: string) => {
     setMeterMethods((prev) => prev.filter((m) => m !== method));
   };
@@ -521,6 +550,11 @@ export default function AdminSettings({
       const dealerSettings = {
         meter_methods: meterMethods,
         supply_options: supplyOptions,
+        supply_label: supplyLabel.trim(),
+        // Empty list = this portal hides the Drum & Toner field.
+        drum_toner_options: drumTonerEnabled
+          ? (drumTonerOptions.length > 0 ? drumTonerOptions : DEFAULT_DRUM_TONER_OPTIONS)
+          : [],
         cca_value: ccaValue,
         enabled_forms: enabledForms,
         // Persist homepage only if it's still an enabled document; otherwise
@@ -1584,9 +1618,89 @@ export default function AdminSettings({
                            Add
                          </Button>
                        </div>
-                     </div>
+                      </div>
 
-                     <Separator />
+                      <Separator />
+
+                      {/* Supplies field label */}
+                      <div className="space-y-2">
+                        <Label htmlFor="supply_label">Supplies Field Label</Label>
+                        <p className="text-xs text-muted-foreground">
+                          Name of the supplies field on the Service Agreement. Leave empty for the
+                          standard label ({DEFAULT_SUPPLY_LABEL}).
+                        </p>
+                        <Input
+                          id="supply_label"
+                          value={supplyLabel}
+                          onChange={(e) => setSupplyLabel(e.target.value)}
+                          placeholder={DEFAULT_SUPPLY_LABEL}
+                        />
+                      </div>
+
+                      <Separator />
+
+                      {/* Drum & Toner options */}
+                      <div className="space-y-3">
+                        <Label>Drum &amp; Toner</Label>
+                        <p className="text-xs text-muted-foreground">
+                          Shown on the Service Agreement unless turned off for this account.
+                        </p>
+                        <div className="flex items-center gap-2">
+                          <input
+                            id="drum_toner_enabled"
+                            type="checkbox"
+                            className="h-4 w-4"
+                            checked={drumTonerEnabled}
+                            onChange={(e) => setDrumTonerEnabled(e.target.checked)}
+                          />
+                          <Label htmlFor="drum_toner_enabled" className="text-sm font-normal">
+                            Show the Drum &amp; Toner field
+                          </Label>
+                        </div>
+                        {drumTonerEnabled && (
+                          <>
+                            <div className="flex flex-wrap gap-2 mb-2">
+                              {drumTonerOptions.map((option) => (
+                                <Badge key={option} variant="secondary" className="flex items-center gap-1 px-2 py-1">
+                                  {option}
+                                  <button
+                                    type="button"
+                                    onClick={() => handleRemoveDrumTonerOption(option)}
+                                    className="ml-1 hover:text-destructive"
+                                  >
+                                    <X className="h-3 w-3" />
+                                  </button>
+                                </Badge>
+                              ))}
+                              {drumTonerOptions.length === 0 && (
+                                <span className="text-xs text-muted-foreground italic">
+                                  Using the standard drum &amp; toner list
+                                </span>
+                              )}
+                            </div>
+                            <div className="flex gap-2">
+                              <Input
+                                value={newDrumTonerOption}
+                                onChange={(e) => setNewDrumTonerOption(e.target.value)}
+                                placeholder="e.g., Drum Included MD"
+                                className="flex-1"
+                                onKeyDown={(e) => {
+                                  if (e.key === "Enter") {
+                                    e.preventDefault();
+                                    handleAddDrumTonerOption();
+                                  }
+                                }}
+                              />
+                              <Button type="button" variant="outline" size="sm" onClick={handleAddDrumTonerOption}>
+                                <Plus className="h-4 w-4 mr-1" />
+                                Add
+                              </Button>
+                            </div>
+                          </>
+                        )}
+                      </div>
+
+                      <Separator />
 
                      {/* CCA Value */}
                     <div className="space-y-2">
