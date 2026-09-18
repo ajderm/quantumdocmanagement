@@ -942,7 +942,7 @@ Deno.serve(async (req) => {
       // is not defined on the Projects object in this portal)
       // contract_type_proj mirrors the deal's contract_type onto the project,
       // which is the anchor Eakes actually runs the app from.
-      const baseProjectProps = 'hs_project_title,hs_pipeline_stage,hs_pipeline,contract_type_proj,sales_rep_number,salesperson__';
+      const baseProjectProps = 'hs_project_title,hs_pipeline_stage,hs_pipeline,contract_type_proj';
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       let projectResponse: any;
       try {
