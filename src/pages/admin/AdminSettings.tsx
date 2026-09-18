@@ -278,6 +278,9 @@ export default function AdminSettings({
           if (settings.meter_methods) {
             setMeterMethods(settings.meter_methods);
           }
+          if (settings.supply_options) {
+            setSupplyOptions(settings.supply_options as string[]);
+          }
           if (settings.cca_value) {
             setCcaValue(settings.cca_value);
           }
