@@ -473,3 +473,46 @@ test('terms already written as markup are not escaped', () => {
   // Typed prose is still escaped, tags and all.
   assert.equal(termsHtml('5 < 6 and a > b'), '<p>5 &lt; 6 and a &gt; b</p>');
 });
+
+test('rates come from the deal lines when nobody typed them', () => {
+  const p = serviceAgreementRenderPayload(SA_FORM, SA_CTX, {
+    crmLines: [
+      { cpcMonoVolume: 2000, cpcColorVolume: 500, cpcMonoRate: 0.0075,
+        cpcColorRate: 0.065, cpcMonoOverageRate: 0.008, cpcColorOverageRate: 0.07 },
+      { cpcMonoVolume: 1000, cpcColorVolume: 0, cpcMonoRate: 0.0075, cpcColorRate: 0 },
+    ],
+  });
+  assert.equal(p.service!.included_bw, 3000);
+  assert.equal(p.service!.included_color, 500);
+  assert.equal(p.service!.overage_bw, 0.008);
+  assert.equal(p.service!.overage_color, 0.07);
+  // 2000*0.0075 + 500*0.065 + 1000*0.0075 = 55
+  assert.equal(p.service!.base_rate, 55);
+  // Quarterly billing: four of them in a year.
+  assert.equal(p.service!.annual_total, 220);
+});
+
+test('what the rep typed still beats the deal lines', () => {
+  const p = serviceAgreementRenderPayload(SA_FORM, SA_CTX, {
+    quoteRates: { includedBWCopies: '9000', serviceBaseRate: '100' },
+    crmLines: [{ cpcMonoVolume: 2000, cpcMonoRate: 0.0075 }],
+  });
+  assert.equal(p.service!.included_bw, 9000);
+  assert.equal(p.service!.base_rate, 100);
+  assert.equal(p.service!.annual_total, 400);
+});
+
+test('no rates anywhere leaves every figure blank, never zero', () => {
+  const p = serviceAgreementRenderPayload(SA_FORM, SA_CTX, {});
+  assert.equal(p.service!.base_rate, null);
+  assert.equal(p.service!.annual_total, null);
+  assert.equal(p.service!.included_bw, null);
+});
+
+test('a trailing semicolon from the source concatenation is stripped', () => {
+  assert.equal(
+    lineDescription({ model: 'BP-71C31', description: 'Workgroup Document System;' }),
+    'BP-71C31 — Workgroup Document System',
+  );
+  assert.equal(lineDescription({ description: 'Finisher, ' }), 'Finisher');
+});

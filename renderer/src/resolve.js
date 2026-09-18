@@ -178,6 +178,10 @@ export function resolve(template, data) {
           .filter((f) => !block.hideEmpty || !allTokensEmpty(f.value, scope))
           .map((f) => ({ label: s(f.label), value: s(f.value), full: !!f.full }))
           .filter((f) => !block.hideEmpty || f.value.trim() !== '');
+        // Every field dropped means the section has nothing to say. Printing
+        // its heading over blank space reads as missing content, so the whole
+        // block goes — the same way an empty richText section does.
+        if (block.hideEmpty && fields.length === 0) break;
         blocks.push({ ...block, fields });
         break;
       }

@@ -519,8 +519,9 @@ type DealContactRole = 'meter' | 'signer';
 function roleForLabel(label: string): DealContactRole | null {
   const l = label.toLowerCase();
   if (l.includes('meter')) return 'meter';
-  if (l.includes('signer') || l.includes('signor') || l.includes('signature')
-    || l.includes('signatory')) return 'signer';
+  // "Signing Authority" and "Authorized Signer" are both in use across
+  // portals, so the whole sign- family matches rather than four fixed words.
+  if (l.includes('sign')) return 'signer';
   return null;
 }
 
@@ -588,8 +589,14 @@ async function fetchContactsForAnchor(
         const role = roleById.get(String(contact.contactId));
         if (role && !dealContacts[role]) dealContacts[role] = contact;
       }
+      // The labels themselves are logged: when a role comes back empty we need
+      // to know whether the portal never labelled anyone or whether the label
+      // it uses is one this matcher does not recognise.
+      const labelsSeen = results.flatMap((r) =>
+        (r.associationTypes ?? []).map((a: { label?: string }) => a.label).filter(Boolean));
       console.log('Contacts fetched:', contacts.length,
-        'labelled roles:', Object.keys(dealContacts).filter((k) => dealContacts[k as DealContactRole]));
+        'labelled roles:', Object.keys(dealContacts).filter((k) => dealContacts[k as DealContactRole]),
+        'association labels seen:', labelsSeen);
     }
   } catch (e) {
     console.error('Failed to fetch contacts:', e);
