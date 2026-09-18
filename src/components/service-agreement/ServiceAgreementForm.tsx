@@ -165,7 +165,7 @@ interface ServiceAgreementFormProps {
     zip?: string;
   } | null;
   lineItems: LineItem[];
-  dealerSettings: { meter_methods?: string[] } | null;
+  dealerSettings: { meter_methods?: string[]; supply_options?: string[] } | null;
   savedConfig: ServiceAgreementFormData | null;
   labeledContacts: LabeledContacts;
   quoteFormData?: QuoteFormData | null;
