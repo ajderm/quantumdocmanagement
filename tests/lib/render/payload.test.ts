@@ -4,6 +4,7 @@ import {
   quoteRenderPayload, joinAddress, lineDescription, money, num, taxRateFraction, termsHtml,
   classifyLine, reconcileLineItems,
 } from '../../../src/lib/render/payload.ts';
+import { newCustomerRenderPayload } from '../../../src/lib/render/documentPayloads.ts';
 
 const ctx = {
   dealerInfo: { companyName: 'Quantum Office Systems', address: '3300 Maple Valley Rd', phone: '(425) 555-0100', website: 'quantumoffice.example' },
@@ -239,6 +240,19 @@ test('the payload carries the tax rate and terms it was given, or null', () => {
   const withNeither = quoteRenderPayload({}, ctx);
   assert.equal(withNeither.dealer.tax_rate, null, 'no invented 8.7%');
   assert.equal(withNeither.terms.html, null, 'and no invented prose');
+});
+
+test('Customer Summary chrome follows the resolved selling branch', () => {
+  const p = newCustomerRenderPayload({ companyName: 'Customer' }, {
+    ...ctx,
+    branch: {
+      name: 'Lincoln',
+      address: '110 N 35th St, Lincoln, NE 68503',
+      phone: '402-466-8600',
+    },
+  });
+  assert.equal(p.dealer.address, '110 N 35th St, Lincoln, NE 68503');
+  assert.equal(p.dealer.phone, '402-466-8600');
 });
 
 // The real Arbor Day deal shape: four SKU'd equipment lines, a buyout and a
