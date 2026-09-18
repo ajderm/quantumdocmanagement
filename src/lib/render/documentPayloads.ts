@@ -15,7 +15,7 @@ import {
   classifyLine, companyCrmFields, contactCrmFields, dealerBlock, lineDescription, money, num,
   repCodeField, taxRateFraction, termsHtml,
   type CrmExtras, type QuoteFormLike, type RenderBranch, type RenderPayload, type RenderLineItem,
-} from "./payload";
+} from "./payload.ts";
 
 export interface DocRenderContext {
   dealerInfo?: {
