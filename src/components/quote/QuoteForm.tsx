@@ -160,6 +160,7 @@ interface QuoteFormProps {
   primaryLender?: string;
   /** Temporary default until QuoteIQ supplies a dedicated per-line field. */
   equipmentLocationDefault?: string;
+  branchOverrideCode?: string | null;
 }
 
 interface RateFactor {
@@ -236,6 +237,7 @@ export function QuoteForm({
   documentLabel,
   primaryLender,
   equipmentLocationDefault,
+  branchOverrideCode,
 }: QuoteFormProps) {
   const hasInitializedRef = useRef(false);
   const savedConfigRef = useRef(savedConfig);
@@ -839,6 +841,7 @@ export function QuoteForm({
             msrp: item.msrp ?? item.price ?? 0,
             dealerSource: item.dealerSource || freshItem?.dealerSource || "",
             itemNumber: item.itemNumber || freshItem?.itemNumber || "",
+            location: item.location ?? freshItem?.location ?? equipmentLocationDefault ?? "",
           };
         },
       );
@@ -917,6 +920,7 @@ export function QuoteForm({
         markupPercent: item.markupPercent ?? 0,
         msrp: item.msrp ?? item.price ?? 0,
         dealerSource: item.dealerSource || "",
+        location: item.location ?? equipmentLocationDefault ?? "",
       }),
     );
 
@@ -976,8 +980,8 @@ export function QuoteForm({
   ]);
 
   useEffect(() => {
-    onFormChange(formData);
-  }, [formData, onFormChange]);
+    onFormChange({ ...formData, branchOverrideCode: branchOverrideCode ?? null });
+  }, [formData, onFormChange, branchOverrideCode]);
 
   const updateField = <K extends keyof QuoteFormData>(field: K, value: QuoteFormData[K]) => {
     setFormData((prev) => ({ ...prev, [field]: value }));

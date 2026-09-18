@@ -16,6 +16,8 @@ const RESOLVED = "__resolved__";
 
 interface BranchSelectorProps {
   locations: DealerLocation[];
+  /** Salesperson-resolved branch before any manual override. */
+  resolved: DealerLocation | null;
   /** The branch actually in use, resolved or overridden. */
   active: DealerLocation | null;
   /** Location code of the rep's explicit choice, or null when auto. */
@@ -25,7 +27,7 @@ interface BranchSelectorProps {
 }
 
 export function BranchSelector({
-  locations, active, override, onOverrideChange, disabled,
+  locations, resolved, active, override, onOverrideChange, disabled,
 }: BranchSelectorProps) {
   if (!locations.length) return null;
 
@@ -50,7 +52,7 @@ export function BranchSelector({
         </SelectTrigger>
         <SelectContent className="max-h-72">
           <SelectItem value={RESOLVED}>
-            {active ? `${active.name} (resolved)` : "Main office (resolved)"}
+            {resolved ? `Automatic — ${resolved.name}` : "Automatic — main office"}
           </SelectItem>
           {locations.map((location) => (
             <SelectItem key={location.code} value={location.code}>

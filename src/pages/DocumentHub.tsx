@@ -2571,12 +2571,26 @@ function DocumentHubContent() {
    * which leaves the dealer account address in place.
    */
   const activeBranch = useMemo(() => {
-    const resolved = resolveBranch(salespersonNumber, dealerLocations);
-    if (!branchOverride) return resolved;
-    return dealerLocations.find((l) => l.code === branchOverride) ?? resolved;
+    if (!branchOverride) return resolveBranch(salespersonNumber, dealerLocations);
+    return dealerLocations.find((l) => l.code === branchOverride)
+      ?? resolveBranch(salespersonNumber, dealerLocations);
   }, [salespersonNumber, dealerLocations, branchOverride]);
 
+  const resolvedBranch = useMemo(
+    () => resolveBranch(salespersonNumber, dealerLocations),
+    [salespersonNumber, dealerLocations],
+  );
+
   const branchPayload = useMemo(() => branchForPayload(activeBranch), [activeBranch]);
+
+  const documentDealerInfo = useMemo(() => {
+    if (!dealerInfo) return null;
+    return {
+      ...dealerInfo,
+      address: branchPayload?.address ?? dealerInfo.address,
+      phone: branchPayload?.phone ?? dealerInfo.phone,
+    };
+  }, [dealerInfo, branchPayload]);
 
   const equipmentLocationDefault = useMemo(() => {
     const street = [company?.deliveryAddress, company?.deliveryAddress2]
@@ -4525,6 +4539,7 @@ function DocumentHubContent() {
             <div className={dealerLocations.length > 0 ? "mb-4" : undefined}>
               <BranchSelector
                 locations={dealerLocations}
+                resolved={resolvedBranch}
                 active={activeBranch}
                 override={branchOverride}
                 onOverrideChange={handleBranchOverrideChange}
@@ -4559,6 +4574,7 @@ function DocumentHubContent() {
                       documentLabel={docLabel("quote")}
                       primaryLender={dealerSettings.primary_lender}
                       equipmentLocationDefault={equipmentLocationDefault}
+                      branchOverrideCode={branchOverride}
                     />
 
                     {/* Additional Costs + commission summary — a second view of the
