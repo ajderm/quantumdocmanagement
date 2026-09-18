@@ -141,6 +141,8 @@ export default function AdminSettings({
   // Installation settings
   const [meterMethods, setMeterMethods] = useState<string[]>([]);
   const [newMeterMethod, setNewMeterMethod] = useState("");
+  const [supplyOptions, setSupplyOptions] = useState<string[]>([]);
+  const [newSupplyOption, setNewSupplyOption] = useState("");
   const [ccaValue, setCcaValue] = useState("");
 
   // Form visibility settings
