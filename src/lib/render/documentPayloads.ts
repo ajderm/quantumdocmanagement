@@ -534,8 +534,8 @@ export function leaseFundingRenderPayload(
 /* ------------------------------------------------------------------ */
 
 export interface ServiceAgreementRateLike {
-  includesBW?: string; includesColor?: string;
-  overagesBW?: string; overagesColor?: string; baseRate?: string;
+  includesBW?: unknown; includesColor?: unknown;
+  overagesBW?: unknown; overagesColor?: unknown; baseRate?: unknown;
 }
 
 export interface ServiceAgreementLike {
@@ -553,8 +553,8 @@ export interface ServiceAgreementLike {
 
 /** Rates the quote carried, used where the agreement has none of its own. */
 export interface ServiceQuoteRates {
-  includedBWCopies?: string; includedColorCopies?: string;
-  overageBWRate?: string; overageColorRate?: string; serviceBaseRate?: string;
+  includedBWCopies?: unknown; includedColorCopies?: unknown;
+  overageBWRate?: unknown; overageColorRate?: unknown; serviceBaseRate?: unknown;
 }
 
 const BILLING_LABEL: Record<string, string> = {
