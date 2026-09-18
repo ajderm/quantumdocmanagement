@@ -134,6 +134,10 @@ interface DealerSettings {
   meter_methods?: string[];
   /** Supply options for the Service Agreement dropdown (per portal). */
   supply_options?: string[];
+  /** Label for the supplies dropdown (per portal); unset = "Paper & Staples". */
+  supply_label?: string;
+  /** Drum & Toner options (per portal); explicitly empty hides the field. */
+  drum_toner_options?: string[] | null;
   cca_value?: string;
   enabled_forms?: string[];
   /** Document code to open on load (homepage). Empty/absent = first enabled document. */
@@ -5863,6 +5867,8 @@ function DocumentHubContent() {
             documentStyles={dealerSettings.document_styles}
             installationConfigs={installationSavedConfig}
             supplyOptions={dealerSettings.supply_options}
+            supplyLabel={dealerSettings.supply_label}
+            drumTonerOptions={dealerSettings.drum_toner_options}
           />
         )}
       </div>
@@ -5899,6 +5905,8 @@ function DocumentHubContent() {
                     documentStyles={dealerSettings.document_styles}
                     installationConfigs={installationSavedConfig}
                     supplyOptions={dealerSettings.supply_options}
+                    supplyLabel={dealerSettings.supply_label}
+                    drumTonerOptions={dealerSettings.drum_toner_options}
                   />
                 </div>
               )}
