@@ -5898,6 +5898,7 @@ function DocumentHubContent() {
                     }
                     documentStyles={dealerSettings.document_styles}
                     installationConfigs={installationSavedConfig}
+                    supplyOptions={dealerSettings.supply_options}
                   />
                 </div>
               )}
