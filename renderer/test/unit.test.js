@@ -83,6 +83,14 @@ test('sanitizer strips scripts, handlers and attributes', () => {
   assert.equal(sanitizeHtml('<p>keep <strong>this</strong></p>'), '<p>keep <strong>this</strong></p>');
 });
 
+test('lighter terms styling is opt-in per template', () => {
+  const block = { type: 'richText', title: 'Terms & Conditions', html: '{{terms.html}}' };
+  const data = { terms: { html: '<p>Clause</p>' } };
+  assert.equal(resolve({ blocks: [block] }, data).blocks[0].terms, undefined);
+  assert.equal(resolve({ styles: { lightenTerms: false }, blocks: [block] }, data).blocks[0].terms, undefined);
+  assert.equal(resolve({ styles: { lightenTerms: true }, blocks: [block] }, data).blocks[0].terms, true);
+});
+
 test('grouped subtotals sum to the block total', () => {
   const t = {
     blocks: [{ type: 'table', bind: 'items', groupBy: 'site', columns: [{ key: 'name', label: 'N' }] }],

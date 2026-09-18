@@ -127,11 +127,11 @@ table.grid tr.empty td { color: ${st.muted}; font-style: italic; }
 .richText .body strong { color: ${st.color}; }
 .richText .body ol, .richText .body ul { margin: 0 0 4pt; padding-left: 14pt; }
 
-/* Terms & conditions read as fine print: noticeably lighter than body copy
-   and italic, per the client. Opacity rather than a paler colour so any
+/* A dealer may request terms as noticeably lighter fine print. Opacity rather
+   than a paler colour means any
    emphasis inside the terms lightens with the block instead of jumping back
    to full ink. */
-.richText.terms .body { opacity: .55; font-style: italic; }
+.richText.terms .body { opacity: .55; }
 .richText.terms .body strong { color: inherit; }
 
 /* ---- signature ------------------------------------------------------- */

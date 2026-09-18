@@ -228,8 +228,10 @@ export function resolve(template, data) {
         // as one. It gets a `terms` flag so the print stylesheet can render
         // legal prose lighter than body copy without inline styles, which the
         // sanitiser in html.js strips.
-        const isTerms = /^\s*\{\{\s*terms\.html\s*\}\}\s*$/.test(raw) ||
-          /\bterms\b/i.test(String(block.title ?? ''));
+        const isTerms = template.styles?.lightenTerms === true && (
+          /^\s*\{\{\s*terms\.html\s*\}\}\s*$/.test(raw) ||
+          /\bterms\b/i.test(String(block.title ?? ''))
+        );
         // A terms block sourced from a dealer's own settings is empty until
         // they have entered any. Printing the heading over nothing invites the
         // reader to assume the terms are elsewhere; omitting the section says

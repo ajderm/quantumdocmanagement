@@ -1,5 +1,6 @@
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.49.1';
 import { encryptToken, decryptToken } from '../_shared/crypto.ts';
+import { salespersonNumberFrom } from '../_shared/salesperson-number.ts';
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -195,25 +196,6 @@ function quoteIqWriteback(props: Record<string, any> | undefined | null) {
     marginPercent: n(p.margin_percent),
     contractType: t(p.contract_type),
   };
-}
-
-/**
- * The salesperson number the branch resolver matches on.
- *
- * Two property names are in play across portals; the Syncari-routed one is
- * the fallback. Empty stays null so a document falls back to the main office
- * rather than matching on an empty string.
- */
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-function salespersonNumberFrom(...propSets: (Record<string, any> | undefined | null)[]) {
-  for (const props of propSets) {
-    for (const key of ['salesperson__', 'lead_routing_salesperson____syncari_']) {
-      const value = props?.[key];
-      if (typeof value === 'string' && value.trim() !== '') return value.trim();
-      if (typeof value === 'number') return String(value);
-    }
-  }
-  return null;
 }
 
 async function resolvePipelineLabels(
@@ -803,7 +785,7 @@ Deno.serve(async (req) => {
       // Which paperwork a deal needs is keyed off the contract type.
       'contract_type',
       // The four-digit salesperson code the paperwork prints beside the rep.
-      'salesperson__', 'lead_routing_salesperson____syncari_',
+      'sales_rep_number', 'salesperson__',
     ]);
     const lineItemPropsNeeded = new Set(['name', 'description', 'quantity', 'price', 'hs_sku', 'item_number', 'hs_product_id', 'hs_product_type', 'hs_recurring_billing_period', 'hs_cost_of_goods_sold', 'unit_cost', 'condition', 'hs_product_condition', 'dealer', 'manufacturer', 'vendor', 'hs_line_item_dealer', 'color_mono', 'machine_type', 'serial_number', 'equipment_id', 'meter_method', 'meter_reading', 'meter_reading_bw', 'meter_reading_color', 'cpc_mono_rate', 'cpc_color_rate', 'cpc_mono_volume', 'cpc_color_volume', 'cpc_mono_overage_rate', 'cpc_color_overage_rate']);
 
@@ -960,7 +942,7 @@ Deno.serve(async (req) => {
       // is not defined on the Projects object in this portal)
       // contract_type_proj mirrors the deal's contract_type onto the project,
       // which is the anchor Eakes actually runs the app from.
-      const baseProjectProps = 'hs_project_title,hs_pipeline_stage,hs_pipeline,contract_type_proj';
+      const baseProjectProps = 'hs_project_title,hs_pipeline_stage,hs_pipeline,contract_type_proj,sales_rep_number,salesperson__';
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       let projectResponse: any;
       try {
@@ -1062,7 +1044,8 @@ Deno.serve(async (req) => {
         // The writeback lives on the deal; a project anchor reads it from the
         // associated deal, the same place its line items come from.
         quoteiq: quoteIqWriteback(associatedDealResponse?.properties),
-        // Branch resolution: the project's own number wins, else the deal's.
+        // An authoritative sales_rep_number wins across both records; only
+        // then may an exact four-digit legacy value fill in.
         salespersonNumber: salespersonNumberFrom(
           projectResponse.properties, associatedDealResponse?.properties,
         ),
