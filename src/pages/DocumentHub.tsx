@@ -5738,7 +5738,7 @@ function DocumentHubContent() {
             dealerInfo={
               formData?.overrideTerms
                 ? ({ ...(dealerInfo || {}), termsAndConditions: formData.overrideTermsText || "" } as any)
-                : dealerInfo || undefined
+                : documentDealerInfo || undefined
             }
             documentStyles={dealerSettings.document_styles}
             formCustomization={dealerSettings.form_customization?.quote}
@@ -5825,7 +5825,7 @@ function DocumentHubContent() {
                     dealerInfo={
                       formData?.overrideTerms
                         ? ({ ...(dealerInfo || {}), termsAndConditions: formData.overrideTermsText || "" } as any)
-                        : dealerInfo || undefined
+                        : documentDealerInfo || undefined
                     }
                     documentStyles={dealerSettings.document_styles}
                     formCustomization={dealerSettings.form_customization?.quote}
@@ -5889,13 +5889,13 @@ function DocumentHubContent() {
             ref={serviceAgreementPreviewRef}
             formData={serviceAgreementFormData}
             dealerInfo={
-              dealerInfo
+              documentDealerInfo
                 ? {
-                    company_name: dealerInfo.companyName,
-                    address_line1: dealerInfo.address,
-                    phone: dealerInfo.phone,
-                    website: dealerInfo.website,
-                    logo_url: dealerInfo.logoUrl,
+                    company_name: documentDealerInfo.companyName,
+                    address_line1: documentDealerInfo.address,
+                    phone: documentDealerInfo.phone,
+                    website: documentDealerInfo.website,
+                    logo_url: documentDealerInfo.logoUrl,
                   }
                 : undefined
             }
@@ -5928,13 +5928,13 @@ function DocumentHubContent() {
                   <ServiceAgreementPreview
                     formData={serviceAgreementFormData}
                     dealerInfo={
-                      dealerInfo
+                      documentDealerInfo
                         ? {
-                            company_name: dealerInfo.companyName,
-                            address_line1: dealerInfo.address,
-                            phone: dealerInfo.phone,
-                            website: dealerInfo.website,
-                            logo_url: dealerInfo.logoUrl,
+                            company_name: documentDealerInfo.companyName,
+                            address_line1: documentDealerInfo.address,
+                            phone: documentDealerInfo.phone,
+                            website: documentDealerInfo.website,
+                            logo_url: documentDealerInfo.logoUrl,
                           }
                         : undefined
                     }
@@ -5965,13 +5965,13 @@ function DocumentHubContent() {
             ref={fmvLeasePreviewRef}
             formData={fmvLeaseFormData}
             dealerInfo={
-              dealerInfo
+              documentDealerInfo
                 ? {
-                    company_name: dealerInfo.companyName,
-                    address_line1: dealerInfo.address,
-                    phone: dealerInfo.phone,
-                    website: dealerInfo.website,
-                    logo_url: dealerInfo.logoUrl,
+                    company_name: documentDealerInfo.companyName,
+                    address_line1: documentDealerInfo.address,
+                    phone: documentDealerInfo.phone,
+                    website: documentDealerInfo.website,
+                    logo_url: documentDealerInfo.logoUrl,
                   }
                 : undefined
             }
@@ -5995,13 +5995,13 @@ function DocumentHubContent() {
                   <FMVLeasePreview
                     formData={fmvLeaseFormData}
                     dealerInfo={
-                      dealerInfo
+                      documentDealerInfo
                         ? {
-                            company_name: dealerInfo.companyName,
-                            address_line1: dealerInfo.address,
-                            phone: dealerInfo.phone,
-                            website: dealerInfo.website,
-                            logo_url: dealerInfo.logoUrl,
+                            company_name: documentDealerInfo.companyName,
+                            address_line1: documentDealerInfo.address,
+                            phone: documentDealerInfo.phone,
+                            website: documentDealerInfo.website,
+                            logo_url: documentDealerInfo.logoUrl,
                           }
                         : undefined
                     }

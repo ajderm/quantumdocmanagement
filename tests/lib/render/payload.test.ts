@@ -4,7 +4,7 @@ import {
   quoteRenderPayload, joinAddress, lineDescription, money, num, taxRateFraction, termsHtml,
   classifyLine, reconcileLineItems,
 } from '../../../src/lib/render/payload.ts';
-import { newCustomerRenderPayload } from '../../../src/lib/render/documentPayloads.ts';
+import { fmvLeaseRenderPayload, newCustomerRenderPayload } from '../../../src/lib/render/documentPayloads.ts';
 
 const ctx = {
   dealerInfo: { companyName: 'Quantum Office Systems', address: '3300 Maple Valley Rd', phone: '(425) 555-0100', website: 'quantumoffice.example' },
@@ -28,6 +28,28 @@ test('extended is quantity times unit, rounded once', () => {
   const p = quoteRenderPayload({ lineItems: [{ model: 'A', quantity: 3, price: 19.99 }] }, ctx);
   assert.equal(p.line_items[0].unit, 19.99);
   assert.equal(p.line_items[0].extended, 59.97);
+});
+
+test('quote equipment carries the manually editable line location into the document', () => {
+  const p = quoteRenderPayload({
+    lineItems: [{ model: 'C3835i', quantity: 1, price: 100, serial: 'SN-7', location: 'Warehouse B' }],
+  }, ctx);
+  assert.equal(p.line_items[0].serial, 'SN-7');
+  assert.equal(p.line_items[0].site, 'Warehouse B');
+});
+
+test('FMV lease equipment carries Location separately from its ID number', () => {
+  const p = fmvLeaseRenderPayload({
+    equipmentItems: [{
+      quantity: 1,
+      makeModelDescription: 'C3835i',
+      serialNumber: 'SN-7',
+      idNumber: 'ASSET-2',
+      location: '2901 Cuming St, Omaha, NE 68131',
+    }],
+  }, ctx);
+  assert.equal(p.line_items[0].serial, 'SN-7');
+  assert.equal(p.line_items[0].site, '2901 Cuming St, Omaha, NE 68131');
 });
 
 test('a zero-quantity placeholder line does not reach the document', () => {
