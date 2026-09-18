@@ -13,9 +13,24 @@ import { CalendarIcon } from "lucide-react";
 import { format } from "date-fns";
 import { cn } from "@/lib/utils";
 
-/** The only two supply options this dealer offers. Paper is never provided. */
-export const STAPLES_OPTIONS = ["Excludes staples", "Includes staples"];
-export const STAPLES_DEFAULT = "Excludes staples";
+/**
+ * Supply options shown on the Service Agreement. Each portal configures its own
+ * list via the `supply_options` dealer setting (same pattern as meter_methods);
+ * portals that have not configured one keep the original paper/staples list.
+ */
+export const DEFAULT_SUPPLY_OPTIONS = ["Excludes Paper", "Excludes Paper & Staples"];
+
+export function resolveSupplyOptions(
+  dealerSettings?: { supply_options?: string[] } | null,
+): string[] {
+  const configured = (dealerSettings?.supply_options || []).filter((o) => (o || "").trim());
+  return configured.length > 0 ? configured : DEFAULT_SUPPLY_OPTIONS;
+}
+
+/** First configured option is the default for a new agreement. */
+export function supplyDefault(options: string[]): string {
+  return options[0] || "";
+}
 
 /**
  * Serial shown for an equipment row: what was typed on this agreement wins,
@@ -150,7 +165,7 @@ interface ServiceAgreementFormProps {
     zip?: string;
   } | null;
   lineItems: LineItem[];
-  dealerSettings: { meter_methods?: string[] } | null;
+  dealerSettings: { meter_methods?: string[]; supply_options?: string[] } | null;
   savedConfig: ServiceAgreementFormData | null;
   labeledContacts: LabeledContacts;
   quoteFormData?: QuoteFormData | null;
@@ -170,6 +185,7 @@ export function ServiceAgreementForm({
   installationConfigs,
 }: ServiceAgreementFormProps) {
   const meterMethods = dealerSettings?.meter_methods || ["FMAudit", "PrintFleet", "Manual Entry"];
+  const supplyOptions = resolveSupplyOptions(dealerSettings);
 
   // Filter to main units only (exclude accessories) for the rates table
   const hardwareLineItems = (() => {
@@ -660,20 +676,21 @@ export function ServiceAgreementForm({
           <div className="space-y-2">
             <Label htmlFor="paperStaples">Staples</Label>
             <Select
-              value={formData.paperStaples || STAPLES_DEFAULT}
+              value={formData.paperStaples || supplyDefault(supplyOptions)}
               onValueChange={(value) => updateField("paperStaples", value)}
             >
               <SelectTrigger>
                 <SelectValue placeholder="Select option" />
               </SelectTrigger>
               <SelectContent>
-                {/* A previously saved paper-era value stays selectable until the
-                    user picks one of the two current options. */}
-                {formData.paperStaples && !STAPLES_OPTIONS.includes(formData.paperStaples) && (
+                {/* A previously saved value outside the configured list stays
+                    selectable until the user picks one of the current options. */}
+                {formData.paperStaples && !supplyOptions.includes(formData.paperStaples) && (
                   <SelectItem value={formData.paperStaples}>{formData.paperStaples}</SelectItem>
                 )}
-                <SelectItem value="Excludes staples">Excludes staples</SelectItem>
-                <SelectItem value="Includes staples">Includes staples</SelectItem>
+                {supplyOptions.map((option) => (
+                  <SelectItem key={option} value={option}>{option}</SelectItem>
+                ))}
               </SelectContent>
             </Select>
           </div>

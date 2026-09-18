@@ -70,7 +70,7 @@ import { SummaryRail, type SummaryMetric } from "@/components/shared";
 import { quantumLogo } from "@/assets/quantumLogo";
 import { InstallationForm, InstallationFormData } from "@/components/installation/InstallationForm";
 import { InstallationPreview } from "@/components/installation/InstallationPreview";
-import { ServiceAgreementForm, ServiceAgreementFormData } from "@/components/service-agreement/ServiceAgreementForm";
+import { ServiceAgreementForm, ServiceAgreementFormData, resolveSupplyOptions, supplyDefault } from "@/components/service-agreement/ServiceAgreementForm";
 import { ServiceAgreementPreview } from "@/components/service-agreement/ServiceAgreementPreview";
 import { FMVLeaseForm, FMVLeaseFormData } from "@/components/fmv-lease/FMVLeaseForm";
 import { FMVLeasePreview } from "@/components/fmv-lease/FMVLeasePreview";
@@ -132,6 +132,8 @@ interface DealerInfo {
 
 interface DealerSettings {
   meter_methods?: string[];
+  /** Supply options for the Service Agreement dropdown (per portal). */
+  supply_options?: string[];
   cca_value?: string;
   enabled_forms?: string[];
   /** Document code to open on load (homepage). Empty/absent = first enabled document. */
@@ -4854,7 +4856,7 @@ function DocumentHubContent() {
                           billToPhone: "",
                           billToEmail: "",
                           maintenanceType: "",
-                          paperStaples: "Excludes staples",
+                          paperStaples: supplyDefault(resolveSupplyOptions(dealerSettings)),
                           drumToner: "",
                           serials: {},
                           effectiveDate: null,
@@ -5860,6 +5862,7 @@ function DocumentHubContent() {
             }
             documentStyles={dealerSettings.document_styles}
             installationConfigs={installationSavedConfig}
+            supplyOptions={dealerSettings.supply_options}
           />
         )}
       </div>
@@ -5895,6 +5898,7 @@ function DocumentHubContent() {
                     }
                     documentStyles={dealerSettings.document_styles}
                     installationConfigs={installationSavedConfig}
+                    supplyOptions={dealerSettings.supply_options}
                   />
                 </div>
               )}

@@ -2,7 +2,8 @@ import { forwardRef } from "react";
 import { format } from "date-fns";
 import {
   ServiceAgreementFormData,
-  STAPLES_DEFAULT,
+  resolveSupplyOptions,
+  supplyDefault,
   resolveServiceAgreementSerial,
 } from "./ServiceAgreementForm";
 
@@ -40,10 +41,13 @@ interface ServiceAgreementPreviewProps {
   termsAndConditions?: string;
   documentStyles?: { fontFamily?: string; fontColor?: string; tableBorderColor?: string; tableLineColor?: string; fontSizeOffset?: number; fontSizeOffsets?: { title?: number; header?: number; body?: number; table?: number; fine?: number; }; };
   installationConfigs?: Record<string, { installedSerial?: string; idNumber?: string }>;
+  /** Portal-configured supply options; unset falls back to the standard list. */
+  supplyOptions?: string[];
 }
 
 export const ServiceAgreementPreview = forwardRef<HTMLDivElement, ServiceAgreementPreviewProps>(
-  ({ formData, dealerInfo, lineItems, termsAndConditions, documentStyles, installationConfigs }, ref) => {
+  ({ formData, dealerInfo, lineItems, termsAndConditions, documentStyles, installationConfigs, supplyOptions }, ref) => {
+    const resolvedSupplyOptions = resolveSupplyOptions({ supply_options: supplyOptions });
     const hardwareLineItems = (() => {
       const hw = lineItems.filter(
         (item) => item.category?.toLowerCase() === 'hardware'
@@ -229,7 +233,7 @@ export const ServiceAgreementPreview = forwardRef<HTMLDivElement, ServiceAgreeme
             <tbody>
               <tr className="border-b border-gray-300">
                 <td className="py-1 text-center">{formData.maintenanceType || '-'}</td>
-                <td className="py-1 text-center">{formData.paperStaples || STAPLES_DEFAULT}</td>
+                <td className="py-1 text-center">{formData.paperStaples || supplyDefault(resolvedSupplyOptions)}</td>
                 <td className="py-1 text-center">{formData.effectiveDate ? format(formData.effectiveDate, 'MM/dd/yyyy') : '-'}</td>
                 <td className="py-1 text-center">{formData.contractLengthMonths ? `${formData.contractLengthMonths} Months` : '-'}</td>
               </tr>

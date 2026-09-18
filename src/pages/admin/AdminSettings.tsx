@@ -141,6 +141,8 @@ export default function AdminSettings({
   // Installation settings
   const [meterMethods, setMeterMethods] = useState<string[]>([]);
   const [newMeterMethod, setNewMeterMethod] = useState("");
+  const [supplyOptions, setSupplyOptions] = useState<string[]>([]);
+  const [newSupplyOption, setNewSupplyOption] = useState("");
   const [ccaValue, setCcaValue] = useState("");
 
   // Form visibility settings
@@ -275,6 +277,9 @@ export default function AdminSettings({
           const settings = result.dealerSettings;
           if (settings.meter_methods) {
             setMeterMethods(settings.meter_methods);
+          }
+          if (settings.supply_options) {
+            setSupplyOptions(settings.supply_options as string[]);
           }
           if (settings.cca_value) {
             setCcaValue(settings.cca_value);
@@ -428,6 +433,18 @@ export default function AdminSettings({
     }
   };
 
+  const handleAddSupplyOption = () => {
+    const value = newSupplyOption.trim();
+    if (value && !supplyOptions.includes(value)) {
+      setSupplyOptions((prev) => [...prev, value]);
+      setNewSupplyOption("");
+    }
+  };
+
+  const handleRemoveSupplyOption = (option: string) => {
+    setSupplyOptions((prev) => prev.filter((o) => o !== option));
+  };
+
   const handleRemoveMeterMethod = (method: string) => {
     setMeterMethods((prev) => prev.filter((m) => m !== method));
   };
@@ -503,6 +520,7 @@ export default function AdminSettings({
 
       const dealerSettings = {
         meter_methods: meterMethods,
+        supply_options: supplyOptions,
         cca_value: ccaValue,
         enabled_forms: enabledForms,
         // Persist homepage only if it's still an enabled document; otherwise
@@ -1519,9 +1537,58 @@ export default function AdminSettings({
                       </div>
                     </div>
 
-                    <Separator />
+                     <Separator />
 
-                    {/* CCA Value */}
+                     {/* Supply Options (Service Agreement) */}
+                     <div className="space-y-3">
+                       <Label>Supply Options</Label>
+                       <p className="text-xs text-muted-foreground">
+                         Options shown in the Service Agreement supplies dropdown. Leave empty to use the
+                         standard list (Excludes Paper, Excludes Paper &amp; Staples). The first option is the
+                         default on a new agreement.
+                       </p>
+                       <div className="flex flex-wrap gap-2 mb-2">
+                         {supplyOptions.map((option) => (
+                           <Badge key={option} variant="secondary" className="flex items-center gap-1 px-2 py-1">
+                             {option}
+                             <button
+                               type="button"
+                               onClick={() => handleRemoveSupplyOption(option)}
+                               className="ml-1 hover:text-destructive"
+                             >
+                               <X className="h-3 w-3" />
+                             </button>
+                           </Badge>
+                         ))}
+                         {supplyOptions.length === 0 && (
+                           <span className="text-xs text-muted-foreground italic">
+                             Using the standard paper &amp; staples list
+                           </span>
+                         )}
+                       </div>
+                       <div className="flex gap-2">
+                         <Input
+                           value={newSupplyOption}
+                           onChange={(e) => setNewSupplyOption(e.target.value)}
+                           placeholder="e.g., Excludes staples"
+                           className="flex-1"
+                           onKeyDown={(e) => {
+                             if (e.key === "Enter") {
+                               e.preventDefault();
+                               handleAddSupplyOption();
+                             }
+                           }}
+                         />
+                         <Button type="button" variant="outline" size="sm" onClick={handleAddSupplyOption}>
+                           <Plus className="h-4 w-4 mr-1" />
+                           Add
+                         </Button>
+                       </div>
+                     </div>
+
+                     <Separator />
+
+                     {/* CCA Value */}
                     <div className="space-y-2">
                       <Label htmlFor="cca_value">CCA Value</Label>
                       <p className="text-xs text-muted-foreground">
