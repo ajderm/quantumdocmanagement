@@ -131,8 +131,8 @@ table.grid tr.empty td { color: ${st.muted}; font-style: italic; }
    than a paler colour means any emphasis inside the terms lightens with the
    block instead of jumping back to full ink. The compact leading is scoped to
    that same opt-in treatment so ordinary rich text pagination is unchanged. */
-.richText.terms .body { opacity: .55; line-height: 1.4; }
-.richText.terms .body p { margin-bottom: 2pt; }
+.richText.terms .body { opacity: .55; line-height: 1.28; }
+.richText.terms .body p { margin-bottom: 0; }
 .richText.terms .body strong { color: inherit; }
 
 /* ---- signature ------------------------------------------------------- */

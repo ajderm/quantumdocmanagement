@@ -91,7 +91,7 @@ test('lighter terms styling is opt-in per template', () => {
   assert.equal(resolve({ styles: { lightenTerms: false }, blocks: [block] }, data).blocks[0].terms, undefined);
   assert.equal(resolve({ styles: { lightenTerms: true }, blocks: [block] }, data).blocks[0].terms, true);
   const css = buildCss({ styles: { lightenTerms: true } });
-  assert.match(css, /\.richText\.terms \.body \{ opacity: \.55; line-height: 1\.4; \}/);
+  assert.match(css, /\.richText\.terms \.body \{ opacity: \.55; line-height: 1\.28; \}/);
   assert.doesNotMatch(css, /\.richText\.terms[^}]*font-style:\s*italic/);
 });
 
