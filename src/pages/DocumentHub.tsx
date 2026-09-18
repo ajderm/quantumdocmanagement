@@ -63,6 +63,7 @@ import {
   installationRenderPayload,
   fmvLeaseRenderPayload,
   leaseFundingRenderPayload,
+  serviceAgreementRenderPayload,
   type DocRenderContext,
 } from "@/lib/render/documentPayloads";
 import { useConfirm } from "@/hooks/useConfirm";
@@ -3449,8 +3450,6 @@ function DocumentHubContent() {
 
     setServiceAgreementGenerating(true);
     try {
-      const pdf = await generateMultiPagePDF(serviceAgreementPreviewRef.current);
-
       const sanitizedCompanyName = (serviceAgreementFormData.shipToCompany || "Draft")
         .replace(/[^a-zA-Z0-9\s]/g, "")
         .replace(/\s+/g, "_");
@@ -3459,36 +3458,24 @@ function DocumentHubContent() {
       const timeStr = now.toTimeString().slice(0, 5).replace(":", "-");
       const fileName = `${docFileStem("service_agreement", "Service_Agreement")}_${sanitizedCompanyName}_${dateStr}_${timeStr}.pdf`;
 
-      pdf.save(fileName);
-
-      const currentPortalId = portalId;
-      const currentDealId = deal?.hsObjectId;
-
-      if (currentPortalId && currentDealId) {
-        try {
-          const pdfBase64 = pdf.output("datauristring").split(",")[1];
-
-          const { data, error: attachError } = await supabase.functions.invoke("hubspot-attach-file", {
-            body: {
-              portalId: currentPortalId,
-              dealId: currentDealId,
-              fileName: fileName,
-              fileBase64: pdfBase64,
-            },
-          });
-
-          if (attachError || data?.error) {
-            toast.success("PDF downloaded! (Could not attach to deal)");
-          } else {
-            toast.success("PDF downloaded and attached to deal!");
-          }
-        } catch (attachErr) {
-          console.error("Failed to attach to HubSpot:", attachErr);
-          toast.success("PDF downloaded! (Could not attach to deal)");
-        }
-      } else {
-        toast.success("Service Agreement PDF downloaded successfully!");
-      }
+      const pdfBytes = await producePdfBytes(
+        "service_agreement",
+        serviceAgreementPreviewRef.current,
+        () => serviceAgreementRenderPayload(
+          serviceAgreementFormData,
+          docRenderContext(
+            "service_agreement",
+            serviceAgreementFormData.overrideTerms
+              ? (serviceAgreementFormData.overrideTermsText || null)
+              : (documentTerms.service_agreement?.trim() || null),
+          ),
+          {
+            quoteRates: formData ?? null,
+            equipmentLocationDefault,
+          },
+        ) as unknown as Record<string, unknown>,
+      );
+      await deliverPdfBytes(pdfBytes, fileName, "Service Agreement");
     } catch (err) {
       console.error("PDF generation error:", err);
       toast.error("Failed to generate PDF");
