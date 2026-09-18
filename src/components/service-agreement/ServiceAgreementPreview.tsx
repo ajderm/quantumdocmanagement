@@ -41,10 +41,13 @@ interface ServiceAgreementPreviewProps {
   termsAndConditions?: string;
   documentStyles?: { fontFamily?: string; fontColor?: string; tableBorderColor?: string; tableLineColor?: string; fontSizeOffset?: number; fontSizeOffsets?: { title?: number; header?: number; body?: number; table?: number; fine?: number; }; };
   installationConfigs?: Record<string, { installedSerial?: string; idNumber?: string }>;
+  /** Portal-configured supply options; unset falls back to the standard list. */
+  supplyOptions?: string[];
 }
 
 export const ServiceAgreementPreview = forwardRef<HTMLDivElement, ServiceAgreementPreviewProps>(
-  ({ formData, dealerInfo, lineItems, termsAndConditions, documentStyles, installationConfigs }, ref) => {
+  ({ formData, dealerInfo, lineItems, termsAndConditions, documentStyles, installationConfigs, supplyOptions }, ref) => {
+    const resolvedSupplyOptions = resolveSupplyOptions({ supply_options: supplyOptions });
     const hardwareLineItems = (() => {
       const hw = lineItems.filter(
         (item) => item.category?.toLowerCase() === 'hardware'
