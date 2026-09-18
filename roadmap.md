@@ -8,7 +8,7 @@
 - [x] Complete and report the September shared-path audit
 - [ ] Deploy renderer — blocked: repository documents an external deployment but no deployment credential or hook is available
 - [x] Deploy functions and publish app
-- [ ] Show the branch override on each document for portals with locations
-- [ ] Persist the selected branch with the deal's document configurations
-- [ ] Add editable per-line equipment Location defaults to Service and Lease Agreements
-- [ ] Verify branch visibility, defaults, saved overrides, and printed Location values
+- [x] Show the branch override on each document for portals with locations
+- [x] Persist the selected branch with the deal's document configurations
+- [x] Add editable per-line equipment Location defaults to Service and Lease Agreements
+- [x] Verify branch visibility, defaults, saved overrides, and printed Location values

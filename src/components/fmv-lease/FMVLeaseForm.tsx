@@ -134,12 +134,6 @@ export function FMVLeaseForm({
     };
 
     const fillIfEmpty = (current: string, next: string) => (current?.trim() ? current : next);
-    const equipmentLocation = [
-      equipmentAddress,
-      [equipmentCity, equipmentState].filter(Boolean).join(", "),
-      equipmentZip,
-    ].filter(Boolean).join(" ");
-
     const base = savedConfig ? { ...formData, ...savedConfig } : { ...formData };
 
     const equipmentAddress = company
@@ -161,10 +155,15 @@ export function FMVLeaseForm({
     const rawDeliveryZip = company?.deliveryZip?.trim();
     const rawFallbackZip = company?.zip?.trim();
     const equipmentZip = isValidZip(rawDeliveryZip)
-      ? rawDeliveryZip!
+      ? rawDeliveryZip ?? ""
       : isValidZip(rawFallbackZip)
-        ? rawFallbackZip!
+        ? rawFallbackZip ?? ""
         : "";
+    const equipmentLocation = [
+      equipmentAddress,
+      [equipmentCity, equipmentState].filter(Boolean).join(", "),
+      equipmentZip,
+    ].filter(Boolean).join(" ");
 
     const billingAddress = company
       ? pick(buildAddress(company.apAddress, company.apAddress2), buildAddress(company.address, company.address2))
