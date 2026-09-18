@@ -550,6 +550,11 @@ export default function AdminSettings({
       const dealerSettings = {
         meter_methods: meterMethods,
         supply_options: supplyOptions,
+        supply_label: supplyLabel.trim(),
+        // Empty list = this portal hides the Drum & Toner field.
+        drum_toner_options: drumTonerEnabled
+          ? (drumTonerOptions.length > 0 ? drumTonerOptions : DEFAULT_DRUM_TONER_OPTIONS)
+          : [],
         cca_value: ccaValue,
         enabled_forms: enabledForms,
         // Persist homepage only if it's still an enabled document; otherwise
