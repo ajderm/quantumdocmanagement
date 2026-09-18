@@ -134,6 +134,11 @@ export function FMVLeaseForm({
     };
 
     const fillIfEmpty = (current: string, next: string) => (current?.trim() ? current : next);
+    const equipmentLocation = [
+      equipmentAddress,
+      [equipmentCity, equipmentState].filter(Boolean).join(", "),
+      equipmentZip,
+    ].filter(Boolean).join(" ");
 
     const base = savedConfig ? { ...formData, ...savedConfig } : { ...formData };
 
@@ -179,7 +184,7 @@ export function FMVLeaseForm({
           .replace(/\s*-$/, ""),
         serialNumber: savedItem?.serialNumber || item.serial || "",
         idNumber: savedItem?.idNumber || "",
-        location: savedItem?.location || joinAddress(equipmentAddress, equipmentCity, equipmentState, equipmentZip),
+        location: savedItem?.location || equipmentLocation,
       };
     });
 

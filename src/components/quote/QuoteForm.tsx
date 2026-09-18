@@ -69,6 +69,8 @@ export interface QuoteLineItem {
 export interface QuoteFormData {
   overrideTerms?: boolean;
   overrideTermsText?: string;
+  /** Dealer location selected for this deal's paperwork; absent means resolved automatically. */
+  branchOverrideCode?: string | null;
   quoteNumber: string;
   quoteDate: string;
   preparedBy: string;

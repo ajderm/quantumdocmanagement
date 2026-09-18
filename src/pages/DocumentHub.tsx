@@ -830,7 +830,9 @@ function DocumentHubContent() {
           // Set quote config
           if (configs.quote) {
             console.log("Loaded saved quote configuration");
-            setSavedConfig(configs.quote as QuoteFormData);
+            const quoteConfig = configs.quote as QuoteFormData;
+            setSavedConfig(quoteConfig);
+            setBranchOverride(quoteConfig.branchOverrideCode || null);
           }
 
           // Set installation configs (keyed by line_item_id)
@@ -2575,6 +2577,26 @@ function DocumentHubContent() {
   }, [salespersonNumber, dealerLocations, branchOverride]);
 
   const branchPayload = useMemo(() => branchForPayload(activeBranch), [activeBranch]);
+
+  const equipmentLocationDefault = useMemo(() => {
+    const street = [company?.deliveryAddress, company?.deliveryAddress2]
+      .map((part) => (part || "").trim())
+      .filter(Boolean)
+      .join(", ");
+    const locality = [company?.deliveryCity, company?.deliveryState]
+      .map((part) => (part || "").trim())
+      .filter(Boolean)
+      .join(", ");
+    return [street, locality, company?.deliveryZip]
+      .map((part) => (part || "").trim())
+      .filter(Boolean)
+      .join(" ");
+  }, [company?.deliveryAddress, company?.deliveryAddress2, company?.deliveryCity, company?.deliveryState, company?.deliveryZip]);
+
+  const handleBranchOverrideChange = useCallback((code: string | null) => {
+    setBranchOverride(code);
+    if (formData) handleFormChange({ ...formData, branchOverrideCode: code });
+  }, [formData, handleFormChange]);
 
   /**
    * Values that come off the CRM records rather than off a form: the account
@@ -4341,14 +4363,6 @@ function DocumentHubContent() {
                 {lineItems.length} item{lineItems.length !== 1 ? "s" : ""}
               </span>
             </div>
-            {/* Nothing renders for portals without branch offices. */}
-            <BranchSelector
-              locations={dealerLocations}
-              active={activeBranch}
-              override={branchOverride}
-              onOverrideChange={setBranchOverride}
-              disabled={!userPermissions.can_edit}
-            />
           </div>
         </div>
       )}
@@ -4505,6 +4519,18 @@ function DocumentHubContent() {
 
           {/* Content area */}
           <div className="flex-1 min-w-0 px-4 py-4">
+            {/* Nothing renders for portals without branch offices. Kept inside
+                the document workspace so it remains visible in HubSpot's
+                narrow iframe instead of being squeezed out of deal metadata. */}
+            <div className={dealerLocations.length > 0 ? "mb-4" : undefined}>
+              <BranchSelector
+                locations={dealerLocations}
+                active={activeBranch}
+                override={branchOverride}
+                onOverrideChange={handleBranchOverrideChange}
+                disabled={!userPermissions.can_edit}
+              />
+            </div>
             {/* Quote Tab Content */}
             <TabsContent value="quote" className="mt-0">
               <div className="space-y-4">
@@ -4532,6 +4558,7 @@ function DocumentHubContent() {
                       defaultTerms={dealerSettings.default_terms}
                       documentLabel={docLabel("quote")}
                       primaryLender={dealerSettings.primary_lender}
+                      equipmentLocationDefault={equipmentLocationDefault}
                     />
 
                     {/* Additional Costs + commission summary — a second view of the
@@ -4859,6 +4886,7 @@ function DocumentHubContent() {
                           paperStaples: supplyDefault(resolveSupplyOptions(dealerSettings)),
                           drumToner: "",
                           serials: {},
+                           locations: {},
                           effectiveDate: null,
                           contractLengthMonths: "",
                           billingPeriod: "monthly",
@@ -4927,6 +4955,7 @@ function DocumentHubContent() {
                           : null
                       }
                       installationConfigs={installationSavedConfig}
+                      equipmentLocationDefault={equipmentLocationDefault}
                     />
                     <div className="flex pt-3 border-t">
                       <Button
@@ -5865,6 +5894,7 @@ function DocumentHubContent() {
             supplyOptions={dealerSettings.supply_options}
             supplyLabel={dealerSettings.supply_label}
             drumTonerOptions={dealerSettings.drum_toner_options}
+            equipmentLocationDefault={equipmentLocationDefault}
           />
         )}
       </div>
@@ -5903,6 +5933,7 @@ function DocumentHubContent() {
                     supplyOptions={dealerSettings.supply_options}
                     supplyLabel={dealerSettings.supply_label}
                     drumTonerOptions={dealerSettings.drum_toner_options}
+                      equipmentLocationDefault={equipmentLocationDefault}
                   />
                 </div>
               )}
