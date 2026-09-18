@@ -132,6 +132,21 @@ export interface RenderPayload {
   };
   /** Only the lines a customer should see. */
   line_items: RenderLineItem[];
+  /**
+   * Service-contract figures, on the documents that carry them.
+   *
+   * Optional because only the service agreement prints them. Every figure is
+   * nullable and null stays null: an unset overage rate must print blank, not
+   * $0.00 — a zero overage rate on a signed agreement is free copies.
+   */
+  service?: {
+    billing_period: string | null;
+    included_bw: number | null;
+    included_color: number | null;
+    overage_bw: number | null;
+    overage_color: number | null;
+    base_rate: number | null;
+  };
 }
 
 /**
