@@ -178,16 +178,29 @@ export function taxRateFraction(input: unknown): number | null {
 }
 
 /**
- * Plain-text terms as paragraphs, or null when there are none.
+ * Terms already written as markup, rather than as typed prose.
+ *
+ * A dealer's transcribed form (Eakes' 14 service clauses) is stored as HTML so
+ * its numbering and emphasis survive. Detection is deliberately narrow: only a
+ * recognised block or inline tag counts, so a settings field that merely
+ * contains a stray `<` is still treated as text and escaped.
+ */
+const MARKUP = /<\/?(p|ul|ol|li|strong|em|b|i|u|br|span)\b[^>]*>/i;
+
+/**
+ * Terms as HTML, or null when there are none.
  *
  * Blank-line separated blocks become paragraphs and single newlines are kept
- * as line breaks, which is how the text was laid out where it was typed. The
+ * as line breaks, which is how the text was laid out where it was typed. Plain
  * text is escaped: it comes from a settings field, and the renderer's HTML
- * layer must never be handed markup it did not build.
+ * layer must never be handed markup it did not build. Terms that are already
+ * markup pass through — the renderer sanitises them to an inline subset and
+ * strips every attribute before printing.
  */
 export function termsHtml(text: string | null | undefined): string | null {
   const raw = (text ?? '').trim();
   if (raw === '') return null;
+  if (MARKUP.test(raw)) return raw;
   const esc = (s: string) => s
     .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
   return raw
