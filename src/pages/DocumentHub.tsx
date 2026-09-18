@@ -150,6 +150,8 @@ interface DealerSettings {
    * 8.7%, which put a rate nobody had chosen on customer-facing paperwork.
    */
   sales_tax_rate?: string | number;
+  /** Lighter legal copy in template-rendered documents; absent is off. */
+  lighten_terms?: boolean;
   /** Lender new quotes start on. Eakes place 98% with one partner. */
   primary_lender?: string;
   default_terms?: { enabled?: boolean; terms?: number[] };
@@ -2559,8 +2561,6 @@ function DocumentHubContent() {
   /** The salesperson number the branch resolver matches rep prefixes against. */
   const salespersonNumber =
     (deal?.salespersonNumber as string | undefined)
-    ?? (properties?.deal?.salesperson__ as string | undefined)
-    ?? (properties?.deal?.lead_routing_salesperson____syncari_ as string | undefined)
     ?? null;
 
   /**
@@ -2585,11 +2585,7 @@ function DocumentHubContent() {
   const crmExtras = (): CrmExtras => ({
     companyAccountNumber: company?.accountNumber ?? null,
     companyFederalEin: company?.federalEin ?? null,
-    repCode:
-      (deal?.salesperson__ as string | undefined)
-      ?? (properties?.deal?.salesperson__ as string | undefined)
-      ?? (properties?.deal?.lead_routing_salesperson____syncari_ as string | undefined)
-      ?? null,
+    repCode: salespersonNumber,
     meterContact: dealContacts?.meter ?? null,
     signerContact: dealContacts?.signer ?? null,
   });

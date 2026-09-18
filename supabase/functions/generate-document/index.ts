@@ -121,6 +121,15 @@ Deno.serve(async (req: Request) => {
       .eq('hubspot_portal_id', portalId).maybeSingle();
     if (!dealer) return createErrorResponse('Dealer account not found', 404, corsHeaders);
 
+    const { data: termsStyleSetting, error: termsStyleError } = await supabase
+      .from('dealer_settings')
+      .select('setting_value')
+      .eq('dealer_account_id', dealer.id)
+      .eq('setting_key', 'lighten_terms')
+      .maybeSingle();
+    if (termsStyleError) throw termsStyleError;
+    const lightenTerms = termsStyleSetting?.setting_value === true;
+
     // Only a published template is renderable: a draft being edited must never
     // reach a customer-facing document.
     const { data: tmpl, error: tmplError } = await supabase
@@ -150,6 +159,10 @@ Deno.serve(async (req: Request) => {
     // portal prints exactly what it printed before.
     const template = {
       ...(tmpl.template as Record<string, unknown>),
+      styles: {
+        ...((tmpl.template as { styles?: Record<string, unknown> })?.styles ?? {}),
+        lightenTerms,
+      },
       blocks: retitleBlocks(
         (tmpl.template as { blocks?: unknown })?.blocks,
         printedTitle(body.data),

@@ -204,11 +204,9 @@ export function newCustomerRenderPayload(
   const split = dealLines(ctx);
   return {
     ...shared(ctx),
-    // The customer summary carries a fixed credit-department return block
-    // (P.O. Box 2098, Grand Island NE 68802-2098, credit@eakes.com). That is
-    // the credit department, not the selling branch, so this one document
-    // deliberately ignores the branch and keeps the dealer account address.
-    dealer: dealerBlock({ ...ctx, branch: null }),
+    // Chrome follows the selling branch. The fixed credit-department return
+    // address lives as literal Eakes template copy and remains independent.
+    dealer: dealerBlock(ctx),
     company: {
       name: clean(form.companyName) ?? "Customer",
       address: joinParts(hqStreet, form.hqCity,

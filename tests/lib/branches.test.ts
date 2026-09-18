@@ -15,6 +15,14 @@ test('matches on rep prefix, never on the location code', () => {
   assert.equal(resolveBranch('5112', eakes)?.code, '51');
 });
 
+test('Grand Island resolves both current roster and retained legacy prefixes', () => {
+  const corrected = eakes.map((location) => location.code === '6'
+    ? { ...location, rep_prefixes: ['17', '68'] }
+    : location);
+  assert.equal(resolveBranch('6862', corrected)?.code, '6');
+  assert.equal(resolveBranch('1704', corrected)?.code, '6');
+});
+
 test('longest prefix wins', () => {
   const locations = [
     { code: 'a', name: 'A', rep_prefixes: ['1'], is_main: true },
