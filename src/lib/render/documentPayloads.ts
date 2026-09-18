@@ -528,3 +528,148 @@ export function leaseFundingRenderPayload(
     line_items: lines,
   };
 }
+
+/* ------------------------------------------------------------------ */
+/* Service agreement                                                   */
+/* ------------------------------------------------------------------ */
+
+export interface ServiceAgreementRateLike {
+  includesBW?: string; includesColor?: string;
+  overagesBW?: string; overagesColor?: string; baseRate?: string;
+}
+
+export interface ServiceAgreementLike {
+  customerNumber?: string; customerNumberOverride?: string;
+  shipToCompany?: string; shipToAddress?: string; shipToCity?: string;
+  shipToState?: string; shipToZip?: string; shipToAttn?: string;
+  billToCompany?: string; billToAddress?: string; billToCity?: string;
+  billToState?: string; billToZip?: string; billToAttn?: string;
+  contractLengthMonths?: string;
+  billingPeriod?: string;
+  serials?: Record<string, string>;
+  locations?: Record<string, string>;
+  rates?: Record<string, ServiceAgreementRateLike>;
+}
+
+/** Rates the quote carried, used where the agreement has none of its own. */
+export interface ServiceQuoteRates {
+  includedBWCopies?: string; includedColorCopies?: string;
+  overageBWRate?: string; overageColorRate?: string; serviceBaseRate?: string;
+}
+
+const BILLING_LABEL: Record<string, string> = {
+  monthly: "Monthly", quarterly: "Quarterly", annual: "Annual",
+};
+
+/** Positive numbers only: an unset rate must stay absent, never zero. */
+const positive = (value: unknown): number | null => {
+  const v = num(value);
+  return v !== null && v > 0 ? v : null;
+};
+
+/**
+ * The service agreement, as the template prints it.
+ *
+ * Equipment comes from the deal's own lines rather than from the hardware
+ * filter the native preview used: that filter dropped the accessories, so an
+ * Arbor Day agreement listed the engine and omitted the tray, the drawer and
+ * the fax kit while the lease — fed from these same lines — listed all four.
+ *
+ * Serial and Location are the ones typed on this agreement, falling back to
+ * the quote's serial and to the deal's equipment location.
+ */
+export function serviceAgreementRenderPayload(
+  form: ServiceAgreementLike,
+  ctx: DocRenderContext,
+  options?: { quoteRates?: ServiceQuoteRates | null; equipmentLocationDefault?: string | null },
+): RenderPayload {
+  const serials = form.serials ?? {};
+  const locations = form.locations ?? {};
+  const fallbackSite = clean(options?.equipmentLocationDefault);
+
+  const split = classified((ctx.lineItems ?? [])
+    .filter((item) => Number(item.quantity) > 0)
+    .map((item) => {
+      const quantity = Number(item.quantity) || 0;
+      const unit = money(item.price ?? 0);
+      const id = String((item as { id?: unknown }).id ?? "");
+      return {
+        source: { model: item.model, description: item.description },
+        line: {
+          name: lineDescription(item),
+          type: clean(item.productType),
+          quantity,
+          unit,
+          extended: money(unit * quantity),
+          serial: clean(serials[id]) ?? clean(item.serial),
+          meter: clean(item.meterReading),
+          site: clean(locations[id]) ?? clean(item.location) ?? fallbackSite,
+        } satisfies RenderLineItem,
+      };
+    }));
+
+  // The per-line rates the rep entered, rolled up to the single set of figures
+  // the agreement's face carries. Volumes add up across the covered machines;
+  // a rate per copy does not, so the first one entered stands.
+  const rateRows = Object.values(form.rates ?? {});
+  const q = options?.quoteRates ?? {};
+  const sum = (pick: (r: ServiceAgreementRateLike) => unknown, fallback: unknown) => {
+    const values = rateRows.map(pick).map(positive).filter((v): v is number => v !== null);
+    if (values.length) return money(values.reduce((a, b) => a + b, 0));
+    return positive(fallback);
+  };
+  const first = (pick: (r: ServiceAgreementRateLike) => unknown, fallback: unknown) => {
+    for (const row of rateRows) {
+      const v = positive(pick(row));
+      if (v !== null) return v;
+    }
+    return positive(fallback);
+  };
+
+  const term = num(form.contractLengthMonths) ?? leaseFromDeal(ctx).term;
+  const billing = (form.billingPeriod ?? "").toLowerCase();
+
+  return {
+    ...shared(ctx),
+    company: {
+      name: clean(form.billToCompany) ?? clean(form.shipToCompany) ?? "Customer",
+      address: joinParts(form.billToAddress, form.billToCity,
+        [clean(form.billToState), clean(form.billToZip)].filter(Boolean).join(" ")),
+      phone: null,
+      ...addressBlock({
+        street: form.billToAddress, city: form.billToCity,
+        state: form.billToState, zip: form.billToZip,
+      }),
+      ...companyCrmFields(ctx.crm),
+      // The rep may correct the account number on the agreement itself.
+      account_number: clean(form.customerNumberOverride)
+        ?? clean(form.customerNumber)
+        ?? companyCrmFields(ctx.crm).account_number,
+    },
+    contact: {
+      ...shared(ctx).contact,
+      ship_to: clean(form.shipToAttn) ?? clean(ctx.shipToContact),
+    },
+    // Where the equipment sits; falls back to the billing address when unset.
+    location: addressBlock({
+      street: clean(form.shipToAddress) ?? form.billToAddress,
+      city: clean(form.shipToCity) ?? form.billToCity,
+      state: clean(form.shipToState) ?? form.billToState,
+      zip: clean(form.shipToZip) ?? form.billToZip,
+    }),
+    lease: {
+      ...leaseFromDeal(ctx),
+      term: term !== null && term > 0 ? Math.round(term) : null,
+    },
+    service: {
+      billing_period: BILLING_LABEL[billing] ?? clean(form.billingPeriod),
+      included_bw: sum((r) => r.includesBW, q.includedBWCopies),
+      included_color: sum((r) => r.includesColor, q.includedColorCopies),
+      overage_bw: first((r) => r.overagesBW, q.overageBWRate),
+      overage_color: first((r) => r.overagesColor, q.overageColorRate),
+      base_rate: sum((r) => r.baseRate, q.serviceBaseRate),
+    },
+    amounts: { taxable: split.taxable, non_taxable: split.nonTaxable, total: split.taxable },
+    line_items: split.lines,
+  };
+}
