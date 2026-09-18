@@ -185,6 +185,7 @@ export function ServiceAgreementForm({
   installationConfigs,
 }: ServiceAgreementFormProps) {
   const meterMethods = dealerSettings?.meter_methods || ["FMAudit", "PrintFleet", "Manual Entry"];
+  const supplyOptions = resolveSupplyOptions(dealerSettings);
 
   // Filter to main units only (exclude accessories) for the rates table
   const hardwareLineItems = (() => {
