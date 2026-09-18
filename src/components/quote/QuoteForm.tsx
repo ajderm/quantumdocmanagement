@@ -62,11 +62,15 @@ export interface QuoteLineItem {
    */
   sku?: string | null;
   serial?: string;
+  /** Paperwork location for this unit; editable independently of serial. */
+  location?: string;
   equipmentId?: string;
 }
 export interface QuoteFormData {
   overrideTerms?: boolean;
   overrideTermsText?: string;
+  /** Dealer location selected for this deal's paperwork; absent means resolved automatically. */
+  branchOverrideCode?: string | null;
   quoteNumber: string;
   quoteDate: string;
   preparedBy: string;
@@ -154,6 +158,9 @@ interface QuoteFormProps {
    * common case the one that needs correcting.
    */
   primaryLender?: string;
+  /** Temporary default until QuoteIQ supplies a dedicated per-line field. */
+  equipmentLocationDefault?: string;
+  branchOverrideCode?: string | null;
 }
 
 interface RateFactor {
@@ -229,6 +236,8 @@ export function QuoteForm({
   defaultTerms,
   documentLabel,
   primaryLender,
+  equipmentLocationDefault,
+  branchOverrideCode,
 }: QuoteFormProps) {
   const hasInitializedRef = useRef(false);
   const savedConfigRef = useRef(savedConfig);
@@ -810,6 +819,7 @@ export function QuoteForm({
         parentLineItemId: "",
         itemNumber: item.itemNumber || item.properties?.item_number || "",
         serial: item.serial || item.properties?.serial_number || "",
+        location: item.location || item.properties?.location || equipmentLocationDefault || "",
         equipmentId: item.equipmentId || item.properties?.equipment_id || "",
       })),
       retailPrice: dealAmount,
@@ -831,6 +841,7 @@ export function QuoteForm({
             msrp: item.msrp ?? item.price ?? 0,
             dealerSource: item.dealerSource || freshItem?.dealerSource || "",
             itemNumber: item.itemNumber || freshItem?.itemNumber || "",
+            location: item.location ?? freshItem?.location ?? equipmentLocationDefault ?? "",
           };
         },
       );
@@ -909,6 +920,7 @@ export function QuoteForm({
         markupPercent: item.markupPercent ?? 0,
         msrp: item.msrp ?? item.price ?? 0,
         dealerSource: item.dealerSource || "",
+        location: item.location ?? equipmentLocationDefault ?? "",
       }),
     );
 
@@ -968,8 +980,8 @@ export function QuoteForm({
   ]);
 
   useEffect(() => {
-    onFormChange(formData);
-  }, [formData, onFormChange]);
+    onFormChange({ ...formData, branchOverrideCode: branchOverrideCode ?? null });
+  }, [formData, onFormChange, branchOverrideCode]);
 
   const updateField = <K extends keyof QuoteFormData>(field: K, value: QuoteFormData[K]) => {
     setFormData((prev) => ({ ...prev, [field]: value }));
@@ -1009,6 +1021,7 @@ export function QuoteForm({
           productType: "",
           parentLineItemId: "",
           itemNumber: "",
+          location: equipmentLocationDefault || "",
         },
       ],
     }));
@@ -1066,6 +1079,7 @@ export function QuoteForm({
       productType: product.productType || "",
       parentLineItemId: "",
       itemNumber: product.itemNumber || "",
+      location: equipmentLocationDefault || "",
     };
     setFormData((prev) => ({ ...prev, lineItems: [...prev.lineItems, newItem] }));
   };
@@ -1089,6 +1103,7 @@ export function QuoteForm({
           productType: "Hardware",
           parentLineItemId: "",
           itemNumber: "",
+          location: equipmentLocationDefault || "",
         },
       ],
     }));
@@ -1113,6 +1128,7 @@ export function QuoteForm({
           productType: "Accessory",
           parentLineItemId: hardwareId,
           itemNumber: "",
+          location: equipmentLocationDefault || "",
         },
       ],
     }));
@@ -1138,6 +1154,7 @@ export function QuoteForm({
           parentLineItemId: "",
           standalone: true,
           itemNumber: "",
+          location: equipmentLocationDefault || "",
         },
       ],
     }));
@@ -1413,6 +1430,14 @@ export function QuoteForm({
                       onChange={(e) => updateLineItem(idx, "serial", e.target.value)}
                       className="h-9 text-sm"
                       placeholder="Serial number"
+                    />
+                  </Field>
+                  <Field label="Location" hint="Prints on the agreement">
+                    <Input
+                      value={item.location || ""}
+                      onChange={(e) => updateLineItem(idx, "location", e.target.value)}
+                      className="h-9 text-sm"
+                      placeholder="Equipment location"
                     />
                   </Field>
                 </FieldGrid>

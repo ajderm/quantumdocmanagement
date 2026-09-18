@@ -74,6 +74,15 @@ export function resolveServiceAgreementSerial(
   return (lineItemSerial ?? "").trim();
 }
 
+export function resolveServiceAgreementLocation(
+  locations: Record<string, string> | undefined,
+  lineItemId: string,
+  defaultLocation?: string,
+): string {
+  const override = (locations?.[lineItemId] ?? "").trim();
+  return override || (defaultLocation ?? "").trim();
+}
+
 export interface ServiceAgreementFormData {
   overrideTerms?: boolean;
   overrideTermsText?: string;
@@ -110,6 +119,8 @@ export interface ServiceAgreementFormData {
 
   /** Serial typed on this agreement, keyed by line item id. Overrides the quote. */
   serials?: Record<string, string>;
+  /** Paperwork location typed per equipment line. */
+  locations?: Record<string, string>;
   effectiveDate: Date | null;
   contractLengthMonths: string;
   billingPeriod: "monthly" | "quarterly" | "annual";
@@ -198,6 +209,7 @@ interface ServiceAgreementFormProps {
   labeledContacts: LabeledContacts;
   quoteFormData?: QuoteFormData | null;
   installationConfigs?: Record<string, { installedSerial?: string; idNumber?: string }>;
+  equipmentLocationDefault?: string;
 }
 
 export function ServiceAgreementForm({
@@ -211,6 +223,7 @@ export function ServiceAgreementForm({
   labeledContacts,
   quoteFormData,
   installationConfigs,
+  equipmentLocationDefault,
 }: ServiceAgreementFormProps) {
   const meterMethods = dealerSettings?.meter_methods || ["FMAudit", "PrintFleet", "Manual Entry"];
   const supplyOptions = resolveSupplyOptions(dealerSettings);
@@ -438,6 +451,10 @@ export function ServiceAgreementForm({
 
   const updateSerial = (lineItemId: string, value: string) => {
     onChange({ ...formData, serials: { ...(formData.serials || {}), [lineItemId]: value } });
+  };
+
+  const updateLocation = (lineItemId: string, value: string) => {
+    onChange({ ...formData, locations: { ...(formData.locations || {}), [lineItemId]: value } });
   };
 
   const updateRate = (lineItemId: string, field: string, value: string) => {
@@ -796,6 +813,7 @@ export function ServiceAgreementForm({
                   <th className="px-4 py-2 text-left font-medium">Model</th>
                   <th className="px-4 py-2 text-left font-medium">Description</th>
                   <th className="px-4 py-2 text-left font-medium">Serial</th>
+                   <th className="px-4 py-2 text-left font-medium">Location</th>
                 </tr>
               </thead>
               <tbody>
@@ -810,6 +828,14 @@ export function ServiceAgreementForm({
                         value={resolveServiceAgreementSerial(formData.serials, item.id, item.serial)}
                         placeholder="Serial"
                         onChange={(e) => updateSerial(item.id, e.target.value)}
+                      />
+                    </td>
+                    <td className="px-4 py-2">
+                      <Input
+                        className="h-9 min-w-40 text-sm"
+                        value={resolveServiceAgreementLocation(formData.locations, item.id, equipmentLocationDefault)}
+                        placeholder="Location"
+                        onChange={(e) => updateLocation(item.id, e.target.value)}
                       />
                     </td>
                   </tr>

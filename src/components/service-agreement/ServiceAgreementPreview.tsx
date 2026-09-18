@@ -7,6 +7,7 @@ import {
   resolveDrumTonerOptions,
   supplyDefault,
   resolveServiceAgreementSerial,
+  resolveServiceAgreementLocation,
 } from "./ServiceAgreementForm";
 
 import { buildDocumentFontCss } from "@/lib/documentFontSizes";
@@ -49,10 +50,11 @@ interface ServiceAgreementPreviewProps {
   supplyLabel?: string;
   /** Portal-configured Drum & Toner options; explicitly empty hides the column. */
   drumTonerOptions?: string[] | null;
+  equipmentLocationDefault?: string;
 }
 
 export const ServiceAgreementPreview = forwardRef<HTMLDivElement, ServiceAgreementPreviewProps>(
-  ({ formData, dealerInfo, lineItems, termsAndConditions, documentStyles, installationConfigs, supplyOptions, supplyLabel, drumTonerOptions }, ref) => {
+  ({ formData, dealerInfo, lineItems, termsAndConditions, documentStyles, installationConfigs, supplyOptions, supplyLabel, drumTonerOptions, equipmentLocationDefault }, ref) => {
     const resolvedSupplyOptions = resolveSupplyOptions({ supply_options: supplyOptions });
     const resolvedSupplyLabel = resolveSupplyLabel({ supply_label: supplyLabel });
     const showDrumToner = resolveDrumTonerOptions({ drum_toner_options: drumTonerOptions }).length > 0;
@@ -258,19 +260,20 @@ export const ServiceAgreementPreview = forwardRef<HTMLDivElement, ServiceAgreeme
           <table className="w-full border-collapse text-[12px]">
             <thead>
               <tr className="border-b-2 border-black">
-                <th colSpan={4} className="text-left py-1 pb-2 font-bold">EQUIPMENT</th>
+                <th colSpan={5} className="text-left py-1 pb-2 font-bold">EQUIPMENT</th>
               </tr>
               <tr className="border-b border-gray-300">
                 <th className="py-1 text-left w-8"><span className="underline">Qty</span></th>
                 <th className="py-1 text-left w-28"><span className="underline">Model</span></th>
                 <th className="py-1 text-left"><span className="underline">Description</span></th>
                 <th className="py-1 text-left w-24"><span className="underline">Serial</span></th>
+                <th className="py-1 text-left w-28"><span className="underline">Location</span></th>
               </tr>
             </thead>
             <tbody>
               {hardwareLineItems.length === 0 ? (
                 <tr>
-                  <td colSpan={4} className="py-2 text-center text-gray-400">No equipment items</td>
+                  <td colSpan={5} className="py-2 text-center text-gray-400">No equipment items</td>
                 </tr>
               ) : (
                 hardwareLineItems.map((item) => (
@@ -280,6 +283,9 @@ export const ServiceAgreementPreview = forwardRef<HTMLDivElement, ServiceAgreeme
                     <td className="py-1">{item.description || '-'}</td>
                     <td className="py-1">
                       {resolveServiceAgreementSerial(formData.serials, item.id, item.serial) || '-'}
+                    </td>
+                    <td className="py-1">
+                      {resolveServiceAgreementLocation(formData.locations, item.id, equipmentLocationDefault) || '-'}
                     </td>
                   </tr>
                 ))

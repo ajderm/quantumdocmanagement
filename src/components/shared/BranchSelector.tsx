@@ -16,6 +16,8 @@ const RESOLVED = "__resolved__";
 
 interface BranchSelectorProps {
   locations: DealerLocation[];
+  /** Salesperson-resolved branch before any manual override. */
+  resolved: DealerLocation | null;
   /** The branch actually in use, resolved or overridden. */
   active: DealerLocation | null;
   /** Location code of the rep's explicit choice, or null when auto. */
@@ -25,37 +27,40 @@ interface BranchSelectorProps {
 }
 
 export function BranchSelector({
-  locations, active, override, onOverrideChange, disabled,
+  locations, resolved, active, override, onOverrideChange, disabled,
 }: BranchSelectorProps) {
   if (!locations.length) return null;
 
   return (
-    <div className="flex items-center gap-1.5">
-      <MapPin className="h-3 w-3" />
+    <div className="flex flex-col gap-2 border-b border-border pb-4 sm:flex-row sm:items-end sm:justify-between">
+      <div className="space-y-1">
+        <div className="flex items-center gap-1.5 text-sm font-medium text-foreground">
+          <MapPin className="h-4 w-4 text-primary" />
+          Document branch
+        </div>
+        <p className="text-xs text-muted-foreground">
+          {active ? branchAddress(active) : "No branch resolved"}
+        </p>
+      </div>
       <Select
         value={override ?? RESOLVED}
         onValueChange={(v) => onOverrideChange(v === RESOLVED ? null : v)}
         disabled={disabled}
       >
-        <SelectTrigger className="h-6 w-auto gap-1 border-none bg-transparent px-1 text-xs text-muted-foreground shadow-none focus:ring-0">
+        <SelectTrigger className="h-9 w-full text-sm sm:w-[260px]" aria-label="Document branch">
           <SelectValue />
         </SelectTrigger>
         <SelectContent className="max-h-72">
           <SelectItem value={RESOLVED}>
-            {active ? `${active.name} (from salesperson)` : "No branch"}
+            {resolved ? `Automatic — ${resolved.name}` : "Automatic — main office"}
           </SelectItem>
-          {locations.map((l) => (
-            <SelectItem key={l.code} value={l.code}>
-              {l.code} · {l.name}
+          {locations.map((location) => (
+            <SelectItem key={location.code} value={location.code}>
+              {location.name}
             </SelectItem>
           ))}
         </SelectContent>
       </Select>
-      {active && (
-        <span className="hidden lg:inline text-[11px] text-muted-foreground/80 truncate max-w-[280px]">
-          {branchAddress(active)}
-        </span>
-      )}
     </div>
   );
 }

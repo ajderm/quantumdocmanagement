@@ -84,7 +84,7 @@ function dealLines(ctx: DocRenderContext) {
           extended: money(unit * quantity),
           serial: clean(item.serial),
           meter: clean(item.meterReading),
-          site: null,
+          site: clean(item.location),
         } satisfies RenderLineItem,
       };
     }));
@@ -408,7 +408,7 @@ export interface FmvLeaseLike {
   equipmentAddress?: string; equipmentCity?: string; equipmentState?: string; equipmentZip?: string;
   termInMonths?: string; paymentAmount?: string; paymentFrequency?: string;
   equipmentItems?: {
-    quantity?: number; makeModelDescription?: string; serialNumber?: string; idNumber?: string;
+    quantity?: number; makeModelDescription?: string; serialNumber?: string; idNumber?: string; location?: string;
   }[];
 }
 
@@ -427,7 +427,7 @@ export function fmvLeaseRenderPayload(
         extended: 0,
         serial: clean(e.serialNumber),
         meter: null,
-        site: clean(e.idNumber),
+        site: clean(e.location),
       } satisfies RenderLineItem,
     }))).lines;
   const term = num(form.termInMonths);

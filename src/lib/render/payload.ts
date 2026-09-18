@@ -276,6 +276,7 @@ export interface QuoteFormLike {
   lineItems?: {
     model?: string; description?: string; quantity?: number; price?: number;
     productType?: string; serial?: string; sku?: string | null;
+    location?: string;
     meterReading?: string | number;
   }[];
 }
@@ -425,7 +426,7 @@ export function quoteRenderPayload(form: QuoteFormLike, ctx: RenderContext): Ren
       extended: money(unit * quantity),
       serial: (item.serial ?? '').trim() || null,
       meter: (item.meterReading ?? '').toString().trim() || null,
-      site: null,
+      site: (item.location ?? '').trim() || null,
     };
   };
 
