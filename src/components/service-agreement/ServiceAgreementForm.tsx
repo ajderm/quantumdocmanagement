@@ -13,9 +13,24 @@ import { CalendarIcon } from "lucide-react";
 import { format } from "date-fns";
 import { cn } from "@/lib/utils";
 
-/** The only two supply options this dealer offers. Paper is never provided. */
-export const STAPLES_OPTIONS = ["Excludes staples", "Includes staples"];
-export const STAPLES_DEFAULT = "Excludes staples";
+/**
+ * Supply options shown on the Service Agreement. Each portal configures its own
+ * list via the `supply_options` dealer setting (same pattern as meter_methods);
+ * portals that have not configured one keep the original paper/staples list.
+ */
+export const DEFAULT_SUPPLY_OPTIONS = ["Excludes Paper", "Excludes Paper & Staples"];
+
+export function resolveSupplyOptions(
+  dealerSettings?: { supply_options?: string[] } | null,
+): string[] {
+  const configured = (dealerSettings?.supply_options || []).filter((o) => (o || "").trim());
+  return configured.length > 0 ? configured : DEFAULT_SUPPLY_OPTIONS;
+}
+
+/** First configured option is the default for a new agreement. */
+export function supplyDefault(options: string[]): string {
+  return options[0] || "";
+}
 
 /**
  * Serial shown for an equipment row: what was typed on this agreement wins,
