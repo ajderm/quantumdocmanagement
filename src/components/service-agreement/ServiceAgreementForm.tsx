@@ -193,7 +193,7 @@ interface ServiceAgreementFormProps {
     zip?: string;
   } | null;
   lineItems: LineItem[];
-  dealerSettings: { meter_methods?: string[]; supply_options?: string[] } | null;
+  dealerSettings: ({ meter_methods?: string[] } & SupplyDealerSettings) | null;
   savedConfig: ServiceAgreementFormData | null;
   labeledContacts: LabeledContacts;
   quoteFormData?: QuoteFormData | null;
@@ -214,6 +214,8 @@ export function ServiceAgreementForm({
 }: ServiceAgreementFormProps) {
   const meterMethods = dealerSettings?.meter_methods || ["FMAudit", "PrintFleet", "Manual Entry"];
   const supplyOptions = resolveSupplyOptions(dealerSettings);
+  const supplyLabel = resolveSupplyLabel(dealerSettings);
+  const drumTonerOptions = resolveDrumTonerOptions(dealerSettings);
 
   // Filter to main units only (exclude accessories) for the rates table
   const hardwareLineItems = (() => {
