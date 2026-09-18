@@ -411,7 +411,7 @@ test('the service agreement lists every equipment line, not only the hardware', 
   assert.equal(p.line_items.length, 4, 'the engine and its three accessories');
   assert.deepEqual(
     p.line_items.map((l) => l.name.split(' ')[0]).sort(),
-    ARBOR_DAY.map((l) => String(l.model)).sort(),
+    ['BP-71C31', 'BP-DE14', 'BP-FX11', 'BP-TU11'],
   );
 });
 
@@ -426,10 +426,10 @@ test('the service agreement prints the company account number', () => {
 });
 
 test('serials and locations typed on the agreement reach the document', () => {
-  const id = String(ARBOR_DAY[0].id ?? '');
+  const withIds = ARBOR_DAY.map((l, i) => ({ ...l, id: `line-${i}` }));
   const p = serviceAgreementRenderPayload(
-    { ...SA_FORM, serials: { [id]: 'SN-4471' }, locations: { [id]: 'Suite 200' } },
-    SA_CTX,
+    { ...SA_FORM, serials: { 'line-0': 'SN-4471' }, locations: { 'line-0': 'Suite 200' } },
+    { ...SA_CTX, lineItems: withIds },
     { equipmentLocationDefault: 'Main office' },
   );
   const line = p.line_items.find((l) => l.serial === 'SN-4471');
