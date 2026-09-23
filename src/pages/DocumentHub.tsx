@@ -55,6 +55,7 @@ import { QuotePreview } from "@/components/quote/QuotePreview";
 import { QuoteAdditionalCosts } from "@/components/quote/QuoteAdditionalCosts";
 import { computeCommissionTotals, mapQuoteLineItemsToCommission, buyoutFromQuoteConfig } from "@/components/commission/commissionCalc";
 import { todayLocalDateString } from "@/lib/dateUtils";
+import { normalizeTransactionType } from "@/lib/transactionType";
 import { useDocumentEngine } from "@/hooks/useDocumentEngine";
 import { quoteRenderPayload, reconcileLineItems, type CrmExtras } from "@/lib/render/payload";
 import {
@@ -1892,6 +1893,39 @@ function DocumentHubContent() {
     }
   };
 
+  // Stamp the deal when a commission document is generated.
+  //
+  // Stephen's required-document checklist (15 Sep) is a HubSpot workflow that
+  // branches on the transaction type and enrols when the commission document
+  // exists. The app knew the type all along but never wrote it out, so the
+  // workflow had nothing to trigger on. Writes two properties and nothing else.
+  //
+  // Isolated and non-blocking, like pushLastAppActivity: a portal without these
+  // properties gets a 400 that is swallowed, and the rep still gets their PDF.
+  // Deal anchors only — projects do not carry these properties.
+  const pushCommissionGenerated = useCallback(
+    async (rawTransactionType: unknown) => {
+      const currentPortalId = portalId || localStorage.getItem("hs_portal_id");
+      const dealId = deal?.hsObjectId;
+      if (!currentPortalId || !dealId || !isDealAnchor) return;
+
+      const properties: Record<string, string> = { commission_generated_date: Date.now().toString() };
+      // Only write a type we recognise — never blank an existing value, and
+      // never guess a branch the workflow would collect paperwork from.
+      const transactionType = normalizeTransactionType(rawTransactionType);
+      if (transactionType) properties.transaction_type = transactionType;
+
+      try {
+        await supabase.functions.invoke("hubspot-update-deal", {
+          body: { portalId: currentPortalId, dealId, properties },
+        });
+      } catch {
+        // Intentionally ignored: the workflow stamp must never fail a document.
+      }
+    },
+    [portalId, deal?.hsObjectId, isDealAnchor],
+  );
+
   const handleCommissionGeneratePDF = async () => {
     if (!commissionPreviewRef.current || !commissionFormData) {
       toast.error("Please fill in the form first");
@@ -1905,6 +1939,9 @@ function DocumentHubContent() {
         .replace(/\s+/g, "_");
       pdf.save(`Commission_${sanitizedName}_${new Date().toISOString().split("T")[0]}.pdf`);
       toast.success("PDF generated");
+      // Let the required-document workflow know this deal now has a commission
+      // document, and what kind of deal it is.
+      void pushCommissionGenerated(commissionFormData.transactionType);
     } catch (err) {
       console.error("PDF error:", err);
       toast.error("Failed to generate PDF");
