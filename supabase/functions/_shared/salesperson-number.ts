@@ -9,8 +9,13 @@ export function salespersonNumberFrom(
   }
   for (const props of propSets) {
     const value = props?.salesperson__;
-    const text = typeof value === 'number' ? String(value) : value?.trim();
-    if (typeof text === 'string' && /^\d{4}$/.test(text)) return text;
+    if (typeof value === 'number' && Number.isFinite(value)) {
+      const text = String(value);
+      if (/^\d{4}$/.test(text)) return text;
+    } else if (typeof value === 'string' && value.trim() !== '') {
+      const text = value.trim();
+      if (/^\d{4}$/.test(text)) return text;
+    }
   }
   return null;
 }
