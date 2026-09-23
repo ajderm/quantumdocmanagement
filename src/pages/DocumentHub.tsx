@@ -1,4 +1,4 @@
-import { useState, useRef, useCallback, useEffect, lazy, Suspense } from "react";
+import { useState, useRef, useCallback, useEffect, useMemo, lazy, Suspense } from "react";
 
 type TimerId = ReturnType<typeof setTimeout>;
 import { HubSpotProvider, useHubSpot } from "@/hooks/useHubSpot";
@@ -64,6 +64,7 @@ import {
   installationRenderPayload,
   fmvLeaseRenderPayload,
   leaseFundingRenderPayload,
+  serviceAgreementRenderPayload,
   type DocRenderContext,
 } from "@/lib/render/documentPayloads";
 import { useConfirm } from "@/hooks/useConfirm";
@@ -71,7 +72,7 @@ import { SummaryRail, type SummaryMetric } from "@/components/shared";
 import { quantumLogo } from "@/assets/quantumLogo";
 import { InstallationForm, InstallationFormData } from "@/components/installation/InstallationForm";
 import { InstallationPreview } from "@/components/installation/InstallationPreview";
-import { ServiceAgreementForm, ServiceAgreementFormData } from "@/components/service-agreement/ServiceAgreementForm";
+import { ServiceAgreementForm, ServiceAgreementFormData, resolveSupplyOptions, supplyDefault } from "@/components/service-agreement/ServiceAgreementForm";
 import { ServiceAgreementPreview } from "@/components/service-agreement/ServiceAgreementPreview";
 import { FMVLeaseForm, FMVLeaseFormData } from "@/components/fmv-lease/FMVLeaseForm";
 import { FMVLeasePreview } from "@/components/fmv-lease/FMVLeasePreview";
@@ -104,6 +105,8 @@ import type { FormCustomizationConfig, FormCustomizationMap } from "@/lib/formCu
 import { DocumentPacketForm } from "@/components/document-packet/DocumentPacketForm";
 const AdminSettings = lazy(() => import("@/pages/admin/AdminSettings"));
 import { AuthCallbackNotice, isAuthCallbackUrl } from "@/components/admin/AuthCallbackNotice";
+import { BranchSelector } from "@/components/shared/BranchSelector";
+import { branchForPayload, resolveBranch, type DealerLocation } from "@/lib/branches";
 
 const documentTypes = [
   { code: "quote", name: "Quote", icon: FileText },
@@ -131,6 +134,12 @@ interface DealerInfo {
 
 interface DealerSettings {
   meter_methods?: string[];
+  /** Supply options for the Service Agreement dropdown (per portal). */
+  supply_options?: string[];
+  /** Label for the supplies dropdown (per portal); unset = "Paper & Staples". */
+  supply_label?: string;
+  /** Drum & Toner options (per portal); explicitly empty hides the field. */
+  drum_toner_options?: string[] | null;
   cca_value?: string;
   enabled_forms?: string[];
   /** Document code to open on load (homepage). Empty/absent = first enabled document. */
@@ -143,6 +152,8 @@ interface DealerSettings {
    * 8.7%, which put a rate nobody had chosen on customer-facing paperwork.
    */
   sales_tax_rate?: string | number;
+  /** Lighter legal copy in template-rendered documents; absent is off. */
+  lighten_terms?: boolean;
   /** Lender new quotes start on. Eakes place 98% with one partner. */
   primary_lender?: string;
   default_terms?: { enabled?: boolean; terms?: number[] };
@@ -532,6 +543,12 @@ function DocumentHubContent() {
   // configsLoaded gate: prevents forms from rendering before saved configs are fetched
   const [configsLoaded, setConfigsLoaded] = useState(false);
 
+  // Branch offices for this portal. Empty for portals that have none, which
+  // is the normal case: those keep the dealer account address everywhere.
+  const [dealerLocations, setDealerLocations] = useState<DealerLocation[]>([]);
+  // The rep's explicit branch choice for this record, by location code.
+  const [branchOverride, setBranchOverride] = useState<string | null>(null);
+
   // Custom Documents state
   const [customDocuments, setCustomDocuments] = useState<CustomDocument[]>([]);
   const [customDocFormData, setCustomDocFormData] = useState<Record<string, Record<string, any>>>({});
@@ -765,6 +782,9 @@ function DocumentHubContent() {
       if (data?.commissionUsers) {
         setCommissionUsers(data.commissionUsers);
       }
+
+      // Branch offices. Absent or empty means this portal has none.
+      setDealerLocations(Array.isArray(data?.dealerLocations) ? data.dealerLocations : []);
     } catch (err) {
       console.error("Failed to fetch dealer info:", err);
     }
@@ -778,6 +798,8 @@ function DocumentHubContent() {
     setDocumentTerms({});
     setCommissionUsers([]);
     setCustomDocuments([]);
+    setDealerLocations([]);
+    setBranchOverride(null);
     setConfigsLoaded(false);
 
     loadDealerInfo();
@@ -810,7 +832,9 @@ function DocumentHubContent() {
           // Set quote config
           if (configs.quote) {
             console.log("Loaded saved quote configuration");
-            setSavedConfig(configs.quote as QuoteFormData);
+            const quoteConfig = configs.quote as QuoteFormData;
+            setSavedConfig(quoteConfig);
+            setBranchOverride(quoteConfig.branchOverrideCode || null);
           }
 
           // Set installation configs (keyed by line_item_id)
@@ -2574,6 +2598,58 @@ function DocumentHubContent() {
     return `${c.firstName ?? ""} ${c.lastName ?? ""}`.trim() || null;
   };
 
+  /** The salesperson number the branch resolver matches rep prefixes against. */
+  const salespersonNumber =
+    (deal?.salespersonNumber as string | undefined)
+    ?? null;
+
+  /**
+   * The selling branch: resolved from the salesperson number, unless the rep
+   * picked a different one on this record. Null for portals with no branches,
+   * which leaves the dealer account address in place.
+   */
+  const activeBranch = useMemo(() => {
+    if (!branchOverride) return resolveBranch(salespersonNumber, dealerLocations);
+    return dealerLocations.find((l) => l.code === branchOverride)
+      ?? resolveBranch(salespersonNumber, dealerLocations);
+  }, [salespersonNumber, dealerLocations, branchOverride]);
+
+  const resolvedBranch = useMemo(
+    () => resolveBranch(salespersonNumber, dealerLocations),
+    [salespersonNumber, dealerLocations],
+  );
+
+  const branchPayload = useMemo(() => branchForPayload(activeBranch), [activeBranch]);
+
+  const documentDealerInfo = useMemo(() => {
+    if (!dealerInfo) return null;
+    return {
+      ...dealerInfo,
+      address: branchPayload?.address ?? dealerInfo.address,
+      phone: branchPayload?.phone ?? dealerInfo.phone,
+    };
+  }, [dealerInfo, branchPayload]);
+
+  const equipmentLocationDefault = useMemo(() => {
+    const street = [company?.deliveryAddress, company?.deliveryAddress2]
+      .map((part) => (part || "").trim())
+      .filter(Boolean)
+      .join(", ");
+    const locality = [company?.deliveryCity, company?.deliveryState]
+      .map((part) => (part || "").trim())
+      .filter(Boolean)
+      .join(", ");
+    return [street, locality, company?.deliveryZip]
+      .map((part) => (part || "").trim())
+      .filter(Boolean)
+      .join(" ");
+  }, [company?.deliveryAddress, company?.deliveryAddress2, company?.deliveryCity, company?.deliveryState, company?.deliveryZip]);
+
+  const handleBranchOverrideChange = useCallback((code: string | null) => {
+    setBranchOverride(code);
+    if (formData) handleFormChange({ ...formData, branchOverrideCode: code });
+  }, [formData, handleFormChange]);
+
   /**
    * Values that come off the CRM records rather than off a form: the account
    * number and EIN on the company, the rep's salesperson code, and the meter
@@ -2583,11 +2659,7 @@ function DocumentHubContent() {
   const crmExtras = (): CrmExtras => ({
     companyAccountNumber: company?.accountNumber ?? null,
     companyFederalEin: company?.federalEin ?? null,
-    repCode:
-      (deal?.salesperson__ as string | undefined)
-      ?? (properties?.deal?.salesperson__ as string | undefined)
-      ?? (properties?.deal?.lead_routing_salesperson____syncari_ as string | undefined)
-      ?? null,
+    repCode: salespersonNumber,
     meterContact: dealContacts?.meter ?? null,
     signerContact: dealContacts?.signer ?? null,
   });
@@ -2598,6 +2670,7 @@ function DocumentHubContent() {
    */
   const docRenderContext = (code: string, termsText: string | null): DocRenderContext => ({
     dealerInfo: dealerInfo ?? undefined,
+    branch: branchPayload,
     deal,
     documentTitle: docRename(code),
     taxRate: dealerSettings.sales_tax_rate ?? null,
@@ -2608,6 +2681,10 @@ function DocumentHubContent() {
     shipToContact: shipToName(),
     today: todayLocalDateString(),
     crm: crmExtras(),
+    // QuoteIQ's lease writeback and the deal's line items, for the documents
+    // that show lease terms and equipment.
+    quoteiq: deal?.quoteiq ?? null,
+    lineItems: formData?.lineItems ?? [],
   });
 
   /** Save the bytes to the rep's machine. Identical for both engines. */
@@ -3187,6 +3264,7 @@ function DocumentHubContent() {
         previewRef.current,
         () => quoteRenderPayload(formData, {
           dealerInfo: dealerInfo ?? undefined,
+          branch: branchPayload,
           deal,
           shipToContact: shipTo || null,
           leasingPartnerName: formData.leasingCompanyId || null,
@@ -3319,6 +3397,7 @@ function DocumentHubContent() {
           format: "html",
           data: quoteRenderPayload(formData, {
             dealerInfo: dealerInfo ?? undefined,
+            branch: branchPayload,
             deal,
             shipToContact: shipTo || null,
             leasingPartnerName: formData.leasingCompanyId || null,
@@ -3408,8 +3487,6 @@ function DocumentHubContent() {
 
     setServiceAgreementGenerating(true);
     try {
-      const pdf = await generateMultiPagePDF(serviceAgreementPreviewRef.current);
-
       const sanitizedCompanyName = (serviceAgreementFormData.shipToCompany || "Draft")
         .replace(/[^a-zA-Z0-9\s]/g, "")
         .replace(/\s+/g, "_");
@@ -3418,36 +3495,25 @@ function DocumentHubContent() {
       const timeStr = now.toTimeString().slice(0, 5).replace(":", "-");
       const fileName = `${docFileStem("service_agreement", "Service_Agreement")}_${sanitizedCompanyName}_${dateStr}_${timeStr}.pdf`;
 
-      pdf.save(fileName);
-
-      const currentPortalId = portalId;
-      const currentDealId = deal?.hsObjectId;
-
-      if (currentPortalId && currentDealId) {
-        try {
-          const pdfBase64 = pdf.output("datauristring").split(",")[1];
-
-          const { data, error: attachError } = await supabase.functions.invoke("hubspot-attach-file", {
-            body: {
-              portalId: currentPortalId,
-              dealId: currentDealId,
-              fileName: fileName,
-              fileBase64: pdfBase64,
-            },
-          });
-
-          if (attachError || data?.error) {
-            toast.success("PDF downloaded! (Could not attach to deal)");
-          } else {
-            toast.success("PDF downloaded and attached to deal!");
-          }
-        } catch (attachErr) {
-          console.error("Failed to attach to HubSpot:", attachErr);
-          toast.success("PDF downloaded! (Could not attach to deal)");
-        }
-      } else {
-        toast.success("Service Agreement PDF downloaded successfully!");
-      }
+      const pdfBytes = await producePdfBytes(
+        "service_agreement",
+        serviceAgreementPreviewRef.current,
+        () => serviceAgreementRenderPayload(
+          serviceAgreementFormData,
+          docRenderContext(
+            "service_agreement",
+            serviceAgreementFormData.overrideTerms
+              ? (serviceAgreementFormData.overrideTermsText || null)
+              : (documentTerms.service_agreement?.trim() || null),
+          ),
+          {
+            quoteRates: formData ?? null,
+            crmLines: lineItems ?? null,
+            equipmentLocationDefault,
+          },
+        ) as unknown as Record<string, unknown>,
+      );
+      await deliverPdfBytes(pdfBytes, fileName, "Service Agreement");
     } catch (err) {
       console.error("PDF generation error:", err);
       toast.error("Failed to generate PDF");
@@ -4492,6 +4558,19 @@ function DocumentHubContent() {
 
           {/* Content area */}
           <div className="flex-1 min-w-0 px-4 py-4">
+            {/* Nothing renders for portals without branch offices. Kept inside
+                the document workspace so it remains visible in HubSpot's
+                narrow iframe instead of being squeezed out of deal metadata. */}
+            <div className={dealerLocations.length > 0 ? "mb-4" : undefined}>
+              <BranchSelector
+                locations={dealerLocations}
+                resolved={resolvedBranch}
+                active={activeBranch}
+                override={branchOverride}
+                onOverrideChange={handleBranchOverrideChange}
+                disabled={!userPermissions.can_edit}
+              />
+            </div>
             {/* Quote Tab Content */}
             <TabsContent value="quote" className="mt-0">
               <div className="space-y-4">
@@ -4519,6 +4598,8 @@ function DocumentHubContent() {
                       defaultTerms={dealerSettings.default_terms}
                       documentLabel={docLabel("quote")}
                       primaryLender={dealerSettings.primary_lender}
+                      equipmentLocationDefault={equipmentLocationDefault}
+                      branchOverrideCode={branchOverride}
                     />
 
                     {/* Additional Costs + commission summary — a second view of the
@@ -4843,9 +4924,10 @@ function DocumentHubContent() {
                           billToPhone: "",
                           billToEmail: "",
                           maintenanceType: "",
-                          paperStaples: "Excludes staples",
+                          paperStaples: supplyDefault(resolveSupplyOptions(dealerSettings)),
                           drumToner: "",
                           serials: {},
+                           locations: {},
                           effectiveDate: null,
                           contractLengthMonths: "",
                           billingPeriod: "monthly",
@@ -4914,6 +4996,7 @@ function DocumentHubContent() {
                           : null
                       }
                       installationConfigs={installationSavedConfig}
+                      equipmentLocationDefault={equipmentLocationDefault}
                     />
                     <div className="flex pt-3 border-t">
                       <Button
@@ -5680,7 +5763,7 @@ function DocumentHubContent() {
             dealerInfo={
               formData?.overrideTerms
                 ? ({ ...(dealerInfo || {}), termsAndConditions: formData.overrideTermsText || "" } as any)
-                : dealerInfo || undefined
+                : documentDealerInfo || undefined
             }
             documentStyles={dealerSettings.document_styles}
             formCustomization={dealerSettings.form_customization?.quote}
@@ -5767,7 +5850,7 @@ function DocumentHubContent() {
                     dealerInfo={
                       formData?.overrideTerms
                         ? ({ ...(dealerInfo || {}), termsAndConditions: formData.overrideTermsText || "" } as any)
-                        : dealerInfo || undefined
+                        : documentDealerInfo || undefined
                     }
                     documentStyles={dealerSettings.document_styles}
                     formCustomization={dealerSettings.form_customization?.quote}
@@ -5831,13 +5914,13 @@ function DocumentHubContent() {
             ref={serviceAgreementPreviewRef}
             formData={serviceAgreementFormData}
             dealerInfo={
-              dealerInfo
+              documentDealerInfo
                 ? {
-                    company_name: dealerInfo.companyName,
-                    address_line1: dealerInfo.address,
-                    phone: dealerInfo.phone,
-                    website: dealerInfo.website,
-                    logo_url: dealerInfo.logoUrl,
+                    company_name: documentDealerInfo.companyName,
+                    address_line1: documentDealerInfo.address,
+                    phone: documentDealerInfo.phone,
+                    website: documentDealerInfo.website,
+                    logo_url: documentDealerInfo.logoUrl,
                   }
                 : undefined
             }
@@ -5849,6 +5932,10 @@ function DocumentHubContent() {
             }
             documentStyles={dealerSettings.document_styles}
             installationConfigs={installationSavedConfig}
+            supplyOptions={dealerSettings.supply_options}
+            supplyLabel={dealerSettings.supply_label}
+            drumTonerOptions={dealerSettings.drum_toner_options}
+            equipmentLocationDefault={equipmentLocationDefault}
           />
         )}
       </div>
@@ -5866,13 +5953,13 @@ function DocumentHubContent() {
                   <ServiceAgreementPreview
                     formData={serviceAgreementFormData}
                     dealerInfo={
-                      dealerInfo
+                      documentDealerInfo
                         ? {
-                            company_name: dealerInfo.companyName,
-                            address_line1: dealerInfo.address,
-                            phone: dealerInfo.phone,
-                            website: dealerInfo.website,
-                            logo_url: dealerInfo.logoUrl,
+                            company_name: documentDealerInfo.companyName,
+                            address_line1: documentDealerInfo.address,
+                            phone: documentDealerInfo.phone,
+                            website: documentDealerInfo.website,
+                            logo_url: documentDealerInfo.logoUrl,
                           }
                         : undefined
                     }
@@ -5884,6 +5971,10 @@ function DocumentHubContent() {
                     }
                     documentStyles={dealerSettings.document_styles}
                     installationConfigs={installationSavedConfig}
+                    supplyOptions={dealerSettings.supply_options}
+                    supplyLabel={dealerSettings.supply_label}
+                    drumTonerOptions={dealerSettings.drum_toner_options}
+                      equipmentLocationDefault={equipmentLocationDefault}
                   />
                 </div>
               )}
@@ -5899,13 +5990,13 @@ function DocumentHubContent() {
             ref={fmvLeasePreviewRef}
             formData={fmvLeaseFormData}
             dealerInfo={
-              dealerInfo
+              documentDealerInfo
                 ? {
-                    company_name: dealerInfo.companyName,
-                    address_line1: dealerInfo.address,
-                    phone: dealerInfo.phone,
-                    website: dealerInfo.website,
-                    logo_url: dealerInfo.logoUrl,
+                    company_name: documentDealerInfo.companyName,
+                    address_line1: documentDealerInfo.address,
+                    phone: documentDealerInfo.phone,
+                    website: documentDealerInfo.website,
+                    logo_url: documentDealerInfo.logoUrl,
                   }
                 : undefined
             }
@@ -5929,13 +6020,13 @@ function DocumentHubContent() {
                   <FMVLeasePreview
                     formData={fmvLeaseFormData}
                     dealerInfo={
-                      dealerInfo
+                      documentDealerInfo
                         ? {
-                            company_name: dealerInfo.companyName,
-                            address_line1: dealerInfo.address,
-                            phone: dealerInfo.phone,
-                            website: dealerInfo.website,
-                            logo_url: dealerInfo.logoUrl,
+                            company_name: documentDealerInfo.companyName,
+                            address_line1: documentDealerInfo.address,
+                            phone: documentDealerInfo.phone,
+                            website: documentDealerInfo.website,
+                            logo_url: documentDealerInfo.logoUrl,
                           }
                         : undefined
                     }

@@ -12,15 +12,17 @@
  */
 
 import {
-  classifyLine, companyCrmFields, contactCrmFields, money, num, repCodeField,
-  taxRateFraction, termsHtml,
-  type CrmExtras, type RenderPayload, type RenderLineItem,
-} from "./payload";
+  classifyLine, companyCrmFields, contactCrmFields, dealerBlock, lineDescription, money, num,
+  repCodeField, taxRateFraction, termsHtml,
+  type CrmExtras, type QuoteFormLike, type RenderBranch, type RenderPayload, type RenderLineItem,
+} from "./payload.ts";
 
 export interface DocRenderContext {
   dealerInfo?: {
     companyName?: string; address?: string; phone?: string; website?: string;
   };
+  /** The resolved (or rep-overridden) selling branch; null leaves chrome as-is. */
+  branch?: RenderBranch | null;
   deal?: { dealname?: string; closedate?: string } | null;
   /** Quote number, where the document carries one. */
   quoteNumber?: string | null;
@@ -38,6 +40,54 @@ export interface DocRenderContext {
   today: string;
   /** Values read straight off the CRM records. */
   crm?: CrmExtras;
+  /**
+   * QuoteIQ's writeback on the deal: `lease_provider`, `lease_term_months`,
+   * `lease_type`, `lease_payment`. Read the same way the quote reads them, so
+   * a document that shows lease terms shows the quoted ones. Absent stays
+   * absent: an unwritten payment renders blank, never $0.00.
+   */
+  quoteiq?: {
+    provider?: unknown; payment?: unknown; termMonths?: unknown; type?: unknown;
+  } | null;
+  /** The deal's line items, in the shape the quote form holds them. */
+  lineItems?: QuoteFormLike["lineItems"];
+}
+
+/** The lease block as QuoteIQ wrote it on the deal. */
+function leaseFromDeal(ctx: DocRenderContext): RenderPayload["lease"] {
+  const q = ctx.quoteiq ?? {};
+  const term = num(q.termMonths);
+  const payment = num(q.payment);
+  return {
+    partner: clean(q.provider),
+    term: term !== null && term > 0 ? Math.round(term) : null,
+    rate_factor: null,
+    payment: payment !== null && payment > 0 ? money(payment) : null,
+    type: clean(q.type),
+  };
+}
+
+/** The deal's line items, given the quote's own visibility and tax rules. */
+function dealLines(ctx: DocRenderContext) {
+  return classified((ctx.lineItems ?? [])
+    .filter((item) => Number(item.quantity) > 0)
+    .map((item) => {
+      const quantity = Number(item.quantity) || 0;
+      const unit = money(item.price ?? 0);
+      return {
+        source: { model: item.model, description: item.description },
+        line: {
+          name: lineDescription(item),
+          type: clean(item.productType),
+          quantity,
+          unit,
+          extended: money(unit * quantity),
+          serial: clean(item.serial),
+          meter: clean(item.meterReading),
+          site: clean(item.location),
+        } satisfies RenderLineItem,
+      };
+    }));
 }
 
 const clean = (s: unknown): string | null => {
@@ -91,13 +141,7 @@ function shared(ctx: DocRenderContext) {
       email: clean(ctx.repEmail),
       code: repCodeField(ctx.crm),
     },
-    dealer: {
-      company: clean(ctx.dealerInfo?.companyName),
-      address: clean(ctx.dealerInfo?.address),
-      phone: clean(ctx.dealerInfo?.phone),
-      website: clean(ctx.dealerInfo?.website),
-      tax_rate: taxRateFraction(ctx.taxRate),
-    },
+    dealer: dealerBlock(ctx),
     terms: { html: termsHtml(ctx.termsText) },
     today: ctx.today,
   };
@@ -157,8 +201,12 @@ export function newCustomerRenderPayload(
 ): RenderPayload {
   const hqStreet = joinParts(form.hqAddress, form.hqAddress2);
   const billingStreet = joinParts(form.billingAddress, form.billingAddress2);
+  const split = dealLines(ctx);
   return {
     ...shared(ctx),
+    // Chrome follows the selling branch. The fixed credit-department return
+    // address lives as literal Eakes template copy and remains independent.
+    dealer: dealerBlock(ctx),
     company: {
       name: clean(form.companyName) ?? "Customer",
       address: joinParts(hqStreet, form.hqCity,
@@ -180,9 +228,15 @@ export function newCustomerRenderPayload(
       ship_to: clean(ctx.shipToContact) ?? clean(form.principalName),
       ...contactCrmFields(ctx.crm),
     },
-    lease: { partner: null, term: null, rate_factor: null, payment: null, type: null },
-    amounts: { taxable: 0, non_taxable: null, total: 0 },
-    line_items: [],
+    // The customer summary absorbed the lease funding document, so it carries
+    // the quoted lease and the equipment behind it.
+    lease: leaseFromDeal(ctx),
+    amounts: {
+      taxable: split.taxable,
+      non_taxable: split.nonTaxable,
+      total: money(split.taxable + (split.nonTaxable ?? 0)),
+    },
+    line_items: split.lines,
   };
 }
 
@@ -354,7 +408,7 @@ export interface FmvLeaseLike {
   equipmentAddress?: string; equipmentCity?: string; equipmentState?: string; equipmentZip?: string;
   termInMonths?: string; paymentAmount?: string; paymentFrequency?: string;
   equipmentItems?: {
-    quantity?: number; makeModelDescription?: string; serialNumber?: string; idNumber?: string;
+    quantity?: number; makeModelDescription?: string; serialNumber?: string; idNumber?: string; location?: string;
   }[];
 }
 
@@ -373,7 +427,7 @@ export function fmvLeaseRenderPayload(
         extended: 0,
         serial: clean(e.serialNumber),
         meter: null,
-        site: clean(e.idNumber),
+        site: clean(e.location),
       } satisfies RenderLineItem,
     }))).lines;
   const term = num(form.termInMonths);
@@ -472,5 +526,218 @@ export function leaseFundingRenderPayload(
       ? { taxable: split.taxable, non_taxable: split.nonTaxable, total: amount }
       : amountsFrom(lines),
     line_items: lines,
+  };
+}
+
+/* ------------------------------------------------------------------ */
+/* Service agreement                                                   */
+/* ------------------------------------------------------------------ */
+
+export interface ServiceAgreementRateLike {
+  includesBW?: unknown; includesColor?: unknown;
+  overagesBW?: unknown; overagesColor?: unknown; baseRate?: unknown;
+}
+
+export interface ServiceAgreementLike {
+  customerNumber?: string; customerNumberOverride?: string;
+  shipToCompany?: string; shipToAddress?: string; shipToCity?: string;
+  shipToState?: string; shipToZip?: string; shipToAttn?: string;
+  billToCompany?: string; billToAddress?: string; billToCity?: string;
+  billToState?: string; billToZip?: string; billToAttn?: string;
+  contractLengthMonths?: string;
+  billingPeriod?: string;
+  serials?: Record<string, string>;
+  locations?: Record<string, string>;
+  rates?: Record<string, ServiceAgreementRateLike>;
+}
+
+/** Rates the quote carried, used where the agreement has none of its own. */
+export interface ServiceQuoteRates {
+  includedBWCopies?: unknown; includedColorCopies?: unknown;
+  overageBWRate?: unknown; overageColorRate?: unknown; serviceBaseRate?: unknown;
+}
+
+/**
+ * A deal line item as QuoteIQ stamps it, carrying the cost-per-copy figures.
+ *
+ * These are the last resort for the rates table: reps had been typing the
+ * volumes and rates by hand because nothing read the properties QuoteIQ
+ * already writes onto each line.
+ */
+export interface ServiceCrmRateLine {
+  cpcMonoVolume?: unknown; cpcColorVolume?: unknown;
+  cpcMonoRate?: unknown; cpcColorRate?: unknown;
+  cpcMonoOverageRate?: unknown; cpcColorOverageRate?: unknown;
+}
+
+/** The rates QuoteIQ stamped on the deal's lines, rolled up to one set. */
+function crmRates(lines: ServiceCrmRateLine[] | null | undefined): ServiceQuoteRates {
+  const rows = lines ?? [];
+  const total = (pick: (l: ServiceCrmRateLine) => unknown) => {
+    const values = rows.map(pick).map(positive).filter((v): v is number => v !== null);
+    return values.length ? money(values.reduce((a, b) => a + b, 0)) : null;
+  };
+  const firstOf = (...picks: ((l: ServiceCrmRateLine) => unknown)[]) => {
+    for (const row of rows) {
+      for (const pick of picks) {
+        const v = positive(pick(row));
+        if (v !== null) return v;
+      }
+    }
+    return null;
+  };
+  // Base rate is what the included volume costs at the contracted per-copy
+  // rate — the same arithmetic the form does when a rep fills it in by hand.
+  const base = rows.reduce((sum, row) => {
+    const bw = (positive(row.cpcMonoVolume) ?? 0) * (positive(row.cpcMonoRate) ?? 0);
+    const color = (positive(row.cpcColorVolume) ?? 0) * (positive(row.cpcColorRate) ?? 0);
+    return sum + bw + color;
+  }, 0);
+  return {
+    includedBWCopies: total((l) => l.cpcMonoVolume),
+    includedColorCopies: total((l) => l.cpcColorVolume),
+    overageBWRate: firstOf((l) => l.cpcMonoOverageRate, (l) => l.cpcMonoRate),
+    overageColorRate: firstOf((l) => l.cpcColorOverageRate, (l) => l.cpcColorRate),
+    serviceBaseRate: base > 0 ? money(base) : null,
+  };
+}
+
+const BILLING_LABEL: Record<string, string> = {
+  monthly: "Monthly", quarterly: "Quarterly", annual: "Annual",
+};
+
+/** How many times a year the base rate is billed. Unset bills monthly. */
+const PERIODS_PER_YEAR: Record<string, number> = {
+  monthly: 12, quarterly: 4, annual: 1,
+};
+
+/** Positive numbers only: an unset rate must stay absent, never zero. */
+const positive = (value: unknown): number | null => {
+  const v = num(value);
+  return v !== null && v > 0 ? v : null;
+};
+
+/**
+ * The service agreement, as the template prints it.
+ *
+ * Equipment comes from the deal's own lines rather than from the hardware
+ * filter the native preview used: that filter dropped the accessories, so an
+ * Arbor Day agreement listed the engine and omitted the tray, the drawer and
+ * the fax kit while the lease — fed from these same lines — listed all four.
+ *
+ * Serial and Location are the ones typed on this agreement, falling back to
+ * the quote's serial and to the deal's equipment location.
+ */
+export function serviceAgreementRenderPayload(
+  form: ServiceAgreementLike,
+  ctx: DocRenderContext,
+  options?: {
+    quoteRates?: ServiceQuoteRates | null;
+    crmLines?: ServiceCrmRateLine[] | null;
+    equipmentLocationDefault?: string | null;
+  },
+): RenderPayload {
+  const serials = form.serials ?? {};
+  const locations = form.locations ?? {};
+  const fallbackSite = clean(options?.equipmentLocationDefault);
+
+  const split = classified((ctx.lineItems ?? [])
+    .filter((item) => Number(item.quantity) > 0)
+    .map((item) => {
+      const quantity = Number(item.quantity) || 0;
+      const unit = money(item.price ?? 0);
+      const id = String((item as { id?: unknown }).id ?? "");
+      return {
+        source: { model: item.model, description: item.description },
+        line: {
+          name: lineDescription(item),
+          type: clean(item.productType),
+          quantity,
+          unit,
+          extended: money(unit * quantity),
+          serial: clean(serials[id]) ?? clean(item.serial),
+          meter: clean(item.meterReading),
+          site: clean(locations[id]) ?? clean(item.location) ?? fallbackSite,
+        } satisfies RenderLineItem,
+      };
+    }));
+
+  // The per-line rates the rep entered, rolled up to the single set of figures
+  // the agreement's face carries. Volumes add up across the covered machines;
+  // a rate per copy does not, so the first one entered stands.
+  const rateRows = Object.values(form.rates ?? {});
+  // What the rep typed wins, then the quote, then what QuoteIQ stamped on the
+  // deal's own lines — so the commercial figures print even when nobody typed.
+  const fromCrm = crmRates(options?.crmLines);
+  const quoted = options?.quoteRates ?? {};
+  const q: ServiceQuoteRates = {
+    includedBWCopies: positive(quoted.includedBWCopies) ?? fromCrm.includedBWCopies,
+    includedColorCopies: positive(quoted.includedColorCopies) ?? fromCrm.includedColorCopies,
+    overageBWRate: positive(quoted.overageBWRate) ?? fromCrm.overageBWRate,
+    overageColorRate: positive(quoted.overageColorRate) ?? fromCrm.overageColorRate,
+    serviceBaseRate: positive(quoted.serviceBaseRate) ?? fromCrm.serviceBaseRate,
+  };
+  const sum = (pick: (r: ServiceAgreementRateLike) => unknown, fallback: unknown) => {
+    const values = rateRows.map(pick).map(positive).filter((v): v is number => v !== null);
+    if (values.length) return money(values.reduce((a, b) => a + b, 0));
+    return positive(fallback);
+  };
+  const first = (pick: (r: ServiceAgreementRateLike) => unknown, fallback: unknown) => {
+    for (const row of rateRows) {
+      const v = positive(pick(row));
+      if (v !== null) return v;
+    }
+    return positive(fallback);
+  };
+
+  const term = num(form.contractLengthMonths) ?? leaseFromDeal(ctx).term;
+  const billing = (form.billingPeriod ?? "").toLowerCase();
+  const baseRate = sum((r) => r.baseRate, q.serviceBaseRate);
+
+  return {
+    ...shared(ctx),
+    company: {
+      name: clean(form.billToCompany) ?? clean(form.shipToCompany) ?? "Customer",
+      address: joinParts(form.billToAddress, form.billToCity,
+        [clean(form.billToState), clean(form.billToZip)].filter(Boolean).join(" ")),
+      phone: null,
+      ...addressBlock({
+        street: form.billToAddress, city: form.billToCity,
+        state: form.billToState, zip: form.billToZip,
+      }),
+      ...companyCrmFields(ctx.crm),
+      // The rep may correct the account number on the agreement itself.
+      account_number: clean(form.customerNumberOverride)
+        ?? clean(form.customerNumber)
+        ?? companyCrmFields(ctx.crm).account_number,
+    },
+    contact: {
+      ...shared(ctx).contact,
+      ship_to: clean(form.shipToAttn) ?? clean(ctx.shipToContact),
+    },
+    // Where the equipment sits; falls back to the billing address when unset.
+    location: addressBlock({
+      street: clean(form.shipToAddress) ?? form.billToAddress,
+      city: clean(form.shipToCity) ?? form.billToCity,
+      state: clean(form.shipToState) ?? form.billToState,
+      zip: clean(form.shipToZip) ?? form.billToZip,
+    }),
+    lease: {
+      ...leaseFromDeal(ctx),
+      term: term !== null && term > 0 ? Math.round(term) : null,
+    },
+    service: {
+      billing_period: BILLING_LABEL[billing] ?? clean(form.billingPeriod),
+      included_bw: sum((r) => r.includesBW, q.includedBWCopies),
+      included_color: sum((r) => r.includesColor, q.includedColorCopies),
+      overage_bw: first((r) => r.overagesBW, q.overageBWRate),
+      overage_color: first((r) => r.overagesColor, q.overageColorRate),
+      base_rate: baseRate,
+      annual_total: baseRate === null
+        ? null
+        : money(baseRate * (PERIODS_PER_YEAR[billing] ?? 12)),
+    },
+    amounts: { taxable: split.taxable, non_taxable: split.nonTaxable, total: split.taxable },
+    line_items: split.lines,
   };
 }

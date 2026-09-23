@@ -178,6 +178,10 @@ export function resolve(template, data) {
           .filter((f) => !block.hideEmpty || !allTokensEmpty(f.value, scope))
           .map((f) => ({ label: s(f.label), value: s(f.value), full: !!f.full }))
           .filter((f) => !block.hideEmpty || f.value.trim() !== '');
+        // Every field dropped means the section has nothing to say. Printing
+        // its heading over blank space reads as missing content, so the whole
+        // block goes — the same way an empty richText section does.
+        if (block.hideEmpty && fields.length === 0) break;
         blocks.push({ ...block, fields });
         break;
       }
@@ -228,8 +232,10 @@ export function resolve(template, data) {
         // as one. It gets a `terms` flag so the print stylesheet can render
         // legal prose lighter than body copy without inline styles, which the
         // sanitiser in html.js strips.
-        const isTerms = /^\s*\{\{\s*terms\.html\s*\}\}\s*$/.test(raw) ||
-          /\bterms\b/i.test(String(block.title ?? ''));
+        const isTerms = template.styles?.lightenTerms === true && (
+          /^\s*\{\{\s*terms\.html\s*\}\}\s*$/.test(raw) ||
+          /\bterms\b/i.test(String(block.title ?? ''))
+        );
         // A terms block sourced from a dealer's own settings is empty until
         // they have entered any. Printing the heading over nothing invites the
         // reader to assume the terms are elsewhere; omitting the section says

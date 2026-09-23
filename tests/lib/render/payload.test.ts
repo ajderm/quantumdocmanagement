@@ -4,6 +4,7 @@ import {
   quoteRenderPayload, joinAddress, lineDescription, money, num, taxRateFraction, termsHtml,
   classifyLine, reconcileLineItems,
 } from '../../../src/lib/render/payload.ts';
+import { fmvLeaseRenderPayload, newCustomerRenderPayload, serviceAgreementRenderPayload } from '../../../src/lib/render/documentPayloads.ts';
 
 const ctx = {
   dealerInfo: { companyName: 'Quantum Office Systems', address: '3300 Maple Valley Rd', phone: '(425) 555-0100', website: 'quantumoffice.example' },
@@ -27,6 +28,28 @@ test('extended is quantity times unit, rounded once', () => {
   const p = quoteRenderPayload({ lineItems: [{ model: 'A', quantity: 3, price: 19.99 }] }, ctx);
   assert.equal(p.line_items[0].unit, 19.99);
   assert.equal(p.line_items[0].extended, 59.97);
+});
+
+test('quote equipment carries the manually editable line location into the document', () => {
+  const p = quoteRenderPayload({
+    lineItems: [{ model: 'C3835i', quantity: 1, price: 100, serial: 'SN-7', location: 'Warehouse B' }],
+  }, ctx);
+  assert.equal(p.line_items[0].serial, 'SN-7');
+  assert.equal(p.line_items[0].site, 'Warehouse B');
+});
+
+test('FMV lease equipment carries Location separately from its ID number', () => {
+  const p = fmvLeaseRenderPayload({
+    equipmentItems: [{
+      quantity: 1,
+      makeModelDescription: 'C3835i',
+      serialNumber: 'SN-7',
+      idNumber: 'ASSET-2',
+      location: '2901 Cuming St, Omaha, NE 68131',
+    }],
+  }, ctx);
+  assert.equal(p.line_items[0].serial, 'SN-7');
+  assert.equal(p.line_items[0].site, '2901 Cuming St, Omaha, NE 68131');
 });
 
 test('a zero-quantity placeholder line does not reach the document', () => {
@@ -241,6 +264,19 @@ test('the payload carries the tax rate and terms it was given, or null', () => {
   assert.equal(withNeither.terms.html, null, 'and no invented prose');
 });
 
+test('Customer Summary chrome follows the resolved selling branch', () => {
+  const p = newCustomerRenderPayload({ companyName: 'Customer' }, {
+    ...ctx,
+    branch: {
+      name: 'Lincoln',
+      address: '110 N 35th St, Lincoln, NE 68503',
+      phone: '402-466-8600',
+    },
+  });
+  assert.equal(p.dealer.address, '110 N 35th St, Lincoln, NE 68503');
+  assert.equal(p.dealer.phone, '402-466-8600');
+});
+
 // The real Arbor Day deal shape: four SKU'd equipment lines, a buyout and a
 // chart line, both with no SKU. Amounts are the actual ones.
 const ARBOR_DAY = [
@@ -351,4 +387,132 @@ test('a zero-quantity placeholder affects neither the list nor the totals', () =
   }, ctx);
   assert.equal(p.line_items.length, 4);
   assert.equal(p.amounts.total, 12111.51);
+});
+
+/* ---------------- service agreement ---------------- */
+
+const SA_CTX = {
+  ...ctx,
+  crm: { companyAccountNumber: '160015' },
+  lineItems: ARBOR_DAY,
+};
+
+const SA_FORM = {
+  billToCompany: 'Arbor Day Foundation',
+  billToAddress: '211 N 12th St', billToCity: 'Lincoln', billToState: 'NE', billToZip: '68508',
+  shipToAddress: '100 Arbor Ave', shipToCity: 'Nebraska City', shipToState: 'NE', shipToZip: '68410',
+  contractLengthMonths: '60',
+  billingPeriod: 'quarterly',
+  rates: {},
+};
+
+test('the service agreement lists every equipment line, not only the hardware', () => {
+  const p = serviceAgreementRenderPayload(SA_FORM, SA_CTX);
+  assert.equal(p.line_items.length, 4, 'the engine and its three accessories');
+  assert.deepEqual(
+    p.line_items.map((l) => l.name.split(' ')[0]).sort(),
+    ['BP-71C31', 'BP-DE14', 'BP-FX11', 'BP-TU11'],
+  );
+});
+
+test('the service agreement prints the company account number', () => {
+  assert.equal(serviceAgreementRenderPayload(SA_FORM, SA_CTX).company.account_number, '160015');
+  // A correction typed on the agreement itself wins.
+  assert.equal(
+    serviceAgreementRenderPayload({ ...SA_FORM, customerNumberOverride: '160099' }, SA_CTX)
+      .company.account_number,
+    '160099',
+  );
+});
+
+test('serials and locations typed on the agreement reach the document', () => {
+  const withIds = ARBOR_DAY.map((l, i) => ({ ...l, id: `line-${i}` }));
+  const p = serviceAgreementRenderPayload(
+    { ...SA_FORM, serials: { 'line-0': 'SN-4471' }, locations: { 'line-0': 'Suite 200' } },
+    { ...SA_CTX, lineItems: withIds },
+    { equipmentLocationDefault: 'Main office' },
+  );
+  const line = p.line_items.find((l) => l.serial === 'SN-4471');
+  assert.ok(line, 'the typed serial is carried');
+  assert.equal(line!.site, 'Suite 200');
+  // Lines with nothing typed fall back to the deal's equipment location.
+  assert.equal(p.line_items.filter((l) => l.site === 'Main office').length, 3);
+});
+
+test('service rates fall back to the quote and unset figures stay blank', () => {
+  const p = serviceAgreementRenderPayload(SA_FORM, SA_CTX, {
+    quoteRates: {
+      includedBWCopies: '5000', includedColorCopies: '',
+      overageBWRate: '0.007', overageColorRate: '0.065', serviceBaseRate: '129.50',
+    },
+  });
+  assert.equal(p.service!.included_bw, 5000);
+  assert.equal(p.service!.included_color, null, 'unset prints blank, never zero');
+  assert.equal(p.service!.overage_bw, 0.007);
+  assert.equal(p.service!.base_rate, 129.5);
+  assert.equal(p.service!.billing_period, 'Quarterly');
+  assert.equal(p.lease.term, 60);
+});
+
+test('per-line rates roll up: volumes add, a rate per copy does not', () => {
+  const p = serviceAgreementRenderPayload({
+    ...SA_FORM,
+    rates: {
+      a: { includesBW: '2000', overagesBW: '0.008', baseRate: '75' },
+      b: { includesBW: '3000', overagesBW: '0.008', baseRate: '50' },
+    },
+  }, SA_CTX, { quoteRates: { includedBWCopies: '1', serviceBaseRate: '1' } });
+  assert.equal(p.service!.included_bw, 5000);
+  assert.equal(p.service!.base_rate, 125);
+  assert.equal(p.service!.overage_bw, 0.008);
+});
+
+test('terms already written as markup are not escaped', () => {
+  const html = '<p><strong>Eakes</strong> terms</p><ol><li>Eligible Products</li></ol>';
+  assert.equal(termsHtml(html), html);
+  // Typed prose is still escaped, tags and all.
+  assert.equal(termsHtml('5 < 6 and a > b'), '<p>5 &lt; 6 and a &gt; b</p>');
+});
+
+test('rates come from the deal lines when nobody typed them', () => {
+  const p = serviceAgreementRenderPayload(SA_FORM, SA_CTX, {
+    crmLines: [
+      { cpcMonoVolume: 2000, cpcColorVolume: 500, cpcMonoRate: 0.0075,
+        cpcColorRate: 0.065, cpcMonoOverageRate: 0.008, cpcColorOverageRate: 0.07 },
+      { cpcMonoVolume: 1000, cpcColorVolume: 0, cpcMonoRate: 0.0075, cpcColorRate: 0 },
+    ],
+  });
+  assert.equal(p.service!.included_bw, 3000);
+  assert.equal(p.service!.included_color, 500);
+  assert.equal(p.service!.overage_bw, 0.008);
+  assert.equal(p.service!.overage_color, 0.07);
+  // 2000*0.0075 + 500*0.065 + 1000*0.0075 = 55
+  assert.equal(p.service!.base_rate, 55);
+  // Quarterly billing: four of them in a year.
+  assert.equal(p.service!.annual_total, 220);
+});
+
+test('what the rep typed still beats the deal lines', () => {
+  const p = serviceAgreementRenderPayload(SA_FORM, SA_CTX, {
+    quoteRates: { includedBWCopies: '9000', serviceBaseRate: '100' },
+    crmLines: [{ cpcMonoVolume: 2000, cpcMonoRate: 0.0075 }],
+  });
+  assert.equal(p.service!.included_bw, 9000);
+  assert.equal(p.service!.base_rate, 100);
+  assert.equal(p.service!.annual_total, 400);
+});
+
+test('no rates anywhere leaves every figure blank, never zero', () => {
+  const p = serviceAgreementRenderPayload(SA_FORM, SA_CTX, {});
+  assert.equal(p.service!.base_rate, null);
+  assert.equal(p.service!.annual_total, null);
+  assert.equal(p.service!.included_bw, null);
+});
+
+test('a trailing semicolon from the source concatenation is stripped', () => {
+  assert.equal(
+    lineDescription({ model: 'BP-71C31', description: 'Workgroup Document System;' }),
+    'BP-71C31 — Workgroup Document System',
+  );
+  assert.equal(lineDescription({ description: 'Finisher, ' }), 'Finisher');
 });

@@ -1,6 +1,7 @@
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.49.1';
 import { encryptToken, decryptToken } from '../_shared/crypto.ts';
 import { resolveRepPhone } from '../_shared/rep-phone.ts';
+import { salespersonNumberFrom } from '../_shared/salesperson-number.ts';
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -540,8 +541,9 @@ type DealContactRole = 'meter' | 'signer';
 function roleForLabel(label: string): DealContactRole | null {
   const l = label.toLowerCase();
   if (l.includes('meter')) return 'meter';
-  if (l.includes('signer') || l.includes('signor') || l.includes('signature')
-    || l.includes('signatory')) return 'signer';
+  // "Signing Authority" and "Authorized Signer" are both in use across
+  // portals, so the whole sign- family matches rather than four fixed words.
+  if (l.includes('sign')) return 'signer';
   return null;
 }
 
@@ -609,8 +611,14 @@ async function fetchContactsForAnchor(
         const role = roleById.get(String(contact.contactId));
         if (role && !dealContacts[role]) dealContacts[role] = contact;
       }
+      // The labels themselves are logged: when a role comes back empty we need
+      // to know whether the portal never labelled anyone or whether the label
+      // it uses is one this matcher does not recognise.
+      const labelsSeen = results.flatMap((r) =>
+        (r.associationTypes ?? []).map((a: { label?: string }) => a.label).filter(Boolean));
       console.log('Contacts fetched:', contacts.length,
-        'labelled roles:', Object.keys(dealContacts).filter((k) => dealContacts[k as DealContactRole]));
+        'labelled roles:', Object.keys(dealContacts).filter((k) => dealContacts[k as DealContactRole]),
+        'association labels seen:', labelsSeen);
     }
   } catch (e) {
     console.error('Failed to fetch contacts:', e);
@@ -806,7 +814,7 @@ Deno.serve(async (req) => {
       // Which paperwork a deal needs is keyed off the contract type.
       'contract_type',
       // The four-digit salesperson code the paperwork prints beside the rep.
-      'salesperson__', 'lead_routing_salesperson____syncari_',
+      'sales_rep_number', 'salesperson__',
     ]);
     const lineItemPropsNeeded = new Set(['name', 'description', 'quantity', 'price', 'hs_sku', 'item_number', 'hs_product_id', 'hs_product_type', 'hs_recurring_billing_period', 'hs_cost_of_goods_sold', 'unit_cost', 'condition', 'hs_product_condition', 'dealer', 'manufacturer', 'vendor', 'hs_line_item_dealer', 'color_mono', 'machine_type', 'serial_number', 'equipment_id', 'meter_method', 'meter_reading', 'meter_reading_bw', 'meter_reading_color', 'cpc_mono_rate', 'cpc_color_rate', 'cpc_mono_volume', 'cpc_color_volume', 'cpc_mono_overage_rate', 'cpc_color_overage_rate']);
 
@@ -1019,11 +1027,18 @@ Deno.serve(async (req) => {
 
       // Contacts: project's own association first, then the deal's
       let contactsResult = await fetchContactsForAnchor(accessToken, 'projects', anchorId, contactPropsNeeded);
-      if (contactsResult.contacts.length === 0 && associatedDealResponse) {
-        contactsResult = await fetchContactsForAnchor(accessToken, 'deals', associatedDealResponse.id, contactPropsNeeded);
+      let dealContacts = contactsResult.dealContacts;
+      if (associatedDealResponse) {
+        const dealContactsResult = await fetchContactsForAnchor(accessToken, 'deals', associatedDealResponse.id, contactPropsNeeded);
+        // Meter/Signer labels live on the deal's associations, not the
+        // project's — resolve them from the deal even when the project has
+        // its own contacts.
+        dealContacts = dealContactsResult.dealContacts;
+        if (contactsResult.contacts.length === 0) {
+          contactsResult = dealContactsResult;
+        }
       }
       const contacts = contactsResult.contacts;
-      const dealContacts = contactsResult.dealContacts;
 
       // Line items: only available via the associated deal
       const lineItems = associatedDealResponse
@@ -1058,6 +1073,11 @@ Deno.serve(async (req) => {
         // The writeback lives on the deal; a project anchor reads it from the
         // associated deal, the same place its line items come from.
         quoteiq: quoteIqWriteback(associatedDealResponse?.properties),
+        // An authoritative sales_rep_number wins across both records; only
+        // then may an exact four-digit legacy value fill in.
+        salespersonNumber: salespersonNumberFrom(
+          projectResponse.properties, associatedDealResponse?.properties,
+        ),
         contractType: projectResponse.properties?.contract_type_proj
           || associatedDealResponse?.properties?.contract_type || null,
       };
@@ -1127,6 +1147,7 @@ Deno.serve(async (req) => {
       closeDate: dealResponse.properties.closedate,
       ownerId: dealResponse.properties.hubspot_owner_id,
       quoteiq: quoteIqWriteback(dealResponse.properties),
+      salespersonNumber: salespersonNumberFrom(dealResponse.properties),
     };
 
     // Fetch deal owner with phone and email

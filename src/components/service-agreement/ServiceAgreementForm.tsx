@@ -13,9 +13,52 @@ import { CalendarIcon } from "lucide-react";
 import { format } from "date-fns";
 import { cn } from "@/lib/utils";
 
-/** The only two supply options this dealer offers. Paper is never provided. */
-export const STAPLES_OPTIONS = ["Excludes staples", "Includes staples"];
-export const STAPLES_DEFAULT = "Excludes staples";
+/**
+ * Supply options shown on the Service Agreement. Each portal configures its own
+ * list via the `supply_options` dealer setting (same pattern as meter_methods);
+ * portals that have not configured one keep the original paper/staples list.
+ */
+export const DEFAULT_SUPPLY_OPTIONS = ["Excludes Paper", "Excludes Paper & Staples"];
+
+/** Field label for the supplies dropdown; portals may rename it (Eakes uses "Staples"). */
+export const DEFAULT_SUPPLY_LABEL = "Paper & Staples";
+
+/**
+ * Drum & Toner options. Unset dealer setting = the original three options
+ * (unchanged behaviour). An explicitly empty configured list hides the field,
+ * which is how Eakes opts out.
+ */
+export const DEFAULT_DRUM_TONER_OPTIONS = [
+  "Drum & Toner Included MDT",
+  "Drum Included MD",
+  "Drum Excluded MA",
+];
+
+export interface SupplyDealerSettings {
+  supply_options?: string[];
+  supply_label?: string;
+  drum_toner_options?: string[] | null;
+}
+
+export function resolveSupplyOptions(dealerSettings?: SupplyDealerSettings | null): string[] {
+  const configured = (dealerSettings?.supply_options || []).filter((o) => (o || "").trim());
+  return configured.length > 0 ? configured : DEFAULT_SUPPLY_OPTIONS;
+}
+
+export function resolveSupplyLabel(dealerSettings?: SupplyDealerSettings | null): string {
+  return (dealerSettings?.supply_label || "").trim() || DEFAULT_SUPPLY_LABEL;
+}
+
+export function resolveDrumTonerOptions(dealerSettings?: SupplyDealerSettings | null): string[] {
+  const configured = dealerSettings?.drum_toner_options;
+  if (configured === undefined || configured === null) return DEFAULT_DRUM_TONER_OPTIONS;
+  return configured.filter((o) => (o || "").trim());
+}
+
+/** First configured option is the default for a new agreement. */
+export function supplyDefault(options: string[]): string {
+  return options[0] || "";
+}
 
 /**
  * Serial shown for an equipment row: what was typed on this agreement wins,
@@ -29,6 +72,15 @@ export function resolveServiceAgreementSerial(
   const override = (serials?.[lineItemId] ?? "").trim();
   if (override) return override;
   return (lineItemSerial ?? "").trim();
+}
+
+export function resolveServiceAgreementLocation(
+  locations: Record<string, string> | undefined,
+  lineItemId: string,
+  defaultLocation?: string,
+): string {
+  const override = (locations?.[lineItemId] ?? "").trim();
+  return override || (defaultLocation ?? "").trim();
 }
 
 export interface ServiceAgreementFormData {
@@ -67,6 +119,8 @@ export interface ServiceAgreementFormData {
 
   /** Serial typed on this agreement, keyed by line item id. Overrides the quote. */
   serials?: Record<string, string>;
+  /** Paperwork location typed per equipment line. */
+  locations?: Record<string, string>;
   effectiveDate: Date | null;
   contractLengthMonths: string;
   billingPeriod: "monthly" | "quarterly" | "annual";
@@ -150,11 +204,12 @@ interface ServiceAgreementFormProps {
     zip?: string;
   } | null;
   lineItems: LineItem[];
-  dealerSettings: { meter_methods?: string[] } | null;
+  dealerSettings: ({ meter_methods?: string[] } & SupplyDealerSettings) | null;
   savedConfig: ServiceAgreementFormData | null;
   labeledContacts: LabeledContacts;
   quoteFormData?: QuoteFormData | null;
   installationConfigs?: Record<string, { installedSerial?: string; idNumber?: string }>;
+  equipmentLocationDefault?: string;
 }
 
 export function ServiceAgreementForm({
@@ -168,8 +223,12 @@ export function ServiceAgreementForm({
   labeledContacts,
   quoteFormData,
   installationConfigs,
+  equipmentLocationDefault,
 }: ServiceAgreementFormProps) {
   const meterMethods = dealerSettings?.meter_methods || ["FMAudit", "PrintFleet", "Manual Entry"];
+  const supplyOptions = resolveSupplyOptions(dealerSettings);
+  const supplyLabel = resolveSupplyLabel(dealerSettings);
+  const drumTonerOptions = resolveDrumTonerOptions(dealerSettings);
 
   // Filter to main units only (exclude accessories) for the rates table
   const hardwareLineItems = (() => {
@@ -392,6 +451,10 @@ export function ServiceAgreementForm({
 
   const updateSerial = (lineItemId: string, value: string) => {
     onChange({ ...formData, serials: { ...(formData.serials || {}), [lineItemId]: value } });
+  };
+
+  const updateLocation = (lineItemId: string, value: string) => {
+    onChange({ ...formData, locations: { ...(formData.locations || {}), [lineItemId]: value } });
   };
 
   const updateRate = (lineItemId: string, field: string, value: string) => {
@@ -658,25 +721,44 @@ export function ServiceAgreementForm({
             </Select>
           </div>
           <div className="space-y-2">
-            <Label htmlFor="paperStaples">Staples</Label>
+            <Label htmlFor="paperStaples">{supplyLabel}</Label>
             <Select
-              value={formData.paperStaples || STAPLES_DEFAULT}
+              value={formData.paperStaples || supplyDefault(supplyOptions)}
               onValueChange={(value) => updateField("paperStaples", value)}
             >
               <SelectTrigger>
                 <SelectValue placeholder="Select option" />
               </SelectTrigger>
               <SelectContent>
-                {/* A previously saved paper-era value stays selectable until the
-                    user picks one of the two current options. */}
-                {formData.paperStaples && !STAPLES_OPTIONS.includes(formData.paperStaples) && (
+                {/* A previously saved value outside the configured list stays
+                    selectable until the user picks one of the current options. */}
+                {formData.paperStaples && !supplyOptions.includes(formData.paperStaples) && (
                   <SelectItem value={formData.paperStaples}>{formData.paperStaples}</SelectItem>
                 )}
-                <SelectItem value="Excludes staples">Excludes staples</SelectItem>
-                <SelectItem value="Includes staples">Includes staples</SelectItem>
+                {supplyOptions.map((option) => (
+                  <SelectItem key={option} value={option}>{option}</SelectItem>
+                ))}
               </SelectContent>
             </Select>
           </div>
+          {drumTonerOptions.length > 0 && (
+            <div className="space-y-2">
+              <Label htmlFor="drumToner">Drum &amp; Toner</Label>
+              <Select value={formData.drumToner} onValueChange={(value) => updateField("drumToner", value)}>
+                <SelectTrigger>
+                  <SelectValue placeholder="Select option" />
+                </SelectTrigger>
+                <SelectContent>
+                  {formData.drumToner && !drumTonerOptions.includes(formData.drumToner) && (
+                    <SelectItem value={formData.drumToner}>{formData.drumToner}</SelectItem>
+                  )}
+                  {drumTonerOptions.map((option) => (
+                    <SelectItem key={option} value={option}>{option}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+          )}
           <div className="space-y-2">
             <Label>Effective Date</Label>
             <Popover>
@@ -731,6 +813,7 @@ export function ServiceAgreementForm({
                   <th className="px-4 py-2 text-left font-medium">Model</th>
                   <th className="px-4 py-2 text-left font-medium">Description</th>
                   <th className="px-4 py-2 text-left font-medium">Serial</th>
+                   <th className="px-4 py-2 text-left font-medium">Location</th>
                 </tr>
               </thead>
               <tbody>
@@ -745,6 +828,14 @@ export function ServiceAgreementForm({
                         value={resolveServiceAgreementSerial(formData.serials, item.id, item.serial)}
                         placeholder="Serial"
                         onChange={(e) => updateSerial(item.id, e.target.value)}
+                      />
+                    </td>
+                    <td className="px-4 py-2">
+                      <Input
+                        className="h-9 min-w-40 text-sm"
+                        value={resolveServiceAgreementLocation(formData.locations, item.id, equipmentLocationDefault)}
+                        placeholder="Location"
+                        onChange={(e) => updateLocation(item.id, e.target.value)}
                       />
                     </td>
                   </tr>

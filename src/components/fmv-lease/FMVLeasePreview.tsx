@@ -98,7 +98,7 @@ export const FMVLeasePreview = forwardRef<HTMLDivElement, FMVLeasePreviewProps>(
           <table className="w-full border-collapse text-[12px]">
             <thead>
               <tr className="border-b-2 border-black">
-                <th colSpan={4} className="text-left py-1 pb-2 font-bold">
+                <th colSpan={5} className="text-left py-1 pb-2 font-bold">
                   CUSTOMER INFORMATION
                 </th>
               </tr>
@@ -160,12 +160,15 @@ export const FMVLeasePreview = forwardRef<HTMLDivElement, FMVLeasePreviewProps>(
                 <th className="py-1 text-left w-24">
                   <span className="underline">ID Number</span>
                 </th>
+                <th className="py-1 text-left w-28">
+                  <span className="underline">Location</span>
+                </th>
               </tr>
             </thead>
             <tbody>
               {formData.equipmentItems.length === 0 ? (
                 <tr>
-                  <td colSpan={4} className="py-2 text-center text-gray-400">
+                  <td colSpan={5} className="py-2 text-center text-gray-400">
                     No equipment items
                   </td>
                 </tr>
@@ -176,6 +179,7 @@ export const FMVLeasePreview = forwardRef<HTMLDivElement, FMVLeasePreviewProps>(
                     <td className="py-1">{item.makeModelDescription || "-"}</td>
                     <td className="py-1">{item.serialNumber || "-"}</td>
                     <td className="py-1">{item.idNumber || "-"}</td>
+                    <td className="py-1">{item.location || "-"}</td>
                   </tr>
                 ))
               )}

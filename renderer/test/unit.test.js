@@ -4,6 +4,7 @@ import { evaluate, coalesceBranches } from '../src/expr.js';
 import { applyFormat } from '../src/format.js';
 import { resolve, interpolate, allTokensEmpty } from '../src/resolve.js';
 import { sanitizeHtml } from '../src/html.js';
+import { buildCss } from '../src/css.js';
 
 const scope = { totals: { subtotal: 1000 }, vars: { taxRate: 0.087 }, lease: { term: null } };
 const lookup = (p) => p.split('.').reduce((o, k) => o?.[k], scope);
@@ -81,6 +82,17 @@ test('sanitizer strips scripts, handlers and attributes', () => {
   assert.equal(sanitizeHtml('<a href="//x">y</a>'), 'y');
   assert.equal(sanitizeHtml('<iframe src="//x"></iframe>z'), 'z');
   assert.equal(sanitizeHtml('<p>keep <strong>this</strong></p>'), '<p>keep <strong>this</strong></p>');
+});
+
+test('lighter terms styling is opt-in per template', () => {
+  const block = { type: 'richText', title: 'Terms & Conditions', html: '{{terms.html}}' };
+  const data = { terms: { html: '<p>Clause</p>' } };
+  assert.equal(resolve({ blocks: [block] }, data).blocks[0].terms, undefined);
+  assert.equal(resolve({ styles: { lightenTerms: false }, blocks: [block] }, data).blocks[0].terms, undefined);
+  assert.equal(resolve({ styles: { lightenTerms: true }, blocks: [block] }, data).blocks[0].terms, true);
+  const css = buildCss({ styles: { lightenTerms: true } });
+  assert.match(css, /\.richText\.terms \.body \{ opacity: \.55; line-height: 1\.28; \}/);
+  assert.doesNotMatch(css, /\.richText\.terms[^}]*font-style:\s*italic/);
 });
 
 test('grouped subtotals sum to the block total', () => {

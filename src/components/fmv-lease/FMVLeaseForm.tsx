@@ -18,6 +18,7 @@ export interface FMVLeaseEquipmentItem {
   makeModelDescription: string;
   serialNumber: string;
   idNumber: string;
+  location: string;
 }
 
 export interface FMVLeaseFormData {
@@ -133,7 +134,6 @@ export function FMVLeaseForm({
     };
 
     const fillIfEmpty = (current: string, next: string) => (current?.trim() ? current : next);
-
     const base = savedConfig ? { ...formData, ...savedConfig } : { ...formData };
 
     const equipmentAddress = company
@@ -155,10 +155,15 @@ export function FMVLeaseForm({
     const rawDeliveryZip = company?.deliveryZip?.trim();
     const rawFallbackZip = company?.zip?.trim();
     const equipmentZip = isValidZip(rawDeliveryZip)
-      ? rawDeliveryZip!
+      ? rawDeliveryZip ?? ""
       : isValidZip(rawFallbackZip)
-        ? rawFallbackZip!
+        ? rawFallbackZip ?? ""
         : "";
+    const equipmentLocation = [
+      equipmentAddress,
+      [equipmentCity, equipmentState].filter(Boolean).join(", "),
+      equipmentZip,
+    ].filter(Boolean).join(" ");
 
     const billingAddress = company
       ? pick(buildAddress(company.apAddress, company.apAddress2), buildAddress(company.address, company.address2))
@@ -178,6 +183,7 @@ export function FMVLeaseForm({
           .replace(/\s*-$/, ""),
         serialNumber: savedItem?.serialNumber || item.serial || "",
         idNumber: savedItem?.idNumber || "",
+        location: savedItem?.location || equipmentLocation,
       };
     });
 
@@ -367,6 +373,14 @@ export function FMVLeaseForm({
                       onChange={(e) => updateEquipmentItem(index, "idNumber", e.target.value)}
                       className="h-8 text-sm"
                       placeholder="Enter ID number"
+                    />
+                  </Field>
+                  <Field label="Location">
+                    <Input
+                      value={item.location || ""}
+                      onChange={(e) => updateEquipmentItem(index, "location", e.target.value)}
+                      className="h-8 text-sm"
+                      placeholder="Equipment location"
                     />
                   </Field>
                 </FieldGrid>

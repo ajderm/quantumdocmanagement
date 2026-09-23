@@ -132,6 +132,23 @@ export interface RenderPayload {
   };
   /** Only the lines a customer should see. */
   line_items: RenderLineItem[];
+  /**
+   * Service-contract figures, on the documents that carry them.
+   *
+   * Optional because only the service agreement prints them. Every figure is
+   * nullable and null stays null: an unset overage rate must print blank, not
+   * $0.00 — a zero overage rate on a signed agreement is free copies.
+   */
+  service?: {
+    billing_period: string | null;
+    included_bw: number | null;
+    included_color: number | null;
+    overage_bw: number | null;
+    overage_color: number | null;
+    base_rate: number | null;
+    /** The base rate over a year, at this agreement's billing frequency. */
+    annual_total: number | null;
+  };
 }
 
 /**
@@ -178,16 +195,29 @@ export function taxRateFraction(input: unknown): number | null {
 }
 
 /**
- * Plain-text terms as paragraphs, or null when there are none.
+ * Terms already written as markup, rather than as typed prose.
+ *
+ * A dealer's transcribed form (Eakes' 14 service clauses) is stored as HTML so
+ * its numbering and emphasis survive. Detection is deliberately narrow: only a
+ * recognised block or inline tag counts, so a settings field that merely
+ * contains a stray `<` is still treated as text and escaped.
+ */
+const MARKUP = /<\/?(p|ul|ol|li|strong|em|b|i|u|br|span)\b[^>]*>/i;
+
+/**
+ * Terms as HTML, or null when there are none.
  *
  * Blank-line separated blocks become paragraphs and single newlines are kept
- * as line breaks, which is how the text was laid out where it was typed. The
+ * as line breaks, which is how the text was laid out where it was typed. Plain
  * text is escaped: it comes from a settings field, and the renderer's HTML
- * layer must never be handed markup it did not build.
+ * layer must never be handed markup it did not build. Terms that are already
+ * markup pass through — the renderer sanitises them to an inline subset and
+ * strips every attribute before printing.
  */
 export function termsHtml(text: string | null | undefined): string | null {
   const raw = (text ?? '').trim();
   if (raw === '') return null;
+  if (MARKUP.test(raw)) return raw;
   const esc = (s: string) => s
     .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
   return raw
@@ -260,8 +290,12 @@ export function joinAddress(parts: {
  * of defect as the "Term months" dangling unit.
  */
 export function lineDescription(item: { model?: string; description?: string }): string {
-  const model = (item.model ?? '').trim();
-  const description = (item.description ?? '').trim();
+  // Source descriptions arrive from a concatenation upstream and carry its
+  // separator: "...Workgroup Document System;". The trailing punctuation is
+  // an artefact, never content, so it is stripped before the line prints.
+  const tidy = (v?: string) => (v ?? '').replace(/[;,]+\s*$/, '').trim();
+  const model = tidy(item.model);
+  const description = tidy(item.description);
   if (model && description && description !== model) return `${model} — ${description}`;
   return model || description || 'Item';
 }
@@ -276,6 +310,7 @@ export interface QuoteFormLike {
   lineItems?: {
     model?: string; description?: string; quantity?: number; price?: number;
     productType?: string; serial?: string; sku?: string | null;
+    location?: string;
     meterReading?: string | number;
   }[];
 }
@@ -339,10 +374,41 @@ export function repCodeField(crm?: CrmExtras): string | null {
   return blankToNull(crm?.repCode);
 }
 
+/**
+ * The selling branch, when the portal has branches and one resolved.
+ *
+ * Null for portals with no `dealer_locations` rows, which keeps their
+ * documents on the dealer account address exactly as before.
+ */
+export interface RenderBranch {
+  name?: string | null;
+  address?: string | null;
+  phone?: string | null;
+}
+
+/** Dealer chrome: company and website stay put, address and phone follow the branch. */
+export function dealerBlock(ctx: {
+  dealerInfo?: { companyName?: string; address?: string; phone?: string; website?: string };
+  branch?: RenderBranch | null;
+  taxRate?: unknown;
+}) {
+  const branchAddr = ctx.branch?.address?.trim() || null;
+  const branchPhone = ctx.branch?.phone?.trim() || null;
+  return {
+    company: ctx.dealerInfo?.companyName?.trim() || null,
+    address: branchAddr ?? (ctx.dealerInfo?.address?.trim() || null),
+    phone: branchPhone ?? (ctx.dealerInfo?.phone?.trim() || null),
+    website: ctx.dealerInfo?.website?.trim() || null,
+    tax_rate: taxRateFraction(ctx.taxRate),
+  };
+}
+
 export interface RenderContext {
   dealerInfo?: {
     companyName?: string; address?: string; phone?: string; website?: string;
   };
+  /** The resolved (or rep-overridden) selling branch; null leaves chrome as-is. */
+  branch?: RenderBranch | null;
   deal?: { dealname?: string; closedate?: string } | null;
   shipToContact?: string | null;
   leasingPartnerName?: string | null;
@@ -394,7 +460,7 @@ export function quoteRenderPayload(form: QuoteFormLike, ctx: RenderContext): Ren
       extended: money(unit * quantity),
       serial: (item.serial ?? '').trim() || null,
       meter: (item.meterReading ?? '').toString().trim() || null,
-      site: null,
+      site: (item.location ?? '').trim() || null,
     };
   };
 
@@ -463,13 +529,7 @@ export function quoteRenderPayload(form: QuoteFormLike, ctx: RenderContext): Ren
       payment: quotedPayment !== null && quotedPayment > 0 ? money(quotedPayment) : null,
       type: leaseType || null,
     },
-    dealer: {
-      company: ctx.dealerInfo?.companyName?.trim() || null,
-      address: ctx.dealerInfo?.address?.trim() || null,
-      phone: ctx.dealerInfo?.phone?.trim() || null,
-      website: ctx.dealerInfo?.website?.trim() || null,
-      tax_rate: taxRateFraction(ctx.taxRate),
-    },
+    dealer: dealerBlock(ctx),
     terms: { html: termsHtml(ctx.termsText) },
     today: ctx.today,
     amounts: {
